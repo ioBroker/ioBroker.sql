@@ -1,0 +1,48 @@
+{
+    "common": {
+        "name":                     "sql",
+        "title":                    "SQL History",
+        "desc":                     {
+            "en": "Logging of states into SQL DB",
+            "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
+            "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
+        },
+        "version":                  "0.0.1",
+        "mode":                     "daemon",
+        "platform":                 "Javascript/Node.js",
+        "loglevel":                 "info",
+        "messagebox":               true,
+        "subscribe":                "messagebox",
+        "keywords":                 ["charts", "sql", "logging", "graphs", "archive"],
+        "preserveSettings":         "history",
+        "authors": [
+            "Bluefox <dogafox@gmail.com>"
+        ],
+        "license":                  "MIT",
+        "readme":                   "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
+        "icon":                     "sql.png",
+        "extIcon":                  "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
+		"type":                     "storage"
+    },
+    "native": {
+        "connLink":  "",
+        "debounce":  10000,
+        "retention": 31536000,
+        "host":      "localhost",
+        "port":      0,
+        "user":      "",
+        "password":  "",
+        "dbtype":    "postgresql"
+    },
+    "objects": [
+        {
+            "_id": "_design/history",
+            "language": "javascript",
+            "views": {
+                "state": {
+                    "map": "function(doc) { if (doc.type=='state' && doc.common.history) emit(doc._id, doc.common.history) }"
+                }
+            }
+        }
+    ]
+}
