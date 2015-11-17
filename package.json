@@ -23,12 +23,13 @@
     "home automation"
   ],
   "optionalDependencies": {
-      "mysql": "2.9.x",
-      "pg": "4.4.x",
-      "sqlite3": "3.1.x"
+      "mysql": ">=2.9.x",
+      "pg": ">=4.4.x",
+      "pg-native" : ">=1.9.0",
+      "sqlite3": ">=3.1.x"
   },
   "dependencies": {
-      "sql-client": "^0.7.0"
+      "sql-client": ">=0.7.0"
   },
   "devDependencies": {
       "grunt": "^0.4.5",

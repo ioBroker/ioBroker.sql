@@ -5,6 +5,7 @@
 var utils   = require(__dirname + '/lib/utils'); // Get common adapter utils
 var SQL     = require('sql-client');
 var fs      = require('fs');
+var commons = require(__dirname + '/lib/aggregate');
 
 var clients = {
     postgresql: {name: 'PostgreSQLClient'},
@@ -12,7 +13,7 @@ var clients = {
     sqlite:     {name: 'SQLite3Client'}
 };
 
-var types = {
+var types   = {
     'number':  0,
     'boolean': 0,
     'string':  1
@@ -24,13 +25,23 @@ var dbNames = [
 ];
 
 var sqlDPs  = {};
-var clientPool;
 var from    = {};
+var clientPool;
+var subscribeAll = false;
 
 var adapter = utils.adapter('sql');
 adapter.on('objectChange', function (id, obj) {
     if (obj && obj.common && obj.common.history && obj.common.history[adapter.namespace]) {
-        history[id] = obj.common.history;
+
+        if (!sqlDPs[id] && !subscribeAll) {
+            // unsubscribe
+            for (var id in sqlDPs) {
+                adapter.unsubscribeForeignStates(id);
+            }
+            subscribeAll = true;
+            adapter.subscribeForeignStates('*');
+        }
+        sqlDPs[id] = obj.common.history;
         adapter.log.info('enabled logging of ' + id);
     } else {
         if (sqlDPs[id]) {
@@ -88,6 +99,50 @@ function connect() {
     readAndRunScripts(function () {
         adapter.log.info('Connected to ' + adapter.config.dbtype);
     });
+}
+
+function testConnection(msg) {
+    var params = {
+        host:       msg.message.config.host + (msg.message.config.port ? ':' + msg.message.config.port : ''),
+        user:       msg.message.config.user,
+        password:   msg.message.config.password
+    };
+    var timeout;
+    try {
+        var client = new SQL[clients[msg.message.config.dbtype].name](params);
+        timeout = setTimeout(function () {
+            timeout = null;
+            adapter.sendTo(msg.from, msg.command, {error: 'connect timeout'}, msg.callback);
+        }, 5000);
+
+        client.connect(function (err) {
+            if (err) {
+                if (timeout) {
+                    clearTimeout(timeout);
+                    timeout = null;
+                }
+                return adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
+            }
+            client.execute("SELECT 2 + 3 AS x", function (err, rows, fields) {
+                client.disconnect();
+                if (timeout) {
+                    clearTimeout(timeout);
+                    timeout = null;
+                    return adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null}, msg.callback);
+                }
+            });
+        });
+    } catch (ex) {
+        if (timeout) {
+            clearTimeout(timeout);
+            timeout = null;
+        }
+        if (ex.toString() == 'TypeError: undefined is not a function') {
+            return adapter.sendTo(msg.from, msg.command, {error: 'Node.js DB driver could not be installed.'}, msg.callback);
+        } else {
+            return adapter.sendTo(msg.from, msg.command, {error: ex.toString()}, msg.callback);
+        }
+    }
 }
 
 // one script
@@ -160,6 +215,8 @@ function finish(callback) {
 function processMessage(msg) {
     if (msg.command == 'getHistory') {
         getHistory(msg);
+    } else if (msg.command == 'test') {
+        testConnection(msg);
     }
 }
 
@@ -168,9 +225,9 @@ function main() {
         adapter.log.error('Unknown DB type: ' + adapter.config.dbtype);
         adapter.stop();
     }
-
     // read all history settings
     adapter.objects.getObjectView('history', 'state', {}, function (err, doc) {
+        var count = 0;
         if (doc && doc.rows) {
             for (var i = 0, l = doc.rows.length; i < l; i++) {
                 if (doc.rows[i].value) {
@@ -180,6 +237,7 @@ function main() {
                     if (!sqlDPs[id][adapter.namespace]) {
                         delete sqlDPs[id];
                     } else {
+                        count++;
                         adapter.log.info('enabled logging of ' + id);
                         sqlDPs[id][adapter.namespace].retention   = parseInt(sqlDPs[id][adapter.namespace].retention || adapter.config.retention, 10) || 0;
                         sqlDPs[id][adapter.namespace].debounce    = parseInt(sqlDPs[id][adapter.namespace].debounce  || adapter.config.debounce,  10) || 1000;
@@ -193,12 +251,21 @@ function main() {
                 }
             }
         }
+        if (count < 20) {
+            for (var id in sqlDPs) {
+                adapter.subscribeForeignStates(id);
+            }
+        } else {
+            subscribeAll = true;
+            adapter.subscribeForeignStates('*');
+        }
     });
 
-    adapter.subscribeForeignStates('*');
     adapter.subscribeForeignObjects('*');
 
-    connect();
+    if (adapter.config.host) {
+        connect();
+    }
 }
 
 function pushHistory(id, state) {
@@ -216,7 +283,7 @@ function pushHistory(id, state) {
         if (!sqlDPs[id].timeout) {
 
             sqlDPs[id].timeout = setTimeout(function (_id) {
-                if (!sqlDPs[_id]) return;
+                if (!sqlDPs[_id] || !sqlDPs[_id].state) return;
                 var _settings = sqlDPs[_id][adapter.namespace];
                 // if it was not deleted in this time
                 if (_settings) {
@@ -246,37 +313,23 @@ function checkRetention(id) {
         // check every 6 hours
         if (!sqlDPs[id].lastCheck || dt - sqlDPs[id].lastCheck >= 21600000/* 6 hours */) {
             sqlDPs[id].lastCheck = dt;
-            // get list of directories
-            var dayList = getDirectories(adapter.config.storeDir).sort(function (a, b) {
-                return a - b;
-            });
             // calculate date
             d.setSeconds(-(sqlDPs[id][adapter.namespace].retention));
-            var day = ts2day(Math.round(d.getTime() / 1000));
-            for (var i = 0; i < dayList.length; i++) {
-                if (dayList[i] < day) {
-                    var file = adapter.config.storeDir + dayList[i] + '/sqlDPs.' + id + '.json';
-                    if (fs.existsSync(file)) {
-                        adapter.log.info('Delete old sqlDPs "' + file + '"');
-                        try {
-                            fs.unlinkSync(file);
-                        } catch(ex) {
-                            adapter.log.error('Cannot delete file "' + file + '": ' + ex);
-                        }
-                        var files = fs.readdirSync(adapter.config.storeDir + dayList[i]);
-                        if (!files.length) {
-                            adapter.log.info('Delete old sqlDPs dir "' + adapter.config.storeDir + dayList[i] + '"');
-                            try {
-                                fs.unlink(adapter.config.storeDir + dayList[i]);
-                            } catch(ex) {
-                                adapter.log.error('Cannot delete directory "' + adapter.config.storeDir + dayList[i] + '": ' + ex);
-                            }
-                        }
-                    }
-                } else {
-                    break;
+            var query = "DELETE FROM iobroker." + dbNames[sqlDPs[id].type] + " WHERE";
+            query += " id=" + sqlDPs[id].index;
+            query += " AND ts < " + Math.round(d.getTime() / 1000);
+            clientPool.borrow(function (err, client) {
+                if (err) {
+                    adapter.log.error(err);
+                    return;
                 }
-            }
+                client.execute(query, function (err, rows, fields) {
+                    if (err) {
+                        adapter.log.error('Cannot delete ' + query + ': ' + err);
+                    }
+                    clientPool.return(client);
+                });
+            });
         }
     }
 }
@@ -314,7 +367,9 @@ function pushValueIntoDB(id, state) {
             }
         });
     }
-    var query = "INSERT INTO iobroker." + dbNames[type] + "(ts,val,ack,_from,q) VALUES(" + state.ts + ", " + state.val + ", " + (state.ack ? 1 : 0) + ", " + (from[state.from] || 0) + ", " + state.q + ");";
+    var query = "INSERT INTO iobroker." + dbNames[type] + "(id, ts, val, ack, _from, q, ms) VALUES(" + sqlDPs[id].index + ", " + state.ts + ", " + state.val + ", " + (state.ack ? 1 : 0) + ", " + (from[state.from] || 0) + ", " + state.q + ", " + (state.ms || 0) + ");";
+
+    adapter.log.debug(query);
 
     clientPool.borrow(function (err, client) {
         if (err) {
@@ -328,6 +383,7 @@ function pushValueIntoDB(id, state) {
             clientPool.return(client);
         });
     });
+    checkRetention(id);
 }
 
 function getId(id, type, cb) {
@@ -346,31 +402,36 @@ function getId(id, type, cb) {
                 return;
             }
             if (!rows.length) {
-                // insert
-                query = "SELECT MAX(id) FROM iobroker.datapoints;";
-                client.execute(query, function (err, rows, fields) {
-                    if (err) {
-                        adapter.log.error('Cannot select ' + query + ': ' + err);
-                        if (cb) cb(err);
-                        clientPool.return(client);
-                        return;
-                    }
-                    var max = parseInt(rows[0] ? rows[0]['MAX(id)'] : 0) || 0;
-                    query = "INSERT INTO iobroker.datapoints VALUES(" + (max + 1) + ", '" + id + "', " + type + ");";
+                if (type !== null) {
+                    // insert
+                    query = "SELECT MAX(id) FROM iobroker.datapoints;";
                     client.execute(query, function (err, rows, fields) {
                         if (err) {
-                            adapter.log.error('Cannot insert ' + query + ': ' + err);
+                            adapter.log.error('Cannot select ' + query + ': ' + err);
                             if (cb) cb(err);
                             clientPool.return(client);
                             return;
                         }
-                        sqlDPs[id].index = (max + 1);
-                        sqlDPs[id].type  = type;
+                        var max = parseInt(rows[0] ? rows[0]['MAX(id)'] : 0) || 0;
+                        query = "INSERT INTO iobroker.datapoints VALUES(" + (max + 1) + ", '" + id + "', " + type + ");";
+                        client.execute(query, function (err, rows, fields) {
+                            if (err) {
+                                adapter.log.error('Cannot insert ' + query + ': ' + err);
+                                if (cb) cb(err);
+                                clientPool.return(client);
+                                return;
+                            }
+                            sqlDPs[id].index = (max + 1);
+                            sqlDPs[id].type  = type;
 
-                        if (cb) cb();
-                        clientPool.return(client);
+                            if (cb) cb();
+                            clientPool.return(client);
+                        });
                     });
-                });
+                } else {
+                    if (cb) cb('id not found');
+                    clientPool.return(client);
+                }
             } else {
                 sqlDPs[id].index = rows[0].id;
                 sqlDPs[id].type  = rows[0].type;
@@ -432,132 +493,78 @@ function getFrom(_from, cb) {
     });
 }
 
-function aggregate(data, options) {
-    if (data && data.length) {
-        if (typeof data[0].val !== 'number') {
-            return {result: data, step: 0, sourceLength: data.length};
-        }
-        var start = new Date(options.start * 1000);
-        var end   = new Date(options.end * 1000);
-
-        var step = 1; // 1 Step is 1 second
-        if (options.step) {
-            step = options.step;
-        } else{
-            step = Math.round((options.end - options.start) / options.count) ;
-        }
-
-        // Limit 2000
-        if ((options.end - options.start) / step > options.limit){
-            step = Math.round((options.end - options.start)/ options.limit);
-        }
-
-        var stepEnd;
-        var i = 0;
-        var result = [];
-        var iStep = 0;
-        options.aggregate = options.aggregate || 'max';
-        
-        while (i < data.length && new Date(data[i].ts * 1000) < end) {
-            stepEnd = new Date(start);
-            var x = stepEnd.getSeconds();
-            stepEnd.setSeconds(x + step);
-
-            if (stepEnd < start) {
-                // Summer time
-                stepEnd.setHours(start.getHours() + 2);
-            }
-
-            // find all entries in this time period
-            var value = null;
-            var count = 0;
-
-            while (i < data.length && new Date(data[i].ts * 1000) < stepEnd) {
-                if (options.aggregate == 'max') {
-                    // Find max
-                    if (value === null || data[i].val > value) value = data[i].val;
-                } else if (options.aggregate == 'min') {
-                    // Find min
-                    if (value === null || data[i].val < value) value = data[i].val;
-                } else if (options.aggregate == 'average') {
-                    if (value === null) value = 0;
-                    value += data[i].val;
-                    count++;
-                } else if (options.aggregate == 'total') {
-                    // Find sum
-                    if (value === null) value = 0;
-                    value += parseFloat(data[i].val);
-                }
-                i++;
-            }
-
-            if (options.aggregate == 'average') {
-                if (!count) {
-                    value = null;
-                } else {
-                    value /= count;
-                    value = Math.round(value * 100) / 100;
-                }
-            }
-            if (value !== null || !options.ignoreNull) {
-                result[iStep] = {ts: stepEnd.getTime() / 1000};
-                result[iStep].val = value;
-                iStep++;
-            }
-
-            start = stepEnd;
-        }
-
-        return {result: result, step: step, sourceLength: data.length};
-    } else {
-        return {result: [], step: 0, sourceLength: 0};
-    }
-}
-
 function sortByTs(a, b) {
     var aTs = a.ts;
     var bTs = b.ts;
     return ((aTs < bTs) ? -1 : ((aTs > bTs) ? 1 : 0));
 }
 
-function sendResponse(msg, options, data, startTime) {
-    var aggregateData;
-    data = data.sort(sortByTs);
-    if (options.count && !options.start && data.length > options.count) {
-        data.splice(0, data.length - options.count);
-    }
-    if (data[0]) {
-        options.start = options.start || data[0].ts;
+function getDataFromDB(db, options, callback) {
+    var query = "SELECT ts, val" +
+        (!options.id  ? ", iobroker." + db + ".id as id" : "") +
+        (options.ack  ? ", ack" : "") +
+        (options.from ? ", iobroker.sources.name as 'from'" : "") +
+        (options.q    ? ", q" : "") + " FROM iobroker." + db;
 
-        if (!options.aggregate || options.aggregate === 'none') {
-            aggregateData = {result: data, step: 0, sourceLength: data.length};
-        } else {
-            aggregateData = aggregate(data, options);
+    if (options.from) {
+        query += " INNER JOIN iobroker.sources ON iobroker.sources.id=iobroker." + db + "._from";
+    }
+
+    var where = "";
+
+    if (options.id) {
+        where += " iobroker." + db + ".id=" + sqlDPs[options.id].index;
+    }
+    if (options.end) {
+        where += (where ? " AND" : "") + " iobroker." + db + ".ts < " + options.end;
+    }
+    if (options.start) {
+        where += (where ? " AND" : "") + " iobroker." + db + ".ts >= " + options.start;
+    }
+
+    if (where) query += " WHERE " + where;
+
+
+    query += " ORDER BY iobroker." + db + ".ts";
+
+    if (!options.start && options.count) {
+        query += " DESC LIMIT " + options.count;
+    }
+
+    query += ";";
+
+    adapter.log.debug(query);
+
+    clientPool.borrow(function (err, client) {
+        if (err) {
+            if (callback) callback(err);
+            return;
         }
-
-        adapter.log.info('Send: ' + aggregateData.result.length + ' of: ' + aggregateData.sourceLength + ' in: ' + (new Date().getTime() - startTime) + 'ms');
-        adapter.sendTo(msg.from, msg.command, {
-            result: aggregateData.result,
-            step: aggregateData.step,
-            error: null
-        }, msg.callback);
-    } else {
-        adapter.log.info('No Data');
-        adapter.sendTo(msg.from, msg.command, {result: [].result, step: null, error: null}, msg.callback);
-    }
+        client.execute(query, function (err, rows, fields) {
+            // because descending
+            if (!err && rows && !options.start && options.count) {
+                rows.sort(sortByTs);
+            }
+            clientPool.return(client);
+            if (callback) callback(err, rows);
+        });
+    });
 }
-
 function getHistory(msg) {
     var startTime = new Date().getTime();
-    var id = msg.message.id;
     var options = {
+        id:         msg.message.id == '*' ? null : msg.message.id,
         start:      msg.message.options.start,
         end:        msg.message.options.end || Math.round((new Date()).getTime() / 1000) + 5000,
         step:       parseInt(msg.message.options.step) || null,
         count:      parseInt(msg.message.options.count) || 500,
         ignoreNull: msg.message.options.ignoreNull,
         aggregate:  msg.message.options.aggregate || 'average', // One of: max, min, average, total
-        limit:      msg.message.options.limit || adapter.config.limit || 2000
+        limit:      msg.message.options.limit || adapter.config.limit || 2000,
+        from:       msg.message.options.from  || false,
+        q:          msg.message.options.q     || false,
+        ack:        msg.message.options.ack   || false,
+        ms:         msg.message.options.ms    || false
     };
 
     if (options.start > options.end){
@@ -570,15 +577,37 @@ function getHistory(msg) {
         options.start = Math.round((new Date()).getTime() / 1000) - 5030; // - 1 year
     }
 
-    getCachedData(id, options, function (cacheData, isFull) {
-        // if all data read
-        if (isFull && cacheData.length) {
-            sendResponse(msg, options, cacheData, startTime);
-        } else {
-            getFileData(id, options, function (fileData) {
-                sendResponse(msg, options, cacheData.concat(fileData), startTime);
+    if (options.id && sqlDPs[options.id].index === undefined) {
+        // read or create in DB
+        return getId(options.id, null, function (err) {
+            if (err) {
+                adapter.log.warn('Cannot get index of "' + options.id + '": ' + err);
+                commons.sendResponse(adapter, msg, options, [], startTime);
+            } else {
+                getHistory(msg);
+            }
+        });
+    }
+
+    // if specific id requested
+    if (options.id) {
+        getDataFromDB(dbNames[sqlDPs[options.id].type], options, function (err, data) {
+            commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || data, startTime);
+        });
+    } else {
+        // if all IDs requested
+        var rows = [];
+        var count = 0;
+        for (var db = 0; db < dbNames.length; db++) {
+            count++;
+            getDataFromDB(dbNames[db], options, function (err, data) {
+                if (data) rows = rows.concat(data);
+                if (!--count) {
+                    rows.sort(sortByTs);
+                    commons.sendResponse(adapter, msg, options, rows, startTime);
+                }
             });
         }
-    });
+    }
 }
 

@@ -27,6 +27,10 @@
             "de": "Default Einstellungen für Zuständen:",
             "ru": "Настройки по умолчанию для состояний"
         },
+        "Start or enable adapter first": {
+            "de": "Adapter muss zuerst aktiviert werden",
+            "ru": "Сначала надо активировать драйвер SQL"
+        },
         "debounce":               {"en": "De-bounce interval(ms)", "de": "Entprellzeit(ms)",            "ru": "Минимальный интервал(ms)"},
         "retention":              {"en": "Storage retention",     "de": "Storage Vorhaltezeit",         "ru": "Время хранения в базе"},
         "keep forever":           {"en": "keep forever",          "de": "keine automatische Löschung",  "ru": "хранить вечно"},
@@ -77,6 +81,29 @@
         }
         $('#passwordConfirm').val(settings.password);
 
+        $('#test').button().click(function () {
+            getIsAdapterAlive(function (isAlive) {
+                if (!isAlive) {
+                    showMessage(_('Start or enable adapter first'));
+                } else {
+                    $('#test').button('option', 'disabled', true);
+                    sendTo(null, 'test', {
+                        config: {
+                            dbtype:   $('#dbtype').val(),
+                            port:     $('#port').val(),
+                            host:     $('#host').val(),
+                            user:     $('#user').val(),
+                            password: $('#password').val()
+                        }
+                    }, function (response) {
+                        $('#test').button('option', 'disabled', false);
+                        showMessage(response.error || 'OK');
+                    });
+
+                }
+            });
+        });
+
         onChange(false);
     }
 
@@ -109,7 +136,7 @@
 
 <div id="adapter-container">
     <table><tr>
-        <td><img src="history.png"></td>
+        <td><img src="sql.png"></td>
         <td style="padding-top: 20px;padding-left: 10px"><h3 class="translate">SQL history adapter settings</h3></td>
     </tr></table>
     <table>
@@ -168,6 +195,7 @@
         </tr>
 
     </table>
+    <br><button id="test" class="translate">Test connection</button>
 
 </div>
 </html>
