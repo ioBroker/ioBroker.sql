@@ -34,7 +34,8 @@
         "port":      0,
         "user":      "",
         "password":  "",
-        "dbtype":    "postgresql"
+        "dbtype":    "postgresql",
+        "fileName":  "sqlite.db"
     },
     "objects": [
         {

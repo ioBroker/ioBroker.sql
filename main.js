@@ -72,6 +72,7 @@ process.on('SIGINT', function () {
     finish();
 });
 
+var _client = false;
 function connect() {
     if (!clientPool) {
         var params = {
@@ -81,23 +82,70 @@ function connect() {
             max_idle:   2
         };
 
-        clientPool = new SQL[clients[adapter.config.dbtype].name + 'Pool'](params);
-        return clientPool.open(function (err) {
-            if (err) {
-                adapter.log.error(err);
-                setTimeout(function () {
-                    connect();
-                }, 30000);
-            } else {
-                setTimeout(function () {
-                    connect();
-                }, 0);
+        if (_client !== true && adapter.config.dbtype === 'postgresql') {
+            if (adapter.config.dbtype == "postgresql") {
+                params.database = "postgres";
             }
-        });
+            // connect first to DB postgres and create iobroker DB
+            _client = new SQL[clients[adapter.config.dbtype].name](params);
+            return _client.connect(function (err) {
+                _client.execute('CREATE DATABASE iobroker;', function(err, rows, fields) {
+                    _client.disconnect();
+                    if (err && err.code !== '42P04') { // if error not about yet exists
+                        _client = false;
+                        adapter.log.error(err);
+                        setTimeout(function () {
+                            connect();
+                        }, 30000);
+                    } else {
+                        _client = true;
+                        setTimeout(function () {
+                            connect();
+                        }, 100);
+                    }
+                });
+            });
+        }
+
+        if (adapter.config.dbtype == "postgresql") {
+            params.database = "iobroker";
+        }
+
+        try {
+            clientPool = new SQL[clients[adapter.config.dbtype].name + 'Pool'](params);
+            return clientPool.open(function (err) {
+                if (err) {
+                    adapter.log.error(err);
+                    setTimeout(function () {
+                        connect();
+                    }, 30000);
+                } else {
+                    setTimeout(function () {
+                        connect();
+                    }, 0);
+                }
+            });
+        } catch (ex) {
+            if (ex.toString() == 'TypeError: undefined is not a function') {
+                adapter.log.error('Node.js DB driver for "' + adapter.config.dbtype + '" could not be installed.');
+            } else {
+                adapter.log.error(ex.toString());
+            }
+            return setTimeout(function () {
+                connect();
+            }, 30000);
+        }
     }
 
-    readAndRunScripts(function () {
-        adapter.log.info('Connected to ' + adapter.config.dbtype);
+    readAndRunScripts(function (err) {
+        if (err) {
+            adapter.log.error(err);
+            return setTimeout(function () {
+                connect();
+            }, 30000);
+        } else {
+            adapter.log.info('Connected to ' + adapter.config.dbtype);
+        }
     });
 }
 
@@ -152,44 +200,69 @@ function oneScript(fileName, cb) {
 
     if (file[0] == "﻿") file = file.substring(1);
 
+    if (adapter.config.dbtype == 'postgresql') {
+        file = file.replace(/iobroker\./g, '');
+    }
+
     /*client.execute( "SELECT ? + 3 AS x", [ 4 ], function (err,rows,fields) {
      console.log("The answer is",rows[0].x);
      callback();
      }):*/
-    clientPool.borrow(function (err, client) {
-        client.execute(file, function(err, rows, fields) {
-            if (err) {
-                if (err.errno == 1007 || err.errno == 1050) { // if database exists or table exists
-                    // do nothing
-
-                } else
-                if (err.code == '42P07') {
-                    var match = script.match(/CREATE\s+TABLE\s+(\w*)\s+\(/);
-                    if (match) {
-                        adapter.log.debug('OK. Table "' + match[1] + '" yet exists');
+    try {
+        clientPool.borrow(function (err, client) {
+            if (err || !client) {
+                clientPool.close();
+                clientPool = null;
+                adapter.log.error(err);
+                if (cb) cb(err);
+                return;
+            }
+            client.execute(file, function(err, rows, fields) {
+                if (err) {
+                    if (err.errno == 1007 || err.errno == 1050) { // if database exists or table exists
+                        // do nothing
+                        err = null;
+                    }  else
+                    if (err.code == '42P04') {// if database exists or table exists
+                        // do nothing
+                        err = null;
+                    }
+                    else if (err.code == '42P07') {
+                        var match = file.match(/CREATE\s+TABLE\s+(\w*)\s+\(/);
+                        if (match) {
+                            adapter.log.debug('OK. Table "' + match[1] + '" yet exists');
+                            err = null;
+                        } else {
+                            adapter.log.error(file);
+                            adapter.log.error(err);
+                        }
                     } else {
                         adapter.log.error(file);
                         adapter.log.error(err);
                     }
-                } else {
-                    adapter.log.error(file);
-                    adapter.log.error(err);
                 }
-            }
-            if (cb) cb(err);
-            clientPool.return(client);
+                if (cb) cb(err);
+                clientPool.return(client);
+            });
         });
-    });
+    } catch(ex) {
+        adapter.log.error(ex);
+    }
+
 }
 
 // all scripts
 function allScripts(files, cb) {
     if (files && files.length) {
         oneScript(files.shift(), function (err) {
-            allScripts(files, cb);
+            if (err) {
+                cb && cb(err);
+            } else {
+                allScripts(files, cb);
+            }
         });
     } else {
-        cb();
+        cb && cb();
     }
 }
 
@@ -202,8 +275,8 @@ function readAndRunScripts(cb) {
         if (files[f][0] == '_') files.splice(f, 1);
     }
 
-    allScripts(files, function () {
-        cb && cb();
+    allScripts(files, function (err) {
+        cb && cb(err);
     });
 }
 
@@ -315,9 +388,9 @@ function checkRetention(id) {
             sqlDPs[id].lastCheck = dt;
             // calculate date
             d.setSeconds(-(sqlDPs[id][adapter.namespace].retention));
-            var query = "DELETE FROM iobroker." + dbNames[sqlDPs[id].type] + " WHERE";
+            var query = "DELETE FROM " + (adapter.config.dbtype !== 'postgresql' ? "iobroker." : "") + dbNames[sqlDPs[id].type] + " WHERE";
             query += " id=" + sqlDPs[id].index;
-            query += " AND ts < " + Math.round(d.getTime() / 1000);
+            query += " AND ts < " + Math.round(d.getTime() / 1000); query += ";";
             clientPool.borrow(function (err, client) {
                 if (err) {
                     adapter.log.error(err);
@@ -367,7 +440,13 @@ function pushValueIntoDB(id, state) {
             }
         });
     }
-    var query = "INSERT INTO iobroker." + dbNames[type] + "(id, ts, val, ack, _from, q, ms) VALUES(" + sqlDPs[id].index + ", " + state.ts + ", " + state.val + ", " + (state.ack ? 1 : 0) + ", " + (from[state.from] || 0) + ", " + state.q + ", " + (state.ms || 0) + ");";
+    var query = "INSERT INTO " + (adapter.config.dbtype !== 'postgresql' ? "iobroker." : "") + dbNames[type] + " (id, ts, val, ack, _from, q, ms) VALUES(" + sqlDPs[id].index + ", " + state.ts + ", " + state.val + ", ";
+    if (adapter.config.dbtype === 'postgresql') {
+        query += (state.ack ? 1 : 0);
+    } else {
+        query += !!state.ack;
+    }
+    query += ", " + (from[state.from] || 0) + ", " + state.q + ", " + (state.ms || 0) + ");";
 
     adapter.log.debug(query);
 
@@ -387,7 +466,8 @@ function pushValueIntoDB(id, state) {
 }
 
 function getId(id, type, cb) {
-    var query = "SELECT id, type FROM iobroker.datapoints WHERE name='" + id + "';";
+    var datapoints = (adapter.config.dbtype !== 'postgresql' ? "iobroker." : "") + "datapoints";
+    var query = "SELECT id, type FROM " + datapoints + " WHERE name='" + id + "';";
 
     clientPool.borrow(function (err, client) {
         if (err) {
@@ -404,7 +484,7 @@ function getId(id, type, cb) {
             if (!rows.length) {
                 if (type !== null) {
                     // insert
-                    query = "SELECT MAX(id) FROM iobroker.datapoints;";
+                    query = "SELECT MAX(id) FROM " + datapoints + ";";
                     client.execute(query, function (err, rows, fields) {
                         if (err) {
                             adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -413,7 +493,7 @@ function getId(id, type, cb) {
                             return;
                         }
                         var max = parseInt(rows[0] ? rows[0]['MAX(id)'] : 0) || 0;
-                        query = "INSERT INTO iobroker.datapoints VALUES(" + (max + 1) + ", '" + id + "', " + type + ");";
+                        query = "INSERT INTO " + datapoints + " VALUES(" + (max + 1) + ", '" + id + "', " + type + ");";
                         client.execute(query, function (err, rows, fields) {
                             if (err) {
                                 adapter.log.error('Cannot insert ' + query + ': ' + err);
@@ -444,7 +524,8 @@ function getId(id, type, cb) {
 }
 
 function getFrom(_from, cb) {
-    var query = "SELECT id FROM iobroker.sources WHERE name='" + _from + "';";
+    var sources    = (adapter.config.dbtype !== 'postgresql' ? "iobroker." : "") + "sources";
+    var query = "SELECT id FROM " + sources + " WHERE name='" + _from + "';";
 
     clientPool.borrow(function (err, client) {
         if (err) {
@@ -460,7 +541,7 @@ function getFrom(_from, cb) {
             }
             if (!rows.length) {
                 // insert
-                query = "SELECT MAX(id) FROM iobroker.sources;";
+                query = "SELECT MAX(id) FROM " + sources + ";";
                 client.execute(query, function (err, rows, fields) {
                     if (err) {
                         adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -469,7 +550,7 @@ function getFrom(_from, cb) {
                         return;
                     }
                     var max = parseInt(rows[0] ? rows[0]['MAX(id)'] : 0) || 0;
-                    query = "INSERT INTO iobroker.sources VALUES(" + (max + 1) + ", '" + _from + "');";
+                    query = "INSERT INTO " + sources + " VALUES(" + (max + 1) + ", '" + _from + "');";
                     client.execute(query, function (err, rows, fields) {
                         if (err) {
                             adapter.log.error('Cannot insert ' + query + ': ' + err);
@@ -500,32 +581,35 @@ function sortByTs(a, b) {
 }
 
 function getDataFromDB(db, options, callback) {
+    db = (adapter.config.dbtype !== 'postgresql' ? "iobroker." : "") + db;
+    var sources = (adapter.config.dbtype !== 'postgresql' ? "iobroker." : "") + "sources";
+
     var query = "SELECT ts, val" +
-        (!options.id  ? ", iobroker." + db + ".id as id" : "") +
+        (!options.id  ? (", " + db + ".id as id") : "") +
         (options.ack  ? ", ack" : "") +
-        (options.from ? ", iobroker.sources.name as 'from'" : "") +
-        (options.q    ? ", q" : "") + " FROM iobroker." + db;
+        (options.from ? (", " + sources + ".name as 'from'") : "") +
+        (options.q    ? ", q" : "") + " FROM " + db;
 
     if (options.from) {
-        query += " INNER JOIN iobroker.sources ON iobroker.sources.id=iobroker." + db + "._from";
+        query += " INNER JOIN " + sources + " ON " + sources + ".id=" + db + "._from";
     }
 
     var where = "";
 
     if (options.id) {
-        where += " iobroker." + db + ".id=" + sqlDPs[options.id].index;
+        where += " " + db + ".id=" + sqlDPs[options.id].index;
     }
     if (options.end) {
-        where += (where ? " AND" : "") + " iobroker." + db + ".ts < " + options.end;
+        where += (where ? " AND" : "") + " " + db + ".ts < " + options.end;
     }
     if (options.start) {
-        where += (where ? " AND" : "") + " iobroker." + db + ".ts >= " + options.start;
+        where += (where ? " AND" : "") + " " + db + ".ts >= " + options.start;
     }
 
     if (where) query += " WHERE " + where;
 
 
-    query += " ORDER BY iobroker." + db + ".ts";
+    query += " ORDER BY " + db + ".ts";
 
     if (!options.start && options.count) {
         query += " DESC LIMIT " + options.count;
@@ -611,3 +695,6 @@ function getHistory(msg) {
     }
 }
 
+process.on('uncaughtException', function(err) {
+    adapter.log.warn('Exception: ' + err);
+});

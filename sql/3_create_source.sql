@@ -1,4 +1,4 @@
 CREATE TABLE iobroker.sources (
-	id   INTEGER NOT NULL PRIMARY KEY,
+	id   INTEGER,
 	name TEXT
 );

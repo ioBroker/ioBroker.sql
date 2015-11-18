@@ -93,6 +93,7 @@
                             port:     $('#port').val(),
                             host:     $('#host').val(),
                             user:     $('#user').val(),
+                            fileName: $('#fileName').val(),
                             password: $('#password').val()
                         }
                     }, function (response) {
@@ -102,6 +103,16 @@
 
                 }
             });
+        });
+
+        $('#dbtype').change(function () {
+            if ($(this).val() == 'sqlite') {
+                $('.real-sql').hide();
+                $('.baby-sql').show();
+            } else {
+                $('.real-sql').show();
+                $('.baby-sql').hide();
+            }
         });
 
         onChange(false);
@@ -129,7 +140,6 @@
             return;
         }
 
-
         callback(settings);
     }
 </script>
@@ -150,24 +160,29 @@
             </select></td>
             <td class="translate"></td>
         </tr>
-        <tr>
+        <tr class="real-sql">
             <td class="translate">Host</td>
             <td><input id="host" type="text" class="value"/></td>
             <td class="translate"></td>
         </tr>
-        <tr>
+        <tr class="real-sql">
             <td class="translate">User</td>
             <td><input id="user" type="text" class="value"/></td>
             <td class="translate"></td>
         </tr>
-        <tr>
+        <tr class="real-sql">
             <td class="translate">Password</td>
             <td><input id="password" type="password" class="value"/></td>
             <td class="translate"></td>
         </tr>
-        <tr>
+        <tr class="real-sql">
             <td class="translate">Password confirm</td>
             <td><input id="passwordConfirm" type="password"/></td>
+            <td class="translate"></td>
+        </tr>
+        <tr class="baby-sql">
+            <td class="translate">File for sqlite:</td>
+            <td><input id="fileName" type="text"/></td>
             <td class="translate"></td>
         </tr>
         <tr><td colspan="3"><h4 class="translate">Default settings:</h4></td></tr>
