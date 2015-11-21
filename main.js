@@ -4,9 +4,14 @@
 
 var utils    = require(__dirname + '/lib/utils'); // Get common adapter utils
 var SQL      = require('sql-client');
-var fs       = require('fs');
 var commons  = require(__dirname + '/lib/aggregate');
 var SQLFuncs = null;
+var postgres = require(__dirname + '/lib/postgresql-client');
+var fs       = require('fs');
+
+for (var attr in postgres) {
+    if (!SQL[attr]) SQL[attr] = postgres[attr];
+}
 
 var clients = {
     postgresql: {name: 'PostgreSQLClient'},
@@ -83,10 +88,14 @@ function connect() {
             max_idle: 2
         };
 
+        if (adapter.config.dbtype === 'sqlite') {
+            params = getSqlLiteDir(adapter.config.fileName);
+        }
+        else
         // special solution for postgres. Connect first to Db "postgres", create new DB "iobroker" and then connect to "iobroker" DB.
         if (_client !== true && adapter.config.dbtype === 'postgresql') {
-            if (adapter.config.dbtype == "postgresql") {
-                params.database = "postgres";
+            if (adapter.config.dbtype == 'postgresql') {
+                params.database = 'postgres';
             }
             // connect first to DB postgres and create iobroker DB
             _client = new SQL[clients[adapter.config.dbtype].name](params);
@@ -158,6 +167,30 @@ function connect() {
     });
 }
 
+// Find sqlite data directory
+function getSqlLiteDir(fileName) {
+    fileName = fileName || 'sqlite.db';
+    fileName = fileName.replace(/\\/g, '/');
+    if (fileName[0] == '/' || fileName.match(/^\w:\//)) {
+        return fileName;
+    }
+    else {
+        // normally /opt/iobroker/node_modules/iobroker.js-controller
+        // but can be /example/ioBroker.js-controller
+        var tools = require(utils.controllerDir + '/lib/tools');
+        var config = tools.getConfigFileName().replace(/\\/g, '/');
+        var parts = config.split('/');
+        parts.pop();
+        config = parts.join('/') + '/sqlite';
+        // create sqlite directory
+        if (!fs.existsSync(config)) {
+            fs.mkdirSync(config);
+        }
+
+        return config + '/' + fileName;
+    }
+}
+
 function testConnection(msg) {
     var params = {
         host:       msg.message.config.host + (msg.message.config.port ? ':' + msg.message.config.port : ''),
@@ -166,6 +199,8 @@ function testConnection(msg) {
     };
     if (msg.message.config.dbtype === 'postgresql') {
         params.database = 'postgres';
+    } else if (msg.message.config.dbtype === 'sqlite') {
+        params = getSqlLiteDir(msg.message.config.fileName);
     }
     var timeout;
     try {
@@ -220,6 +255,10 @@ function oneScript(script, cb) {
             client.execute(script, function(err, rows, fields) {
                 adapter.log.debug('Response: ' + JSON.stringify(err));
                 if (err) {
+                    if (err.message && err.message.match(/^SQLITE_ERROR: table [\w_]+ already exists$/)) {
+                        // do nothing
+                        err = null;
+                    } else
                     if (err.errno == 1007 || err.errno == 1050) { // if database exists or table exists
                         // do nothing
                         err = null;
@@ -331,7 +370,7 @@ function main() {
 
     adapter.subscribeForeignObjects('*');
 
-    if (adapter.config.host) {
+    if (adapter.config.dbtype === 'sqlite' || adapter.config.host) {
         connect();
     }
 }
