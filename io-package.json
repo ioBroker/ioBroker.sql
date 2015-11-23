@@ -24,7 +24,13 @@
         "readme":                   "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
         "icon":                     "sql.png",
         "extIcon":                  "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
-		"type":                     "storage"
+		"type":                     "storage",
+        "config":{
+            "minWidth": 570,
+            "width ": 435,
+            "minHeight": 200,
+            "height": 520
+        }
     },
     "native": {
         "connLink":  "",
@@ -36,7 +42,8 @@
         "password":  "",
         "dbtype":    "postgresql",
         "fileName":  "sqlite.db",
-        "encrypt":   false
+        "encrypt":   false,
+        "round":     4
     },
     "objects": [
         {

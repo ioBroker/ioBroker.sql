@@ -31,19 +31,35 @@
             "de": "Adapter muss zuerst aktiviert werden",
             "ru": "Сначала надо активировать драйвер SQL"
         },
-        "debounce":               {"en": "De-bounce interval(ms)", "de": "Entprellzeit(ms)",            "ru": "Минимальный интервал(ms)"},
-        "retention":              {"en": "Storage retention",     "de": "Storage Vorhaltezeit",         "ru": "Время хранения в базе"},
-        "keep forever":           {"en": "keep forever",          "de": "keine automatische Löschung",  "ru": "хранить вечно"},
-        "2 years":                {"en": "2 years",               "de": "2 Jahre",                      "ru": "2 года"},
-        "1 year":                 {"en": "1 year",                "de": "1 Jahr",                       "ru": "1 год"},
-        "6 months":               {"en": "6 months",              "de": "6 Monate",                     "ru": "6 месяцев"},
-        "3 months":               {"en": "3 months",              "de": "3 Monate",                     "ru": "3 месяца"},
-        "1 months":               {"en": "1 months",              "de": "1 Monat",                      "ru": "1 месяц"},
-        "2 weeks":                {"en": "2 weeks",               "de": "2 Wochen",                     "ru": "2 недели"},
-        "1 week":                 {"en": "1 week",                "de": "1 Woche",                      "ru": "1 неделя"},
-        "5 days":                 {"en": "5 days",                "de": "5 Tage",                       "ru": "5 дней"},
-        "3 days":                 {"en": "3 days",                "de": "3 Tage",                       "ru": "3 дня"},
-        "1 day":                  {"en": "1 day",                 "de": "1 Tag",                        "ru": "1 день"}
+        "debounce":             {"en": "De-bounce interval(ms)", "de": "Entprellzeit(ms)",              "ru": "Минимальный интервал(ms)"},
+        "retention":            {"en": "Storage retention",     "de": "Storage Vorhaltezeit",           "ru": "Время хранения в базе"},
+        "keep forever":         {"en": "keep forever",          "de": "keine automatische Löschung",    "ru": "хранить вечно"},
+        "2 years":              {"en": "2 years",               "de": "2 Jahre",                        "ru": "2 года"},
+        "1 year":               {"en": "1 year",                "de": "1 Jahr",                         "ru": "1 год"},
+        "6 months":             {"en": "6 months",              "de": "6 Monate",                       "ru": "6 месяцев"},
+        "3 months":             {"en": "3 months",              "de": "3 Monate",                       "ru": "3 месяца"},
+        "1 months":             {"en": "1 months",              "de": "1 Monat",                        "ru": "1 месяц"},
+        "2 weeks":              {"en": "2 weeks",               "de": "2 Wochen",                       "ru": "2 недели"},
+        "1 week":               {"en": "1 week",                "de": "1 Woche",                        "ru": "1 неделя"},
+        "5 days":               {"en": "5 days",                "de": "5 Tage",                         "ru": "5 дней"},
+        "3 days":               {"en": "3 days",                "de": "3 Tage",                         "ru": "3 дня"},
+        "1 day":                {"en": "1 day",                 "de": "1 Tag",                          "ru": "1 день"},
+        "SQL history adapter settings": {
+            "en": "SQL history adapter settings",
+            "de": "SQL history adapter Einstellungen",
+            "ru": "Настройки профайлера в SQL базу данных"
+        },
+        "DB settings:":         {"en": "DB settings:",          "de": "DB Einstellungen:",              "ru": "DB settings:"},
+        "DB Type":              {"en": "DB Type",               "de": "DB Typ",                         "ru": "DB Type"},
+        "Host":                 {"en": "Host",                  "de": "Host",                           "ru": "Хост"},
+        "Port":                 {"en": "Port",                  "de": "Port",                           "ru": "Порт"},
+        "User":                 {"en": "User",                  "de": "Login",                          "ru": "Пользователь"},
+        "Password":             {"en": "Password",              "de": "Kennwort",                       "ru": "Пароль"},
+        "Password confirm":     {"en": "Password confirm",      "de": "Kennwort-Wiederholung",          "ru": "Подтверждение пароля"},
+        "File for sqlite:":     {"en": "File for sqlite:",      "de": "Datei für sqlite:",              "ru": "Файл для sqlite:"},
+        "Encrypt:":             {"en": "Encrypt:",              "de": "Verschlüsseln:",                 "ru": "Шифрование:"},
+        "Test connection":      {"en": "Test connection",       "de": "Verbindung testen",              "ru": "Проверить соединение"},
+        "Round real to:":       {"en": "Round real to:",        "de": "Aufrunden auf: ",                "ru": "Округлять до"}
     };
 
     function setValue(id, value, onChange) {
@@ -192,12 +208,17 @@
         </tr>
         <tr class="baby-sql">
             <td class="translate">File for sqlite:</td>
-            <td><input id="fileName" type="text"/></td>
+            <td><input id="fileName" type="text" class="value"/></td>
             <td class="translate"></td>
         </tr>
         <tr class="ms-sql real-sql">
             <td class="translate">Encrypt:</td>
-            <td><input id="encrypt" type="checkbox"/></td>
+            <td><input id="encrypt" type="checkbox" class="value"/></td>
+            <td class="translate"></td>
+        </tr>
+        <tr class="ms-sql real-sql">
+            <td class="translate">Round real to:</td>
+            <td><input id="round" type="text" class="value"/></td>
             <td class="translate"></td>
         </tr>
         <tr><td colspan="3"><h4 class="translate">Default settings:</h4></td></tr>

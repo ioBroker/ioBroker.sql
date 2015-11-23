@@ -3,7 +3,13 @@
 
 This adapter saves state history into SQL DB.
 
-Supports PostgreSQL, mysql, Microsoft SQL Server, Oracle and sqlite dialects.
+Supports PostgreSQL, mysql, Microsoft SQL Server and sqlite.
+You can leave port 0 if default port is desired.
+
+MS-SQL:
+Use ```localhost\instance``` for host and check that TCP/IP connections are enabled. 
+https://msdn.microsoft.com/en-us/library/bb909712(v=vs.90).aspx
+
 
 ## Changelog
 ### 0.0.1 (2015-02-19)

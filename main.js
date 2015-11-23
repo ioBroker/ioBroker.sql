@@ -8,17 +8,11 @@ var commons  = require(__dirname + '/lib/aggregate');
 var SQLFuncs = null;
 var fs       = require('fs');
 
-if (!SQL.PostgreSQLClient) {
-    var postgres = require(__dirname + '/lib/postgresql-client');
-    for (var attr in postgres) {
-        if (!SQL[attr]) SQL[attr] = postgres[attr];
-    }
-}
-
 var clients = {
     postgresql: {name: 'PostgreSQLClient'},
     mysql:      {name: 'MySQLClient'},
-    sqlite:     {name: 'SQLite3Client'}
+    sqlite:     {name: 'SQLite3Client'},
+    mssql:      {name: 'MSSQLClient'}
 };
 
 var types   = {
@@ -204,12 +198,26 @@ function getSqlLiteDir(fileName) {
 }
 
 function testConnection(msg) {
+    msg.message.config.port = parseInt(msg.message.config.port, 10) || 0;
     var params = {
         server:     msg.message.config.host + (msg.message.config.port ? ':' + msg.message.config.port : ''),
         host:       msg.message.config.host + (msg.message.config.port ? ':' + msg.message.config.port : ''),
         user:       msg.message.config.user,
         password:   msg.message.config.password
     };
+
+    if (msg.message.config.dbtype === 'postgresql' && !SQL.PostgreSQLClient) {
+        var postgres = require(__dirname + '/lib/postgresql-client');
+        for (var attr in postgres) {
+            if (!SQL[attr]) SQL[attr] = postgres[attr];
+        }
+    } else
+    if (msg.message.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
+        var mssql = require(__dirname + '/lib/mssql-client');
+        for (var attr in mssql) {
+            if (!SQL[attr]) SQL[attr] = mssql[attr];
+        }
+    }
 
     if (msg.message.config.dbtype === 'postgresql') {
         params.database = 'postgres';
@@ -269,6 +277,13 @@ function oneScript(script, cb) {
             client.execute(script, function(err, rows, fields) {
                 adapter.log.debug('Response: ' + JSON.stringify(err));
                 if (err) {
+                    // Database 'iobroker' already exists. Choose a different database name.
+                    if (err.number === 1801 ||
+                        //There is already an object named 'sources' in the database.
+                        err.number === 2714) {
+                        // do nothing
+                        err = null;
+                    } else
                     if (err.message && err.message.match(/^SQLITE_ERROR: table [\w_]+ already exists$/)) {
                         // do nothing
                         err = null;
@@ -343,6 +358,20 @@ function main() {
     if (!clients[adapter.config.dbtype]) {
         adapter.log.error('Unknown DB type: ' + adapter.config.dbtype);
         adapter.stop();
+    }
+    adapter.config.port = parseInt(adapter.config.port, 10) || 0;
+    if (adapter.config.round !== null) adapter.config.round = Math.pow(10, parseInt(adapter.config.round, 10));
+    if (adapter.config.dbtype === 'postgresql' && !SQL.PostgreSQLClient) {
+        var postgres = require(__dirname + '/lib/postgresql-client');
+        for (var attr in postgres) {
+            if (!SQL[attr]) SQL[attr] = postgres[attr];
+        }
+    } else
+    if (adapter.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
+        var mssql = require(__dirname + '/lib/mssql-client');
+        for (var attr in mssql) {
+            if (!SQL[attr]) SQL[attr] = mssql[attr];
+        }
     }
     SQLFuncs = require(__dirname + '/lib/' + adapter.config.dbtype);
 
@@ -484,6 +513,10 @@ function pushValueIntoDB(id, state) {
             }
         });
     }
+
+    // todo change it after ms are added
+    state.ts = parseInt(state.ts, 10) * 1000 + (parseInt(state.ms, 10) || 0);
+
     var query = SQLFuncs.insert(sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
     adapter.log.debug(query);
 
@@ -633,6 +666,10 @@ function sortByTs(a, b) {
 }
 
 function getDataFromDB(db, options, callback) {
+    if (options.start) options.start *= 1000;
+    if (options.end)   options.end   *= 1000;
+    if (options.step)  options.step  *= 1000;
+
     var query = SQLFuncs.getHistory(db, options);
     adapter.log.debug(query);
 
@@ -647,6 +684,16 @@ function getDataFromDB(db, options, callback) {
             if (!err && rows && !options.start && options.count) {
                 rows.sort(sortByTs);
             }
+
+            for (var c = 0; c < rows.length; c++) {
+                // todo change it after ms are added
+                if (options.ms) rows[c].ms = rows[c].ts % 1000;
+                rows[c].ts = Math.round(rows[c].ts / 1000);
+
+                if (options.ack) rows[c].ack = !!rows[c].ack;
+                if (adapter.config.round !== null) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
+            }
+
             clientPool.return(client);
             if (callback) callback(err, rows);
         });
