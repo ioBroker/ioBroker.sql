@@ -6,11 +6,13 @@ var utils    = require(__dirname + '/lib/utils'); // Get common adapter utils
 var SQL      = require('sql-client');
 var commons  = require(__dirname + '/lib/aggregate');
 var SQLFuncs = null;
-var postgres = require(__dirname + '/lib/postgresql-client');
 var fs       = require('fs');
 
-for (var attr in postgres) {
-    if (!SQL[attr]) SQL[attr] = postgres[attr];
+if (!SQL.PostgreSQLClient) {
+    var postgres = require(__dirname + '/lib/postgresql-client');
+    for (var attr in postgres) {
+        if (!SQL[attr]) SQL[attr] = postgres[attr];
+    }
 }
 
 var clients = {
@@ -82,11 +84,21 @@ var _client = false;
 function connect() {
     if (!clientPool) {
         var params = {
-            host: adapter.config.host + (adapter.config.port ? ':' + adapter.config.port : ''),
-            user: adapter.config.user,
-            password: adapter.config.password,
-            max_idle: 2
+            server:     adapter.config.host + (adapter.config.port ? ':' + adapter.config.port : ''),
+            host:       adapter.config.host + (adapter.config.port ? ':' + adapter.config.port : ''),
+            user:       adapter.config.user,
+            password:   adapter.config.password,
+            max_idle:   2
         };
+        if (adapter.config.encrypt) {
+            params.options = {
+                encrypt: true // Use this if you're on Windows Azure
+            };
+        }
+
+        if (adapter.config.dbtype === 'postgres') {
+            params.database = 'postgres';
+        }
 
         if (adapter.config.dbtype === 'sqlite') {
             params = getSqlLiteDir(adapter.config.fileName);
@@ -193,10 +205,12 @@ function getSqlLiteDir(fileName) {
 
 function testConnection(msg) {
     var params = {
+        server:     msg.message.config.host + (msg.message.config.port ? ':' + msg.message.config.port : ''),
         host:       msg.message.config.host + (msg.message.config.port ? ':' + msg.message.config.port : ''),
         user:       msg.message.config.user,
         password:   msg.message.config.password
     };
+
     if (msg.message.config.dbtype === 'postgresql') {
         params.database = 'postgres';
     } else if (msg.message.config.dbtype === 'sqlite') {

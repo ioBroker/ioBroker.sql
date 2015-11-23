@@ -35,7 +35,8 @@
         "user":      "",
         "password":  "",
         "dbtype":    "postgresql",
-        "fileName":  "sqlite.db"
+        "fileName":  "sqlite.db",
+        "encrypt":   false
     },
     "objects": [
         {

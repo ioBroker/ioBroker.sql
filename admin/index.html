@@ -109,9 +109,13 @@
             if ($(this).val() == 'sqlite') {
                 $('.real-sql').hide();
                 $('.baby-sql').show();
+            } else if ($(this).val() == 'mssql') {
+                $('.real-sql').show();
+                $('.baby-sql').hide();
             } else {
                 $('.real-sql').show();
                 $('.baby-sql').hide();
+                $('.ms-sql').hide();
             }
         }).trigger('change');
 
@@ -157,6 +161,7 @@
                 <option value="mysql">MySQL</option>
                 <option value="postgresql">PostgreSQL</option>
                 <option value="sqlite">SQLite3</option>
+                <option value="mssql">MS-SQL</option>
             </select></td>
             <td class="translate"></td>
         </tr>
@@ -188,6 +193,11 @@
         <tr class="baby-sql">
             <td class="translate">File for sqlite:</td>
             <td><input id="fileName" type="text"/></td>
+            <td class="translate"></td>
+        </tr>
+        <tr class="ms-sql real-sql">
+            <td class="translate">Encrypt:</td>
+            <td><input id="encrypt" type="checkbox"/></td>
             <td class="translate"></td>
         </tr>
         <tr><td colspan="3"><h4 class="translate">Default settings:</h4></td></tr>
