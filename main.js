@@ -685,14 +685,22 @@ function getDataFromDB(db, options, callback) {
                 rows.sort(sortByTs);
             }
 
-            for (var c = 0; c < rows.length; c++) {
-                // todo change it after ms are added
-                if (options.ms) rows[c].ms = rows[c].ts % 1000;
-                rows[c].ts = Math.round(rows[c].ts / 1000);
+            if (rows) {
+                for (var c = 0; c < rows.length; c++) {
+                    // todo change it after ms are added
+                    if (options.ms) rows[c].ms = rows[c].ts % 1000;
+                    if (adapter.common.loglevel == 'debug') rows[c].date = new Date(parseInt(rows[c].ts, 10));
+                    rows[c].ts = Math.round(rows[c].ts / 1000);
 
-                if (options.ack) rows[c].ack = !!rows[c].ack;
-                if (adapter.config.round !== null) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
+                    if (options.ack) rows[c].ack = !!rows[c].ack;
+                    if (adapter.config.round !== null) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
+                }
             }
+
+            // todo change it after ms are added
+            if (options.start) options.start /= 1000;
+            if (options.end)   options.end   /= 1000;
+            if (options.step)  options.step  /= 1000;
 
             clientPool.return(client);
             if (callback) callback(err, rows);
