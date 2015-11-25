@@ -360,7 +360,11 @@ function main() {
         adapter.stop();
     }
     adapter.config.port = parseInt(adapter.config.port, 10) || 0;
-    if (adapter.config.round !== null) adapter.config.round = Math.pow(10, parseInt(adapter.config.round, 10));
+    if (adapter.config.round !== null && adapter.config.round !== undefined) {
+        adapter.config.round = Math.pow(10, parseInt(adapter.config.round, 10));
+    } else {
+        adapter.config.round = null;
+    }
     if (adapter.config.dbtype === 'postgresql' && !SQL.PostgreSQLClient) {
         var postgres = require(__dirname + '/lib/postgresql-client');
         for (var attr in postgres) {
@@ -693,7 +697,7 @@ function getDataFromDB(db, options, callback) {
                     rows[c].ts = Math.round(rows[c].ts / 1000);
 
                     if (options.ack) rows[c].ack = !!rows[c].ack;
-                    if (adapter.config.round !== null) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
+                    if (adapter.config.round) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
                 }
             }
 
