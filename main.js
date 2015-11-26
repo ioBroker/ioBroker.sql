@@ -17,13 +17,14 @@ var clients = {
 
 var types   = {
     'number':  0,
-    'boolean': 0,
-    'string':  1
+    'string':  1,
+    'boolean': 2
 };
 
 var dbNames = [
     'ts_number',
-    'ts_string'
+    'ts_string',
+    'ts_bool'
 ];
 
 var sqlDPs  = {};
@@ -698,6 +699,7 @@ function getDataFromDB(db, options, callback) {
 
                     if (options.ack) rows[c].ack = !!rows[c].ack;
                     if (adapter.config.round) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
+                    if (sqlDPs[options.index].type === 2) rows[c].val = !!rows[c].val;
                 }
             }
 
@@ -718,7 +720,7 @@ function getHistory(msg) {
         id:         msg.message.id == '*' ? null : msg.message.id,
         start:      msg.message.options.start,
         end:        msg.message.options.end || Math.round((new Date()).getTime() / 1000) + 5000,
-        step:       parseInt(msg.message.options.step) || null,
+        step:       parseInt(msg.message.options.step)  || null,
         count:      parseInt(msg.message.options.count) || 500,
         ignoreNull: msg.message.options.ignoreNull,
         aggregate:  msg.message.options.aggregate || 'average', // One of: max, min, average, total
@@ -729,7 +731,12 @@ function getHistory(msg) {
         ms:         msg.message.options.ms    || false
     };
 
-    if (options.start > options.end){
+    if (!sqlDPs[options.id]) {
+        commons.sendResponse(adapter, msg, options, [], startTime);
+        return;
+    }
+
+    if (options.start > options.end) {
         var _end = options.end;
         options.end   = options.start;
         options.start =_end;
@@ -751,7 +758,10 @@ function getHistory(msg) {
         });
     }
     var type = sqlDPs[options.id].type;
-    if (options.id) options.id = sqlDPs[options.id].index;
+    if (options.id) {
+        options.index = options.id;
+        options.id = sqlDPs[options.id].index;
+    }
 
     // if specific id requested
     if (options.id || options.id === 0) {
