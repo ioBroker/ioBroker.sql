@@ -273,9 +273,9 @@ function destroyDB(msg) {
                 adapter.sendTo(msg.from, msg.command, {error: null}, msg.callback);
                 // restart adapter
                 setTimeout(function () {
-                    adapter.getObject('system.adapter.' + adapter.namespace, function (err, obj) {
+                    adapter.getForeignObject('system.adapter.' + adapter.namespace, function (err, obj) {
                         if (!err) {
-                            adapter.setObject(obj._id, obj);
+                            adapter.setForeignObject(obj._id, obj);
                         } else {
                             adapter.log.error('Cannot read object "system.adapter.' + adapter.namespace + '": ' + err);
                             adapter.stop();
@@ -343,6 +343,7 @@ function oneScript(script, cb) {
         });
     } catch(ex) {
         adapter.log.error(ex);
+        if (cb) cb(ex);
     }
 
 }
