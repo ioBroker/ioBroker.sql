@@ -59,7 +59,13 @@
         "File for sqlite:":     {"en": "File for sqlite:",      "de": "Datei für sqlite:",              "ru": "Файл для sqlite:"},
         "Encrypt:":             {"en": "Encrypt:",              "de": "Verschlüsseln:",                 "ru": "Шифрование:"},
         "Test connection":      {"en": "Test connection",       "de": "Verbindung testen",              "ru": "Проверить соединение"},
-        "Round real to:":       {"en": "Round real to:",        "de": "Aufrunden auf: ",                "ru": "Округлять до"}
+        "Round real to:":       {"en": "Round real to:",        "de": "Aufrunden auf: ",                "ru": "Округлять до"},
+        "Are you sure? All data will be dropped.": {
+            "en": "Are you sure? All data will be dropped.",
+            "de": "Sind Sie sicher? ALLE Daten werden geöscht.",
+            "ru": "Вы уверенны? Все данные в базе будут удалены."
+        },
+        "Reset DB":             {"en": "Reset DB",              "de": "Alle Daten in DB löschen",       "ru": "Сбросить DB"}
     };
 
     function setValue(id, value, onChange) {
@@ -121,6 +127,21 @@
             });
         });
 
+        $('#reset').button().click(function () {
+            getIsAdapterAlive(function (isAlive) {
+                if (!isAlive) {
+                    showMessage(_('Start or enable adapter first'));
+                } else {
+                    if (confirm(_('Are you sure? All data will be dropped.'))) {
+                        $('#reset').button('option', 'disabled', true);
+                        sendTo(null, 'destroy', null, function (response) {
+                            $('#reset').button('option', 'disabled', false);
+                            showMessage(response.error || _('Adapter will be restarted'));
+                        });
+                    }
+                }
+            });
+        });
         $('#dbtype').change(function () {
             if ($(this).val() == 'sqlite') {
                 $('.real-sql').hide();
@@ -247,6 +268,7 @@
 
     </table>
     <br><button id="test" class="translate">Test connection</button>
+    <button id="reset" class="translate">Reset DB</button>
 
 </div>
 </html>

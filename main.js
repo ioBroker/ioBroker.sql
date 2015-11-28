@@ -263,6 +263,32 @@ function testConnection(msg) {
     }
 }
 
+function destroyDB(msg) {
+    try {
+        allScripts(SQLFuncs.destroy(), function (err) {
+            if (err) {
+                adapter.log.error(err);
+                adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
+            } else {
+                adapter.sendTo(msg.from, msg.command, {error: null}, msg.callback);
+                // restart adapter
+                setTimeout(function () {
+                    adapter.getObject('system.adapter.' + adapter.namespace, function (err, obj) {
+                        if (!err) {
+                            adapter.setObject(obj._id, obj);
+                        } else {
+                            adapter.log.error('Cannot read object "system.adapter.' + adapter.namespace + '": ' + err);
+                            adapter.stop();
+                        }
+                    });
+                }, 2000);
+            }
+        });
+    } catch (ex) {
+        return adapter.sendTo(msg.from, msg.command, {error: ex.toString()}, msg.callback);
+    }
+}
+
 // one script
 function oneScript(script, cb) {
     try {
@@ -352,6 +378,8 @@ function processMessage(msg) {
         getHistory(msg);
     } else if (msg.command == 'test') {
         testConnection(msg);
+    } else if (msg.command == 'destroy') {
+        destroyDB(msg);
     }
 }
 
