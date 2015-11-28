@@ -40,7 +40,7 @@
         "port":      0,
         "user":      "",
         "password":  "",
-        "dbtype":    "postgresql",
+        "dbtype":    "sqlite",
         "fileName":  "sqlite.db",
         "encrypt":   false,
         "round":     4
