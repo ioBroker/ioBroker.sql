@@ -559,32 +559,25 @@ function getId(id, type, cb) {
             if (!rows.length) {
                 if (type !== null) {
                     // insert
-                    query = SQLFuncs.getIdMax(id);
+                    query = SQLFuncs.getIdInsert(id, type);
                     client.execute(query, function (err, rows, fields) {
-                        if (rows && rows.rows) rows = rows.rows;
                         if (err) {
-                            adapter.log.error('Cannot select ' + query + ': ' + err);
+                            adapter.log.error('Cannot insert ' + query + ': ' + err);
                             if (cb) cb(err);
                             clientPool.return(client);
                             return;
                         }
-                        var max = 0;
-                        if (rows[0]) {
-                            if (rows[0]['MAX(id)'] !== undefined) max = rows[0]['MAX(id)'];
-                            if (rows[0].max !== undefined) max = rows[0].max;
-                        }
-                        max = parseInt(max) || 0;
-
-                        query = SQLFuncs.getIdInsert(max + 1, id, type);
+                        query = SQLFuncs.getIdSelect(id);
                         client.execute(query, function (err, rows, fields) {
+                            if (rows && rows.rows) rows = rows.rows;
                             if (err) {
-                                adapter.log.error('Cannot insert ' + query + ': ' + err);
+                                adapter.log.error('Cannot select ' + query + ': ' + err);
                                 if (cb) cb(err);
                                 clientPool.return(client);
                                 return;
                             }
-                            sqlDPs[id].index = (max + 1);
-                            sqlDPs[id].type  = type;
+                            sqlDPs[id].index = rows[0].id;
+                            sqlDPs[id].type  = rows[0].type;
 
                             if (cb) cb();
                             clientPool.return(client);
@@ -624,31 +617,25 @@ function getFrom(_from, cb) {
             }
             if (!rows.length) {
                 // insert
-                query = SQLFuncs.getFromMax();
+                query = SQLFuncs.getFromInsert(_from);
                 client.execute(query, function (err, rows, fields) {
-                    if (rows && rows.rows) rows = rows.rows;
                     if (err) {
-                        adapter.log.error('Cannot select ' + query + ': ' + err);
+                        adapter.log.error('Cannot insert ' + query + ': ' + err);
                         if (cb) cb(err);
                         clientPool.return(client);
                         return;
                     }
-                    var max = 0;
-                    if (rows[0]) {
-                        if (rows[0]['MAX(id)'] !== undefined) max = rows[0]['MAX(id)'];
-                        if (rows[0].max !== undefined) max = rows[0].max;
-                    }
-                    max = parseInt(max) || 0;
 
-                    query = SQLFuncs.getFromInsert(max + 1, _from);
+                    query = SQLFuncs.getFromSelect(_from);
                     client.execute(query, function (err, rows, fields) {
+                        if (rows && rows.rows) rows = rows.rows;
                         if (err) {
-                            adapter.log.error('Cannot insert ' + query + ': ' + err);
+                            adapter.log.error('Cannot select ' + query + ': ' + err);
                             if (cb) cb(err);
                             clientPool.return(client);
                             return;
                         }
-                        from[_from] = (max + 1);
+                        from[_from] = rows[0].id;
 
                         if (cb) cb();
                         clientPool.return(client);
@@ -720,7 +707,7 @@ function getHistory(msg) {
         id:         msg.message.id == '*' ? null : msg.message.id,
         start:      msg.message.options.start,
         end:        msg.message.options.end || Math.round((new Date()).getTime() / 1000) + 5000,
-        step:       parseInt(msg.message.options.step)  || null,
+        step:       parseInt(msg.message.options.step) || null,
         count:      parseInt(msg.message.options.count) || 500,
         ignoreNull: msg.message.options.ignoreNull,
         aggregate:  msg.message.options.aggregate || 'average', // One of: max, min, average, total
