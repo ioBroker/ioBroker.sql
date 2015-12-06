@@ -157,6 +157,19 @@
             }
         }).trigger('change');
 
+        $('#demoStart, #demoEnd').datepicker().val(new Date().toDateString());
+        $('#generateDemo').button().click(function () {
+            $(".loader").show();
+            sendTo("", "generateDemo", {
+                id: $('#demoID').val(),
+                start: $('#demoStart').val(),
+                end: $('#demoEnd').val(),
+                step: $('#demoStep').val(),
+                curve: $('#demoCurve').val()
+            }, function (e) {
+                $(".loader").hide();
+            })
+        });
         onChange(false);
     }
 
@@ -186,7 +199,83 @@
     }
 </script>
 
+<style>
+    .loader {
+        display: none;
+        position: absolute;
+        left: calc(50% - 0.5em);
+        top: calc(50% - 0.5em - 72px);
+        font-size: 90px;
+        text-indent: -9999em;
+        overflow: hidden;
+        width: 1em;
+        height: 1em;
+        border-radius: 50%;
+        margin: 72px auto;
+        -webkit-transform: translateZ(0);
+        -ms-transform: translateZ(0);
+        transform: translateZ(0);
+        -webkit-animation: load6 1.7s infinite ease;
+        animation: load6 1.7s infinite ease;
+    }
+
+    @-webkit-keyframes load6 {
+        0% {
+            -webkit-transform: rotate(0deg);
+            transform: rotate(0deg);
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, 0 -0.83em 0 -0.42em #00ffff, 0 -0.83em 0 -0.44em #00ffff, 0 -0.83em 0 -0.46em #00ffff, 0 -0.83em 0 -0.477em #00ffff;
+        }
+        5%,
+        95% {
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, 0 -0.83em 0 -0.42em #00ffff, 0 -0.83em 0 -0.44em #00ffff, 0 -0.83em 0 -0.46em #00ffff, 0 -0.83em 0 -0.477em #00ffff;
+        }
+        10%,
+        59% {
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, -0.087em -0.825em 0 -0.42em #00ffff, -0.173em -0.812em 0 -0.44em #00ffff, -0.256em -0.789em 0 -0.46em #00ffff, -0.297em -0.775em 0 -0.477em #00ffff;
+        }
+        20% {
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, -0.338em -0.758em 0 -0.42em #00ffff, -0.555em -0.617em 0 -0.44em #00ffff, -0.671em -0.488em 0 -0.46em #00ffff, -0.749em -0.34em 0 -0.477em #00ffff;
+        }
+        38% {
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, -0.377em -0.74em 0 -0.42em #00ffff, -0.645em -0.522em 0 -0.44em #00ffff, -0.775em -0.297em 0 -0.46em #00ffff, -0.82em -0.09em 0 -0.477em #00ffff;
+        }
+        100% {
+            -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, 0 -0.83em 0 -0.42em #00ffff, 0 -0.83em 0 -0.44em #00ffff, 0 -0.83em 0 -0.46em #00ffff, 0 -0.83em 0 -0.477em #00ffff;
+        }
+    }
+
+    @keyframes load6 {
+        0% {
+            -webkit-transform: rotate(0deg);
+            transform: rotate(0deg);
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, 0 -0.83em 0 -0.42em #00ffff, 0 -0.83em 0 -0.44em #00ffff, 0 -0.83em 0 -0.46em #00ffff, 0 -0.83em 0 -0.477em #00ffff;
+        }
+        5%,
+        95% {
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, 0 -0.83em 0 -0.42em #00ffff, 0 -0.83em 0 -0.44em #00ffff, 0 -0.83em 0 -0.46em #00ffff, 0 -0.83em 0 -0.477em #00ffff;
+        }
+        10%,
+        59% {
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, -0.087em -0.825em 0 -0.42em #00ffff, -0.173em -0.812em 0 -0.44em #00ffff, -0.256em -0.789em 0 -0.46em #00ffff, -0.297em -0.775em 0 -0.477em #00ffff;
+        }
+        20% {
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, -0.338em -0.758em 0 -0.42em #00ffff, -0.555em -0.617em 0 -0.44em #00ffff, -0.671em -0.488em 0 -0.46em #00ffff, -0.749em -0.34em 0 -0.477em #00ffff;
+        }
+        38% {
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, -0.377em -0.74em 0 -0.42em #00ffff, -0.645em -0.522em 0 -0.44em #00ffff, -0.775em -0.297em 0 -0.46em #00ffff, -0.82em -0.09em 0 -0.477em #00ffff;
+        }
+        100% {
+            -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+            box-shadow: 0 -0.83em 0 -0.4em #00ffff, 0 -0.83em 0 -0.42em #00ffff, 0 -0.83em 0 -0.44em #00ffff, 0 -0.83em 0 -0.46em #00ffff, 0 -0.83em 0 -0.477em #00ffff;
+        }
+    }
+</style>
+
 <div id="adapter-container">
+    <div id="loader" class="loader"></div>
     <table><tr>
         <td><img src="sql.png"></td>
         <td style="padding-top: 20px;padding-left: 10px"><h3 class="translate">SQL history adapter settings</h3></td>
@@ -270,6 +359,31 @@
     </table>
     <br><button id="test" class="translate">Test connection</button>
     <button id="reset" class="translate">Reset DB</button>
+
+    <h4  class="translate">Demo Data:</h4>
+    <table>
+        <tr>
+            <td class="translate">ID</td>
+            <td class="translate">Start</td>
+            <td class="translate">End</td>
+            <td class="translate">Steps</td>
+            <td class="translate">Curve</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="translate"><input id="demoID" type="text" /></td>
+            <td class="translate"><input id="demoStart" /></td>
+            <td class="translate"><input id="demoEnd"  /></td>
+            <td class="translate"><input id="demoStep" type="number" min="1" step="1" value="60"/></td>
+            <td class="translate"><select id="demoCurve">
+                <option value="sin"  class="translate">Sinus</option>
+                <option value="dec"  class="translate">DEC</option>
+                <option value="inc"  class="translate">INC</option>
+                <option value="dec/int"  class="translate">DEC/INC</option>
+            </select></td>
+            <td class="translate"><button id="generateDemo">Generate</button></td>
+        </tr>
+    </table>
 
 </div>
 </html>
