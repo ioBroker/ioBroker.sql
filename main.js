@@ -83,7 +83,7 @@ function connect() {
             host:       adapter.config.host + (adapter.config.port ? ':' + adapter.config.port : ''),
             user:       adapter.config.user,
             password:   adapter.config.password,
-            max_idle:   2
+            max_idle:   (adapter.config.dbtype === 'sqlite') ? 1 : 2
         };
         if (adapter.config.encrypt) {
             params.options = {
