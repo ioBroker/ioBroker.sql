@@ -381,6 +381,8 @@ function processMessage(msg) {
         testConnection(msg);
     } else if (msg.command == 'destroy') {
         destroyDB(msg);
+    }else if (msg.command == 'generateDemo') {
+        generateDemo(msg)
     }
 }
 
@@ -811,6 +813,96 @@ function getHistory(msg) {
             });
         }
     }
+}
+
+function generateDemo(msg) {
+
+  var id = adapter.name +'.' + adapter.instance + '.Demo.' + (msg.message.id || "Demo_Data");
+  var start = new Date(msg.message.start).getTime();
+  var end = new Date(msg.message.end).getTime();
+  var value = 1;
+  var sin = 0.1;
+  var up = true;
+  var curve = msg.message.curve;
+  var step = (msg.message.step || 60) * 1000;
+
+
+    if (end < start) {
+        var tmp = end;
+        end = start;
+        start = tmp;
+    }
+
+    end = new Date(end).setHours(24);
+
+    function generate() {
+
+        if (curve == "sin") {
+            if (sin == 6.2) {
+                sin = 0
+            } else {
+                sin = Math.round((sin + 0.1) * 10) / 10;
+            }
+            value = Math.round(Math.sin(sin) * 10000) / 100;
+        } else if (curve == "dec") {
+            value++
+        } else if (curve == "inc") {
+            value--
+        } else {
+            if (up == true) {
+                value++;
+            } else {
+                value--;
+            }
+        }
+        start += step;
+
+        pushValueIntoDB(id,
+            {
+                'ts': new Date(start).getTime() / 1000,
+                'val': value,
+                'q': 0,
+                'ack': true
+            });
+
+
+        if (start <= end) {
+            setTimeout(function () {
+                generate()
+            }, 15)
+        } else {
+            adapter.sendTo(msg.from, msg.command, "finish", msg.callback);
+        }
+    }
+    adapter.setObject("Demo." + msg.message.id, {
+        type: 'state',
+        common: {
+            name: msg.message.id,
+            type: 'state',
+            enabled: false,
+            history: {
+                'sql.0': {
+                    enabled: true,
+                    changesOnly: false,
+                    debounce: 1000,
+                    retention: 31536000
+                }
+            }
+        }
+    });
+
+    sqlDPs[id] = {
+        'sql.0': {
+            enabled: true,
+            changesOnly: false,
+            debounce: 1000,
+            retention: 31536000
+        }
+    };
+
+    generate()
+
+
 }
 
 process.on('uncaughtException', function(err) {

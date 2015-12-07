@@ -10,6 +10,9 @@ MS-SQL:
 Use ```localhost\instance``` for host and check that TCP/IP connections are enabled. 
 https://msdn.microsoft.com/en-us/library/bb909712(v=vs.90).aspx
 
+### 0.0.2 (2015-12-06)
+* (smiling_Jack) Add demo Data ( todo: faster insert to db )
+* (smiling_Jack) change aggregation (now same as history Adapter)
 
 ## Changelog
 ### 0.0.2 (2015-12-06)
