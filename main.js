@@ -423,8 +423,17 @@ function main() {
                     } else {
                         count++;
                         adapter.log.info('enabled logging of ' + id);
-                        sqlDPs[id][adapter.namespace].retention   = parseInt(sqlDPs[id][adapter.namespace].retention || adapter.config.retention, 10) || 0;
-                        sqlDPs[id][adapter.namespace].debounce    = parseInt(sqlDPs[id][adapter.namespace].debounce  || adapter.config.debounce,  10) || 1000;
+                        if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
+                            sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention || adapter.config.retention, 10) || 0;
+                        } else {
+                            sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
+                        }
+
+                        if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
+                            sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
+                        } else {
+                            sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
+                        }
                         sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
 
                         // add one day if retention is too small
@@ -464,29 +473,32 @@ function pushHistory(id, state) {
         sqlDPs[id].state = state;
 
         // Do not store values ofter than 1 second
-        if (!sqlDPs[id].timeout) {
-
-            sqlDPs[id].timeout = setTimeout(function (_id) {
-                if (!sqlDPs[_id] || !sqlDPs[_id].state) return;
-                var _settings = sqlDPs[_id][adapter.namespace];
-                // if it was not deleted in this time
-                if (_settings) {
-                    sqlDPs[_id].timeout = null;
-
-                    if (typeof sqlDPs[_id].state.val === 'string') {
-                        var f = parseFloat(sqlDPs[_id].state.val);
-                        if (f.toString() == sqlDPs[_id].state.val) {
-                            sqlDPs[_id].state.val = f;
-                        } else if (sqlDPs[_id].state.val === 'true') {
-                            sqlDPs[_id].state.val = true;
-                        } else if (sqlDPs[_id].state.val === 'false') {
-                            sqlDPs[_id].state.val = false;
-                        }
-                    }
-                    pushValueIntoDB(_id, sqlDPs[_id].state);
-                }
-            }, settings.debounce, id);
+        if (!sqlDPs[id].timeout && settings.debounce) {
+            sqlDPs[id].timeout = setTimeout(pushHelper, settings.debounce, id);
+        } else {
+            pushHelper(id);
         }
+    }
+}
+
+function pushHelper(_id) {
+    if (!sqlDPs[_id] || !sqlDPs[_id].state) return;
+    var _settings = sqlDPs[_id][adapter.namespace];
+    // if it was not deleted in this time
+    if (_settings) {
+        sqlDPs[_id].timeout = null;
+
+        if (typeof sqlDPs[_id].state.val === 'string') {
+            var f = parseFloat(sqlDPs[_id].state.val);
+            if (f.toString() == sqlDPs[_id].state.val) {
+                sqlDPs[_id].state.val = f;
+            } else if (sqlDPs[_id].state.val === 'true') {
+                sqlDPs[_id].state.val = true;
+            } else if (sqlDPs[_id].state.val === 'false') {
+                sqlDPs[_id].state.val = false;
+            }
+        }
+        pushValueIntoDB(_id, sqlDPs[_id].state);
     }
 }
 
