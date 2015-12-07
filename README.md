@@ -6,13 +6,33 @@ This adapter saves state history into SQL DB.
 Supports PostgreSQL, mysql, Microsoft SQL Server and sqlite.
 You can leave port 0 if default port is desired.
 
-MS-SQL:
+### MS-SQL:
 Use ```localhost\instance``` for host and check that TCP/IP connections are enabled. 
 https://msdn.microsoft.com/en-us/library/bb909712(v=vs.90).aspx
 
-### 0.0.2 (2015-12-06)
+### SQLite:
+is "file"-DB and cannot manage too many events. If you have a big amount of data use real DB, like PostgreSQL and co.
+
+### MySQL:
+You can install mysql on linux systems:
+```
+apt-get install mysql-server mysql-client 
+
+mysql -uroot -p
+
+CREATE USER 'iobroker‘@’%’ IDENTIFIED BY 'iobroker';
+GRANT ALL PRIVILEGES ON * . * TO 'iobroker'@'%';
+FLUSH PRIVILEGES;
+```
+
+If required edit */etc/mysql/my.cnf* to set bind to IP-Address for remote connect.
+
+**Warning**: iobroker user is "admin". If required give limited rights to iobroker user.
+
+### 0.0.3 (2015-12-06)
 * (smiling_Jack) Add demo Data ( todo: faster insert to db )
 * (smiling_Jack) change aggregation (now same as history Adapter)
+* (bluefox) bug fixing
 
 ## Changelog
 ### 0.0.2 (2015-12-06)
