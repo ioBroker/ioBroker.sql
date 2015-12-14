@@ -29,6 +29,9 @@ If required edit */etc/mysql/my.cnf* to set bind to IP-Address for remote connec
 
 **Warning**: iobroker user is "admin". If required give limited rights to iobroker user.
 
+### 0.1.0 (2015-12-14)
+* (bluefox) support of strings
+
 ### 0.0.3 (2015-12-06)
 * (smiling_Jack) Add demo Data ( todo: faster insert to db )
 * (smiling_Jack) change aggregation (now same as history Adapter)
