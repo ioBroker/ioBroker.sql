@@ -29,6 +29,10 @@ If required edit */etc/mysql/my.cnf* to set bind to IP-Address for remote connec
 
 **Warning**: iobroker user is "admin". If required give limited rights to iobroker user.
 
+## Changelog
+### 0.1.1 (2015-12-19)
+* (bluefox) fix error with double entries
+
 ### 0.1.0 (2015-12-14)
 * (bluefox) support of strings
 
@@ -37,7 +41,6 @@ If required edit */etc/mysql/my.cnf* to set bind to IP-Address for remote connec
 * (smiling_Jack) change aggregation (now same as history Adapter)
 * (bluefox) bug fixing
 
-## Changelog
 ### 0.0.2 (2015-12-06)
 * (bluefox) allow only 1 client for SQLite
 

@@ -477,7 +477,7 @@ function pushHistory(id, state) {
         // Do not store values ofter than 1 second
         if (!sqlDPs[id].timeout && settings.debounce) {
             sqlDPs[id].timeout = setTimeout(pushHelper, settings.debounce, id);
-        } else {
+        } else if (!settings.debounce) {
             pushHelper(id);
         }
     }
