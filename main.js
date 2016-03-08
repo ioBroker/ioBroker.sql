@@ -164,7 +164,7 @@ function connect() {
 
     allScripts(SQLFuncs.init(), function (err) {
         if (err) {
-            adapter.log.error(err);
+            //adapter.log.error(err);
             return setTimeout(function () {
                 connect();
             }, 30000);
@@ -530,7 +530,7 @@ function checkRetention(id) {
 
 function pushValueIntoDB(id, state) {
     if (!clientPool) {
-        adapter.log.warn('No connection to DB');
+        adapter.log.warn('No connection to SQL-DB');
         return;
     }
     var type = types[typeof state.val];

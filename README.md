@@ -30,6 +30,9 @@ If required edit */etc/mysql/my.cnf* to set bind to IP-Address for remote connec
 **Warning**: iobroker user is "admin". If required give limited rights to iobroker user.
 
 ## Changelog
+### 0.1.3 (2016-03-08)
+* (bluefox) do not print errors twice
+
 ### 0.1.2 (2015-12-22)
 * (bluefox) fix MS-SQL port settings
 
