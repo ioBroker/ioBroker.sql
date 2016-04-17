@@ -52,6 +52,7 @@
         "DB settings:":         {"en": "DB settings:",          "de": "DB Einstellungen:",              "ru": "DB settings:"},
         "DB Type":              {"en": "DB Type",               "de": "DB Typ",                         "ru": "DB Type"},
         "Host":                 {"en": "Host",                  "de": "Host",                           "ru": "Хост"},
+        "DB Name":              {"en": "Database name",         "de": "Datenbankname",                  "ru": "Имя базы данных"},
         "Port":                 {"en": "Port",                  "de": "Port",                           "ru": "Порт"},
         "User":                 {"en": "User",                  "de": "Login",                          "ru": "Пользователь"},
         "Password":             {"en": "Password",              "de": "Kennwort",                       "ru": "Пароль"},
@@ -295,48 +296,53 @@
         <tr class="real-sql">
             <td class="translate">Host</td>
             <td><input id="host" type="text" class="value"/></td>
-            <td class="translate"></td>
+            <td></td>
         </tr>
         <tr class="real-sql">
             <td class="translate">Port</td>
             <td><input id="port" type="text" class="value"/></td>
-            <td class="translate"></td>
+            <td></td>
+        </tr>
+        <tr class="ms-sql real-sql">
+            <td class="translate">DB Name</td>
+            <td><input id="dbname" type="text" class="value"/></td>
+            <td></td>
         </tr>
         <tr class="real-sql">
             <td class="translate">User</td>
             <td><input id="user" type="text" class="value"/></td>
-            <td class="translate"></td>
+            <td></td>
         </tr>
         <tr class="real-sql">
             <td class="translate">Password</td>
             <td><input id="password" type="password" class="value"/></td>
-            <td class="translate"></td>
+            <td></td>
         </tr>
         <tr class="real-sql">
             <td class="translate">Password confirm</td>
             <td><input id="passwordConfirm" type="password"/></td>
-            <td class="translate"></td>
+            <td></td>
         </tr>
         <tr class="baby-sql">
             <td class="translate">File for sqlite:</td>
             <td><input id="fileName" type="text" class="value"/></td>
-            <td class="translate"></td>
+            <td></td>
         </tr>
         <tr class="ms-sql real-sql">
             <td class="translate">Encrypt:</td>
             <td><input id="encrypt" type="checkbox" class="value"/></td>
-            <td class="translate"></td>
+            <td></td>
         </tr>
         <tr class="ms-sql real-sql">
             <td class="translate">Round real to:</td>
             <td><input id="round" type="text" class="value"/></td>
-            <td class="translate"></td>
+            <td></td>
         </tr>
         <tr><td colspan="3"><h4 class="translate">Default settings:</h4></td></tr>
         <tr>
             <td class="translate">debounce</td>
             <td><input id="debounce" type="text" size="5" class="value number"/></td>
-            <td class="translate"></td>
+            <td></td>
         </tr>
         <tr>
             <td class="translate">retention</td>
@@ -353,7 +359,7 @@
                 <option value="259200"      class="translate">3 days</option>
                 <option value="86400"       class="translate">1 day</option>
             </select></td>
-            <td class="translate"></td>
+            <td></td>
         </tr>
 
     </table>

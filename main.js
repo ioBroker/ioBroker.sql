@@ -114,7 +114,7 @@ function connect() {
                     }, 30000);
                     return;
                 }
-                _client.execute('CREATE DATABASE iobroker;', function (err, rows, fields) {
+                _client.execute('CREATE DATABASE ' + adapter.config.dbname + ';', function (err, rows, fields) {
                     _client.disconnect();
                     if (err && err.code !== '42P04') { // if error not about yet exists
                         _client = false;
@@ -132,8 +132,8 @@ function connect() {
             });
         }
 
-        if (adapter.config.dbtype == "postgresql") {
-            params.database = "iobroker";
+        if (adapter.config.dbtype == 'postgresql') {
+            params.database = adapter.config.dbname;
         }
 
         try {
@@ -162,7 +162,7 @@ function connect() {
         }
     }
 
-    allScripts(SQLFuncs.init(), function (err) {
+    allScripts(SQLFuncs.init(adapter.config.dbname), function (err) {
         if (err) {
             //adapter.log.error(err);
             return setTimeout(function () {
@@ -265,7 +265,7 @@ function testConnection(msg) {
 
 function destroyDB(msg) {
     try {
-        allScripts(SQLFuncs.destroy(), function (err) {
+        allScripts(SQLFuncs.destroy(adapter.config.dbname), function (err) {
             if (err) {
                 adapter.log.error(err);
                 adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
@@ -286,6 +286,28 @@ function destroyDB(msg) {
         });
     } catch (ex) {
         return adapter.sendTo(msg.from, msg.command, {error: ex.toString()}, msg.callback);
+    }
+}
+
+// execute custom query
+function query(msg) {
+    try {
+        var query = msg.message;
+        adapter.log.debug(query);
+
+        clientPool.borrow(function (err, client) {
+            if (err) {
+                return adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
+            } else {
+                client.execute(query, function (err, rows, fields) {
+                    if (rows && rows.rows) rows = rows.rows;
+                    clientPool.return(client);
+                    return adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null, result: rows}, msg.callback);
+                });
+            }
+        });
+    } catch (err) {
+        return adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
     }
 }
 
@@ -381,12 +403,16 @@ function processMessage(msg) {
         testConnection(msg);
     } else if (msg.command == 'destroy') {
         destroyDB(msg);
-    }else if (msg.command == 'generateDemo') {
+    } else if (msg.command == 'generateDemo') {
         generateDemo(msg)
+    } else if (msg.command == 'query') {
+        query(msg);
     }
 }
 
 function main() {
+    adapter.config.dbname = adapter.config.dbname || 'iobroker';
+
     if (!clients[adapter.config.dbtype]) {
         adapter.log.error('Unknown DB type: ' + adapter.config.dbtype);
         adapter.stop();
@@ -511,7 +537,7 @@ function checkRetention(id) {
         // check every 6 hours
         if (!sqlDPs[id].lastCheck || dt - sqlDPs[id].lastCheck >= 21600000/* 6 hours */) {
             sqlDPs[id].lastCheck = dt;
-            var query = SQLFuncs.retention(sqlDPs[id].index, dbNames[sqlDPs[id].type], sqlDPs[id][adapter.namespace].retention);
+            var query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, dbNames[sqlDPs[id].type], sqlDPs[id][adapter.namespace].retention);
             clientPool.borrow(function (err, client) {
                 if (err) {
                     adapter.log.error(err);
@@ -565,7 +591,7 @@ function pushValueIntoDB(id, state) {
     // todo change it after ms are added
     state.ts = parseInt(state.ts, 10) * 1000 + (parseInt(state.ms, 10) || 0);
 
-    var query = SQLFuncs.insert(sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
+    var query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
     adapter.log.debug(query);
 
     clientPool.borrow(function (err, client) {
@@ -584,7 +610,7 @@ function pushValueIntoDB(id, state) {
 }
 
 function getId(id, type, cb) {
-    var query = SQLFuncs.getIdSelect(id);
+    var query = SQLFuncs.getIdSelect(adapter.config.dbname, id);
 
     clientPool.borrow(function (err, client) {
         if (err) {
@@ -602,7 +628,7 @@ function getId(id, type, cb) {
             if (!rows.length) {
                 if (type !== null) {
                     // insert
-                    query = SQLFuncs.getIdInsert(id, type);
+                    query = SQLFuncs.getIdInsert(adapter.config.dbname, id, type);
                     client.execute(query, function (err, rows, fields) {
                         if (err) {
                             adapter.log.error('Cannot insert ' + query + ': ' + err);
@@ -642,8 +668,8 @@ function getId(id, type, cb) {
 }
 
 function getFrom(_from, cb) {
-    var sources    = (adapter.config.dbtype !== 'postgresql' ? "iobroker." : "") + "sources";
-    var query = SQLFuncs.getFromSelect(_from);
+    var sources    = (adapter.config.dbtype !== 'postgresql' ? (adapter.config.dbname + '.') : '') + 'sources';
+    var query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
 
     clientPool.borrow(function (err, client) {
         if (err) {
@@ -660,7 +686,7 @@ function getFrom(_from, cb) {
             }
             if (!rows.length) {
                 // insert
-                query = SQLFuncs.getFromInsert(_from);
+                query = SQLFuncs.getFromInsert(adapter.config.dbname, _from);
                 client.execute(query, function (err, rows, fields) {
                     if (err) {
                         adapter.log.error('Cannot insert ' + query + ': ' + err);
@@ -705,7 +731,7 @@ function getDataFromDB(db, options, callback) {
     if (options.end)   options.end   *= 1000;
     if (options.step)  options.step  *= 1000;
 
-    var query = SQLFuncs.getHistory(db, options);
+    var query = SQLFuncs.getHistory(adapter.config.dbname, db, options);
     adapter.log.debug(query);
 
     clientPool.borrow(function (err, client) {

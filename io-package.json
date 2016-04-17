@@ -43,7 +43,8 @@
         "dbtype":    "sqlite",
         "fileName":  "sqlite.db",
         "encrypt":   false,
-        "round":     4
+        "round":     4,
+        "dbname":    "iobroker"
     },
     "objects": [
         {

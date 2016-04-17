@@ -15,6 +15,7 @@ is "file"-DB and cannot manage too many events. If you have a big amount of data
 
 ### MySQL:
 You can install mysql on linux systems:
+
 ```
 apt-get install mysql-server mysql-client 
 
@@ -28,6 +29,37 @@ FLUSH PRIVILEGES;
 If required edit */etc/mysql/my.cnf* to set bind to IP-Address for remote connect.
 
 **Warning**: iobroker user is "admin". If required give limited rights to iobroker user.
+
+## Structure of the DBs
+Default Database name is "iobroker", but it can be changed in configuration.
+### Sources
+This table is a list of adapter's instances, that wrote the entries. (state.from)
+| DB         | Name in query        |
+|------------|----------------------|
+| MS-SQL     | iobroker.dbo.sources |
+| PostgreSQL | sources              |
+| MySQL      | iobroker.sources     |
+| SQLite     | sources              |
+
+Structure:
+| Field | Type                                       | Description                               |
+|-------|--------------------------------------------|-------------------------------------------|
+| id    | INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1) | unique ID                                 |
+| name  | varchar(255)                               | instance of adapter, that wrote the entry |
+
+## Custom queries
+The user can execute custom queries on tables from javascript adapter:
+
+```
+sendTo('sql.0', 'query', 'SELECT * FROM datapoints', function (result) {
+    if (result.error) {
+        console.error(result.error);
+    } else {
+        // show result
+         console.log('Rows: ' + JSON.stringify(result.result));
+    }
+});
+```
 
 ## Changelog
 ### 0.1.3 (2016-03-08)
