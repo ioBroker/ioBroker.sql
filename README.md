@@ -34,6 +34,7 @@ If required edit */etc/mysql/my.cnf* to set bind to IP-Address for remote connec
 Default Database name is "iobroker", but it can be changed in configuration.
 ### Sources
 This table is a list of adapter's instances, that wrote the entries. (state.from)
+
 | DB         | Name in query        |
 |------------|----------------------|
 | MS-SQL     | iobroker.dbo.sources |
@@ -42,6 +43,7 @@ This table is a list of adapter's instances, that wrote the entries. (state.from
 | SQLite     | sources              |
 
 Structure:
+
 | Field | Type                                       | Description                               |
 |-------|--------------------------------------------|-------------------------------------------|
 | id    | INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1) | unique ID                                 |
