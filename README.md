@@ -38,8 +38,8 @@ This table is a list of adapter's instances, that wrote the entries. (state.from
 | DB         | Name in query        |
 |------------|----------------------|
 | MS-SQL     | iobroker.dbo.sources |
-| PostgreSQL | sources              |
 | MySQL      | iobroker.sources     |
+| PostgreSQL | sources              |
 | SQLite     | sources              |
 
 Structure:
@@ -47,7 +47,9 @@ Structure:
 | Field | Type                                       | Description                               |
 |-------|--------------------------------------------|-------------------------------------------|
 | id    | INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1) | unique ID                                 |
-| name  | varchar(255)                               | instance of adapter, that wrote the entry |
+| name  | varchar(255) / TEXT                        | instance of adapter, that wrote the entry |
+
+*Note:* MS-SQL uses varchar(255), and others use TEXT 
 
 ### Datapoints
 This table is a list of datapoints. (IDs)
@@ -55,8 +57,8 @@ This table is a list of datapoints. (IDs)
 | DB         | Name in query           |
 |------------|-------------------------|
 | MS-SQL     | iobroker.dbo.datapoints |
-| PostgreSQL | datapoints              |
 | MySQL      | iobroker.datapoints     |
+| PostgreSQL | datapoints              |
 | SQLite     | datapoints              |
 
 Structure:
@@ -64,8 +66,80 @@ Structure:
 | Field | Type                                       | Description                                     |
 |-------|--------------------------------------------|-------------------------------------------------|
 | id    | INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1) | unique ID                                       |
-| name  | varchar(255)                               | ID of variable, e.g. hm-rpc.0.JEQ283747.1.STATE |
-| type  | integer                                    | 0 - number, 1 - string, 2 - boolean             |
+| name  | varchar(255) / TEXT                        | ID of variable, e.g. hm-rpc.0.JEQ283747.1.STATE |
+| type  | INTEGER                                    | 0 - number, 1 - string, 2 - boolean             |
+
+*Note:* MS-SQL uses varchar(255), and others use TEXT 
+
+### Numbers
+Values for states with type "number". **ts** means "time series".
+
+| DB         | Name in query           |
+|------------|-------------------------|
+| MS-SQL     | iobroker.dbo.ts_number |
+| MySQL      | iobroker.ts_number     |
+| PostgreSQL | ts_number              |
+| SQLite     | ts_number              |
+
+Structure:
+
+| Field  | Type                                       | Description                                     |
+|--------|--------------------------------------------|-------------------------------------------------|
+| id     | INTEGER                                    | ID of state from "Datapoints" table             | 
+| ts     | BIGINT / INTEGER                           | Time in ms till epoch. Can be converted to time with "new Date(ts)" |
+| val    | REAL                                       | Value                                           |
+| ack    | BIT/BOOLEAN                                | Is acknowledged: 0 - not ack, 1 - ack           |
+| _from  | INTEGER                                    | ID of source from "Sources" table               |
+| q      | INTEGER                                    | Quality as number. You can find description [here](https://github.com/ioBroker/ioBroker/blob/master/doc/SCHEMA.md#states) |
+
+*Note:* MS-SQL uses BIT, and others use BOOLEAN. SQLite uses for ts INTEGER and all others BIGINT.
+
+
+### Strings
+Values for states with type "string".
+
+| DB         | Name in query           |
+|------------|-------------------------|
+| MS-SQL     | iobroker.dbo.ts_string |
+| MySQL      | iobroker.ts_string     |
+| PostgreSQL | ts_string              |
+| SQLite     | ts_string              |
+
+Structure:
+
+| Field  | Type                                       | Description                                     |
+|--------|--------------------------------------------|-------------------------------------------------|
+| id     | INTEGER                                    | ID of state from "Datapoints" table             | 
+| ts     | BIGINT                                     | Time in ms till epoch. Can be converted to time with "new Date(ts)" |
+| val    | TEXT                                       | Value                                           |
+| ack    | BIT/BOOLEAN                                | Is acknowledged: 0 - not ack, 1 - ack           |
+| _from  | INTEGER                                    | ID of source from "Sources" table               |
+| q      | INTEGER                                    | Quality as number. You can find description [here](https://github.com/ioBroker/ioBroker/blob/master/doc/SCHEMA.md#states) |
+
+*Note:* MS-SQL uses BIT, and others use BOOLEAN. SQLite uses for ts INTEGER and all others BIGINT. 
+
+### Booleans
+Values for states with type "boolean".
+
+| DB         | Name in query           |
+|------------|-------------------------|
+| MS-SQL     | iobroker.dbo.ts_bool    |
+| MySQL      | iobroker.ts_bool        |
+| PostgreSQL | ts_bool                 |
+| SQLite     | ts_bool                 |
+
+Structure:
+
+| Field  | Type                                       | Description                                     |
+|--------|--------------------------------------------|-------------------------------------------------|
+| id     | INTEGER                                    | ID of state from "Datapoints" table             | 
+| ts     | BIGINT                                     | Time in ms till epoch. Can be converted to time with "new Date(ts)" |
+| val    | BIT/BOOLEAN                                | Value                                           |
+| ack    | BIT/BOOLEAN                                | Is acknowledged: 0 - not ack, 1 - ack           |
+| _from  | INTEGER                                    | ID of source from "Sources" table               |
+| q      | INTEGER                                    | Quality as number. You can find description [here](https://github.com/ioBroker/ioBroker/blob/master/doc/SCHEMA.md#states) |
+
+*Note:* MS-SQL uses BIT, and others use BOOLEAN. SQLite uses for ts INTEGER and all others BIGINT. 
 
 ## Custom queries
 The user can execute custom queries on tables from javascript adapter:
