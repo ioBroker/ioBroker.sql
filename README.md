@@ -49,6 +49,24 @@ Structure:
 | id    | INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1) | unique ID                                 |
 | name  | varchar(255)                               | instance of adapter, that wrote the entry |
 
+### Datapoints
+This table is a list of datapoints. (IDs)
+
+| DB         | Name in query           |
+|------------|-------------------------|
+| MS-SQL     | iobroker.dbo.datapoints |
+| PostgreSQL | datapoints              |
+| MySQL      | iobroker.datapoints     |
+| SQLite     | datapoints              |
+
+Structure:
+
+| Field | Type                                       | Description                                     |
+|-------|--------------------------------------------|-------------------------------------------------|
+| id    | INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1) | unique ID                                       |
+| name  | varchar(255)                               | ID of variable, e.g. hm-rpc.0.JEQ283747.1.STATE |
+| type  | integer                                    | 0 - number, 1 - string, 2 - boolean             |
+
 ## Custom queries
 The user can execute custom queries on tables from javascript adapter:
 
