@@ -7,7 +7,7 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "0.1.3",
+        "version": "0.1.4",
         "mode":                     "daemon",
         "platform":                 "Javascript/Node.js",
         "loglevel":                 "info",

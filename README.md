@@ -156,6 +156,9 @@ sendTo('sql.0', 'query', 'SELECT * FROM datapoints', function (result) {
 ```
 
 ## Changelog
+### 0.1.4 (2016-04-25)
+* (bluefox) fix deletion of old entries
+
 ### 0.1.3 (2016-03-08)
 * (bluefox) do not print errors twice
 
