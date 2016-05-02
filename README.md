@@ -1,5 +1,10 @@
 ![Logo](admin/sql.png)
 # ioBroker.sql
+==================================
+[![NPM version](http://img.shields.io/npm/v/iobroker.sql.svg)](https://www.npmjs.com/package/iobroker.sql)
+[![Downloads](https://img.shields.io/npm/dm/iobroker.sql.svg)](https://www.npmjs.com/package/iobroker.sql)
+
+[![NPM](https://nodei.co/npm/iobroker.sql.png?downloads=true)](https://nodei.co/npm/iobroker.sql/)
 
 This adapter saves state history into SQL DB.
 
@@ -158,6 +163,7 @@ sendTo('sql.0', 'query', 'SELECT * FROM datapoints', function (result) {
 ## Changelog
 ### 0.2.0 (2016-04-30)
 * (bluefox) support of milliseconds
+* (bluefox) fix sqlite
 
 ### 0.1.4 (2016-04-25)
 * (bluefox) fix deletion of old entries

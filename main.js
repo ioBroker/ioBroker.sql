@@ -18,7 +18,8 @@ var clients = {
 var types   = {
     'number':  0,
     'string':  1,
-    'boolean': 2
+    'boolean': 2,
+    'object':  1
 };
 
 var dbNames = [
@@ -594,6 +595,13 @@ function pushValueIntoDB(id, state) {
         state.ts = parseInt(state.ts, 10) * 1000 + (parseInt(state.ms, 10) || 0);
     }
 
+    try {
+        if (typeof state.val === 'object') state.val = JSON.stringify(state.val);
+    } catch (err) {
+        adapter.log.error('Cannot convert the object value "' + id + '"');
+        return;
+    }
+
     var query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
     adapter.log.debug(query);
 
@@ -639,7 +647,7 @@ function getId(id, type, cb) {
                             clientPool.return(client);
                             return;
                         }
-                        query = SQLFuncs.getIdSelect(id);
+                        query = SQLFuncs.getIdSelect(adapter.config.dbname,id);
                         client.execute(query, function (err, rows, fields) {
                             if (rows && rows.rows) rows = rows.rows;
                             if (err) {
@@ -698,7 +706,7 @@ function getFrom(_from, cb) {
                         return;
                     }
 
-                    query = SQLFuncs.getFromSelect(_from);
+                    query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
                     client.execute(query, function (err, rows, fields) {
                         if (rows && rows.rows) rows = rows.rows;
                         if (err) {
