@@ -156,6 +156,9 @@ sendTo('sql.0', 'query', 'SELECT * FROM datapoints', function (result) {
 ```
 
 ## Changelog
+### 0.2.0 (2016-04-30)
+* (bluefox) support of milliseconds
+
 ### 0.1.4 (2016-04-25)
 * (bluefox) fix deletion of old entries
 

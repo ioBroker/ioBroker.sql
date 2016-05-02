@@ -587,9 +587,12 @@ function pushValueIntoDB(id, state) {
             }
         });
     }
-
-    // todo change it after ms are added
-    state.ts = parseInt(state.ts, 10) * 1000 + (parseInt(state.ms, 10) || 0);
+    // if greater than 2000.01.01 00:00:00
+    if (state.ts > 946681200000) {
+        state.ts = parseInt(state.ts, 10);
+    } else {
+        state.ts = parseInt(state.ts, 10) * 1000 + (parseInt(state.ms, 10) || 0);
+    }
 
     var query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
     adapter.log.debug(query);
@@ -727,10 +730,6 @@ function sortByTs(a, b) {
 }
 
 function getDataFromDB(db, options, callback) {
-    if (options.start) options.start *= 1000;
-    if (options.end)   options.end   *= 1000;
-    if (options.step)  options.step  *= 1000;
-
     var query = SQLFuncs.getHistory(adapter.config.dbname, db, options);
     adapter.log.debug(query);
 
@@ -748,21 +747,12 @@ function getDataFromDB(db, options, callback) {
 
             if (rows) {
                 for (var c = 0; c < rows.length; c++) {
-                    // todo change it after ms are added
-                    if (options.ms) rows[c].ms = rows[c].ts % 1000;
                     if (adapter.common.loglevel == 'debug') rows[c].date = new Date(parseInt(rows[c].ts, 10));
-                    rows[c].ts = Math.round(rows[c].ts / 1000);
-
                     if (options.ack) rows[c].ack = !!rows[c].ack;
                     if (adapter.config.round) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
                     if (sqlDPs[options.index].type === 2) rows[c].val = !!rows[c].val;
                 }
             }
-
-            // todo change it after ms are added
-            if (options.start) options.start /= 1000;
-            if (options.end)   options.end   /= 1000;
-            if (options.step)  options.step  /= 1000;
 
             clientPool.return(client);
             if (callback) callback(err, rows);
@@ -775,7 +765,7 @@ function getHistory(msg) {
     var options = {
         id:         msg.message.id == '*' ? null : msg.message.id,
         start:      msg.message.options.start,
-        end:        msg.message.options.end || Math.round((new Date()).getTime() / 1000) + 5000,
+        end:        msg.message.options.end || ((new Date()).getTime() + 5000000),
         step:       parseInt(msg.message.options.step) || null,
         count:      parseInt(msg.message.options.count) || 500,
         ignoreNull: msg.message.options.ignoreNull,
@@ -799,7 +789,7 @@ function getHistory(msg) {
     }
 
     if (!options.start && !options.count) {
-        options.start = Math.round((new Date()).getTime() / 1000) - 5030; // - 1 year
+        options.start = (new Date()).getTime() - 5030000; // - 1 year
     }
 
     if (options.id && sqlDPs[options.id].index === undefined) {
@@ -882,7 +872,7 @@ function generateDemo(msg) {
         start += step;
 
         pushValueIntoDB(id, {
-            ts:   new Date(start).getTime() / 1000,
+            ts:   new Date(start).getTime(),
             val:  value,
             q:    0,
             ack:  true
