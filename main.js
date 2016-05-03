@@ -770,6 +770,7 @@ function getDataFromDB(db, options, callback) {
 
 function getHistory(msg) {
     var startTime = new Date().getTime();
+
     var options = {
         id:         msg.message.id == '*' ? null : msg.message.id,
         start:      msg.message.options.start,
@@ -840,7 +841,7 @@ function getHistory(msg) {
 }
 
 function generateDemo(msg) {
-    var id      = adapter.name +'.' + adapter.instance + '.Demo.' + (msg.message.id || "Demo_Data");
+    var id      = adapter.name +'.' + adapter.instance + '.Demo.' + (msg.message.id || 'Demo_Data');
     var start   = new Date(msg.message.start).getTime();
     var end     = new Date(msg.message.end).getTime();
     var value   = 1;
