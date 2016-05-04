@@ -39,8 +39,8 @@ adapter.on('objectChange', function (id, obj) {
 
         if (!sqlDPs[id] && !subscribeAll) {
             // unsubscribe
-            for (var id in sqlDPs) {
-                adapter.unsubscribeForeignStates(id);
+            for (var _id in sqlDPs) {
+                adapter.unsubscribeForeignStates(_id);
             }
             subscribeAll = true;
             adapter.subscribeForeignStates('*');
@@ -216,8 +216,8 @@ function testConnection(msg) {
     } else
     if (msg.message.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
         var mssql = require(__dirname + '/lib/mssql-client');
-        for (var attr in mssql) {
-            if (!SQL[attr]) SQL[attr] = mssql[attr];
+        for (var _attr in mssql) {
+            if (!SQL[_attr]) SQL[_attr] = mssql[_attr];
         }
     }
 
@@ -293,14 +293,14 @@ function destroyDB(msg) {
 // execute custom query
 function query(msg) {
     try {
-        var query = msg.message;
-        adapter.log.debug(query);
+        var _query = msg.message;
+        adapter.log.debug(_query);
 
         clientPool.borrow(function (err, client) {
             if (err) {
                 return adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
             } else {
-                client.execute(query, function (err, rows, fields) {
+                client.execute(_query, function (err, rows, fields) {
                     if (rows && rows.rows) rows = rows.rows;
                     clientPool.return(client);
                     return adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null, result: rows}, msg.callback);
@@ -382,13 +382,13 @@ function allScripts(scripts, index, cb) {
     if (scripts && index < scripts.length) {
         oneScript(scripts[index], function (err) {
             if (err) {
-                cb && cb(err);
+                if (cb) cb(err);
             } else {
                 allScripts(scripts, index + 1, cb);
             }
         });
     } else {
-        cb && cb();
+        if (cb) cb();
     }
 }
 
@@ -405,7 +405,7 @@ function processMessage(msg) {
     } else if (msg.command == 'destroy') {
         destroyDB(msg);
     } else if (msg.command == 'generateDemo') {
-        generateDemo(msg)
+        generateDemo(msg);
     } else if (msg.command == 'query') {
         query(msg);
     }
@@ -432,8 +432,8 @@ function main() {
     } else
     if (adapter.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
         var mssql = require(__dirname + '/lib/mssql-client');
-        for (var attr in mssql) {
-            if (!SQL[attr]) SQL[attr] = mssql[attr];
+        for (var attr_ in mssql) {
+            if (!SQL[attr_]) SQL[attr_] = mssql[attr_];
         }
     }
     SQLFuncs = require(__dirname + '/lib/' + adapter.config.dbtype);
@@ -474,8 +474,8 @@ function main() {
             }
         }
         if (count < 20) {
-            for (var id in sqlDPs) {
-                adapter.subscribeForeignStates(id);
+            for (var _id in sqlDPs) {
+                adapter.subscribeForeignStates(_id);
             }
         } else {
             subscribeAll = true;
@@ -754,10 +754,15 @@ function getDataFromDB(db, options, callback) {
             }
 
             if (rows) {
+                var isNumber = null;
                 for (var c = 0; c < rows.length; c++) {
+                    if (isNumber === null && rows[c].val !== null) {
+                        isNumber = (parseFloat(rows[c].val) == rows[c].val);
+                    }
+
                     if (adapter.common.loglevel == 'debug') rows[c].date = new Date(parseInt(rows[c].ts, 10));
                     if (options.ack) rows[c].ack = !!rows[c].ack;
-                    if (adapter.config.round) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
+                    if (isNumber && adapter.config.round) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
                     if (sqlDPs[options.index].type === 2) rows[c].val = !!rows[c].val;
                 }
             }
@@ -775,7 +780,7 @@ function getHistory(msg) {
         id:         msg.message.id == '*' ? null : msg.message.id,
         start:      msg.message.options.start,
         end:        msg.message.options.end || ((new Date()).getTime() + 5000000),
-        step:       parseInt(msg.message.options.step) || null,
+        step:       parseInt(msg.message.options.step)  || null,
         count:      parseInt(msg.message.options.count) || 500,
         ignoreNull: msg.message.options.ignoreNull,
         aggregate:  msg.message.options.aggregate || 'average', // One of: max, min, average, total
@@ -868,11 +873,11 @@ function generateDemo(msg) {
             }
             value = Math.round(Math.sin(sin) * 10000) / 100;
         } else if (curve == 'dec') {
-            value++
+            value++;
         } else if (curve == 'inc') {
             value--;
         } else {
-            if (up == true) {
+            if (up) {
                 value++;
             } else {
                 value--;
@@ -891,7 +896,7 @@ function generateDemo(msg) {
         if (start <= end) {
             setTimeout(function () {
                 generate();
-            }, 15)
+            }, 15);
         } else {
             adapter.sendTo(msg.from, msg.command, 'finished', msg.callback);
         }
@@ -918,9 +923,7 @@ function generateDemo(msg) {
     sqlDPs[id] = {};
     sqlDPs[id][adapter.namespace] = obj.common.history[adapter.namespace];
 
-    generate()
-
-
+    generate();
 }
 
 process.on('uncaughtException', function(err) {
