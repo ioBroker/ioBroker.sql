@@ -40,9 +40,9 @@ module.exports = function (grunt) {
                         expand:  true,
                         flatten: true,
                         src:     [
-                            srcDir + 'controller.js',
-                            srcDir + 'package.json',
-                            srcDir + 'io-package.json'
+                                srcDir + 'controller.js',
+                                srcDir + 'package.json',
+                                srcDir + 'io-package.json'
                         ],
                         dest:    srcDir
                     }
@@ -75,40 +75,6 @@ module.exports = function (grunt) {
                             '!' + srcDir + 'admin/*.png'
                         ],
                         dest:    srcDir + 'admin'
-                    },
-                    {
-                        expand:  true,
-                        flatten: true,
-                        src:     [
-                            srcDir + 'www/*.*',
-                            '!' + srcDir + 'www/*.png'
-                        ],
-                        dest:    srcDir + 'www'
-                    },
-                    {
-                        expand:  true,
-                        flatten: true,
-                        src:     [
-                            srcDir + 'www/js/*.*',
-                            '!' + srcDir + 'www/js/*.png'
-                        ],
-                        dest:    srcDir + 'www/js'
-                    },
-                    {
-                        expand:  true,
-                        flatten: true,
-                        src:     [
-                            srcDir + 'test/*.*'
-                        ],
-                        dest:    srcDir + 'test'
-                    },
-                    {
-                        expand:  true,
-                        flatten: true,
-                        src:     [
-                            srcDir + 'test/lib/*.*'
-                        ],
-                        dest:    srcDir + 'test/lib'
                     },
                     {
                         expand:  true,

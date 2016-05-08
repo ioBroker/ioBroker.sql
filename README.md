@@ -3,6 +3,7 @@
 ==================================
 [![NPM version](http://img.shields.io/npm/v/iobroker.sql.svg)](https://www.npmjs.com/package/iobroker.sql)
 [![Downloads](https://img.shields.io/npm/dm/iobroker.sql.svg)](https://www.npmjs.com/package/iobroker.sql)
+[![Tests](https://travis-ci.org/ioBroker/ioBroker.sql.svg?branch=master)](https://travis-ci.org/ioBroker/ioBroker.sql)
 
 [![NPM](https://nodei.co/npm/iobroker.sql.png?downloads=true)](https://nodei.co/npm/iobroker.sql/)
 
@@ -160,7 +161,47 @@ sendTo('sql.0', 'query', 'SELECT * FROM datapoints', function (result) {
 });
 ```
 
+Or get entries for the last hour for ID=system.adapter.admin.0.memRss
+```
+sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.admin.0.memRss"', function (result) {
+    if (result.error) {
+        console.error(result.error);
+    } else {
+        // show result
+        console.log('Rows: ' + JSON.stringify(result.result));
+        var now = new Date();
+        now.setHours(-1);
+        sendTo('sql.0', 'query', 'SELECT * FROM ts_number WHERE ts >= ' + now.getTime() + ' AND id=' + result.result[0].id, function (result) {
+            console.log('Rows: ' + JSON.stringify(result.result));
+        });
+    }
+});
+```
+
+## Get history
+Additional to custom queries, you can use build in system function **getHistory**:
+```
+var end = new Date().getTime();
+sendTo('sql.0', 'getHistory', {
+    id: 'system.adapter.admin.0.memRss',
+    options: {
+        start:      end - 3600000,
+        end:        end,
+        aggregate: 'm4' // or 'none' to get raw values
+    }
+}, function (result) {
+    for (var i = 0; i < result.result.length; i++) {
+        console.log(result.result[i].id + ' ' + new Date(result.result[i].ts).toISOString());
+    }
+});
+```
+
 ## Changelog
+### 0.3.0 (2016-05-08)
+* (bluefox) support of custom queries
+* (bluefox) only one request simultaneously for sqlite
+* (bluefox) add tests (primitive and only sql)
+
 ### 0.2.0 (2016-04-30)
 * (bluefox) support of milliseconds
 * (bluefox) fix sqlite

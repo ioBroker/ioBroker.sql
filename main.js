@@ -9,10 +9,10 @@ var SQLFuncs = null;
 var fs       = require('fs');
 
 var clients = {
-    postgresql: {name: 'PostgreSQLClient'},
-    mysql:      {name: 'MySQLClient'},
-    sqlite:     {name: 'SQLite3Client'},
-    mssql:      {name: 'MSSQLClient'}
+    postgresql: {name: 'PostgreSQLClient',  multiRequests: true},
+    mysql:      {name: 'MySQLClient',       multiRequests: true},
+    sqlite:     {name: 'SQLite3Client',     multiRequests: false},
+    mssql:      {name: 'MSSQLClient',       multiRequests: true}
 };
 
 var types   = {
@@ -32,6 +32,8 @@ var sqlDPs  = {};
 var from    = {};
 var clientPool;
 var subscribeAll = false;
+var tasks   = [];
+var multiRequests = true;
 
 var adapter = utils.adapter('sql');
 adapter.on('objectChange', function (id, obj) {
@@ -290,25 +292,43 @@ function destroyDB(msg) {
     }
 }
 
-// execute custom query
-function query(msg) {
+function _userQuery(msg, callback) {
     try {
-        var _query = msg.message;
-        adapter.log.debug(_query);
+        adapter.log.debug(msg.message);
 
         clientPool.borrow(function (err, client) {
             if (err) {
-                return adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
+                adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
+                if (callback) callback();
+                return;
             } else {
-                client.execute(_query, function (err, rows, fields) {
+                client.execute(msg.message, function (err, rows, fields) {
                     if (rows && rows.rows) rows = rows.rows;
                     clientPool.return(client);
-                    return adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null, result: rows}, msg.callback);
+                    adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null, result: rows}, msg.callback);
+                    if (callback) callback();
+                    return;
                 });
             }
         });
     } catch (err) {
-        return adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
+        adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
+        if (callback) callback();
+        return;
+    }
+}
+// execute custom query
+function query(msg) {
+    if (!multiRequests) {
+        if (tasks.length > 100) {
+            adapter.log.error('Cannot queue new requests, because more than 100');
+            adapter.sendTo(msg.from, msg.command, {error: 'Cannot queue new requests, because more than 100'}, msg.callback);
+            return;
+        }
+        tasks.push({operation: 'userQuery', msg: msg});
+        if (tasks.length === 1) processTasks();
+    } else {
+        _userQuery(msg);
     }
 }
 
@@ -413,6 +433,7 @@ function processMessage(msg) {
 
 function main() {
     adapter.config.dbname = adapter.config.dbname || 'iobroker';
+    multiRequests = clients[adapter.config.dbtype].multiRequests;
 
     if (!clients[adapter.config.dbtype]) {
         adapter.log.error('Unknown DB type: ' + adapter.config.dbtype);
@@ -555,6 +576,24 @@ function checkRetention(id) {
     }
 }
 
+function _insertValueIntoDB(query, id, cb) {
+    adapter.log.debug(query);
+
+    clientPool.borrow(function (err, client) {
+        if (err) {
+            adapter.log.error(err);
+            if (cb) cb();
+            return;
+        }
+        client.execute(query, function (err, rows, fields) {
+            if (err) adapter.log.error('Cannot insert ' + query + ': ' + err);
+            clientPool.return(client);
+            if (cb) cb();
+        });
+    });
+    checkRetention(id);
+}
+
 function pushValueIntoDB(id, state) {
     if (!clientPool) {
         adapter.log.warn('No connection to SQL-DB');
@@ -603,21 +642,40 @@ function pushValueIntoDB(id, state) {
     }
 
     var query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
-    adapter.log.debug(query);
-
-    clientPool.borrow(function (err, client) {
-        if (err) {
-            adapter.log.error(err);
+    if (!multiRequests) {
+        if (tasks.length > 100) {
+            adapter.log.error('Cannot queue new requests, because more than 100');
             return;
         }
-        client.execute(query, function (err, rows, fields) {
-            if (err) {
-                adapter.log.error('Cannot insert ' + query + ': ' + err);
-            }
-            clientPool.return(client);
-        });
-    });
-    checkRetention(id);
+        tasks.push({operation: 'insert', query: query, id: id});
+        if (tasks.length === 1) {
+            processTasks();
+        }
+    } else {
+        _insertValueIntoDB(query, id);
+    }
+}
+
+function processTasks() {
+    if (tasks.length) {
+        if (tasks[0].operation === 'insert') {
+            _insertValueIntoDB(tasks[0].query, tasks[0].id, function () {
+                tasks.shift();
+                if (tasks.length) setTimeout(processTasks, 0);
+            });
+        } else if (tasks[0].operation === 'select') {
+            _getDataFromDB(tasks[0].query, tasks[0].options, function (err, rows) {
+                if (tasks[0].callback) tasks[0].callback(err, rows);
+                tasks.shift();
+                if (tasks.length) setTimeout(processTasks, 0);
+            });
+        } else if (tasks[0].operation === 'userQuery') {
+            _userQuery(tasks[0].msg, function () {
+                tasks.shift();
+                if (tasks.length) setTimeout(processTasks, 0);
+            });
+        }
+    }
 }
 
 function getId(id, type, cb) {
@@ -737,8 +795,7 @@ function sortByTs(a, b) {
     return ((aTs < bTs) ? -1 : ((aTs > bTs) ? 1 : 0));
 }
 
-function getDataFromDB(db, options, callback) {
-    var query = SQLFuncs.getHistory(adapter.config.dbname, db, options);
+function _getDataFromDB(query, options, callback) {
     adapter.log.debug(query);
 
     clientPool.borrow(function (err, client) {
@@ -773,6 +830,21 @@ function getDataFromDB(db, options, callback) {
     });
 }
 
+function getDataFromDB(db, options, callback) {
+    var query = SQLFuncs.getHistory(adapter.config.dbname, db, options);
+    if (!multiRequests) {
+        if (tasks.length > 100) {
+            adapter.log.error('Cannot queue new requests, because more than 100');
+            if (callback) callback('Cannot queue new requests, because more than 100');
+            return;
+        }
+        tasks.push({operation: 'select', query: query, options: options, callback: callback});
+        if (tasks.length === 1) processTasks();
+    } else {
+        _getDataFromDB(query, options, callback);
+    }
+}
+
 function getHistory(msg) {
     var startTime = new Date().getTime();
 
@@ -788,7 +860,8 @@ function getHistory(msg) {
         from:       msg.message.options.from  || false,
         q:          msg.message.options.q     || false,
         ack:        msg.message.options.ack   || false,
-        ms:         msg.message.options.ms    || false
+        ms:         msg.message.options.ms    || false,
+        addId:      msg.message.options.addId || false
     };
 
     if (!sqlDPs[options.id]) {
