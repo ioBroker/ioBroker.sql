@@ -552,6 +552,23 @@ function pushHelper(_id) {
     }
 }
 
+function _checkRetention(query, cb) {
+    adapter.log.debug(query);
+
+    clientPool.borrow(function (err, client) {
+        if (err) {
+            adapter.log.error(err);
+            if (cb) cb();
+            return;
+        }
+        client.execute(query, function (err, rows, fields) {
+            if (err) adapter.log.error('Cannot delete ' + query + ': ' + err);
+            clientPool.return(client);
+            if (cb) cb();
+        });
+    });
+}
+
 function checkRetention(id) {
     if (sqlDPs[id][adapter.namespace].retention) {
         var d = new Date();
@@ -560,18 +577,17 @@ function checkRetention(id) {
         if (!sqlDPs[id].lastCheck || dt - sqlDPs[id].lastCheck >= 21600000/* 6 hours */) {
             sqlDPs[id].lastCheck = dt;
             var query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, dbNames[sqlDPs[id].type], sqlDPs[id][adapter.namespace].retention);
-            clientPool.borrow(function (err, client) {
-                if (err) {
-                    adapter.log.error(err);
+
+            if (!multiRequests) {
+                if (tasks.length > 100) {
+                    adapter.log.error('Cannot queue new requests, because more than 100');
                     return;
                 }
-                client.execute(query, function (err, rows, fields) {
-                    if (err) {
-                        adapter.log.error('Cannot delete ' + query + ': ' + err);
-                    }
-                    clientPool.return(client);
-                });
-            });
+                tasks.push({operation: 'delete', query: query});
+                if (tasks.length === 1) processTasks();
+            } else {
+                _checkRetention(query);
+            }
         }
     }
 }
@@ -588,10 +604,10 @@ function _insertValueIntoDB(query, id, cb) {
         client.execute(query, function (err, rows, fields) {
             if (err) adapter.log.error('Cannot insert ' + query + ': ' + err);
             clientPool.return(client);
+            checkRetention(id);
             if (cb) cb();
         });
     });
-    checkRetention(id);
 }
 
 function pushValueIntoDB(id, state) {
@@ -674,10 +690,15 @@ function processTasks() {
                 tasks.shift();
                 if (tasks.length) setTimeout(processTasks, 0);
             });
+        } else if (tasks[0].operation === 'delete') {
+            _checkRetention(tasks[0].query, function () {
+                tasks.shift();
+                if (tasks.length) setTimeout(processTasks, 0);
+            });
         }
     }
 }
-
+// my be it is required to cache all the data in memory
 function getId(id, type, cb) {
     var query = SQLFuncs.getIdSelect(adapter.config.dbname, id);
 
@@ -735,7 +756,7 @@ function getId(id, type, cb) {
         });
     });
 }
-
+// my be it is required to cache all the data in memory
 function getFrom(_from, cb) {
     var sources    = (adapter.config.dbtype !== 'postgresql' ? (adapter.config.dbname + '.') : '') + 'sources';
     var query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);

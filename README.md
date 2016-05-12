@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 0.3.1 (2016-05-12)
+* (bluefox) queue delete queries too for sqlite
+
 ### 0.3.0 (2016-05-08)
 * (bluefox) support of custom queries
 * (bluefox) only one request simultaneously for sqlite
