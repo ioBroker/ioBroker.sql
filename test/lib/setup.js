@@ -384,6 +384,7 @@ function clearControllerLog() {
         }
     }
 }
+
 function clearDB() {
     var dirPath = rootDir + 'tmp/iobroker-data/sqlite';
     var files;
@@ -412,6 +413,7 @@ function clearDB() {
         }
     }
 }
+
 function setupController(cb) {
     installJsController(function (isInited) {
         clearControllerLog();

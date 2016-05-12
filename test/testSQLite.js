@@ -104,25 +104,23 @@ describe('Test SQLite', function() {
                 },
                 function () {
                     states.subscribeMessage('system.adapter.test.0');
-                });
-
-            objects.getObject('system.adapter.sql.0.memRss', function (err, obj) {
-                obj.common.history = {
-                    "sql.0": {
-                        "enabled":      true,
-                        "changesOnly":  false,
-                        "debounce":     0,
-                        "retention":    31536000
-                    }
-                };
-                objects.setObject('system.adapter.sql.0.memRss', obj, function (err) {
-                    // wait till adapter receives the new settings
-                    setTimeout(function () {
-                        done();
-                    }, 2000);
+                    objects.getObject('system.adapter.sql.0.memRss', function (err, obj) {
+                        obj.common.history = {
+                            'sql.0': {
+                                enabled:      true,
+                                changesOnly:  false,
+                                debounce:     0,
+                                retention:    31536000
+                            }
+                        };
+                        objects.setObject('system.adapter.sql.0.memRss', obj, function (err) {
+                            // wait till adapter receives the new settings
+                            setTimeout(function () {
+                                done();
+                            }, 3000);
+                        });
                 });
             });
-
         });
     });
     after('Test SQLite: Write values into DB', function (done) {
@@ -145,7 +143,7 @@ describe('Test SQLite', function() {
                                 done();
                             });
                         });
-                    }, 2000);
+                    }, 4000);
                 });
             });
         });
