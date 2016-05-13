@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 0.3.2 (2016-05-13)
+* (bluefox) queue select if IDs and FROMs queries for sqlite
+
 ### 0.3.1 (2016-05-12)
 * (bluefox) queue delete queries too for sqlite
 

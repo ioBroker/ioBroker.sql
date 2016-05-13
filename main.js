@@ -173,6 +173,13 @@ function connect() {
             }, 30000);
         } else {
             adapter.log.info('Connected to ' + adapter.config.dbtype);
+
+            // read all DB IDs and all FROM ids
+            if (!multiRequests) {
+                getAllIds(function () {
+                    getAllFroms();
+                });
+            }
         }
     });
 }
@@ -552,6 +559,61 @@ function pushHelper(_id) {
     }
 }
 
+function getAllIds(cb) {
+    var query = SQLFuncs.getIdSelect(adapter.config.dbname);
+    clientPool.borrow(function (err, client) {
+        if (err) {
+            if (cb) cb(err);
+            return;
+        }
+        client.execute(query, function (err, rows, fields) {
+            if (rows && rows.rows) rows = rows.rows;
+            if (err) {
+                adapter.log.error('Cannot select ' + query + ': ' + err);
+                if (cb) cb(err);
+                clientPool.return(client);
+                return;
+            }
+            if (rows.length) {
+                for (var r = 0; r < rows.length; r++) {
+                    sqlDPs[rows[r].name].index = rows[r].id;
+                    sqlDPs[rows[r].name].type  = rows[r].type;
+                }
+
+                if (cb) cb();
+                clientPool.return(client);
+            }
+        });
+    });
+}
+
+function getAllFroms(cb) {
+    var query = SQLFuncs.getFromSelect(adapter.config.dbname);
+    clientPool.borrow(function (err, client) {
+        if (err) {
+            if (cb) cb(err);
+            return;
+        }
+        client.execute(query, function (err, rows, fields) {
+            if (rows && rows.rows) rows = rows.rows;
+            if (err) {
+                adapter.log.error('Cannot select ' + query + ': ' + err);
+                if (cb) cb(err);
+                clientPool.return(client);
+                return;
+            }
+            if (rows.length) {
+                for (var r = 0; r < rows.length; r++) {
+                    from[rows[r].name] = rows[r].id;
+                }
+
+                if (cb) cb();
+                clientPool.return(client);
+            }
+        });
+    });
+}
+
 function _checkRetention(query, cb) {
     adapter.log.debug(query);
 
@@ -657,12 +719,20 @@ function pushValueIntoDB(id, state) {
         return;
     }
 
+    // increase timestamp if last is the same
+    if (sqlDPs[id].ts && state.ts === sqlDPs[id].ts) {
+        state.ts++;
+    }
+    // remember last timestamp
+    sqlDPs[id].ts = state.ts;
+
     var query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
     if (!multiRequests) {
         if (tasks.length > 100) {
             adapter.log.error('Cannot queue new requests, because more than 100');
             return;
         }
+
         tasks.push({operation: 'insert', query: query, id: id});
         if (tasks.length === 1) {
             processTasks();
