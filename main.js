@@ -907,6 +907,7 @@ function _getDataFromDB(query, options, callback) {
                     if (isNumber === null && rows[c].val !== null) {
                         isNumber = (parseFloat(rows[c].val) == rows[c].val);
                     }
+                    if (typeof rows[c].ts === 'string') rows[c].ts = parseInt(rows[c].ts, 10);
 
                     if (adapter.common.loglevel == 'debug') rows[c].date = new Date(parseInt(rows[c].ts, 10));
                     if (options.ack) rows[c].ack = !!rows[c].ack;
@@ -952,7 +953,8 @@ function getHistory(msg) {
         q:          msg.message.options.q     || false,
         ack:        msg.message.options.ack   || false,
         ms:         msg.message.options.ms    || false,
-        addId:      msg.message.options.addId || false
+        addId:      msg.message.options.addId || false,
+        sessionId:  msg.message.options.sessionId
     };
 
     if (!sqlDPs[options.id]) {
