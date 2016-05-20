@@ -7,7 +7,12 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "0.3.3",
+        "news": {
+            "en": "(bluefox) change default aggregation name",
+            "de": "(bluefox) change default aggregation name",
+            "ru": "(bluefox) change default aggregation name"
+        },
+        "version": "1.0.0",
         "mode":                     "daemon",
         "platform":                 "Javascript/Node.js",
         "loglevel":                 "info",

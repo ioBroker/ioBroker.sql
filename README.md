@@ -187,7 +187,7 @@ sendTo('sql.0', 'getHistory', {
     options: {
         start:      end - 3600000,
         end:        end,
-        aggregate: 'm4' // or 'none' to get raw values
+        aggregate: 'minmax' // or 'none' to get raw values
     }
 }, function (result) {
     for (var i = 0; i < result.result.length; i++) {
@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.0.0 (2016-05-20)
+* (bluefox) change default aggregation name
+
 ### 0.3.3 (2016-05-18)
 * (bluefox) fix postgres
 
