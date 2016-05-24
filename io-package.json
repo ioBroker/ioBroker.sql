@@ -7,12 +7,19 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
+        "version": "1.0.1",
         "news": {
-            "en": "(bluefox) change default aggregation name",
-            "de": "(bluefox) change default aggregation name",
-            "ru": "(bluefox) change default aggregation name"
+            "1.0.1": {
+                "en": "fix error with SQLite",
+                "de": "fix error with SQLite",
+                "ru": "fix error with SQLite"
+            },
+            "1.0.0": {
+                "en": "(bluefox) change default aggregation name",
+                "de": "(bluefox) change default aggregation name",
+                "ru": "(bluefox) change default aggregation name"
+            }
         },
-        "version": "1.0.0",
         "mode":                     "daemon",
         "platform":                 "Javascript/Node.js",
         "loglevel":                 "info",
@@ -23,18 +30,19 @@
         "enabled":                  true,
         "stopBeforeUpdate":         true,
         "authors": [
-            "Bluefox <dogafox@gmail.com>"
+            "bluefox <dogafox@gmail.com>"
         ],
         "license":                  "MIT",
         "readme":                   "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
         "icon":                     "sql.png",
         "extIcon":                  "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
 		"type":                     "storage",
+		"dependencies":             [{"js-controller": ">=0.9.0"}]
         "config":{
-            "minWidth": 570,
-            "width ": 435,
-            "minHeight": 200,
-            "height": 540
+            "minWidth":     570,
+            "width ":       435,
+            "minHeight":    200,
+            "height":       540
         }
     },
     "native": {

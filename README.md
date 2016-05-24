@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.0.1 (2016-05-24)
+* (bluefox) fix error with SQLite
+
 ### 1.0.0 (2016-05-20)
 * (bluefox) change default aggregation name
 

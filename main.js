@@ -575,9 +575,12 @@ function getAllIds(cb) {
                 return;
             }
             if (rows.length) {
+                var id;
                 for (var r = 0; r < rows.length; r++) {
-                    sqlDPs[rows[r].name].index = rows[r].id;
-                    sqlDPs[rows[r].name].type  = rows[r].type;
+                    id = rows[r].name;
+                    sqlDPs[id] = sqlDPs[id] || {};
+                    sqlDPs[id].index = rows[r].id;
+                    sqlDPs[id].type  = rows[r].type;
                 }
 
                 if (cb) cb();
