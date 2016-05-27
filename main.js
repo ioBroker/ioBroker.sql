@@ -912,6 +912,9 @@ function _getDataFromDB(query, options, callback) {
                     }
                     if (typeof rows[c].ts === 'string') rows[c].ts = parseInt(rows[c].ts, 10);
 
+                    // if less than 2000.01.01 00:00:00
+                    if (rows[c].ts < 946681200000) rows[c].ts *= 1000;
+
                     if (adapter.common.loglevel == 'debug') rows[c].date = new Date(parseInt(rows[c].ts, 10));
                     if (options.ack) rows[c].ack = !!rows[c].ack;
                     if (isNumber && adapter.config.round) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
@@ -959,6 +962,11 @@ function getHistory(msg) {
         addId:      msg.message.options.addId || false,
         sessionId:  msg.message.options.sessionId
     };
+
+    if (options.ignoreNull === 'true')  options.ignoreNull = true;  // include nulls and replace them with last value
+    if (options.ignoreNull === 'false') options.ignoreNull = false; // include nulls
+    if (options.ignoreNull === '0')     options.ignoreNull = 0;     // include nulls and replace them with 0
+    if (options.ignoreNull !== true && options.ignoreNull !== false && options.ignoreNull !== 0) options.ignoreNull = false;
 
     if (!sqlDPs[options.id]) {
         commons.sendResponse(adapter, msg, options, [], startTime);

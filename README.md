@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.0.3 (2016-05-28)
+* (bluefox) try to calculate old timestamps
+
 ### 1.0.2 (2016-05-24)
 * (bluefox) fix error with io-package
 

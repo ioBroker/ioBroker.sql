@@ -7,9 +7,14 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.0.2",
+        "version": "1.0.3",
         "news": {
-			"1.0.2": {
+            "1.0.3": {
+                "en": "try to calculate old timestamps",
+                "de": "try to calculate old timestamps",
+                "ru": "try to calculate old timestamps"
+            },
+            "1.0.2": {
                 "en": "fix error with io-package",
                 "de": "fix error with io-package",
                 "ru": "fix error with io-package"
@@ -41,8 +46,8 @@
         "readme":                   "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
         "icon":                     "sql.png",
         "extIcon":                  "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
-		"type":                     "storage",
-		"dependencies":             [{"js-controller": ">=0.9.0"}],
+        "type":                     "storage",
+        "dependencies":             [{"js-controller": ">=0.9.0"}],
         "config":{
             "minWidth":     570,
             "width ":       435,
