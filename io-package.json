@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.0.3",
+        "version": "1.0.4",
         "news": {
+            "1.0.4": {
+                "en": "check retention of data if set [never]",
+                "de": "check retention of data if set [never]",
+                "ru": "check retention of data if set [never]"
+            },
             "1.0.3": {
                 "en": "try to calculate old timestamps",
                 "de": "try to calculate old timestamps",

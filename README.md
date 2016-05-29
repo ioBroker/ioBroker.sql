@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.0.4 (2016-05-29)
+* (bluefox) check retention of data if set "never"
+
 ### 1.0.3 (2016-05-28)
 * (bluefox) try to calculate old timestamps
 

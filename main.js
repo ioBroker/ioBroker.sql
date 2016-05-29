@@ -442,6 +442,9 @@ function main() {
     adapter.config.dbname = adapter.config.dbname || 'iobroker';
     multiRequests = clients[adapter.config.dbtype].multiRequests;
 
+    adapter.config.retention = parseInt(adapter.config.retention, 10) || 0;
+    adapter.config.debounce  = parseInt(adapter.config.debounce,  10) || 0;
+
     if (!clients[adapter.config.dbtype]) {
         adapter.log.error('Unknown DB type: ' + adapter.config.dbtype);
         adapter.stop();
@@ -494,13 +497,14 @@ function main() {
                         sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
 
                         // add one day if retention is too small
-                        if (sqlDPs[id][adapter.namespace].retention <= 604800) {
+                        if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
                             sqlDPs[id][adapter.namespace].retention += 86400;
                         }
                     }
                 }
             }
         }
+        
         if (count < 20) {
             for (var _id in sqlDPs) {
                 adapter.subscribeForeignStates(_id);
