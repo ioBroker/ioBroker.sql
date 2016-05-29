@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.0.5 (2016-05-29)
+* (bluefox) switch max and min with each other
+
 ### 1.0.4 (2016-05-29)
 * (bluefox) check retention of data if set "never"
 
