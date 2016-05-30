@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.0.5 (2016-05-30)
+* (bluefox) allow setup DB name for mysql and mssql
+
 ### 1.0.5 (2016-05-29)
 * (bluefox) switch max and min with each other
 

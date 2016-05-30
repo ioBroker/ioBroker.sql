@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.0.5",
+        "version": "1.0.6",
         "news": {
+            "1.0.6": {
+                "en": "allow setup DB name for mysql and mssql",
+                "de": "allow setup DB name for mysql and mssql",
+                "ru": "allow setup DB name for mysql and mssql"
+            },
             "1.0.5": {
                 "en": "switch max and min with each other",
                 "de": "switch max and min with each other",
