@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.0.6",
+        "version": "1.0.7",
         "news": {
+            "1.0.7": {
+                "en": "draw line to the end if ignore null",
+                "de": "draw line to the end if ignore null",
+                "ru": "draw line to the end if ignore null"
+            },
             "1.0.6": {
                 "en": "allow setup DB name for mysql and mssql",
                 "de": "allow setup DB name for mysql and mssql",

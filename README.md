@@ -197,7 +197,10 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
-### 1.0.5 (2016-05-30)
+### 1.0.7 (2016-05-31)
+* (bluefox) draw line to the end if ignore null
+
+### 1.0.6 (2016-05-30)
 * (bluefox) allow setup DB name for mysql and mssql
 
 ### 1.0.5 (2016-05-29)
