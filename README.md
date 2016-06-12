@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.0.8 (2016-06-12)
+* (bluefox) allow settings for parallel requests
+
 ### 1.0.7 (2016-05-31)
 * (bluefox) draw line to the end if ignore null
 

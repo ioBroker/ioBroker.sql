@@ -104,7 +104,7 @@ function connect() {
         else
         // special solution for postgres. Connect first to Db "postgres", create new DB "iobroker" and then connect to "iobroker" DB.
         if (_client !== true && adapter.config.dbtype === 'postgresql') {
-            if (adapter.config.dbtype == 'postgresql') {
+            if (adapter.config.dbtype === 'postgresql') {
                 params.database = 'postgres';
             }
             // connect first to DB postgres and create iobroker DB
@@ -135,7 +135,7 @@ function connect() {
             });
         }
 
-        if (adapter.config.dbtype == 'postgresql') {
+        if (adapter.config.dbtype === 'postgresql') {
             params.database = adapter.config.dbname;
         }
 
@@ -449,6 +449,10 @@ function main() {
         adapter.log.error('Unknown DB type: ' + adapter.config.dbtype);
         adapter.stop();
     }
+    if (adapter.config.multiRequests !== undefined && adapter.config.dbtype !== 'SQLite3Client') {
+        clients[adapter.config.dbtype].multiRequests = adapter.config.multiRequests;
+    }
+
     adapter.config.port = parseInt(adapter.config.port, 10) || 0;
     if (adapter.config.round !== null && adapter.config.round !== undefined) {
         adapter.config.round = Math.pow(10, parseInt(adapter.config.round, 10));
