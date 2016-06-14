@@ -440,7 +440,6 @@ function processMessage(msg) {
 
 function main() {
     adapter.config.dbname = adapter.config.dbname || 'iobroker';
-    multiRequests = clients[adapter.config.dbtype].multiRequests;
 
     adapter.config.retention = parseInt(adapter.config.retention, 10) || 0;
     adapter.config.debounce  = parseInt(adapter.config.debounce,  10) || 0;
@@ -452,6 +451,8 @@ function main() {
     if (adapter.config.multiRequests !== undefined && adapter.config.dbtype !== 'SQLite3Client') {
         clients[adapter.config.dbtype].multiRequests = adapter.config.multiRequests;
     }
+    
+    multiRequests = clients[adapter.config.dbtype].multiRequests;
 
     adapter.config.port = parseInt(adapter.config.port, 10) || 0;
     if (adapter.config.round !== null && adapter.config.round !== undefined) {

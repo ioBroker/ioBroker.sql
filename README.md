@@ -197,7 +197,7 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
-### 1.0.8 (2016-06-12)
+### 1.0.9 (2016-06-14)
 * (bluefox) allow settings for parallel requests
 
 ### 1.0.7 (2016-05-31)

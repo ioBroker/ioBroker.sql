@@ -7,9 +7,9 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.0.8",
+        "version": "1.0.9",
         "news": {
-            "1.0.8": {
+            "1.0.9": {
                 "en": "allow settings for parallel requests",
                 "de": "allow settings for parallel requests",
                 "ru": "allow settings for parallel requests"
