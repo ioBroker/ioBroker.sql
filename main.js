@@ -959,8 +959,8 @@ function getHistory(msg) {
         id:         msg.message.id == '*' ? null : msg.message.id,
         start:      msg.message.options.start,
         end:        msg.message.options.end || ((new Date()).getTime() + 5000000),
-        step:       parseInt(msg.message.options.step)  || null,
-        count:      parseInt(msg.message.options.count) || 500,
+        step:       parseInt(msg.message.options.step, 10)  || null,
+        count:      parseInt(msg.message.options.count, 10) || 500,
         ignoreNull: msg.message.options.ignoreNull,
         aggregate:  msg.message.options.aggregate || 'average', // One of: max, min, average, total
         limit:      msg.message.options.limit || adapter.config.limit || 2000,
