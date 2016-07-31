@@ -443,12 +443,13 @@ function main() {
 
     adapter.config.retention = parseInt(adapter.config.retention, 10) || 0;
     adapter.config.debounce  = parseInt(adapter.config.debounce,  10) || 0;
+    adapter.config.requestInterval = (adapter.config.requestInterval === undefined || adapter.config.requestInterval === null  || adapter.config.requestInterval === '') ? 0 : parseInt(adapter.config.requestInterval, 10) || 0;
 
     if (!clients[adapter.config.dbtype]) {
         adapter.log.error('Unknown DB type: ' + adapter.config.dbtype);
         adapter.stop();
     }
-    if (adapter.config.multiRequests !== undefined && adapter.config.dbtype !== 'SQLite3Client') {
+    if (adapter.config.multiRequests !== undefined && adapter.config.dbtype !== 'SQLite3Client' && adapter.config.dbtype !== 'sqlite') {
         clients[adapter.config.dbtype].multiRequests = adapter.config.multiRequests;
     }
     
@@ -754,28 +755,38 @@ function pushValueIntoDB(id, state) {
     }
 }
 
+var lockTasks = false;
 function processTasks() {
+    if (lockTasks) {
+        adapter.log.debug('Tries to execute task, but last one not finished!');
+        return;
+    }
+    lockTasks = true;
     if (tasks.length) {
         if (tasks[0].operation === 'insert') {
             _insertValueIntoDB(tasks[0].query, tasks[0].id, function () {
                 tasks.shift();
-                if (tasks.length) setTimeout(processTasks, 0);
+                lockTasks = false;
+                if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
             });
         } else if (tasks[0].operation === 'select') {
             _getDataFromDB(tasks[0].query, tasks[0].options, function (err, rows) {
                 if (tasks[0].callback) tasks[0].callback(err, rows);
                 tasks.shift();
-                if (tasks.length) setTimeout(processTasks, 0);
+                lockTasks = false;
+                if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
             });
         } else if (tasks[0].operation === 'userQuery') {
             _userQuery(tasks[0].msg, function () {
                 tasks.shift();
-                if (tasks.length) setTimeout(processTasks, 0);
+                lockTasks = false;
+                if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
             });
         } else if (tasks[0].operation === 'delete') {
             _checkRetention(tasks[0].query, function () {
                 tasks.shift();
-                if (tasks.length) setTimeout(processTasks, 0);
+                lockTasks = false;
+                if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
             });
         }
     }

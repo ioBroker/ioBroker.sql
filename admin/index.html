@@ -60,6 +60,7 @@
         "File for sqlite:":     {"en": "File for sqlite:",      "de": "Datei für sqlite:",              "ru": "Файл для sqlite:"},
         "Encrypt:":             {"en": "Encrypt:",              "de": "Verschlüsseln:",                 "ru": "Шифрование:"},
         "Test connection":      {"en": "Test connection",       "de": "Verbindung testen",              "ru": "Проверить соединение"},
+        "requestInterval":      {"en": "Pause between requests(ms)","de": "Intervall zwischen DB Anfragen(ms)",  "ru": "Пауза между запросами к базе"},
         "Round real to:":       {"en": "Round real to:",        "de": "Aufrunden auf: ",                "ru": "Округлять до"},
         "Are you sure? All data will be dropped.": {
             "en": "Are you sure? All data will be dropped.",
@@ -327,6 +328,11 @@
         <tr class="baby-sql">
             <td class="translate">File for sqlite:</td>
             <td><input id="fileName" type="text" class="value"/></td>
+            <td></td>
+        </tr>
+        <tr class="baby-sql">
+            <td class="translate">requestInterval</td>
+            <td><input id="requestInterval" type="text" class="value"/></td>
             <td></td>
         </tr>
         <tr class="ms-sql real-sql">

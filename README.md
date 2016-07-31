@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.0.10 (2016-07-31)
+* (bluefox) fix multi requests if sqlite
+
 ### 1.0.9 (2016-06-14)
 * (bluefox) allow settings for parallel requests
 

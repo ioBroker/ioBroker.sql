@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.0.9",
+        "version": "1.0.10",
         "news": {
+            "1.0.10": {
+                "en": "fix multi requests if sqlite",
+                "de": "fix multi requests if sqlite",
+                "ru": "fix multi requests if sqlite"
+            },
             "1.0.9": {
                 "en": "allow settings for parallel requests",
                 "de": "allow settings for parallel requests",
@@ -80,6 +85,7 @@
         "password":  "",
         "dbtype":    "sqlite",
         "fileName":  "sqlite.db",
+        "requestInterval": 0,
         "encrypt":   false,
         "round":     4,
         "dbname":    "iobroker",
