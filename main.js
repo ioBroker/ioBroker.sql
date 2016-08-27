@@ -37,8 +37,11 @@ var multiRequests = true;
 
 var adapter = utils.adapter('sql');
 adapter.on('objectChange', function (id, obj) {
-    if (obj && obj.common && obj.common.history && obj.common.history[adapter.namespace]) {
-
+    if (obj && obj.common && (
+            // todo remove history somewhen (2016.08) - Do not forget object selector in io-package.json
+        (obj.common.history && obj.common.history[adapter.namespace]) ||
+        (obj.common.custom && obj.common.custom[adapter.namespace]))
+    ) {
         if (!sqlDPs[id] && !subscribeAll) {
             // unsubscribe
             for (var _id in sqlDPs) {
@@ -47,7 +50,8 @@ adapter.on('objectChange', function (id, obj) {
             subscribeAll = true;
             adapter.subscribeForeignStates('*');
         }
-        sqlDPs[id] = obj.common.history;
+        // todo remove history somewhen (2016.08)
+        sqlDPs[id] = obj.common.custom || obj.common.history;
         adapter.log.info('enabled logging of ' + id);
     } else {
         if (sqlDPs[id]) {
@@ -475,8 +479,8 @@ function main() {
     }
     SQLFuncs = require(__dirname + '/lib/' + adapter.config.dbtype);
 
-    // read all history settings
-    adapter.objects.getObjectView('history', 'state', {}, function (err, doc) {
+    // read all custom settings
+    adapter.objects.getObjectView('custom', 'state', {}, function (err, doc) {
         var count = 0;
         if (doc && doc.rows) {
             for (var i = 0, l = doc.rows.length; i < l; i++) {
@@ -1104,10 +1108,10 @@ function generateDemo(msg) {
             name:       msg.message.id,
             type:       'state',
             enabled:    false,
-            history:    {}
+            custom:     {}
         }
     };
-    obj.common.history[adapter.namespace] = {
+    obj.common.custom[adapter.namespace] = {
         enabled:        true,
         changesOnly:    false,
         debounce:       1000,
@@ -1118,7 +1122,7 @@ function generateDemo(msg) {
     adapter.setObject('demo.' + msg.message.id, obj);
 
     sqlDPs[id] = {};
-    sqlDPs[id][adapter.namespace] = obj.common.history[adapter.namespace];
+    sqlDPs[id][adapter.namespace] = obj.common.custom[adapter.namespace];
 
     generate();
 }

@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.0.10",
+        "version": "1.1.0",
         "news": {
+            "1.1.0": {
+                "en": "change name of object from history to custom",
+                "de": "Ändere Name vom Storage-Object von history nach custom",
+                "ru": "Изменено имя объекта для настроек с history на custom"
+            },
             "1.0.10": {
                 "en": "fix multi requests if sqlite",
                 "de": "fix multi requests if sqlite",
@@ -56,7 +61,8 @@
         "messagebox":               true,
         "subscribe":                "messagebox",
         "keywords":                 ["charts", "sql", "logging", "graphs", "archive"],
-        "preserveSettings":         "history",
+        "preserveSettings":         "custom",
+        "supportCustoms":           true,
         "enabled":                  true,
         "stopBeforeUpdate":         true,
         "authors": [
@@ -67,7 +73,7 @@
         "icon":                     "sql.png",
         "extIcon":                  "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
         "type":                     "storage",
-        "dependencies":             [{"js-controller": ">=0.9.0"}],
+        "dependencies":             [{"js-controller": ">=0.11.3"}],
         "config":{
             "minWidth":     570,
             "width ":       435,
@@ -93,11 +99,11 @@
     },
     "objects": [
         {
-            "_id": "_design/history",
+            "_id": "_design/custom",
             "language": "javascript",
             "views": {
                 "state": {
-                    "map": "function(doc) { if (doc.type=='state' && doc.common.history) emit(doc._id, doc.common.history) }"
+                    "map": "function(doc) { if (doc.type==='state' && (doc.common.custom || doc.common.history)) emit(doc._id, doc.common.custom || doc.common.history) }"
                 }
             }
         }

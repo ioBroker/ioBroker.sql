@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.0.10 (2016-08-27)
+* (bluefox) change name of object from "history" to "custom"
+
 ### 1.0.10 (2016-07-31)
 * (bluefox) fix multi requests if sqlite
 
