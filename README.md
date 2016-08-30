@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.2.0 (2016-08-30)
+* (bluefox) сompatible only with new admin
+
 ### 1.0.10 (2016-08-27)
 * (bluefox) change name of object from "history" to "custom"
 
