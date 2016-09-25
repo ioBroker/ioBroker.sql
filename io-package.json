@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.2.0",
+        "version": "1.2.1",
         "news": {
+            "1.2.1": {
+                "en": "Fix selector for SQL objects",
+                "de": "Korrigiere auswahl von SQL objekten",
+                "ru": "Исправлен выбор SQL объектов при старте"
+            },
 			"1.2.0": {
                 "en": "сompatible only with new admin",
                 "de": "Nur mit neuem Admin kompatibel",

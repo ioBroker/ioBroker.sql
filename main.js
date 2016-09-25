@@ -38,9 +38,9 @@ var multiRequests = true;
 var adapter = utils.adapter('sql');
 adapter.on('objectChange', function (id, obj) {
     if (obj && obj.common && (
-            // todo remove history somewhen (2016.08) - Do not forget object selector in io-package.json
+            // todo remove history sometime (2016.08) - Do not forget object selector in io-package.json
         (obj.common.history && obj.common.history[adapter.namespace]) ||
-        (obj.common.custom && obj.common.custom[adapter.namespace]))
+        (obj.common.custom  && obj.common.custom[adapter.namespace]))
     ) {
         if (!sqlDPs[id] && !subscribeAll) {
             // unsubscribe
@@ -50,7 +50,7 @@ adapter.on('objectChange', function (id, obj) {
             subscribeAll = true;
             adapter.subscribeForeignStates('*');
         }
-        // todo remove history somewhen (2016.08)
+        // todo remove history sometime (2016.08)
         sqlDPs[id] = obj.common.custom || obj.common.history;
         adapter.log.info('enabled logging of ' + id);
     } else {
@@ -442,6 +442,28 @@ function processMessage(msg) {
     }
 }
 
+function fixSelector(callback) {
+    // fix _design/custom object
+    adapter.getForeignObject('_design/custom', function (err, obj) {
+        if (!obj || obj.views.state.map.indexOf('common.history') === -1 || obj.views.state.map.indexOf('common.custom') === -1) {
+            obj = {
+                _id: '_design/custom',
+                language: 'javascript',
+                views: {
+                    state: {
+                        map: 'function(doc) { if (doc.type===\'state\' && (doc.common.custom || doc.common.history)) emit(doc._id, doc.common.custom || doc.common.history) }'
+                    }
+                }
+            };
+            adapter.setForeignObject('_design/custom', obj, function (err) {
+                if (callback) callback(err);
+            });
+        } else {
+            if (callback) callback(err);
+        }
+    });
+}
+
 function main() {
     adapter.config.dbname = adapter.config.dbname || 'iobroker';
 
@@ -479,50 +501,52 @@ function main() {
     }
     SQLFuncs = require(__dirname + '/lib/' + adapter.config.dbtype);
 
-    // read all custom settings
-    adapter.objects.getObjectView('custom', 'state', {}, function (err, doc) {
-        var count = 0;
-        if (doc && doc.rows) {
-            for (var i = 0, l = doc.rows.length; i < l; i++) {
-                if (doc.rows[i].value) {
-                    var id = doc.rows[i].id;
-                    sqlDPs[id] = doc.rows[i].value;
+    fixSelector(function () {
+        // read all custom settings
+        adapter.objects.getObjectView('custom', 'state', {}, function (err, doc) {
+            var count = 0;
+            if (doc && doc.rows) {
+                for (var i = 0, l = doc.rows.length; i < l; i++) {
+                    if (doc.rows[i].value) {
+                        var id = doc.rows[i].id;
+                        sqlDPs[id] = doc.rows[i].value;
 
-                    if (!sqlDPs[id][adapter.namespace]) {
-                        delete sqlDPs[id];
-                    } else {
-                        count++;
-                        adapter.log.info('enabled logging of ' + id);
-                        if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
-                            sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention || adapter.config.retention, 10) || 0;
+                        if (!sqlDPs[id][adapter.namespace]) {
+                            delete sqlDPs[id];
                         } else {
-                            sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
-                        }
+                            count++;
+                            adapter.log.info('enabled logging of ' + id);
+                            if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
+                                sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention || adapter.config.retention, 10) || 0;
+                            } else {
+                                sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
+                            }
 
-                        if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
-                            sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
-                        } else {
-                            sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
-                        }
-                        sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
+                            if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
+                                sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
+                            } else {
+                                sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
+                            }
+                            sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
 
-                        // add one day if retention is too small
-                        if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
-                            sqlDPs[id][adapter.namespace].retention += 86400;
+                            // add one day if retention is too small
+                            if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
+                                sqlDPs[id][adapter.namespace].retention += 86400;
+                            }
                         }
                     }
                 }
             }
-        }
-        
-        if (count < 20) {
-            for (var _id in sqlDPs) {
-                adapter.subscribeForeignStates(_id);
+
+            if (count < 20) {
+                for (var _id in sqlDPs) {
+                    adapter.subscribeForeignStates(_id);
+                }
+            } else {
+                subscribeAll = true;
+                adapter.subscribeForeignStates('*');
             }
-        } else {
-            subscribeAll = true;
-            adapter.subscribeForeignStates('*');
-        }
+        });
     });
 
     adapter.subscribeForeignObjects('*');

@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.2.1 (2016-08-30)
+* (bluefox) Fix selector for SQL objects
+
 ### 1.2.0 (2016-08-30)
 * (bluefox) сompatible only with new admin
 
