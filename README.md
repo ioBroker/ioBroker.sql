@@ -13,7 +13,7 @@ Supports PostgreSQL, mysql, Microsoft SQL Server and sqlite.
 You can leave port 0 if default port is desired.
 
 ### MS-SQL:
-Use ```localhost\instance``` for host and check that TCP/IP connections are enabled. 
+Use ```localhost\instance``` for host and check that TCP/IP connections are enabled.
 https://msdn.microsoft.com/en-us/library/bb909712(v=vs.90).aspx
 
 ### SQLite:
@@ -23,7 +23,7 @@ is "file"-DB and cannot manage too many events. If you have a big amount of data
 You can install mysql on linux systems:
 
 ```
-apt-get install mysql-server mysql-client 
+apt-get install mysql-server mysql-client
 
 mysql -uroot -p
 
@@ -55,7 +55,7 @@ Structure:
 | id    | INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1) | unique ID                                 |
 | name  | varchar(255) / TEXT                        | instance of adapter, that wrote the entry |
 
-*Note:* MS-SQL uses varchar(255), and others use TEXT 
+*Note:* MS-SQL uses varchar(255), and others use TEXT
 
 ### Datapoints
 This table is a list of datapoints. (IDs)
@@ -75,7 +75,7 @@ Structure:
 | name  | varchar(255) / TEXT                        | ID of variable, e.g. hm-rpc.0.JEQ283747.1.STATE |
 | type  | INTEGER                                    | 0 - number, 1 - string, 2 - boolean             |
 
-*Note:* MS-SQL uses varchar(255), and others use TEXT 
+*Note:* MS-SQL uses varchar(255), and others use TEXT
 
 ### Numbers
 Values for states with type "number". **ts** means "time series".
@@ -91,7 +91,7 @@ Structure:
 
 | Field  | Type                                       | Description                                     |
 |--------|--------------------------------------------|-------------------------------------------------|
-| id     | INTEGER                                    | ID of state from "Datapoints" table             | 
+| id     | INTEGER                                    | ID of state from "Datapoints" table             |
 | ts     | BIGINT / INTEGER                           | Time in ms till epoch. Can be converted to time with "new Date(ts)" |
 | val    | REAL                                       | Value                                           |
 | ack    | BIT/BOOLEAN                                | Is acknowledged: 0 - not ack, 1 - ack           |
@@ -115,14 +115,14 @@ Structure:
 
 | Field  | Type                                       | Description                                     |
 |--------|--------------------------------------------|-------------------------------------------------|
-| id     | INTEGER                                    | ID of state from "Datapoints" table             | 
+| id     | INTEGER                                    | ID of state from "Datapoints" table             |
 | ts     | BIGINT                                     | Time in ms till epoch. Can be converted to time with "new Date(ts)" |
 | val    | TEXT                                       | Value                                           |
 | ack    | BIT/BOOLEAN                                | Is acknowledged: 0 - not ack, 1 - ack           |
 | _from  | INTEGER                                    | ID of source from "Sources" table               |
 | q      | INTEGER                                    | Quality as number. You can find description [here](https://github.com/ioBroker/ioBroker/blob/master/doc/SCHEMA.md#states) |
 
-*Note:* MS-SQL uses BIT, and others use BOOLEAN. SQLite uses for ts INTEGER and all others BIGINT. 
+*Note:* MS-SQL uses BIT, and others use BOOLEAN. SQLite uses for ts INTEGER and all others BIGINT.
 
 ### Booleans
 Values for states with type "boolean".
@@ -138,14 +138,14 @@ Structure:
 
 | Field  | Type                                       | Description                                     |
 |--------|--------------------------------------------|-------------------------------------------------|
-| id     | INTEGER                                    | ID of state from "Datapoints" table             | 
+| id     | INTEGER                                    | ID of state from "Datapoints" table             |
 | ts     | BIGINT                                     | Time in ms till epoch. Can be converted to time with "new Date(ts)" |
 | val    | BIT/BOOLEAN                                | Value                                           |
 | ack    | BIT/BOOLEAN                                | Is acknowledged: 0 - not ack, 1 - ack           |
 | _from  | INTEGER                                    | ID of source from "Sources" table               |
 | q      | INTEGER                                    | Quality as number. You can find description [here](https://github.com/ioBroker/ioBroker/blob/master/doc/SCHEMA.md#states) |
 
-*Note:* MS-SQL uses BIT, and others use BOOLEAN. SQLite uses for ts INTEGER and all others BIGINT. 
+*Note:* MS-SQL uses BIT, and others use BOOLEAN. SQLite uses for ts INTEGER and all others BIGINT.
 
 ## Custom queries
 The user can execute custom queries on tables from javascript adapter:
@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.3.0 (2016-10-29)
+* (Apollon77) add option to re-log unchanged values to make it easier for visualization
+
 ### 1.2.1 (2016-08-30)
 * (bluefox) Fix selector for SQL objects
 

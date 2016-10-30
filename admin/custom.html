@@ -15,6 +15,15 @@
                 <td></td>
                 <td></td>
                 <td></td>
+                <td class="translate">log changes interval(s)</td>
+                <td><input type="number" data-field="changesRelogInterval" min="0" max="86400000" data-default="0"></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
                 <td class="translate">Storage retention</td>
                 <td>
                     <select data-field="retention" data-default="31536000">
@@ -43,6 +52,11 @@
     systemDictionary = $.extend(systemDictionary, {
         "enabled":                {"en": "enabled",               "de": "Aktiviert",                    "ru": "активно"},
         "De-bounce interval(ms)": {"en": "De-bounce interval(ms)", "de": "Entprellzeit(ms)",            "ru": "Минимальный интервал(ms)"},
+        "log changes interval(s)": {
+            "en": "Log unchanged values any(s)",
+            "de": "Gleiche Werte aufzeichnen(s)",
+            "ru": "Запись неизменённых значений каждые (сек)"
+        },
         "log changes only":       {"en": "log changes only",      "de": "Nur Änderungen aufzeichnen",   "ru": "Только изменения"},
         "maximum datapoint count in RAM": {
             "en": "maximum datapoint count in RAM",
@@ -73,14 +87,16 @@
                     enabled:     false,
                     changesOnly: false,
                     debounce:    0,
-                    retention:   instanceObj.native.retention
+                    retention:   instanceObj.native.retention,
+                    changesRelogInterval: instanceObj.native.changesRelogInterval
                 };
             }
             return {
                 enabled:     false,
                 changesOnly: true,
                 debounce:    instanceObj.native.debounce,
-                retention:   instanceObj.native.retention
+                retention:   instanceObj.native.retention,
+                changesRelogInterval: instanceObj.native.changesRelogInterval
             };
         }
     }

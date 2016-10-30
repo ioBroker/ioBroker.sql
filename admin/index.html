@@ -32,6 +32,11 @@
             "ru": "Сначала надо активировать драйвер SQL"
         },
         "debounce":             {"en": "De-bounce interval(ms)", "de": "Entprellzeit(ms)",              "ru": "Минимальный интервал(ms)"},
+        "log changes interval(s)": {
+            "en": "Log unchanged values any(s)",
+            "de": "Gleiche Werte aufzeichnen(s)",
+            "ru": "Запись неизменённых значений каждые (сек)"
+        },
         "retention":            {"en": "Storage retention",     "de": "Storage Vorhaltezeit",           "ru": "Время хранения в базе"},
         "keep forever":         {"en": "keep forever",          "de": "keine automatische Löschung",    "ru": "хранить вечно"},
         "2 years":              {"en": "2 years",               "de": "2 Jahre",                        "ru": "2 года"},
@@ -355,6 +360,11 @@
             <td class="translate">debounce</td>
             <td><input id="debounce" type="text" size="5" class="value number"/></td>
             <td></td>
+        </tr>
+        <tr>
+            <td class="translate">log changes interval(s)</td>
+            <td><input id="changesRelogInterval" type="text" size="5" class="value number"/></td>
+            <td class="translate"></td>
         </tr>
         <tr>
             <td class="translate">retention</td>
