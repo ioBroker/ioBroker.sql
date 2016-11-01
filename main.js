@@ -439,6 +439,8 @@ function processMessage(msg) {
         generateDemo(msg);
     } else if (msg.command == 'query') {
         query(msg);
+    } else if (msg.command === 'storeState') {
+        storeState(msg);
     }
 }
 
@@ -1172,6 +1174,32 @@ function generateDemo(msg) {
     sqlDPs[id][adapter.namespace] = obj.common.custom[adapter.namespace];
 
     generate();
+}
+
+function storeState(msg) {
+    if (!msg.message || !msg.message.id || !msg.message.state) {
+        adapter.log.error('storeState called with invalid data');
+        adapter.sendTo(msg.from, msg.command, {
+            error:  'Invalid call'
+        }, msg.callback);
+        return;
+    }
+
+    if (Array.isArray(msg.message)) {
+        for (var i = 0; i < msg.message.length; i++) {
+            pushValueIntoDB(msg.message[i].id, msg.message[i].state);
+        }
+    } else if (Array.isArray(msg.message.state)) {
+        for (var j = 0; j < msg.message.state.length; j++) {
+            pushValueIntoDB(msg.message.id, msg.message.state[j]);
+        }
+    } else {
+        pushValueIntoDB(msg.message.id, msg.message.state);
+    }
+
+    adapter.sendTo(msg.from, msg.command, {
+        success:                  true
+    }, msg.callback);
 }
 
 process.on('uncaughtException', function(err) {
