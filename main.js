@@ -439,6 +439,8 @@ function processMessage(msg) {
         generateDemo(msg);
     } else if (msg.command == 'query') {
         query(msg);
+    } else if (msg.command === 'storeState') {
+        storeState(msg);
     }
 }
 
@@ -471,6 +473,12 @@ function main() {
     adapter.config.debounce  = parseInt(adapter.config.debounce,  10) || 0;
     adapter.config.requestInterval = (adapter.config.requestInterval === undefined || adapter.config.requestInterval === null  || adapter.config.requestInterval === '') ? 0 : parseInt(adapter.config.requestInterval, 10) || 0;
 
+    if (adapter.config.changesRelogInterval !== null && adapter.config.changesRelogInterval !== undefined) {
+        adapter.config.changesRelogInterval = parseInt(adapter.config.changesRelogInterval, 10);
+    } else {
+        adapter.config.changesRelogInterval = 0;
+    }
+
     if (!clients[adapter.config.dbtype]) {
         adapter.log.error('Unknown DB type: ' + adapter.config.dbtype);
         adapter.stop();
@@ -478,7 +486,7 @@ function main() {
     if (adapter.config.multiRequests !== undefined && adapter.config.dbtype !== 'SQLite3Client' && adapter.config.dbtype !== 'sqlite') {
         clients[adapter.config.dbtype].multiRequests = adapter.config.multiRequests;
     }
-    
+
     multiRequests = clients[adapter.config.dbtype].multiRequests;
 
     adapter.config.port = parseInt(adapter.config.port, 10) || 0;
@@ -529,6 +537,12 @@ function main() {
                             }
                             sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
 
+                            if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
+                                sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
+                            } else {
+                                sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
+                            }
+
                             // add one day if retention is too small
                             if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
                                 sqlDPs[id][adapter.namespace].retention += 86400;
@@ -557,15 +571,26 @@ function main() {
 }
 
 function pushHistory(id, state) {
-    // Push into redis
+    // Push into DB
     if (sqlDPs[id]) {
         var settings = sqlDPs[id][adapter.namespace];
 
         if (!settings || !state) return;
-        
-        if (sqlDPs[id].state && settings.changesOnly && (state.ts !== state.lc)) return;
+
+        if (sqlDPs[id].state && settings.changesOnly) {
+            if (settings.changesRelogInterval === 0) {
+                if (state.ts !== state.lc) return;
+            }
+            else if (sqlDPs[id].lastLogTime) {
+                if ((state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) return;
+                if (state.ts !== state.lc) {
+                    adapter.log.debug('relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
+                }
+            }
+        }
 
         sqlDPs[id].state = state;
+        sqlDPs[id].lastLogTime = state.ts;
 
         // Do not store values ofter than 1 second
         if (!sqlDPs[id].timeout && settings.debounce) {
@@ -1149,6 +1174,32 @@ function generateDemo(msg) {
     sqlDPs[id][adapter.namespace] = obj.common.custom[adapter.namespace];
 
     generate();
+}
+
+function storeState(msg) {
+    if (!msg.message || !msg.message.id || !msg.message.state) {
+        adapter.log.error('storeState called with invalid data');
+        adapter.sendTo(msg.from, msg.command, {
+            error:  'Invalid call'
+        }, msg.callback);
+        return;
+    }
+
+    if (Array.isArray(msg.message)) {
+        for (var i = 0; i < msg.message.length; i++) {
+            pushValueIntoDB(msg.message[i].id, msg.message[i].state);
+        }
+    } else if (Array.isArray(msg.message.state)) {
+        for (var j = 0; j < msg.message.state.length; j++) {
+            pushValueIntoDB(msg.message.id, msg.message.state[j]);
+        }
+    } else {
+        pushValueIntoDB(msg.message.id, msg.message.state);
+    }
+
+    adapter.sendTo(msg.from, msg.command, {
+        success:                  true
+    }, msg.callback);
 }
 
 process.on('uncaughtException', function(err) {
