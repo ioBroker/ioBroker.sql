@@ -70,6 +70,7 @@ adapter.on('objectChange', function (id, obj) {
         } else {
             sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
         }
+        if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
         if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
             sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
         }
