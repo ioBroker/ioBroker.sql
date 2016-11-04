@@ -1,6 +1,6 @@
 /* jshint -W097 */// jshint strict:false
 /*jslint node: true */
-"use strict";
+'use strict';
 
 var utils    = require(__dirname + '/lib/utils'); // Get common adapter utils
 var SQL      = require('sql-client');
@@ -111,6 +111,20 @@ function connect() {
             if (adapter.config.dbtype === 'postgresql') {
                 params.database = 'postgres';
             }
+
+            if (!adapter.config.dbtype) {
+                adapter.log.error('DB Type is not defined!');
+                return;
+            }
+            if (!clients[adapter.config.dbtype] || !clients[adapter.config.dbtype].name) {
+                adapter.log.error('Unknown type "' + adapter.config.dbtype + '"');
+                return;
+            }
+            if (!SQL[clients[adapter.config.dbtype].name]) {
+                adapter.log.error('SQL package "' + clients[adapter.config.dbtype].name + '" is not installed.');
+                return;
+            }
+
             // connect first to DB postgres and create iobroker DB
             _client = new SQL[clients[adapter.config.dbtype].name](params);
             return _client.connect(function (err) {
