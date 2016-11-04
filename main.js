@@ -52,6 +52,32 @@ adapter.on('objectChange', function (id, obj) {
         }
         // todo remove history sometime (2016.08)
         sqlDPs[id] = obj.common.custom || obj.common.history;
+        if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
+            sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention || adapter.config.retention, 10) || 0;
+        } else {
+            sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
+        }
+
+        if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
+            sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
+        } else {
+            sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
+        }
+        sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
+
+        if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
+            sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
+        } else {
+            sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
+        }
+        if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+            sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
+        }
+
+        // add one day if retention is too small
+        if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
+            sqlDPs[id][adapter.namespace].retention += 86400;
+        }
         adapter.log.info('enabled logging of ' + id);
     } else {
         if (sqlDPs[id]) {
@@ -425,6 +451,14 @@ function allScripts(scripts, index, cb) {
 
 function finish(callback) {
     if (clientPool) clientPool.close();
+    for (var id in sqlDPs) {
+        if (sqlDPs[id].relogTimeout) {
+            clearTimeout(sqlDPs[id].relogTimeout);
+        }
+        if (sqlDPs[id].timeout) {
+            clearTimeout(sqlDPs[id].timeout);
+        }
+    }
     if (callback)   callback();
 }
 
@@ -542,6 +576,9 @@ function main() {
                             } else {
                                 sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
                             }
+                            if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+                                sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
+                            }
 
                             // add one day if retention is too small
                             if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
@@ -570,26 +607,40 @@ function main() {
     }
 }
 
-function pushHistory(id, state) {
+function pushHistory(id, state, timerRelog) {
+    if (timerRelog === undefined) timerRelog = false;
     // Push into DB
     if (sqlDPs[id]) {
         var settings = sqlDPs[id][adapter.namespace];
 
         if (!settings || !state) return;
 
-        if (sqlDPs[id].state && settings.changesOnly) {
+        if (sqlDPs[id].relogTimeout) {
+            clearTimeout(sqlDPs[id].relogTimeout);
+            sqlDPs[id].relogTimeout = null;
+        }
+        if (settings.changesRelogInterval > 0) {
+            sqlDPs[id].relogTimeout = setTimeout(reLogHelper, settings.changesRelogInterval * 1000, id);
+        }
+
+        if (sqlDPs[id].state && settings.changesOnly && !timerRelog) {
             if (settings.changesRelogInterval === 0) {
                 if (state.ts !== state.lc) return;
-            }
-            else if (sqlDPs[id].lastLogTime) {
+            } else if (sqlDPs[id].lastLogTime) {
                 if ((state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) return;
                 if (state.ts !== state.lc) {
-                    adapter.log.debug('relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
+                    adapter.log.debug('value-changed-relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
                 }
             }
         }
 
-        sqlDPs[id].state = state;
+        if (timerRelog) {
+            state.ts = new Date().getTime();
+            adapter.log.debug('timed-relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
+        } else {
+            // only store state if really changed
+            sqlDPs[id].state = state;
+        }
         sqlDPs[id].lastLogTime = state.ts;
 
         // Do not store values ofter than 1 second
@@ -599,6 +650,36 @@ function pushHistory(id, state) {
             pushHelper(id);
         }
     }
+}
+
+function reLogHelper(_id) {
+    if (!sqlDPs[_id]) {
+        adapter.log.info('non-existing id ' + _id);
+        return;
+    }
+    sqlDPs[_id].relogTimeout = null;
+    if (!sqlDPs[_id].state) {
+        //we have a not-that-often-updated state to log, so get the last state
+        adapter.getForeignState(_id, function (err, state) {
+            if (err) {
+                adapter.log.info('init timed Relog: can not get State for ' + _id + ' : ' + err);
+            }
+            else if (!state) {
+                adapter.log.info('init timed Relog: disable relog because state not set so far ' + _id + ': ' + JSON.stringify(state));
+            }
+            else {
+                adapter.log.debug('init timed Relog: getState ' + _id + ':  Value=' + state.val + ', ack=' + state.ack + ', ts=' + state.ts  + ', lc=' + state.lc);
+                // only if state is still not set
+                if (!sqlDPs[_id].state) {
+                    sqlDPs[_id].state = state;
+                    pushHistory(_id, sqlDPs[_id].state, true);
+                }
+            }
+        });
+    } else {
+        pushHistory(_id, sqlDPs[_id].state, true);
+    }
+
 }
 
 function pushHelper(_id) {
