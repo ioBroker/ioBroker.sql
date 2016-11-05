@@ -83,6 +83,8 @@ adapter.on('objectChange', function (id, obj) {
     } else {
         if (sqlDPs[id]) {
             adapter.log.info('disabled logging of ' + id);
+            if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
+            if (sqlDPs[id].timeout) clearTimeout(sqlDPs[id].timeout);
             delete sqlDPs[id];
         }
     }
