@@ -492,6 +492,8 @@ function processMessage(msg) {
         query(msg);
     } else if (msg.command === 'storeState') {
         storeState(msg);
+    } else if (msg.command === 'getDpOverview') {
+        getDpOverview(msg);
     }
 }
 
@@ -1298,6 +1300,110 @@ function storeState(msg) {
     adapter.sendTo(msg.from, msg.command, {
         success:                  true
     }, msg.callback);
+}
+
+function getDpOverview(msg) {
+    var result = {};
+    var query = SQLFuncs.getIdSelect(adapter.config.dbname);
+    adapter.log.info(query);
+    clientPool.borrow(function (err, client) {
+        if (err) {
+            adapter.sendTo(msg.from, msg.command, {
+                error:  'Cannot select ' + query + ': ' + err
+            }, msg.callback);
+            return;
+        }
+        client.execute(query, function (err, rows, fields) {
+            if (rows && rows.rows) rows = rows.rows;
+            if (err) {
+                adapter.log.error('Cannot select ' + query + ': ' + err);
+                adapter.sendTo(msg.from, msg.command, {
+                    error:  'Cannot select ' + query + ': ' + err
+                }, msg.callback);
+                clientPool.return(client);
+                return;
+            }
+            adapter.log.info('Query result ' + JSON.stringify(rows));
+            if (rows.length) {
+                var id;
+                for (var r = 0; r < rows.length; r++) {
+                    if (!result[rows[r].type]) result[rows[r].type] = {};
+                    result[rows[r].type][rows[r].id] = {};
+                    result[rows[r].type][rows[r].id].name = rows[r].name;
+                    switch(dbNames[rows[r].type]) {
+                        case 'ts_number':   result[rows[r].type][rows[r].id].type = 'number';
+                                            break;
+                        case 'ts_string':   result[rows[r].type][rows[r].id].type = 'string';
+                                            break;
+                        case 'ts_bool':     result[rows[r].type][rows[r].id].type = 'boolean';
+                                            break;
+                    }
+                }
+
+                adapter.log.info('inited result: ' + JSON.stringify(result));
+                getFirstTsForIds(client, 0, result, msg);
+            }
+        });
+    });
+
+}
+
+function getFirstTsForIds(dbClient, typeId, resultData, msg) {
+    if (typeId < dbNames.length) {
+        if (!resultData[typeId]) {
+            getFirstTsForIds(dbClient, typeId + 1, resultData, msg);
+        } else {
+            var query = SQLFuncs.getFirstTs(adapter.config.dbname, dbNames[typeId]);
+            adapter.log.info(query);
+            dbClient.execute(query, function (err, rows, fields) {
+                if (rows && rows.rows) rows = rows.rows;
+                if (err) {
+                    adapter.log.error('Cannot select ' + query + ': ' + err);
+                    adapter.sendTo(msg.from, msg.command, {
+                        error:  'Cannot select ' + query + ': ' + err
+                    }, msg.callback);
+                    clientPool.return(dbClient);
+                    return;
+                }
+                adapter.log.info('Query result ' + JSON.stringify(rows));
+                if (rows.length) {
+                    for (var r = 0; r < rows.length; r++) {
+                        if (resultData[typeId][rows[r].id]) {
+                            resultData[typeId][rows[r].id].ts = rows[r].ts;
+                        }
+                    }
+                }
+                adapter.log.info('enhanced result (' + typeId + '): ' + JSON.stringify(resultData));
+                setTimeout(getFirstTsForIds, 5000, dbClient, typeId + 1, resultData, msg);
+            });
+        }
+    } else {
+        clientPool.return(dbClient);
+        adapter.log.info('consolidate data ...');
+        var result = {};
+        for (var ti = 0; ti < dbNames.length; ti++ ) {
+            if (resultData[ti]) {
+                for (var index in resultData[ti]) {
+                    var id = resultData[ti][index].name;
+                    if (!result[id]) {
+                        result[id] = {};
+                        result[id].type = resultData[ti][index].type;
+                        result[id].ts = resultData[ti][index].ts;
+                    } else {
+                        result[id].type = 'undefined';
+                        if (resultData[ti][index].ts < result[id].ts) {
+                            result[id].ts = resultData[ti][index].ts;
+                        }
+                    }
+                }
+            }
+        }
+        adapter.log.info('Result: ' + JSON.stringify(result));
+        adapter.sendTo(msg.from, msg.command, {
+            succes: true,
+            result: result
+        }, msg.callback);
+    }
 }
 
 process.on('uncaughtException', function(err) {
