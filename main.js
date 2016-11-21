@@ -201,7 +201,7 @@ function connect() {
                 }
             });
         } catch (ex) {
-            if (ex.toString() == 'TypeError: undefined is not a function') {
+            if (ex.toString() === 'TypeError: undefined is not a function') {
                 adapter.log.error('Node.js DB driver for "' + adapter.config.dbtype + '" could not be installed.');
             } else {
                 adapter.log.error(ex.toString());
@@ -235,7 +235,7 @@ function connect() {
 function getSqlLiteDir(fileName) {
     fileName = fileName || 'sqlite.db';
     fileName = fileName.replace(/\\/g, '/');
-    if (fileName[0] == '/' || fileName.match(/^\w:\//)) {
+    if (fileName[0] === '/' || fileName.match(/^\w:\//)) {
         return fileName;
     }
     else {
@@ -312,7 +312,7 @@ function testConnection(msg) {
             clearTimeout(timeout);
             timeout = null;
         }
-        if (ex.toString() == 'TypeError: undefined is not a function') {
+        if (ex.toString() === 'TypeError: undefined is not a function') {
             return adapter.sendTo(msg.from, msg.command, {error: 'Node.js DB driver could not be installed.'}, msg.callback);
         } else {
             return adapter.sendTo(msg.from, msg.command, {error: ex.toString()}, msg.callback);
@@ -416,11 +416,11 @@ function oneScript(script, cb) {
                         // do nothing
                         err = null;
                     }  else
-                    if (err.code == '42P04') {// if database exists or table exists
+                    if (err.code === '42P04') {// if database exists or table exists
                         // do nothing
                         err = null;
                     }
-                    else if (err.code == '42P07') {
+                    else if (err.code === '42P07') {
                         var match = script.match(/CREATE\s+TABLE\s+(\w*)\s+\(/);
                         if (match) {
                             adapter.log.debug('OK. Table "' + match[1] + '" yet exists');
@@ -480,15 +480,15 @@ function finish(callback) {
 }
 
 function processMessage(msg) {
-    if (msg.command == 'getHistory') {
+    if (msg.command === 'getHistory') {
         getHistory(msg);
-    } else if (msg.command == 'test') {
+    } else if (msg.command === 'test') {
         testConnection(msg);
-    } else if (msg.command == 'destroy') {
+    } else if (msg.command === 'destroy') {
         destroyDB(msg);
-    } else if (msg.command == 'generateDemo') {
+    } else if (msg.command === 'generateDemo') {
         generateDemo(msg);
-    } else if (msg.command == 'query') {
+    } else if (msg.command === 'query') {
         query(msg);
     } else if (msg.command === 'storeState') {
         storeState(msg);
@@ -1088,7 +1088,7 @@ function _getDataFromDB(query, options, callback) {
                     // if less than 2000.01.01 00:00:00
                     if (rows[c].ts < 946681200000) rows[c].ts *= 1000;
 
-                    if (adapter.common.loglevel == 'debug') rows[c].date = new Date(parseInt(rows[c].ts, 10));
+                    if (adapter.common.loglevel === 'debug') rows[c].date = new Date(parseInt(rows[c].ts, 10));
                     if (options.ack) rows[c].ack = !!rows[c].ack;
                     if (isNumber && adapter.config.round) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
                     if (sqlDPs[options.index].type === 2) rows[c].val = !!rows[c].val;
@@ -1120,7 +1120,7 @@ function getHistory(msg) {
     var startTime = new Date().getTime();
 
     var options = {
-        id:         msg.message.id == '*' ? null : msg.message.id,
+        id:         msg.message.id === '*' ? null : msg.message.id,
         start:      msg.message.options.start,
         end:        msg.message.options.end || ((new Date()).getTime() + 5000000),
         step:       parseInt(msg.message.options.step, 10)  || null,
@@ -1215,16 +1215,16 @@ function generateDemo(msg) {
     end = new Date(end).setHours(24);
 
     function generate() {
-        if (curve == 'sin') {
+        if (curve === 'sin') {
             if (sin == 6.2) {
                 sin = 0;
             } else {
                 sin = Math.round((sin + 0.1) * 10) / 10;
             }
             value = Math.round(Math.sin(sin) * 10000) / 100;
-        } else if (curve == 'dec') {
+        } else if (curve === 'dec') {
             value++;
-        } else if (curve == 'inc') {
+        } else if (curve === 'inc') {
             value--;
         } else {
             if (up) {
