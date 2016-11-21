@@ -197,6 +197,9 @@ sendTo('sql.0', 'getHistory', {
 ```
 
 ## Changelog
+### 1.3.1 (2016-11-20)
+* (bluefox) Fix insert of string with '
+
 ### 1.3.0 (2016-10-29)
 * (Apollon77) add option to re-log unchanged values to make it easier for visualization
 
