@@ -94,7 +94,7 @@ describe('Test SQLite', function() {
     });
 
     it('Test SQLite: Check if adapter started', function (done) {
-        this.timeout(10000);
+        this.timeout(60000);
         checkConnectionOfAdapter(function () {
             objects.setObject('system.adapter.test.0', {
                     common: {
