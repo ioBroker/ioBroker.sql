@@ -128,8 +128,17 @@ describe('Test SQLite', function() {
         var now = new Date().getTime();
 
         states.setState('system.adapter.sql.0.memRss', {val: 1, ts: now - 2000}, function (err) {
+            if (err) {
+                console.log(err);
+            }
             states.setState('system.adapter.sql.0.memRss', {val: 2, ts: now - 1000}, function (err) {
+                if (err) {
+                    console.log(err);
+                }
                 states.setState('system.adapter.sql.0.memRss', {val: 3, ts: now}, function (err) {
+                    if (err) {
+                        console.log(err);
+                    }
                     setTimeout(function () {
                         sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
                             sendTo('sql.0', 'query', 'SELECT * FROM ts_number WHERE id=' + result.result[0].id, function (result) {
