@@ -131,30 +131,34 @@ describe('Test SQLite', function() {
             if (err) {
                 console.log(err);
             }
-            states.setState('system.adapter.sql.0.memRss', {val: 2, ts: now - 1000}, function (err) {
-                if (err) {
-                    console.log(err);
-                }
-                states.setState('system.adapter.sql.0.memRss', {val: 3, ts: now}, function (err) {
+            setTimeout(function () {
+                states.setState('system.adapter.sql.0.memRss', {val: 2, ts: now - 1000}, function (err) {
                     if (err) {
                         console.log(err);
                     }
                     setTimeout(function () {
-                        sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
-                            sendTo('sql.0', 'query', 'SELECT * FROM ts_number WHERE id=' + result.result[0].id, function (result) {
-                                console.log(JSON.stringify(result.result, null, 2));
-                                expect(result.result.length).to.be.at.least(3);
-                                var found = 0;
-                                for (var i = 0; i < result.result.length; i++) {
-                                    if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
-                                }
-                                expect(found).to.be.equal(3);
-                                done();
-                            });
+                        states.setState('system.adapter.sql.0.memRss', {val: 3, ts: now}, function (err) {
+                            if (err) {
+                                console.log(err);
+                            }
+                            setTimeout(function () {
+                                sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
+                                    sendTo('sql.0', 'query', 'SELECT * FROM ts_number WHERE id=' + result.result[0].id, function (result) {
+                                        console.log(JSON.stringify(result.result, null, 2));
+                                        expect(result.result.length).to.be.at.least(3);
+                                        var found = 0;
+                                        for (var i = 0; i < result.result.length; i++) {
+                                            if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
+                                        }
+                                        expect(found).to.be.equal(3);
+                                        done();
+                                    });
+                                });
+                            }, 4000);
                         });
-                    }, 4000);
+                    }, 1000);
                 });
-            });
+            }, 1000);
         });
     });
 
