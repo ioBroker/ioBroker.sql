@@ -1,3 +1,5 @@
+/* jshint -W097 */// jshint strict:false
+/*jslint node: true */
 // check if tmp directory exists
 var fs            = require('fs');
 var path          = require('path');
@@ -111,7 +113,7 @@ function checkIsAdapterInstalled(cb, counter) {
         if (objects['system.adapter.' + pkg.name.split('.').pop() + '.0']) {
             console.log('checkIsAdapterInstalled: ready!');
             setTimeout(function () {
-                cb && cb();
+                if (cb) cb();
             }, 100);
             return;
         } else {
@@ -123,7 +125,7 @@ function checkIsAdapterInstalled(cb, counter) {
 
     if (counter > 20) {
         console.error('checkIsAdapterInstalled: Cannot install!');
-        cb && cb('Cannot install');
+        if (cb) cb('Cannot install');
     } else {
         console.log('checkIsAdapterInstalled: wait...');
         setTimeout(function() {
@@ -143,7 +145,7 @@ function checkIsControllerInstalled(cb, counter) {
         if (objects['system.adapter.admin.0']) {
             console.log('checkIsControllerInstalled: installed!');
             setTimeout(function () {
-                cb && cb();
+                if (cb) cb();
             }, 100);
             return;
         }
@@ -153,7 +155,7 @@ function checkIsControllerInstalled(cb, counter) {
 
     if (counter > 20) {
         console.log('checkIsControllerInstalled: Cannot install!');
-        cb && cb('Cannot install');
+        if (cb) cb('Cannot install');
     } else {
         console.log('checkIsControllerInstalled: wait...');
         setTimeout(function() {
@@ -174,20 +176,20 @@ function installAdapter(cb) {
         checkIsAdapterInstalled(function (error) {
             if (error) console.error(error);
             console.log('Adapter installed.');
-            cb && cb();
+            if (cb) cb();
         });
     } else {
         // add controller
         var _pid = child_process.fork(startFile, ['add', pkg.name.split('.').pop(), '--enabled', 'false'], {
             cwd:   rootDir + 'tmp',
-            stdio: [0, 1, 2]
+            stdio: [0, 1, 2, 'ipc']
         });
 
         waitForEnd(_pid, function () {
             checkIsAdapterInstalled(function (error) {
                 if (error) console.error(error);
                 console.log('Adapter installed.');
-                cb && cb();
+                if (cb) cb();
             });
         });
     }
@@ -233,7 +235,7 @@ function installJsController(cb) {
             } else {
                 _pid = child_process.fork(appName + '.js', ['stop'], {
                     cwd:   rootDir + 'node_modules/' + appName + '.js-controller',
-                    stdio: [0, 1, 2]
+                    stdio: [0, 1, 2, 'ipc']
                 });
             }
 
@@ -251,14 +253,14 @@ function installJsController(cb) {
                 var __pid;
                 if (debug) {
                     // start controller
-                    _pid = child_process.exec('node ' + appName + '.js setup first', {
+                    _pid = child_process.exec('node ' + appName + '.js setup first --console', {
                         cwd: rootDir + 'tmp/node_modules/' + appName + '.js-controller',
                         stdio: [0, 1, 2]
                     });
                 } else {
-                    __pid = child_process.fork(appName + '.js', ['setup', 'first'], {
+                    __pid = child_process.fork(appName + '.js', ['setup', 'first', '--console'], {
                         cwd:   rootDir + 'tmp/node_modules/' + appName + '.js-controller',
-                        stdio: [0, 1, 2]
+                        stdio: [0, 1, 2, 'ipc']
                     });
                 }
                 waitForEnd(__pid, function () {
@@ -308,7 +310,7 @@ function installJsController(cb) {
                     } else {
                         child_process.fork(appName + '.js', ['setup', 'first'], {
                             cwd:   rootDir + 'tmp/node_modules/' + appName + '.js-controller',
-                            stdio: [0, 1, 2]
+                            stdio: [0, 1, 2, 'ipc']
                         });
                     }
                 }
@@ -320,7 +322,7 @@ function installJsController(cb) {
                     if (fs.existsSync(rootDir + 'node_modules/' + appName + '.js-controller/' + appName + '.js')) {
                         _pid = child_process.fork(appName + '.js', ['stop'], {
                             cwd:   rootDir + 'node_modules/' + appName + '.js-controller',
-                            stdio: [0, 1, 2]
+                            stdio: [0, 1, 2, 'ipc']
                         });
                     }
 
@@ -433,15 +435,15 @@ function startAdapter(objects, states, callback) {
         try {
             if (debug) {
                 // start controller
-                pid = child_process.exec('node node_modules/' + pkg.name + '/' + pkg.main, {
+                pid = child_process.exec('node node_modules/' + pkg.name + '/' + pkg.main + ' --console debug', {
                     cwd: rootDir + 'tmp',
                     stdio: [0, 1, 2]
                 });
             } else {
                 // start controller
-                pid = child_process.fork('node_modules/' + pkg.name + '/' + pkg.main, {
+                pid = child_process.fork('node_modules/' + pkg.name + '/' + pkg.main, ['--console', 'debug'], {
                     cwd:   rootDir + 'tmp',
-                    stdio: [0, 1, 2]
+                    stdio: [0, 1, 2, 'ipc']
                 });
             }
         } catch (error) {
@@ -503,7 +505,7 @@ function startController(isStartAdapter, onObjectChange, onStateChange, callback
                     if (isStartAdapter) {
                         startAdapter(objects, states, callback);
                     } else {
-                        callback && callback(objects, states);
+                        if (callback) callback(objects, states);
                     }
                 }
             },
@@ -558,14 +560,14 @@ function stopAdapter(cb) {
         pid.on('exit', function (code, signal) {
             if (pid) {
                 console.log('child process terminated due to receipt of signal ' + signal);
-                cb && cb();
+                if (cb) cb();
                 pid = null;
             }
         });
 
         pid.on('close', function (code, signal) {
             if (pid) {
-                cb && cb();
+                if (cb) cb();
                 pid = null;
             }
         });
