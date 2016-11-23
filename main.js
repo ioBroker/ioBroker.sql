@@ -187,19 +187,25 @@ function connect() {
         }
 
         try {
-            clientPool = new SQL[clients[adapter.config.dbtype].name + 'Pool'](params);
-            return clientPool.open(function (err) {
-                if (err) {
-                    adapter.log.error(err);
-                    setTimeout(function () {
-                        connect();
-                    }, 30000);
-                } else {
-                    setTimeout(function () {
-                        connect();
-                    }, 0);
-                }
-            });
+            if (!clients[adapter.config.dbtype].name) {
+                adapter.log.error('Unknown SQL type selected:  "' + adapter.config.dbtype + '"');
+            } else if (!SQL[clients[adapter.config.dbtype].name + 'Pool']) {
+                adapter.log.error('Selected SQL DB was not installed properly:  "' + adapter.config.dbtype + '". SQLite requires build tools on system. See README.md');
+            } else {
+                clientPool = new SQL[clients[adapter.config.dbtype].name + 'Pool'](params);
+                return clientPool.open(function (err) {
+                    if (err) {
+                        adapter.log.error(err);
+                        setTimeout(function () {
+                            connect();
+                        }, 30000);
+                    } else {
+                        setTimeout(function () {
+                            connect();
+                        }, 0);
+                    }
+                });
+            }
         } catch (ex) {
             if (ex.toString() === 'TypeError: undefined is not a function') {
                 adapter.log.error('Node.js DB driver for "' + adapter.config.dbtype + '" could not be installed.');
