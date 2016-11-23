@@ -19,6 +19,27 @@ https://msdn.microsoft.com/en-us/library/bb909712(v=vs.90).aspx
 ### SQLite:
 is "file"-DB and cannot manage too many events. If you have a big amount of data use real DB, like PostgreSQL and co.
 
+SQLite DB must not be installed extra. It is just a file on disk, but to install it you require build tools on your system. For linux, just write:
+
+```
+sudo apt-get install build-essential
+```
+
+For windows:
+
+```
+c:\>npm install --global --production windows-build-tools
+```
+
+And then reinstall the adapter, e.g:
+
+```
+cd /opt/iobroker
+iobroker stop sql
+npm install iobroker.sql --production
+iobroker start sql
+```
+
 ### MySQL:
 You can install mysql on linux systems:
 
