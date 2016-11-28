@@ -107,7 +107,7 @@ describe('Test SQLite', function() {
                 function () {
                     states.subscribeMessage('system.adapter.test.0');
                     objects.getObject('system.adapter.sql.0.memRss', function (err, obj) {
-                        obj.common.history = {
+                        obj.common.custom = {
                             'sql.0': {
                                 enabled:      true,
                                 changesOnly:  false,
