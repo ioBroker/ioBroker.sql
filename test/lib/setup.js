@@ -651,4 +651,5 @@ if (typeof module !== undefined && module.parent) {
     module.exports.stopAdapter      = stopAdapter;
     module.exports.startAdapter     = startAdapter;
     module.exports.appName          = appName;
+    module.exports.adapterName      = adapterName;
 }
