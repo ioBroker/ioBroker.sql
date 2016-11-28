@@ -121,11 +121,11 @@ describe('Test SQLite', function() {
                                 done();
                             }, 3000);
                         });
+                    });
                 });
-            });
         });
     });
-    after('Test SQLite: Write values into DB', function (done) {
+    it('Test SQLite: Write values into DB', function (done) {
         this.timeout(25000);
         var now = new Date().getTime();
 
