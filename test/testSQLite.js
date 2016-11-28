@@ -7,6 +7,8 @@ var onStateChanged = null;
 var onObjectChanged = null;
 var sendToID = 1;
 
+var adapterShortName = setup.adapterName.substring(setup.adapterName.indexOf('.')+1);
+
 function checkConnectionOfAdapter(cb, counter) {
     counter = counter || 0;
     if (counter > 20) {
@@ -14,7 +16,7 @@ function checkConnectionOfAdapter(cb, counter) {
         return;
     }
 
-    states.getState('system.adapter.sql.0.alive', function (err, state) {
+    states.getState('system.adapter.' + adapterShortName + '.0.alive', function (err, state) {
         if (err) console.error(err);
         if (state && state.val) {
             cb && cb();
