@@ -208,6 +208,7 @@ describe('Test SQLite', function() {
                 }
                 expect(found).to.be.equal(2);
                 done();
+            });
         });
     });
 
