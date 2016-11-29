@@ -8,6 +8,7 @@ node_js:
   - "0.12"
   - "4"
   - "6"
+sudo: required
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc4.8; fi
