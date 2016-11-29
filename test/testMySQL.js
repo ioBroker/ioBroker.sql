@@ -81,7 +81,7 @@ describe('Test MySQL', function() {
             config.common.loglevel = 'debug';
 
             config.native.dbtype   = 'mysql';
-            config.native.user     = 'travis';
+            config.native.user     = 'root';
 
             setup.setAdapterConfig(config.common, config.native);
 

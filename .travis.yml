@@ -1,6 +1,8 @@
 os:
   - linux
   - osx
+osx_image:
+  - xcode7
 language: node_js
 node_js:
   - "0.10"
@@ -19,6 +21,7 @@ before_install:
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install mariadb && mysql.server start; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pg_ctl -D /usr/local/var/postgres start; fi
+  - psql -c 'create database iobroker;' -U postgres
   - npm install winston@2.3.0
   - npm install https://github.com/ioBroker/ioBroker.js-controller/tarball/master --production
 env:
