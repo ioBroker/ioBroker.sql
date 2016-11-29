@@ -17,7 +17,7 @@ function checkConnectionOfAdapter(cb, counter) {
     }
 
     states.getState('system.adapter.' + adapterShortName + '.0.alive', function (err, state) {
-        if (err) console.error(err);
+        if (err) console.error('PostgreSQL: ' + err);
         if (state && state.val) {
             cb && cb();
         } else {
@@ -36,7 +36,7 @@ function checkValueOfState(id, value, cb, counter) {
     }
 
     states.getState(id, function (err, state) {
-        if (err) console.error(err);
+        if (err) console.error('PostgreSQL: ' + err);
         if (value === null && !state) {
             cb && cb();
         } else
@@ -132,17 +132,17 @@ describe('Test PostgreSQL', function() {
 
         states.setState('system.adapter.sql.0.memRss', {val: 1, ts: now - 2000}, function (err) {
             if (err) {
-                console.log(err);
+                console.log('PostgreSQL: ' + err);
             }
             setTimeout(function () {
                 states.setState('system.adapter.sql.0.memRss', {val: 2, ts: now - 1000}, function (err) {
                     if (err) {
-                        console.log(err);
+                        console.log('PostgreSQL: ' + err);
                     }
                     setTimeout(function () {
                         states.setState('system.adapter.sql.0.memRss', {val: 3, ts: now}, function (err) {
                             if (err) {
-                                console.log(err);
+                                console.log('PostgreSQL: ' + err);
                             }
                             setTimeout(function () {
                                 done();
@@ -156,9 +156,9 @@ describe('Test PostgreSQL', function() {
     it('Test PostgreSQL: Read values from DB using query', function (done) {
         this.timeout(10000);
 
-        sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
+        sendTo('sql.0', 'query', "SELECT id FROM datapoints WHERE name='system.adapter.sql.0.memRss'", function (result) {
             sendTo('sql.0', 'query', 'SELECT * FROM ts_number WHERE id=' + result.result[0].id, function (result) {
-                console.log(JSON.stringify(result.result, null, 2));
+                console.log('PostgreSQL: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(3);
                 var found = 0;
                 for (var i = 0; i < result.result.length; i++) {
@@ -184,7 +184,7 @@ describe('Test PostgreSQL', function() {
                 aggregate: 'onchange'
             }
         }, function (result) {
-            console.log(JSON.stringify(result.result, null, 2));
+            console.log('PostgreSQL: ' + JSON.stringify(result.result, null, 2));
             expect(result.result.length).to.be.at.least(3);
             var found = 0;
             for (var i = 0; i < result.result.length; i++) {
@@ -201,7 +201,7 @@ describe('Test PostgreSQL', function() {
                     aggregate: 'onchange'
                 }
             }, function (result) {
-                console.log(JSON.stringify(result.result, null, 2));
+                console.log('PostgreSQL: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.equal(4);
                 done();
             });
@@ -212,7 +212,7 @@ describe('Test PostgreSQL', function() {
         this.timeout(6000);
 
         setup.stopController(function (normalTerminated) {
-            console.log('Adapter normal terminated: ' + normalTerminated);
+            console.log('PostgreSQL: Adapter normal terminated: ' + normalTerminated);
             done();
         });
     });
