@@ -177,8 +177,8 @@ describe('Test SQLite', function() {
         sendTo('sql.0', 'getHistory', {
             id: 'system.adapter.sql.0.memRss',
             options: {
-                start:     now - 1000000,
-                end:       now,
+                start:     new Date().getTime() - 1000000,
+                end:       new Date().getTime(),
                 count:     50,
                 aggregate: 'onchange'
             }
@@ -194,8 +194,8 @@ describe('Test SQLite', function() {
             sendTo('sql.0', 'getHistory', {
                 id: 'system.adapter.sql.0.memRss',
                 options: {
-                    start:     now - 1000000,
-                    end:       now,
+                    start:     new Date().getTime() - 1000000,
+                    end:       new Date().getTime(),
                     count:     2,
                     aggregate: 'onchange'
                 }
