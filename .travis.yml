@@ -9,7 +9,7 @@ node_js:
   - "4"
   - "6"
 sudo: required
-install:
+before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc4.8; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CC=gcc-4.8; export CXX=g++-4.8; fi
