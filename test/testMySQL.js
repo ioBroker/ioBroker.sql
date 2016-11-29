@@ -158,6 +158,7 @@ describe('Test MySQL', function() {
 
         sendTo('sql.0', 'query', 'SELECT id FROM iobroker.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
             console.log(JSON.stringify(result.result, null, 2));
+            sendTo('sql.0', 'query', 'SELECT * FROM iobroker.ts_number WHERE id=' + result.result[0].id, function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(3);
                 var found = 0;
