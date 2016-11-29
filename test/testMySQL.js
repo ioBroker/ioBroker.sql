@@ -153,11 +153,11 @@ describe('Test MySQL', function() {
             }, 500);
         });
     });
-    it('Test ' + adapterShortName + ': Read values from DB using query', function (done) {
+    it('Test MySQL: Read values from DB using query', function (done) {
         this.timeout(10000);
 
-        sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
-            sendTo('sql.0', 'query', 'SELECT * FROM ts_number WHERE id=' + result.result[0].id, function (result) {
+        sendTo('sql.0', 'query', 'SELECT id FROM iobroker.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
+            console.log(JSON.stringify(result.result, null, 2));
                 console.log(JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(3);
                 var found = 0;
@@ -172,7 +172,7 @@ describe('Test MySQL', function() {
             });
         });
     });
-    it('Test ' + adapterShortName + ': Read values from DB using GetHistory', function (done) {
+    it('Test MySQL: Read values from DB using GetHistory', function (done) {
         this.timeout(10000);
 
         sendTo('sql.0', 'getHistory', {

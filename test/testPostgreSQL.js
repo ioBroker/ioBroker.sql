@@ -153,7 +153,7 @@ describe('Test PostgreSQL', function() {
             }, 500);
         });
     });
-    it('Test ' + adapterShortName + ': Read values from DB using query', function (done) {
+    it('Test PostgreSQL: Read values from DB using query', function (done) {
         this.timeout(10000);
 
         sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
@@ -172,7 +172,7 @@ describe('Test PostgreSQL', function() {
             });
         });
     });
-    it('Test ' + adapterShortName + ': Read values from DB using GetHistory', function (done) {
+    it('Test PostgreSQL: Read values from DB using GetHistory', function (done) {
         this.timeout(10000);
 
         sendTo('sql.0', 'getHistory', {
