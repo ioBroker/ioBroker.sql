@@ -17,7 +17,7 @@ function checkConnectionOfAdapter(cb, counter) {
     }
 
     states.getState('system.adapter.' + adapterShortName + '.0.alive', function (err, state) {
-        if (err) console.error('SQLite:' + err);
+        if (err) console.error('MySQL-with-dash: ' + err);
         if (state && state.val) {
             cb && cb();
         } else {
@@ -36,7 +36,7 @@ function checkValueOfState(id, value, cb, counter) {
     }
 
     states.getState(id, function (err, state) {
-        if (err) console.error('SQLite:' + err);
+        if (err) console.error('MySQL-with-dash: ' + err);
         if (value === null && !state) {
             cb && cb();
         } else
@@ -70,8 +70,8 @@ function sendTo(target, command, message, callback) {
     });
 }
 
-describe('Test SQLite', function() {
-    before('Test SQLite: Start js-controller', function (_done) {
+describe('Test MySQL-with-dash', function() {
+    before('Test MySQL-with-dash: Start js-controller', function (_done) {
         this.timeout(600000); // because of first install from npm
 
         setup.setupController(function () {
@@ -80,7 +80,9 @@ describe('Test SQLite', function() {
             config.common.enabled  = true;
             config.common.loglevel = 'debug';
 
-            config.native.dbtype   = 'sqlite';
+            config.native.dbtype   = 'mysql';
+            config.native.user     = 'root';
+            config.native.dbname   = 'io-broker';
 
             setup.setAdapterConfig(config.common, config.native);
 
@@ -95,7 +97,7 @@ describe('Test SQLite', function() {
         });
     });
 
-    it('Test SQLite: Check if adapter started', function (done) {
+    it('Test MySQL-with-dash: Check if adapter started', function (done) {
         this.timeout(60000);
         checkConnectionOfAdapter(function () {
             objects.setObject('system.adapter.test.0', {
@@ -125,23 +127,23 @@ describe('Test SQLite', function() {
                 });
         });
     });
-    it('Test SQLite: Write values into DB', function (done) {
+    it('Test MySQL-with-dash: Write values into DB', function (done) {
         this.timeout(10000);
         var now = new Date().getTime();
 
         states.setState('system.adapter.sql.0.memRss', {val: 1, ts: now - 2000}, function (err) {
             if (err) {
-                console.log('SQLite:' + err);
+                console.log('MySQL-with-dash: ' + err);
             }
             setTimeout(function () {
                 states.setState('system.adapter.sql.0.memRss', {val: 2, ts: now - 1000}, function (err) {
                     if (err) {
-                        console.log('SQLite:' + err);
+                        console.log('MySQL-with-dash: ' + err);
                     }
                     setTimeout(function () {
                         states.setState('system.adapter.sql.0.memRss', {val: 3, ts: now}, function (err) {
                             if (err) {
-                                console.log('SQLite:' + err);
+                                console.log('MySQL-with-dash: ' + err);
                             }
                             setTimeout(function () {
                                 done();
@@ -152,12 +154,13 @@ describe('Test SQLite', function() {
             }, 500);
         });
     });
-    it('Test SQLite: Read values from DB using query', function (done) {
+    it('Test MySQL-with-dash: Read values from DB using query', function (done) {
         this.timeout(10000);
 
-        sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
-            sendTo('sql.0', 'query', 'SELECT * FROM ts_number WHERE id=' + result.result[0].id, function (result) {
-                console.log('SQLite:' + JSON.stringify(result.result, null, 2));
+        sendTo('sql.0', 'query', 'SELECT id FROM iobroker.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
+            console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
+            sendTo('sql.0', 'query', 'SELECT * FROM iobroker.ts_number WHERE id=' + result.result[0].id, function (result) {
+                console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(3);
                 var found = 0;
                 for (var i = 0; i < result.result.length; i++) {
@@ -171,7 +174,7 @@ describe('Test SQLite', function() {
             });
         });
     });
-    it('Test SQLite: Read values from DB using GetHistory', function (done) {
+    it('Test MySQL-with-dash: Read values from DB using GetHistory', function (done) {
         this.timeout(10000);
 
         sendTo('sql.0', 'getHistory', {
@@ -183,7 +186,7 @@ describe('Test SQLite', function() {
                 aggregate: 'onchange'
             }
         }, function (result) {
-            console.log('SQLite:' + JSON.stringify(result.result, null, 2));
+            console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
             expect(result.result.length).to.be.at.least(3);
             var found = 0;
             for (var i = 0; i < result.result.length; i++) {
@@ -200,18 +203,18 @@ describe('Test SQLite', function() {
                     aggregate: 'onchange'
                 }
             }, function (result) {
-                console.log('SQLite:' + JSON.stringify(result.result, null, 2));
+                console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.equal(4);
                 done();
             });
         });
     });
 
-    after('Test SQLite: Stop js-controller', function (done) {
+    after('Test MySQL-with-dash: Stop js-controller', function (done) {
         this.timeout(6000);
 
         setup.stopController(function (normalTerminated) {
-            console.log('SQLite: Adapter normal terminated: ' + normalTerminated);
+            console.log('MySQL-with-dash: Adapter normal terminated: ' + normalTerminated);
             done();
         });
     });
