@@ -228,7 +228,7 @@ describe('Test MySQL-with-dash', function() {
             options: {
                 start:     new Date().getTime() - 30000,
                 end:       new Date().getTime(),
-                count:     50,
+                limit:     50,
                 aggregate: 'none'
             }
         }, function (result) {
@@ -245,7 +245,7 @@ describe('Test MySQL-with-dash', function() {
                 options: {
                     start:     new Date().getTime() - 15000,
                     end:       new Date().getTime(),
-                    count:     2,
+                    limit:     2,
                     aggregate: 'none'
                 }
             }, function (result) {

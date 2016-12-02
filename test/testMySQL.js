@@ -226,7 +226,7 @@ describe('Test MySQL', function() {
             id: 'system.adapter.sql.0.memRss',
             options: {
                 start:     new Date().getTime() - 30000,
-                count:     50,
+                limit:     50,
                 aggregate: 'none'
             }
         }, function (result) {
@@ -243,7 +243,7 @@ describe('Test MySQL', function() {
                 options: {
                     start:     new Date().getTime() - 15000,
                     end:       new Date().getTime(),
-                    count:     2,
+                    limit:     2,
                     aggregate: 'onchange'
                 }
             }, function (result) {
@@ -254,6 +254,7 @@ describe('Test MySQL', function() {
                     if (result.result[i].val >= 2 && result.result[i].val <= 3) found ++;
                 }
                 expect(found).to.be.equal(2);
+                done();
             });
         });
     });

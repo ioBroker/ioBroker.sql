@@ -218,14 +218,14 @@ describe('Test SQLite', function() {
         });
     });
     it('Test SQLite: Read values from DB using GetHistory', function (done) {
-        this.timeout(10000);
+        this.timeout(20000);
 
         sendTo('sql.0', 'getHistory', {
             id: 'system.adapter.sql.0.memRss',
             options: {
                 start:     new Date().getTime() - 30000,
                 end:       new Date().getTime(),
-                count:     50,
+                limit:     50,
                 aggregate: 'none'
             }
         }, function (result) {
@@ -242,7 +242,7 @@ describe('Test SQLite', function() {
                 options: {
                     start:     new Date().getTime() - 15000,
                     end:       new Date().getTime(),
-                    count:     2,
+                    limit:     2,
                     aggregate: 'none'
                 }
             }, function (result) {
@@ -253,6 +253,7 @@ describe('Test SQLite', function() {
                     if (result.result[i].val >= 2 && result.result[i].val <= 3) found ++;
                 }
                 expect(found).to.be.equal(2);
+                done();
             });
         });
     });
