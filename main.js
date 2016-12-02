@@ -39,8 +39,9 @@ var adapter = utils.adapter('sql');
 adapter.on('objectChange', function (id, obj) {
     if (obj && obj.common && (
             // todo remove history sometime (2016.08) - Do not forget object selector in io-package.json
-        (obj.common.history && obj.common.history[adapter.namespace]) ||
-        (obj.common.custom  && obj.common.custom[adapter.namespace]))
+        (obj.common.history && obj.common.sqlDPs[adapter.namespace]) ||
+        (obj.common.custom  && obj.common.custom[adapter.namespace])) &&
+        (obj.common.custom[adapter.namespace].enabled)
     ) {
         if (!sqlDPs[id] && !subscribeAll) {
             // unsubscribe
@@ -57,14 +58,12 @@ adapter.on('objectChange', function (id, obj) {
         } else {
             sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
         }
-
         if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
             sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
         } else {
             sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
         }
         sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
-
         if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
             sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
         } else {
@@ -73,6 +72,11 @@ adapter.on('objectChange', function (id, obj) {
         if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
         if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
             sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
+        }
+        if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
+            sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta) || 0;
+        } else {
+            sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
         }
 
         // add one day if retention is too small
@@ -500,6 +504,12 @@ function processMessage(msg) {
         storeState(msg);
     } else if (msg.command === 'getDpOverview') {
         getDpOverview(msg);
+    } else if (msg.command === 'enableHistory') {
+        enableHistory(msg);
+    } else if (msg.command === 'disableHistory') {
+        disableHistory(msg);
+    } else if (msg.command === 'getEnabledDPs') {
+        getEnabledDPs(msg);
     }
 }
 
@@ -544,6 +554,12 @@ function main() {
     }
     if (adapter.config.multiRequests !== undefined && adapter.config.dbtype !== 'SQLite3Client' && adapter.config.dbtype !== 'sqlite') {
         clients[adapter.config.dbtype].multiRequests = adapter.config.multiRequests;
+    }
+
+    if (adapter.config.changesMinDelta !== null && adapter.config.changesMinDelta !== undefined) {
+        adapter.config.changesMinDelta = parseFloat(adapter.config.changesMinDelta);
+    } else {
+        adapter.config.changesMinDelta = 0;
     }
 
     multiRequests = clients[adapter.config.dbtype].multiRequests;
@@ -604,6 +620,11 @@ function main() {
                             if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
                                 sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
                             }
+                            if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
+                                sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta) || 0;
+                            } else {
+                                sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
+                            }
 
                             // add one day if retention is too small
                             if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
@@ -650,12 +671,28 @@ function pushHistory(id, state, timerRelog) {
 
         if (sqlDPs[id].state && settings.changesOnly && !timerRelog) {
             if (settings.changesRelogInterval === 0) {
-                if (state.ts !== state.lc) return;
+                if (state.ts !== state.lc) {
+                    adapter.log.debug('value not changed ' + id + ', last-value=' + sqlDPs[id].state.val.val + ', new-value=' + state.val + ', ts=' + state.ts);
+                    return;
+                }
             } else if (sqlDPs[id].lastLogTime) {
-                if ((state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) return;
+                if ((state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) {
+                    adapter.log.debug('value not changed ' + id + ', last-value=' + sqlDPs[id].state.val.val + ', new-value=' + state.val + ', ts=' + state.ts);
+                    return;
+                }
                 if (state.ts !== state.lc) {
                     adapter.log.debug('value-changed-relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
                 }
+            }
+            if ((settings.changesMinDelta !== 0) && (typeof state.val === 'number') && (Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta)) {
+                adapter.log.debug('Min-Delta not reached ' + id + ', last-value=' + sqlDPs[id].state.val.val + ', new-value=' + state.val + ', ts=' + state.ts);
+                return;
+            }
+            else if (typeof state.val === 'number') {
+                adapter.log.debug('Min-Delta reached ' + id + ', last-value=' + sqlDPs[id].state.val.val + ', new-value=' + state.val + ', ts=' + state.ts);
+            }
+            else {
+                adapter.log.debug('Min-Delta ignored because no number ' + id + ', last-value=' + sqlDPs[id].state.val.val + ', new-value=' + state.val + ', ts=' + state.ts);
             }
         }
 
@@ -1410,6 +1447,77 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
             result: result
         }, msg.callback);
     }
+}
+
+function enableHistory(msg) {
+    if (!msg.message || !msg.message.id) {
+        adapter.log.error('enableHistory called with invalid data');
+        adapter.sendTo(msg.from, msg.command, {
+            error:  'Invalid call'
+        }, msg.callback);
+        return;
+    }
+    var obj = {};
+    obj.common = {};
+    obj.common.custom = {};
+    if (msg.message.options) {
+        obj.common.custom[adapter.namespace] = msg.message.options;
+    }
+    else {
+        obj.common.custom[adapter.namespace] = {};
+    }
+    obj.common.custom[adapter.namespace].enabled = true;
+    adapter.extendForeignObject(msg.message.id, obj, function (err) {
+        if (err) {
+            adapter.log.error('enableHistory: ' + err);
+            adapter.sendTo(msg.from, msg.command, {
+                error:  err
+            }, msg.callback);
+        } else {
+            adapter.log.info(JSON.stringify(obj));
+            adapter.sendTo(msg.from, msg.command, {
+                success:                  true
+            }, msg.callback);
+        }
+    });
+}
+
+function disableHistory(msg) {
+    if (!msg.message || !msg.message.id) {
+        adapter.log.error('disableHistory called with invalid data');
+        adapter.sendTo(msg.from, msg.command, {
+            error:  'Invalid call'
+        }, msg.callback);
+        return;
+    }
+    var obj = {};
+    obj.common = {};
+    obj.common.custom = {};
+    obj.common.custom[adapter.namespace] = {};
+    obj.common.custom[adapter.namespace].enabled = false;
+    adapter.extendForeignObject(msg.message.id, obj, function (err) {
+        if (err) {
+            adapter.log.error('disableHistory: ' + err);
+            adapter.sendTo(msg.from, msg.command, {
+                error:  err
+            }, msg.callback);
+        } else {
+            adapter.log.info(JSON.stringify(obj));
+            adapter.sendTo(msg.from, msg.command, {
+                success:                  true
+            }, msg.callback);
+        }
+    });
+}
+
+function getEnabledDPs(msg) {
+    var data = {};
+    for (var id in sqlDPs) {
+        if (!sqlDPs.hasOwnProperty(id)) continue;
+        data[id] = sqlDPs[id][adapter.namespace];
+    }
+
+    adapter.sendTo(msg.from, msg.command, data, msg.callback);
 }
 
 process.on('uncaughtException', function(err) {
