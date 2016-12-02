@@ -114,7 +114,6 @@ describe('Test MySQL-with-dash', function() {
                             changesOnly:  true,
                             debounce:     0,
                             retention:    31536000,
-                            maxLength:    3,
                             changesMinDelta: 0.5
                         }
                     }, function (result) {
@@ -229,6 +228,7 @@ describe('Test MySQL-with-dash', function() {
                 start:     new Date().getTime() - 30000,
                 end:       new Date().getTime(),
                 limit:     50,
+                count:     50,
                 aggregate: 'none'
             }
         }, function (result) {
@@ -246,6 +246,7 @@ describe('Test MySQL-with-dash', function() {
                     start:     new Date().getTime() - 15000,
                     end:       new Date().getTime(),
                     limit:     2,
+                    count:     2,
                     aggregate: 'none'
                 }
             }, function (result) {

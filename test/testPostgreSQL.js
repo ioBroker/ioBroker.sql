@@ -113,7 +113,6 @@ describe('Test PostgreSQL', function() {
                             changesOnly:  true,
                             debounce:     0,
                             retention:    31536000,
-                            maxLength:    3,
                             changesMinDelta: 0.5
                         }
                     }, function (result) {
@@ -227,7 +226,8 @@ describe('Test PostgreSQL', function() {
                 start:     new Date().getTime() - 30000,
                 end:       new Date().getTime(),
                 limit:     50,
-                aggregate: 'onchange'
+                count:     50,
+                aggregate: 'none'
             }
         }, function (result) {
             console.log('PostgreSQL: ' + JSON.stringify(result.result, null, 2));
@@ -244,7 +244,8 @@ describe('Test PostgreSQL', function() {
                     start:     new Date().getTime() - 15000,
                     end:       new Date().getTime(),
                     limit:     2,
-                    aggregate: 'onchange'
+                    count:     2,
+                    aggregate: 'none'
                 }
             }, function (result) {
                 console.log('PostgreSQL: ' + JSON.stringify(result.result, null, 2));

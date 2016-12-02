@@ -113,7 +113,6 @@ describe('Test MySQL', function() {
                             changesOnly:  true,
                             debounce:     0,
                             retention:    31536000,
-                            maxLength:    3,
                             changesMinDelta: 0.5
                         }
                     }, function (result) {
@@ -227,6 +226,7 @@ describe('Test MySQL', function() {
             options: {
                 start:     new Date().getTime() - 30000,
                 limit:     50,
+                count:     50,
                 aggregate: 'none'
             }
         }, function (result) {
@@ -244,7 +244,8 @@ describe('Test MySQL', function() {
                     start:     new Date().getTime() - 15000,
                     end:       new Date().getTime(),
                     limit:     2,
-                    aggregate: 'onchange'
+                    count:     2,
+                    aggregate: 'none'
                 }
             }, function (result) {
                 console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
