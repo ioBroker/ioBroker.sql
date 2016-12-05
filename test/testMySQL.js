@@ -76,7 +76,7 @@ describe('Test MySQL', function() {
 
         console.log('Started in TRAVIS: ' + (proces.env.TRAVIS && proces.env.TRAVIS===true));
         console.log('Started in APPVEYOR: ' + (proces.env.APPVEYOR && proces.env.APPVEYOR===true));
-        
+
         setup.setupController(function () {
             var config = setup.getAdapterConfig();
             // enable adapter
@@ -85,6 +85,10 @@ describe('Test MySQL', function() {
 
             config.native.dbtype   = 'mysql';
             config.native.user     = 'root';
+            if (proces.env.APPVEYOR && proces.env.APPVEYOR===true) {
+                config.native.user     = 'sa';
+                config.native.password = 'Password12!';
+            }
 
             setup.setAdapterConfig(config.common, config.native);
 
