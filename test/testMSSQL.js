@@ -226,7 +226,7 @@ describe('Test MSSQL', function() {
             return;
         }
 
-        sendTo('sql.0', 'query', 'SELECT id FROM iobroker.dbo.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
+        sendTo('sql.0', 'query', "SELECT id FROM iobroker.dbo.datapoints WHERE name='system.adapter.sql.0.memRss'", function (result) {
             sendTo('sql.0', 'query', 'SELECT * FROM iobroker.dbo.ts_number WHERE id=' + result.result[0].id, function (result) {
                 console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(4);
