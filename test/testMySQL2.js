@@ -83,6 +83,9 @@ describe('Test MySQL-with-dash', function() {
             config.native.dbtype   = 'mysql';
             config.native.user     = 'root';
             config.native.dbname   = 'io-broker';
+            if (process.env.APPVEYOR && process.env.APPVEYOR==='True') {
+                config.native.password = 'Password12!';
+            }
 
             setup.setAdapterConfig(config.common, config.native);
 
