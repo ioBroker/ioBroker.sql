@@ -84,7 +84,6 @@ describe('Test MySQL-with-dash', function() {
             config.native.user     = 'root';
             config.native.dbname   = 'io-broker';
             if (process.env.APPVEYOR && process.env.APPVEYOR==='True') {
-                config.native.user     = 'sa';
                 config.native.password = 'Password12!';
             }
 

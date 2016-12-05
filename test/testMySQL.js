@@ -83,7 +83,6 @@ describe('Test MySQL', function() {
             config.native.dbtype   = 'mysql';
             config.native.user     = 'root';
             if (process.env.APPVEYOR && process.env.APPVEYOR==='True') {
-                config.native.user     = 'sa';
                 config.native.password = 'Password12!';
             }
 

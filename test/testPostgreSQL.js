@@ -83,7 +83,6 @@ describe('Test PostgreSQL', function() {
             config.native.dbtype   = 'postgresql';
             config.native.user     = 'postgres';
             if (process.env.APPVEYOR && process.env.APPVEYOR==='True') {
-                config.native.user     = 'sa';
                 config.native.password = 'Password12!';
             }
 
