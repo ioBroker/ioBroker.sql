@@ -74,8 +74,8 @@ describe('Test MySQL', function() {
     before('Test MySQL: Start js-controller', function (_done) {
         this.timeout(600000); // because of first install from npm
 
-        console.log('Started in TRAVIS: ' + (proces.env.TRAVIS && proces.env.TRAVIS===true));
-        console.log('Started in APPVEYOR: ' + (proces.env.APPVEYOR && proces.env.APPVEYOR===true));
+        console.log('Started in TRAVIS: ' + (process.env.TRAVIS && process.env.TRAVIS===true));
+        console.log('Started in APPVEYOR: ' + (process.env.APPVEYOR && process.env.APPVEYOR===true));
 
         setup.setupController(function () {
             var config = setup.getAdapterConfig();
@@ -85,7 +85,7 @@ describe('Test MySQL', function() {
 
             config.native.dbtype   = 'mysql';
             config.native.user     = 'root';
-            if (proces.env.APPVEYOR && proces.env.APPVEYOR===true) {
+            if (process.env.APPVEYOR && process.env.APPVEYOR===true) {
                 config.native.user     = 'sa';
                 config.native.password = 'Password12!';
             }
