@@ -1,6 +1,6 @@
 version: 'test-{build}'
 
-os: Visual Studio 2013
+#os: Visual Studio 2013
 
 # Test against this version of Node.js
 environment:
@@ -18,7 +18,7 @@ platform:
 clone_folder: c:\projects\%APPVEYOR_PROJECT_NAME%
 
 services:
-  - mssql2016
+  - mssql2014
   - mysql
   - postgresql
 
@@ -28,6 +28,7 @@ install:
   - ps: Install-Product node $env:nodejs_version $env:platform
   # install modules
   - npm install
+  - npm install --global windows-build-tools
   - npm install winston@2.3.0
   - npm install https://github.com/ioBroker/ioBroker.js-controller/tarball/master --production
 
