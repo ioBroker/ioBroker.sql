@@ -75,10 +75,10 @@ describe('Test MSSQL', function() {
         this.timeout(600000); // because of first install from npm
 
         console.log('Started in TRAVIS: ' + (process.env.TRAVIS && process.env.TRAVIS==='true'));
-        console.log('Started in APPVEYOR: ' + (process.env.APPVEYOR && process.env.APPVEYOR==='true'));
+        console.log('Started in APPVEYOR: ' + (process.env.APPVEYOR && process.env.APPVEYOR==='True'));
 
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='true')) {
-            console.log('MSSQL testing only available in Appveyor on Windows, ignore test run');
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
+            console.log('MSSQL testing only available in Appveyor on Windows, ignore test run (APPVEYOR:' + JSON.stringify(process.env.APPVEYOR) + ', TRAVIS:' + JSON.stringify(process.env.TRAVIS) + ')');
             _done();
             return;
         }
@@ -107,7 +107,7 @@ describe('Test MSSQL', function() {
 
     it('Test MSSQL: Check if adapter started', function (done) {
         this.timeout(60000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='true')) {
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
             done();
             return;
         }
@@ -157,7 +157,7 @@ describe('Test MSSQL', function() {
     });
     it('Test ' + adapterShortName + ': Check Enabled Points after Enable', function (done) {
         this.timeout(5000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='true')) {
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
             done();
             return;
         }
@@ -171,7 +171,7 @@ describe('Test MSSQL', function() {
     });
     it('Test MSSQL: Write values into DB', function (done) {
         this.timeout(10000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='true')) {
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
             done();
             return;
         }
@@ -221,7 +221,7 @@ describe('Test MSSQL', function() {
     });
     it('Test MSSQL: Read values from DB using query', function (done) {
         this.timeout(10000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='true')) {
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
             done();
             return;
         }
@@ -244,7 +244,7 @@ describe('Test MSSQL', function() {
     });
     it('Test MSSQL: Read values from DB using GetHistory', function (done) {
         this.timeout(10000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='true')) {
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
             done();
             return;
         }
@@ -290,7 +290,7 @@ describe('Test MSSQL', function() {
     });
     it('Test ' + adapterShortName + ': Disable Datapoint again', function (done) {
         this.timeout(5000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='true')) {
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
             done();
             return;
         }
@@ -305,7 +305,7 @@ describe('Test MSSQL', function() {
     });
     it('Test ' + adapterShortName + ': Check Enabled Points after Disable', function (done) {
         this.timeout(5000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='true')) {
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
             done();
             return;
         }
@@ -319,7 +319,7 @@ describe('Test MSSQL', function() {
 
     after('Test MSSQL: Stop js-controller', function (done) {
         this.timeout(6000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='true')) {
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
             done();
             return;
         }
