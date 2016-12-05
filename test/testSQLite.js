@@ -74,9 +74,6 @@ describe('Test SQLite', function() {
     before('Test SQLite: Start js-controller', function (_done) {
         this.timeout(600000); // because of first install from npm
 
-        console.log('Started in TRAVIS: ' + (process.env.TRAVIS && process.env.TRAVIS===true));
-        console.log('Started in APPVEYOR: ' + (process.env.APPVEYOR && process.env.APPVEYOR===true));
-
         setup.setupController(function () {
             var config = setup.getAdapterConfig();
             // enable adapter

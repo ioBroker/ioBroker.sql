@@ -74,8 +74,8 @@ describe('Test MySQL-with-dash', function() {
     before('Test MySQL-with-dash: Start js-controller', function (_done) {
         this.timeout(600000); // because of first install from npm
 
-        console.log('Started in TRAVIS: ' + (process.env.TRAVIS && process.env.TRAVIS===true));
-        console.log('Started in APPVEYOR: ' + (process.env.APPVEYOR && process.env.APPVEYOR===true));
+        console.log('Started in TRAVIS: ' + (process.env.TRAVIS && process.env.TRAVIS==='true'));
+        console.log('Started in APPVEYOR: ' + (process.env.APPVEYOR && process.env.APPVEYOR==='true'));
 
         setup.setupController(function () {
             var config = setup.getAdapterConfig();
@@ -86,7 +86,7 @@ describe('Test MySQL-with-dash', function() {
             config.native.dbtype   = 'mysql';
             config.native.user     = 'root';
             config.native.dbname   = 'io-broker';
-            if (process.env.APPVEYOR && process.env.APPVEYOR===true) {
+            if (process.env.APPVEYOR && process.env.APPVEYOR==='true') {
                 config.native.user     = 'sa';
                 config.native.password = 'Password12!';
             }
