@@ -1,6 +1,7 @@
 version: 'test-{build}'
 
 os: Visual Studio 2013
+# problems with SQLite node package (or detailed mmmagic) with MS VS 2015 image ...
 
 # Test against this version of Node.js
 environment:
