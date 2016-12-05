@@ -77,7 +77,10 @@ describe('Test MSSQL', function() {
         console.log('Started in TRAVIS: ' + (proces.env.TRAVIS && proces.env.TRAVIS===true));
         console.log('Started in APPVEYOR: ' + (proces.env.APPVEYOR && proces.env.APPVEYOR===true));
 
-        if (!(proces.env.APPVEYOR && proces.env.APPVEYOR===true)) done();
+        if (!(proces.env.APPVEYOR && proces.env.APPVEYOR===true)) {
+            console.log('MSSQL testing only available in Appveyor on Windows, ignore test run');
+            done();
+        }
         setup.setupController(function () {
             var config = setup.getAdapterConfig();
             // enable adapter
