@@ -74,6 +74,9 @@ describe('Test MySQL', function() {
     before('Test MySQL: Start js-controller', function (_done) {
         this.timeout(600000); // because of first install from npm
 
+        console.log('Started in TRAVIS: ' + (proces.env.TRAVIS && proces.env.TRAVIS===true));
+        console.log('Started in APPVEYOR: ' + (proces.env.APPVEYOR && proces.env.APPVEYOR===true));
+        
         setup.setupController(function () {
             var config = setup.getAdapterConfig();
             // enable adapter
