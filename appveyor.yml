@@ -1,5 +1,7 @@
 version: 'test-{build}'
 
+os: Visual Studio 2013
+
 # Test against this version of Node.js
 environment:
   matrix:
@@ -19,7 +21,7 @@ services:
   - mssql2016
   - mysql
   - postgresql
-  
+
 # Install scripts. (runs after repo cloning)
 install:
   # Get the latest stable version of Node.js or io.js
