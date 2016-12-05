@@ -1,6 +1,6 @@
 version: 'test-{build}'
 
-#os: Visual Studio 2013
+os: Visual Studio 2013
 
 # Test against this version of Node.js
 environment:
@@ -27,7 +27,7 @@ install:
   # Get the latest stable version of Node.js or io.js
   - ps: Install-Product node $env:nodejs_version $env:platform
   # install modules
-  - npm install --global windows-build-tools
+#  - npm install --global windows-build-tools
   - npm install
   - npm install winston@2.3.0
   - npm install https://github.com/ioBroker/ioBroker.js-controller/tarball/master --production
