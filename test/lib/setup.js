@@ -62,8 +62,8 @@ function copyFolderRecursiveSync(source, target, ignore) {
             if (fs.lstatSync(curSource).isDirectory()) {
                 // ignore grunt files
                 if (file.indexOf('grunt') !== -1) return;
-                if (file == 'chai') return;
-                if (file == 'mocha') return;
+                if (file === 'chai') return;
+                if (file === 'mocha') return;
                 copyFolderRecursiveSync(curSource, targetFolder, ignore);
             } else {
                 copyFileSync(curSource, targetFolder);
@@ -82,8 +82,10 @@ function storeOriginalFiles() {
 
     var f = fs.readFileSync(dataDir + 'objects.json');
     var objects = JSON.parse(f.toString());
-    objects['system.adapter.admin.0'].common.enabled = false;
-    if (objects['system.adapter.admin.1']) {
+    if (objects['system.adapter.admin.0'] && objects['system.adapter.admin.0'].common) {
+        objects['system.adapter.admin.0'].common.enabled = false;
+    }
+    if (objects['system.adapter.admin.1'] && objects['system.adapter.admin.1'].common) {
         objects['system.adapter.admin.1'].common.enabled = false;
     }
 
@@ -516,12 +518,12 @@ function startController(isStartAdapter, onObjectChange, onStateChange, callback
         var States = require(rootDir + 'tmp/node_modules/' + appName + '.js-controller/lib/states/statesInMemServer');
         states = new States({
             connection: {
-                "type" : "file",
-                "host" : "127.0.0.1",
-                "port" : 19000,
-                "options" : {
-                    "auth_pass" : null,
-                    "retry_max_delay" : 15000
+                type: 'file',
+                host: '127.0.0.1',
+                port: 19000,
+                options: {
+                    auth_pass: null,
+                    retry_max_delay: 15000
                 }
             },
             logger: {
