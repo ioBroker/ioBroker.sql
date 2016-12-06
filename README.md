@@ -274,7 +274,7 @@ sendTo('sql.0', 'disableHistory', {
 The message has no parameters.
 
 ```
-sendTo('sql.0', 'getEnabledDPs', function (result) {
+sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
     //result is object like:
     {
         "system.adapter.sql.0.memRss": {
