@@ -188,17 +188,17 @@ describe('Test PostgreSQL', function() {
                                                     if (err) {
                                                         console.log(err);
                                                     }
-                                                    done();
+                                                    setTimeout(done, 1000);
                                                 });
-                                            }, 100);
+                                            }, 200);
                                         });
-                                    }, 100);
+                                    }, 200);
                                 });
-                            }, 100);
+                            }, 200);
                         });
-                    }, 100);
+                    }, 200);
                 });
-            }, 100);
+            }, 200);
         });
     });
     it('Test PostgreSQL: Read values from DB using query', function (done) {
