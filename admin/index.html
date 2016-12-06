@@ -37,6 +37,21 @@
             "de": "Gleiche Werte aufzeichnen(s)",
             "ru": "Запись неизменённых значений каждые (сек)"
         },
+        "log changes minimal delta": {
+            "en": "Minimum difference from last value to log",
+            "de": "Minimale Abweichung vom letzten Wert für Aufzeichnung",
+            "ru": "Минимальная разница с последним записанным значением"
+        },
+        "0 = disable delta check": {
+            "en": "0 = disable delta check",
+            "de": "0 = Abweichungsprüfung deaktivieren",
+            "ru": "0 = не проверять минимальное изменение"
+        },
+        "0 = disable": {
+            "en": "0 = disable",
+            "de": "0 = Deaktivieren",
+            "ru": "0 = не активно"
+        },
         "retention":            {"en": "Storage retention",     "de": "Storage Vorhaltezeit",           "ru": "Время хранения в базе"},
         "keep forever":         {"en": "keep forever",          "de": "keine automatische Löschung",    "ru": "хранить вечно"},
         "2 years":              {"en": "2 years",               "de": "2 Jahre",                        "ru": "2 года"},
@@ -364,7 +379,12 @@
         <tr>
             <td class="translate">log changes interval(s)</td>
             <td><input id="changesRelogInterval" type="text" size="5" class="value number"/></td>
-            <td class="translate"></td>
+            <td class="translate">0 = disable</td>
+        </tr>
+        <tr>
+            <td class="translate">log changes minimal delta</td>
+            <td><input id="changesMinDelta" type="text" size="5" class="value number"/></td>
+            <td class="translate">0 = disable delta check</td>
         </tr>
         <tr>
             <td class="translate">retention</td>

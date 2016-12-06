@@ -199,6 +199,17 @@ sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.a
 });
 ```
 
+## storeState
+If you want to write other data into the InfluxDB you can use the build in system function **storeState**.
+This function can also be used to convert data from other History adapters like History or SQL.
+
+The given ids are not checked against the ioBroker database and do not need to be set up there, but can only be accessed directly.
+
+The Message can have one of the following three formats:
+* one ID and one state object
+* one ID and array of state objects
+* array of multiple IDs with state objects
+
 ## Get history
 Additional to custom queries, you can use build in system function **getHistory**:
 ```
@@ -217,7 +228,81 @@ sendTo('sql.0', 'getHistory', {
 });
 ```
 
+## History Logging Management via Javascript
+The adapter supports enabling and disabling of history logging via JavaScript and also retrieving the list of enabled datapoints with their settings.
+
+### enable
+The message requires to have the "id" of the datapoint.Additionally optional "options" to define the datapoint specific settings:
+
+```
+sendTo('sql.0', 'enableHistory', {
+    id: 'system.adapter.sql.0.memRss',
+    options: {
+        changesOnly:  true,
+        debounce:     0,
+        retention:    31536000,
+        maxLength:    3,
+        changesMinDelta: 0.5
+    }
+}, function (result) {
+    if (result.error) {
+        console.log(result.error);
+    }
+    if (result.success) {
+        //successfull enabled
+    }
+});
+```
+
+### disable
+The message requires to have the "id" of the datapoint.
+
+```
+sendTo('sql.0', 'disableHistory', {
+    id: 'system.adapter.sql.0.memRss',
+}, function (result) {
+    if (result.error) {
+        console.log(result.error);
+    }
+    if (result.success) {
+        //successfull enabled
+    }
+});
+```
+
+### get List
+The message has no parameters.
+
+```
+sendTo('sql.0', 'getEnabledDPs', function (result) {
+    //result is object like:
+    {
+        "system.adapter.sql.0.memRss": {
+            "changesOnly":true,
+            "debounce":0,
+            "retention":31536000,
+            "maxLength":3,
+            "changesMinDelta":0.5,
+            "enabled":true,
+            "changesRelogInterval":0
+        }
+        ...
+    }
+});
+```
+
+
 ## Changelog
+### 1.4.0 (2016-12-02)
+* (Apollon77) Add messages enableHistory/disableHistory
+* (Apollon77) add support to log changes only if value differs a minimum value for numbers
+
+### 1.3.4 (2016-11)
+* (Apollon77) Allow database names with '-' for MySQL
+
+### 1.3.3 (2016-11)
+* (Apollon77) Update dependecies
+
 ### 1.3.2 (2016-11-21)
 * (bluefox) Fix insert of string with '
 

@@ -17,7 +17,16 @@
                 <td></td>
                 <td class="translate">log changes interval(s)</td>
                 <td><input type="number" data-field="changesRelogInterval" min="0" max="86400000" data-default="0"></td>
+                <td class="translate">0 = disable</td>
                 <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="translate">log changes minimal delta</td>
+                <td><input type="number" data-field="changesMinDelta" min="0" max="86400000" data-default="0"></td>
+                <td class="translate">0 = disable delta check</td>
                 <td></td>
             </tr>
             <tr>
@@ -57,7 +66,22 @@
             "de": "Gleiche Werte aufzeichnen(s)",
             "ru": "Запись неизменённых значений каждые (сек)"
         },
+        "log changes minimal delta": {
+            "en": "Minimum difference from last value to log",
+            "de": "Minimale Abweichung vom letzten Wert für Aufzeichnung",
+            "ru": "Минимальная разница с последним записанным значением"
+        },
+        "0 = disable delta check": {
+            "en": "0 = disable delta check",
+            "de": "0 = Abweichungsprüfung deaktivieren",
+            "ru": "0 = не проверять минимальное изменение"
+        },
         "log changes only":       {"en": "log changes only",      "de": "Nur Änderungen aufzeichnen",   "ru": "Только изменения"},
+        "0 = disable": {
+            "en": "0 = disable",
+            "de": "0 = Deaktivieren",
+            "ru": "0 = не активно"
+        },
         "maximum datapoint count in RAM": {
             "en": "maximum datapoint count in RAM",
             "de": "maximale Anzahl Datenpunkte in RAM",
@@ -88,7 +112,8 @@
                     changesOnly: false,
                     debounce:    0,
                     retention:   instanceObj.native.retention,
-                    changesRelogInterval: instanceObj.native.changesRelogInterval
+                    changesRelogInterval: instanceObj.native.changesRelogInterval,
+                    changesMinDelta: 0
                 };
             }
             return {
@@ -96,7 +121,8 @@
                 changesOnly: true,
                 debounce:    instanceObj.native.debounce,
                 retention:   instanceObj.native.retention,
-                changesRelogInterval: instanceObj.native.changesRelogInterval
+                changesRelogInterval: instanceObj.native.changesRelogInterval,
+                changesMinDelta: instanceObj.native.changesMinDelta
             };
         }
     }

@@ -17,7 +17,7 @@ function checkConnectionOfAdapter(cb, counter) {
     }
 
     states.getState('system.adapter.' + adapterShortName + '.0.alive', function (err, state) {
-        if (err) console.error('SQLite:' + err);
+        if (err) console.error('MSSQL: ' + err);
         if (state && state.val) {
             cb && cb();
         } else {
@@ -36,7 +36,7 @@ function checkValueOfState(id, value, cb, counter) {
     }
 
     states.getState(id, function (err, state) {
-        if (err) console.error('SQLite:' + err);
+        if (err) console.error('MSSQL: ' + err);
         if (value === null && !state) {
             cb && cb();
         } else
@@ -70,17 +70,27 @@ function sendTo(target, command, message, callback) {
     });
 }
 
-describe('Test SQLite', function() {
-    before('Test SQLite: Start js-controller', function (_done) {
+describe('Test MSSQL', function() {
+    before('Test MSSQL: Start js-controller', function (_done) {
         this.timeout(600000); // because of first install from npm
 
+        console.log('Started in TRAVIS: ' + (process.env.TRAVIS && process.env.TRAVIS==='true'));
+        console.log('Started in APPVEYOR: ' + (process.env.APPVEYOR && process.env.APPVEYOR==='True'));
+
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
+            console.log('MSSQL testing only available in Appveyor on Windows, ignore test run (APPVEYOR:' + JSON.stringify(process.env.APPVEYOR) + ', TRAVIS:' + JSON.stringify(process.env.TRAVIS) + ')');
+            _done();
+            return;
+        }
         setup.setupController(function () {
             var config = setup.getAdapterConfig();
             // enable adapter
             config.common.enabled  = true;
             config.common.loglevel = 'debug';
 
-            config.native.dbtype   = 'sqlite';
+            config.native.dbtype   = 'mssql';
+            config.native.user     = 'sa';
+            config.native.password = 'Password12!';
 
             setup.setAdapterConfig(config.common, config.native);
 
@@ -95,8 +105,12 @@ describe('Test SQLite', function() {
         });
     });
 
-    it('Test SQLite: Check if adapter started', function (done) {
+    it('Test MSSQL: Check if adapter started', function (done) {
         this.timeout(60000);
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
+            done();
+            return;
+        }
         checkConnectionOfAdapter(function () {
             objects.setObject('system.adapter.test.0', {
                     common: {
@@ -143,6 +157,10 @@ describe('Test SQLite', function() {
     });
     it('Test ' + adapterShortName + ': Check Enabled Points after Enable', function (done) {
         this.timeout(5000);
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
+            done();
+            return;
+        }
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
@@ -151,8 +169,12 @@ describe('Test SQLite', function() {
             done();
         });
     });
-    it('Test SQLite: Write values into DB', function (done) {
+    it('Test MSSQL: Write values into DB', function (done) {
         this.timeout(10000);
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
+            done();
+            return;
+        }
         var now = new Date().getTime();
 
         states.setState('system.adapter.sql.0.memRss', {val: 1, ts: now - 20000}, function (err) {
@@ -186,23 +208,27 @@ describe('Test SQLite', function() {
                                                     }
                                                     done();
                                                 });
-                                            }, 2000);
+                                            }, 100);
                                         });
-                                    }, 1000);
+                                    }, 100);
                                 });
-                            }, 500);
+                            }, 100);
                         });
-                    }, 1000);
+                    }, 100);
                 });
-            }, 500);
+            }, 100);
         });
     });
-    it('Test SQLite: Read values from DB using query', function (done) {
+    it('Test MSSQL: Read values from DB using query', function (done) {
         this.timeout(10000);
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
+            done();
+            return;
+        }
 
-        sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
-            sendTo('sql.0', 'query', 'SELECT * FROM ts_number WHERE id=' + result.result[0].id, function (result) {
-                console.log('SQLite:' + JSON.stringify(result.result, null, 2));
+        sendTo('sql.0', 'query', "SELECT id FROM iobroker.dbo.datapoints WHERE name='system.adapter.sql.0.memRss'", function (result) {
+            sendTo('sql.0', 'query', 'SELECT * FROM iobroker.dbo.ts_number WHERE id=' + result.result[0].id, function (result) {
+                console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(4);
                 var found = 0;
                 for (var i = 0; i < result.result.length; i++) {
@@ -216,8 +242,12 @@ describe('Test SQLite', function() {
             });
         });
     });
-    it('Test SQLite: Read values from DB using GetHistory', function (done) {
-        this.timeout(20000);
+    it('Test MSSQL: Read values from DB using GetHistory', function (done) {
+        this.timeout(10000);
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
+            done();
+            return;
+        }
 
         sendTo('sql.0', 'getHistory', {
             id: 'system.adapter.sql.0.memRss',
@@ -229,7 +259,7 @@ describe('Test SQLite', function() {
                 aggregate: 'none'
             }
         }, function (result) {
-            console.log('SQLite:' + JSON.stringify(result.result, null, 2));
+            console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
             expect(result.result.length).to.be.at.least(4);
             var found = 0;
             for (var i = 0; i < result.result.length; i++) {
@@ -247,7 +277,7 @@ describe('Test SQLite', function() {
                     aggregate: 'none'
                 }
             }, function (result) {
-                console.log('SQLite:' + JSON.stringify(result.result, null, 2));
+                console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.equal(2);
                 var found = 0;
                 for (var i = 0; i < result.result.length; i++) {
@@ -260,6 +290,10 @@ describe('Test SQLite', function() {
     });
     it('Test ' + adapterShortName + ': Disable Datapoint again', function (done) {
         this.timeout(5000);
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
+            done();
+            return;
+        }
 
         sendTo('sql.0', 'disableHistory', {
             id: 'system.adapter.sql.0.memRss',
@@ -271,6 +305,10 @@ describe('Test SQLite', function() {
     });
     it('Test ' + adapterShortName + ': Check Enabled Points after Disable', function (done) {
         this.timeout(5000);
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
+            done();
+            return;
+        }
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
@@ -279,11 +317,15 @@ describe('Test SQLite', function() {
         });
     });
 
-    after('Test SQLite: Stop js-controller', function (done) {
+    after('Test MSSQL: Stop js-controller', function (done) {
         this.timeout(6000);
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
+            done();
+            return;
+        }
 
         setup.stopController(function (normalTerminated) {
-            console.log('SQLite: Adapter normal terminated: ' + normalTerminated);
+            console.log('MSSQL: Adapter normal terminated: ' + normalTerminated);
             done();
         });
     });
