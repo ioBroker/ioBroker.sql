@@ -184,9 +184,9 @@ describe('Test SQLite', function() {
                                                     if (err) {
                                                         console.log(err);
                                                     }
-                                                    done();
+                                                    setTimeout(done, 5000);
                                                 });
-                                            }, 2000);
+                                            }, 1000);
                                         });
                                     }, 1000);
                                 });

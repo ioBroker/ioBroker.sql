@@ -188,7 +188,7 @@ describe('Test MySQL', function() {
                                                     if (err) {
                                                         console.log(err);
                                                     }
-                                                    done();
+                                                    setTimeout(done, 5000);
                                                 });
                                             }, 100);
                                         });

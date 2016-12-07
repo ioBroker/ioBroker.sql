@@ -124,7 +124,7 @@ describe('Test PostgreSQL', function() {
                         // wait till adapter receives the new settings
                         setTimeout(function () {
                             done();
-                        }, 10000);
+                        }, 1000);
                     });
 /*                    objects.getObject('system.adapter.sql.0.memRss', function (err, obj) {
                         obj.common.custom = {
@@ -188,7 +188,7 @@ describe('Test PostgreSQL', function() {
                                                     if (err) {
                                                         console.log(err);
                                                     }
-                                                    setTimeout(done, 1000);
+                                                    setTimeout(done, 5000);
                                                 });
                                             }, 200);
                                         });
