@@ -659,7 +659,10 @@ function pushHistory(id, state, timerRelog) {
     if (sqlDPs[id]) {
         var settings = sqlDPs[id][adapter.namespace];
 
-        if (!settings || !state) return;
+        if (!settings || !state) {
+            adapter.log.debug('1');
+            return;
+        }
 
         if (sqlDPs[id].relogTimeout) {
             clearTimeout(sqlDPs[id].relogTimeout);
@@ -702,13 +705,16 @@ function pushHistory(id, state, timerRelog) {
         } else {
             // only store state if really changed
             sqlDPs[id].state = state;
+            adapter.log.debug('2');
         }
         sqlDPs[id].lastLogTime = state.ts;
 
         // Do not store values ofter than 1 second
         if (!sqlDPs[id].timeout && settings.debounce) {
+            adapter.log.debug('3a');
             sqlDPs[id].timeout = setTimeout(pushHelper, settings.debounce, id);
         } else if (!settings.debounce) {
+            adapter.log.debug('3b');
             pushHelper(id);
         }
     }
@@ -745,10 +751,14 @@ function reLogHelper(_id) {
 }
 
 function pushHelper(_id) {
-    if (!sqlDPs[_id] || !sqlDPs[_id].state) return;
+    if (!sqlDPs[_id] || !sqlDPs[_id].state) {
+        adapter.log.debug('4');
+        return;
+    }
     var _settings = sqlDPs[_id][adapter.namespace];
     // if it was not deleted in this time
     if (_settings) {
+        adapter.log.debug('5');
         sqlDPs[_id].timeout = null;
 
         if (typeof sqlDPs[_id].state.val === 'string') {
@@ -870,12 +880,15 @@ function _insertValueIntoDB(query, id, cb) {
         if (err) {
             adapter.log.error(err);
             if (cb) cb();
+            adapter.log.debug('i1');
             return;
         }
         client.execute(query, function (err, rows, fields) {
             if (err) adapter.log.error('Cannot insert ' + query + ': ' + err);
             clientPool.return(client);
+            adapter.log.debug('i2');
             checkRetention(id);
+            adapter.log.debug('i3');
             if (cb) cb();
         });
     });
@@ -894,10 +907,12 @@ function pushValueIntoDB(id, state) {
     // get id if state
     if (sqlDPs[id].index === undefined) {
         // read or create in DB
+        adapter.log.debug('p1');
         return getId(id, type, function (err) {
             if (err) {
                 adapter.log.warn('Cannot get index of "' + id + '": ' + err);
             } else {
+                adapter.log.debug('p2');
                 pushValueIntoDB(id, state);
             }
         });
@@ -906,10 +921,12 @@ function pushValueIntoDB(id, state) {
     // get from
     if (state.from && !from[state.from]) {
         // read or create in DB
+        adapter.log.debug('p3');
         return getFrom(state.from, function (err) {
             if (err) {
                 adapter.log.warn('Cannot get "from" for "' + state.from + '": ' + err);
             } else {
+                adapter.log.debug('p4');
                 pushValueIntoDB(id, state);
             }
         });
@@ -947,6 +964,7 @@ function pushValueIntoDB(id, state) {
             processTasks();
         }
     } else {
+        adapter.log.debug('p5');
         _insertValueIntoDB(query, id);
     }
 }
