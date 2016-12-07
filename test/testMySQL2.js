@@ -125,7 +125,7 @@ describe('Test MySQL-with-dash', function() {
                         // wait till adapter receives the new settings
                         setTimeout(function () {
                             done();
-                        }, 1000);
+                        }, 2000);
                     });
 /*                    objects.getObject('system.adapter.sql.0.memRss', function (err, obj) {
                         obj.common.custom = {
