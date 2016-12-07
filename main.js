@@ -1012,9 +1012,12 @@ function getId(id, type, cb) {
     clientPool.borrow(function (err, client) {
         if (err) {
             if (cb) cb(err);
+            adapter.log.debug('g1');
             return;
         }
+        adapter.log.debug('g2');
         client.execute(query, function (err, rows, fields) {
+            adapter.log.debug('g3');
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1023,7 +1026,9 @@ function getId(id, type, cb) {
                 return;
             }
             if (!rows.length) {
+                adapter.log.debug('g4');
                 if (type !== null) {
+                    adapter.log.debug('g5');
                     // insert
                     query = SQLFuncs.getIdInsert(adapter.config.dbname, id, type);
                     client.execute(query, function (err, rows, fields) {
@@ -1033,8 +1038,10 @@ function getId(id, type, cb) {
                             clientPool.return(client);
                             return;
                         }
+                        adapter.log.debug('g6');
                         query = SQLFuncs.getIdSelect(adapter.config.dbname,id);
                         client.execute(query, function (err, rows, fields) {
+                            adapter.log.debug('g7');
                             if (rows && rows.rows) rows = rows.rows;
                             if (err) {
                                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1045,11 +1052,13 @@ function getId(id, type, cb) {
                             sqlDPs[id].index = rows[0].id;
                             sqlDPs[id].type  = rows[0].type;
 
+                            adapter.log.debug('g8');
                             if (cb) cb();
                             clientPool.return(client);
                         });
                     });
                 } else {
+                    adapter.log.debug('g9');
                     if (cb) cb('id not found');
                     clientPool.return(client);
                 }
@@ -1057,6 +1066,7 @@ function getId(id, type, cb) {
                 sqlDPs[id].index = rows[0].id;
                 sqlDPs[id].type  = rows[0].type;
 
+                adapter.log.debug('g10');
                 if (cb) cb();
                 clientPool.return(client);
             }
