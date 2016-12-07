@@ -9,6 +9,8 @@ var sendToID = 1;
 
 var adapterShortName = setup.adapterName.substring(setup.adapterName.indexOf('.')+1);
 
+var now = new Date().getTime();
+
 function checkConnectionOfAdapter(cb, counter) {
     counter = counter || 0;
     if (counter > 20) {
@@ -158,7 +160,6 @@ describe('Test MySQL-with-dash', function() {
     });
     it('Test MySQL-with-dash: Write values into DB', function (done) {
         this.timeout(10000);
-        var now = new Date().getTime();
 
         states.setState('system.adapter.sql.0.memRss', {val: 1, ts: now - 20000}, function (err) {
             if (err) {
@@ -228,8 +229,7 @@ describe('Test MySQL-with-dash', function() {
         sendTo('sql.0', 'getHistory', {
             id: 'system.adapter.sql.0.memRss',
             options: {
-                start:     new Date().getTime() - 30000,
-                end:       new Date().getTime(),
+                start:     now - 30000,
                 limit:     50,
                 count:     50,
                 aggregate: 'none'
@@ -246,8 +246,8 @@ describe('Test MySQL-with-dash', function() {
             sendTo('sql.0', 'getHistory', {
                 id: 'system.adapter.sql.0.memRss',
                 options: {
-                    start:     new Date().getTime() - 15000,
-                    end:       new Date().getTime(),
+                    start:     now - 15000,
+                    end:       now,
                     limit:     2,
                     count:     2,
                     aggregate: 'none'
