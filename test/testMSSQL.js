@@ -134,7 +134,7 @@ describe('Test MSSQL', function() {
                         // wait till adapter receives the new settings
                         setTimeout(function () {
                             done();
-                        }, 2000);
+                        }, 10000);
                     });
 /*                    objects.getObject('system.adapter.sql.0.memRss', function (err, obj) {
                         obj.common.custom = {
