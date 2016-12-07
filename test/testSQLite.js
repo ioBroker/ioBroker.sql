@@ -9,6 +9,8 @@ var sendToID = 1;
 
 var adapterShortName = setup.adapterName.substring(setup.adapterName.indexOf('.')+1);
 
+var now = new Date().getTime();
+
 function checkConnectionOfAdapter(cb, counter) {
     counter = counter || 0;
     if (counter > 20) {
@@ -120,7 +122,7 @@ describe('Test SQLite', function() {
                         // wait till adapter receives the new settings
                         setTimeout(function () {
                             done();
-                        }, 2000);
+                        }, 10000);
                     });
 /*                    objects.getObject('system.adapter.sql.0.memRss', function (err, obj) {
                         obj.common.custom = {
@@ -153,7 +155,6 @@ describe('Test SQLite', function() {
     });
     it('Test SQLite: Write values into DB', function (done) {
         this.timeout(10000);
-        var now = new Date().getTime();
 
         states.setState('system.adapter.sql.0.memRss', {val: 1, ts: now - 20000}, function (err) {
             if (err) {
@@ -184,9 +185,9 @@ describe('Test SQLite', function() {
                                                     if (err) {
                                                         console.log(err);
                                                     }
-                                                    done();
+                                                    setTimeout(done, 5000);
                                                 });
-                                            }, 2000);
+                                            }, 1000);
                                         });
                                     }, 1000);
                                 });
@@ -222,8 +223,7 @@ describe('Test SQLite', function() {
         sendTo('sql.0', 'getHistory', {
             id: 'system.adapter.sql.0.memRss',
             options: {
-                start:     new Date().getTime() - 30000,
-                end:       new Date().getTime(),
+                start:     now - 30000,
                 limit:     50,
                 count:     50,
                 aggregate: 'none'
@@ -240,8 +240,8 @@ describe('Test SQLite', function() {
             sendTo('sql.0', 'getHistory', {
                 id: 'system.adapter.sql.0.memRss',
                 options: {
-                    start:     new Date().getTime() - 15000,
-                    end:       new Date().getTime(),
+                    start:     now - 15000,
+                    end:       now,
                     limit:     2,
                     count:     2,
                     aggregate: 'none'
