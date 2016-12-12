@@ -213,7 +213,7 @@
            }
         });
 
-        if ($('#passwordConfirm').val() != $('#password').val()) {
+        if (($('#dbtype').val() != 'sqlite') && ($('#passwordConfirm').val() != $('#password').val())) {
             showMessage(_('Password confirmation is not equal with password!'));
             return;
         }
