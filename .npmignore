@@ -2,3 +2,5 @@ Gruntfile.js
 tasks
 tmp
 test
+.travis.yml
+appveyor.yml
