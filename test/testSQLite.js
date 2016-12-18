@@ -187,15 +187,15 @@ describe('Test SQLite', function() {
                                                     }
                                                     setTimeout(done, 5000);
                                                 });
-                                            }, 1000);
+                                            }, 700);
                                         });
-                                    }, 1000);
+                                    }, 700);
                                 });
-                            }, 500);
+                            }, 700);
                         });
-                    }, 1000);
+                    }, 700);
                 });
-            }, 500);
+            }, 700);
         });
     });
     it('Test SQLite: Read values from DB using query', function (done) {
