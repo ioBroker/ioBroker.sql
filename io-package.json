@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.4.0",
+        "version": "1.4.1",
         "news": {
+            "1.4.1": {
+                "en": "Rollback to sql-client 0.7 to get rid of the mmagic dependecy that brings problems on older systems",
+                "de": "sql-client Library auf 0.7 zurückgerollt um Probleme mit älteren Systemen zu umgehen",
+                "ru": "Rollback to sql-client 0.7 to get rid of the mmagic dependecy that brings problems on older systems"
+            },
             "1.4.0": {
                 "en": "Add messages enableHistory/disableHistory/getEnabledDPs, add support to log changes only if value differs a minimum value for numbers.",
                 "de": "Messages enableHistory/disableHistory/getEnabledDPs hinzugefügt, Unterstützung zum Loggen wenn der Zahlenwert um einen Mindestwert abweicht.",
