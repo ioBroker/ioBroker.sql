@@ -74,7 +74,7 @@ adapter.on('objectChange', function (id, obj) {
             sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
         }
         if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
-            sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta) || 0;
+            sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta.toString().replace(/,/g, '.')) || 0;
         } else {
             sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
         }
@@ -557,7 +557,7 @@ function main() {
     }
 
     if (adapter.config.changesMinDelta !== null && adapter.config.changesMinDelta !== undefined) {
-        adapter.config.changesMinDelta = parseFloat(adapter.config.changesMinDelta);
+        adapter.config.changesMinDelta = parseFloat(adapter.config.changesMinDelta.toString().replace(/,/g, '.'));
     } else {
         adapter.config.changesMinDelta = 0;
     }
