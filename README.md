@@ -293,6 +293,12 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 
 ## Changelog
+### 1.4.2 (2017-01-16)
+* (bluefox) Fix handling of float values in Adapter config and Datapoint config.
+
+### 1.4.1
+* (Apollon77) Rollback to sql-client 0.7 to get rid of the mmagic dependecy that brings problems on older systems
+
 ### 1.4.0 (2016-12-02)
 * (Apollon77) Add messages enableHistory/disableHistory
 * (Apollon77) add support to log changes only if value differs a minimum value for numbers
