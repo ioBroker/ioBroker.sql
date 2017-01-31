@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.4.2",
+        "version": "1.4.3",
         "news": {
+            "1.4.3": {
+                "en": "Enhance Min-Delta logic for datapoints from type mixed",
+                "de": "Min-Delta-Logik verbessert für Mixed-Datenpunkte",
+                "ru": "Enhance Min-Delta logic for datapoints from type mixed"
+            },
             "1.4.2": {
                 "en": "Fix handling of float values in Adapter config and Datapoint config.",
                 "de": "Fehlerbehebung bei der Eingabe von Zahlen mit Kommastellen in der Adapter- und Datenpunk-Konfiguration.",
