@@ -119,12 +119,15 @@ var _client = false;
 function connect() {
     if (!clientPool) {
         var params = {
-            server:     adapter.config.host + (adapter.config.port ? ':' + adapter.config.port : ''),
-            host:       adapter.config.host + (adapter.config.port ? ':' + adapter.config.port : ''),
+            server:     adapter.config.host, // needed for MSSQL
+            host:       adapter.config.host, // needed for PostgeSQL , MySQL
             user:       adapter.config.user,
             password:   adapter.config.password,
             max_idle:   (adapter.config.dbtype === 'sqlite') ? 1 : 2
         };
+        if (adapter.config.port) {
+            params.port = adapter.config.port;
+        }
         if (adapter.config.encrypt) {
             params.options = {
                 encrypt: true // Use this if you're on Windows Azure
