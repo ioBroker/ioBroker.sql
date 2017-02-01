@@ -1,47 +1,29 @@
 version: 'test-{build}'
-
 os: Visual Studio 2013
-# problems with SQLite node package (or detailed mmmagic) with MS VS 2015 image ...
-
-# Test against this version of Node.js
 environment:
   matrix:
-    - nodejs_version: "0.10"
-    - nodejs_version: "0.12"
-    - nodejs_version: "4"
-    - nodejs_version: "6"
-
+    - nodejs_version: '0.10'
+    - nodejs_version: '0.12'
+    - nodejs_version: '4'
+    - nodejs_version: '6'
+    - nodejs_version: '7'
 platform:
   - x86
   - x64
-
-clone_folder: c:\projects\%APPVEYOR_PROJECT_NAME%
-
+clone_folder: 'c:\projects\%APPVEYOR_PROJECT_NAME%'
 services:
   - mssql2014
   - mysql
   - postgresql
-
-# Install scripts. (runs after repo cloning)
 install:
-  # Get the latest stable version of Node.js or io.js
-  - ps: Install-Product node $env:nodejs_version $env:platform
-  # install modules
-#  - npm install --global windows-build-tools
+  - ps: 'Install-Product node $env:nodejs_version $env:platform'
   - npm install
   - npm install winston@2.3.0
-  - npm install https://github.com/ioBroker/ioBroker.js-controller/tarball/master --production
-
-# Post-install test scripts.
+  - 'npm install https://github.com/ioBroker/ioBroker.js-controller/tarball/master --production'
 test_script:
-  # Output useful info for debugging.
   - echo %cd%
   - node --version
   - npm --version
-  # give the DBs a chance to boot correctly
   - ps: Start-Sleep -s 15
-  # run tests
   - npm test
-
-# Don't actually build.
-build: off
+build: 'off'
