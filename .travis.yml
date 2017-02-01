@@ -3,32 +3,32 @@ os:
   - osx
 language: node_js
 node_js:
-  - "0.10"
-  - "0.12"
-  - "4"
-  - "6"
+  - '0.10'
+  - '0.12'
+  - '4'
+  - '6'
+  - '7'
 services:
   - mysql
   - postgresql
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc48; fi
-#  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libmagic; fi
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi'
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc48; fi'
 before_script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install mariadb && mysql.server start; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rm -rf /usr/local/var/postgres; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then initdb /usr/local/var/postgres; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pg_ctl -D /usr/local/var/postgres start; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sleep 5; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then createuser -s postgres; fi
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install mariadb && mysql.server start; fi'
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rm -rf /usr/local/var/postgres; fi'
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then initdb /usr/local/var/postgres; fi'
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pg_ctl -D /usr/local/var/postgres start; fi'
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sleep 5; fi'
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then createuser -s postgres; fi'
   - sleep 15
   - npm install winston@2.3.0
-  - npm install https://github.com/ioBroker/ioBroker.js-controller/tarball/master --production
+  - 'npm install https://github.com/ioBroker/ioBroker.js-controller/tarball/master --production'
 env:
   - CXX=g++-4.8
 addons:
   apt:
     sources:
-    - ubuntu-toolchain-r-test
+      - ubuntu-toolchain-r-test
     packages:
-    - g++-4.8
+      - g++-4.8
