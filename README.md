@@ -293,6 +293,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 
 ## Changelog
+
+### 1.4.3 (2017-02-11)
+* (Apollon77) Small fix for older configurations
+
 ### 1.4.2 (2017-01-16)
 * (bluefox) Fix handling of float values in Adapter config and Datapoint config.
 

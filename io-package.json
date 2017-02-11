@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.4.3",
+        "version": "1.4.4",
         "news": {
+            "1.4.4": {
+                "en": "Small fix for older configurations",
+                "de": "Kleine Fehlerbehebung für ältere Konfigurationen",
+                "ru": "Small fix for older configurations"
+            },
             "1.4.3": {
                 "en": "Enhance Min-Delta logic for datapoints from type mixed, change host/port handling to avoid edge cases",
                 "de": "Min-Delta-Logik verbessert für Mixed-Datenpunkte. Host/Port-Handling angepasst um pot. Probleme zu vermeiden",
