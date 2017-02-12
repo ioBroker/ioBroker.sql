@@ -1332,7 +1332,7 @@ function storeState(msg) {
     if (!msg.message || !msg.message.id || !msg.message.state) {
         adapter.log.error('storeState called with invalid data');
         adapter.sendTo(msg.from, msg.command, {
-            error:  'Invalid call'
+            error:  'Invalid call: ' + JSON.stringify(msg)
         }, msg.callback);
         return;
     }
