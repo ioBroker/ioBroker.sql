@@ -1350,7 +1350,8 @@ function storeState(msg) {
     }
 
     adapter.sendTo(msg.from, msg.command, {
-        success:                  true
+        success:                  true,
+        connected:                (clientPool)?true:false
     }, msg.callback);
 }
 
