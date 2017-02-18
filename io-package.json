@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.4.4",
+        "version": "1.4.5",
         "news": {
+            "1.4.5": {
+                "en": "Small fix again for older configurations, fix for DBConverter Analyze function",
+                "de": "Nochmals kleine Fehlerbehebung für ältere Konfigurationen, Fehlerbehebung für Datenbank-Konverter Analyse-Funktion",
+                "ru": "Small fix again for older configurations, fix for DBConverter Analyze function"
+            },
             "1.4.4": {
                 "en": "Small fix for older configurations",
                 "de": "Kleine Fehlerbehebung für ältere Konfigurationen",
