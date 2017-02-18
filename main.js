@@ -37,11 +37,12 @@ var multiRequests = true;
 
 var adapter = utils.adapter('sql');
 adapter.on('objectChange', function (id, obj) {
-    if (obj && obj.common && (
+    if (obj && obj.common &&
+        (
             // todo remove history sometime (2016.08) - Do not forget object selector in io-package.json
-        (obj.common.history && obj.common.history[adapter.namespace]) ||
-        (obj.common.custom  && obj.common.custom[adapter.namespace])) &&
-        (obj.common.custom[adapter.namespace].enabled)
+            (obj.common.history && obj.common.history[adapter.namespace] && obj.common.history[adapter.namespace].enabled) ||
+            (obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled)
+        )
     ) {
         if (!sqlDPs[id] && !subscribeAll) {
             // unsubscribe
