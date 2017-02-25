@@ -294,6 +294,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
+### 1.4.6 (2017-02-25)
+* (Apollon77) Fix typo with PostgrSQL
+
 ### 1.4.5 (2017-02-18)
 * (Apollon77) Small fix again for older configurations
 * (Apollon77) fix for DBConverter Analyze function
