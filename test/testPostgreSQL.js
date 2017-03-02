@@ -118,7 +118,8 @@ describe('Test PostgreSQL', function() {
                             changesOnly:  true,
                             debounce:     0,
                             retention:    31536000,
-                            changesMinDelta: 0.5
+                            changesMinDelta: 0.5,
+                            storageType: 'Number'
                         }
                     }, function (result) {
                         expect(result.error).to.be.undefined;
@@ -160,7 +161,9 @@ describe('Test PostgreSQL', function() {
     it('Test PostgreSQL: Write values into DB', function (done) {
         this.timeout(10000);
 
-        states.setState('system.adapter.sql.0.memRss', {val: 1, ts: now - 20000}, function (err) {
+        this.timeout(10000);
+
+        states.setState('system.adapter.sql.0.memRss', {val: true, ts: now - 20000}, function (err) {
             if (err) {
                 console.log(err);
             }
@@ -180,7 +183,7 @@ describe('Test PostgreSQL', function() {
                                         console.log(err);
                                     }
                                     setTimeout(function () {
-                                        states.setState('system.adapter.sql.0.memRss', {val: 2.5, ts: now - 3000}, function (err) {
+                                        states.setState('system.adapter.sql.0.memRss', {val: '2.5', ts: now - 3000}, function (err) {
                                             if (err) {
                                                 console.log(err);
                                             }
@@ -189,17 +192,24 @@ describe('Test PostgreSQL', function() {
                                                     if (err) {
                                                         console.log(err);
                                                     }
-                                                    setTimeout(done, 5000);
+                                                    setTimeout(function () {
+                                                        states.setState('system.adapter.sql.0.memRss', {val: 'Test', ts: now - 500}, function (err) {
+                                                            if (err) {
+                                                                console.log(err);
+                                                            }
+                                                            setTimeout(done, 5000);
+                                                        });
+                                                    }, 100);
                                                 });
-                                            }, 200);
+                                            }, 100);
                                         });
-                                    }, 200);
+                                    }, 100);
                                 });
-                            }, 200);
+                            }, 100);
                         });
-                    }, 200);
+                    }, 100);
                 });
-            }, 200);
+            }, 100);
         });
     });
     it('Test PostgreSQL: Read values from DB using query', function (done) {

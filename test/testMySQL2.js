@@ -119,7 +119,8 @@ describe('Test MySQL-with-dash', function() {
                             changesOnly:  true,
                             debounce:     0,
                             retention:    31536000,
-                            changesMinDelta: 0.5
+                            changesMinDelta: 0.5,
+                            storageType: 'Number'
                         }
                     }, function (result) {
                         expect(result.error).to.be.undefined;
@@ -161,7 +162,9 @@ describe('Test MySQL-with-dash', function() {
     it('Test MySQL-with-dash: Write values into DB', function (done) {
         this.timeout(10000);
 
-        states.setState('system.adapter.sql.0.memRss', {val: 1, ts: now - 20000}, function (err) {
+        this.timeout(10000);
+
+        states.setState('system.adapter.sql.0.memRss', {val: true, ts: now - 20000}, function (err) {
             if (err) {
                 console.log(err);
             }
@@ -181,7 +184,7 @@ describe('Test MySQL-with-dash', function() {
                                         console.log(err);
                                     }
                                     setTimeout(function () {
-                                        states.setState('system.adapter.sql.0.memRss', {val: 2.5, ts: now - 3000}, function (err) {
+                                        states.setState('system.adapter.sql.0.memRss', {val: '2.5', ts: now - 3000}, function (err) {
                                             if (err) {
                                                 console.log(err);
                                             }
@@ -190,7 +193,14 @@ describe('Test MySQL-with-dash', function() {
                                                     if (err) {
                                                         console.log(err);
                                                     }
-                                                    setTimeout(done, 5000);
+                                                    setTimeout(function () {
+                                                        states.setState('system.adapter.sql.0.memRss', {val: 'Test', ts: now - 500}, function (err) {
+                                                            if (err) {
+                                                                console.log(err);
+                                                            }
+                                                            setTimeout(done, 5000);
+                                                        });
+                                                    }, 100);
                                                 });
                                             }, 100);
                                         });
