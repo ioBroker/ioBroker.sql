@@ -130,7 +130,7 @@ describe('Test MySQL', function() {
                         sendTo('sql.0', 'enableHistory', {
                             id: 'system.adapter.sql.0.memHeapTotal',
                             options: {
-                                changesOnly:  true,
+                                changesOnly:  false,
                                 debounce:     0,
                                 retention:    31536000,
                                 storageType: 'String'
