@@ -166,7 +166,7 @@ describe('Test MySQL', function() {
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
-            expect(Object.keys(result).length).to.be.equal(1);
+            expect(Object.keys(result).length).to.be.equal(3);
             expect(result['system.adapter.sql.0.memRss'].enabled).to.be.true;
             done();
         });
@@ -284,6 +284,30 @@ describe('Test MySQL', function() {
             });
         });
     });
+    it('Test ' + adapterShortName + ': Check Datapoint Types', function (done) {
+        this.timeout(5000);
+
+        sendTo('sql.0', 'query', "SELECT name, type FROM iobroker.datapoints", function (result) {
+            console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
+            expect(result.result.length).to.least(3);
+            for (var i = 0; i < result.result.length; i++) {
+                if (result.result[i].name === 'system.adapter.sql.0.memRss') {
+                    expect(result.result[i].type).to.be.equal(0);
+                }
+                else if (result.result[i].name === 'system.adapter.sql.0.memHeapTotal') {
+                    expect(result.result[i].type).to.be.equal(1);
+                }
+                else if (result.result[i].name === 'system.adapter.sql.0.uptime') {
+                    expect(result.result[i].type).to.be.equal(2);
+                }
+            }
+            expect(found).to.be.equal(4);
+
+            setTimeout(function () {
+                done();
+            }, 3000);
+        });
+    });
     it('Test ' + adapterShortName + ': Disable Datapoint again', function (done) {
         this.timeout(5000);
 
@@ -300,7 +324,7 @@ describe('Test MySQL', function() {
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
-            expect(Object.keys(result).length).to.be.equal(0);
+            expect(Object.keys(result).length).to.be.equal(2);
             done();
         });
     });
