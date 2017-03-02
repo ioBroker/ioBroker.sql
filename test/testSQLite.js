@@ -150,7 +150,7 @@ describe('Test SQLite', function() {
                                 // wait till adapter receives the new settings
                                 setTimeout(function () {
                                     done();
-                                }, 30000);
+                                }, 10000);
                             });
                         });
                     });
@@ -282,27 +282,29 @@ describe('Test SQLite', function() {
         });
     });
     it('Test ' + adapterShortName + ': Check Datapoint Types', function (done) {
-        this.timeout(5000);
+        this.timeout(65000);
 
-        sendTo('sql.0', 'query', "SELECT name, type FROM datapoints", function (result) {
-            console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
-            expect(result.result.length).to.least(3);
-            for (var i = 0; i < result.result.length; i++) {
-                if (result.result[i].name === 'system.adapter.sql.0.memRss') {
-                    expect(result.result[i].type).to.be.equal(0);
+        setTimeout(function() {
+            sendTo('sql.0', 'query', "SELECT name, type FROM datapoints", function (result) {
+                console.log('SQLite: ' + JSON.stringify(result.result, null, 2));
+                expect(result.result.length).to.least(3);
+                for (var i = 0; i < result.result.length; i++) {
+                    if (result.result[i].name === 'system.adapter.sql.0.memRss') {
+                        expect(result.result[i].type).to.be.equal(0);
+                    }
+                    else if (result.result[i].name === 'system.adapter.sql.0.memHeapTotal') {
+                        expect(result.result[i].type).to.be.equal(1);
+                    }
+                    else if (result.result[i].name === 'system.adapter.sql.0.uptime') {
+                        expect(result.result[i].type).to.be.equal(2);
+                    }
                 }
-                else if (result.result[i].name === 'system.adapter.sql.0.memHeapTotal') {
-                    expect(result.result[i].type).to.be.equal(1);
-                }
-                else if (result.result[i].name === 'system.adapter.sql.0.uptime') {
-                    expect(result.result[i].type).to.be.equal(2);
-                }
-            }
 
-            setTimeout(function () {
-                done();
-            }, 3000);
-        });
+                setTimeout(function () {
+                    done();
+                }, 3000);
+            });
+        }, 60000);
     });
     it('Test ' + adapterShortName + ': Disable Datapoint again', function (done) {
         this.timeout(5000);

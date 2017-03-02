@@ -291,7 +291,7 @@ describe('Test MySQL-with-dash', function() {
         this.timeout(5000);
 
         sendTo('sql.0', 'query', "SELECT name, type FROM iobroker.datapoints", function (result) {
-            console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
+            console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
             expect(result.result.length).to.least(3);
             for (var i = 0; i < result.result.length; i++) {
                 if (result.result[i].name === 'system.adapter.sql.0.memRss') {
