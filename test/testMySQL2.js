@@ -304,7 +304,6 @@ describe('Test MySQL-with-dash', function() {
                     expect(result.result[i].type).to.be.equal(2);
                 }
             }
-            expect(found).to.be.equal(4);
 
             setTimeout(function () {
                 done();
