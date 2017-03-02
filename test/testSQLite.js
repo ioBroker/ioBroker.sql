@@ -282,7 +282,7 @@ describe('Test SQLite', function() {
         });
     });
     it('Test ' + adapterShortName + ': Check Datapoint Types', function (done) {
-        this.timeout(65000);
+        this.timeout(125000);
 
         setTimeout(function() {
             sendTo('sql.0', 'query', "SELECT name, type FROM datapoints", function (result) {
@@ -304,7 +304,7 @@ describe('Test SQLite', function() {
                     done();
                 }, 3000);
             });
-        }, 60000);
+        }, 121000);
     });
     it('Test ' + adapterShortName + ': Disable Datapoint again', function (done) {
         this.timeout(5000);
