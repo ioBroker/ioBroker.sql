@@ -134,7 +134,8 @@
                     debounce:    0,
                     retention:   instanceObj.native.retention,
                     changesRelogInterval: instanceObj.native.changesRelogInterval,
-                    changesMinDelta: 0
+                    changesMinDelta: 0,
+                    storageType: ''
                 };
             }
             return {
@@ -144,6 +145,7 @@
                 retention:   instanceObj.native.retention,
                 changesRelogInterval: instanceObj.native.changesRelogInterval,
                 changesMinDelta: instanceObj.native.changesMinDelta
+                storageType: ''
             };
         }
     }
