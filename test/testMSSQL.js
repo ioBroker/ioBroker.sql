@@ -143,7 +143,6 @@ describe('Test MSSQL', function() {
                                 changesOnly:  true,
                                 debounce:     0,
                                 retention:    31536000,
-                                changesMinDelta: 0.5,
                                 storageType: 'String'
                             }
                         }, function (result) {
@@ -152,10 +151,9 @@ describe('Test MSSQL', function() {
                             sendTo('sql.0', 'enableHistory', {
                                 id: 'system.adapter.sql.0.uptime',
                                 options: {
-                                    changesOnly:  true,
+                                    changesOnly:  false,
                                     debounce:     0,
                                     retention:    31536000,
-                                    changesMinDelta: 0.5,
                                     storageType: 'Boolean'
                                 }
                             }, function (result) {
