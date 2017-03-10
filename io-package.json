@@ -7,12 +7,12 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.5.0",
+        "version": "1.5.1",
         "news": {
-            "1.5.0": {
-                "en": "Add option to define storage datatype per datapoint inclusing converting the value if needed",
-                "de": "Hinzufügen der Option den Speicher-Datenyp eines Datenpunktes inklusive der nötigen Konvertierung definieren zu können",
-                "ru": "Add option to define storage datatype per datapoint inclusing converting the value if needed"
+            "1.5.1": {
+                "en": "Changed Debounce-Feature to log the last stable value that did not changed for given time!! Add option to define storage datatype per datapoint inclusing converting the value if needed",
+                "de": "Debounce-Feature geändert, sodass der letzte Wert der in der angegeben Zeit stabil geblieben ist geloggt wird!! Hinzufügen der Option den Speicher-Datenyp eines Datenpunktes inklusive der nötigen Konvertierung definieren zu können",
+                "ru": "Changed Debounce-Feature to log the last stable value that did not changed for given time!! Add option to define storage datatype per datapoint inclusing converting the value if needed"
             },
             "1.4.6": {
                 "en": "Fix typo with PostgreSQL",

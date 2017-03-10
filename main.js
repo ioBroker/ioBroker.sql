@@ -717,10 +717,11 @@ function pushHistory(id, state, timerRelog) {
         }
         sqlDPs[id].lastLogTime = state.ts;
 
-        // Do not store values ofter than 1 second
-        if (!sqlDPs[id].timeout && settings.debounce) {
+        if (settings.debounce) {
+            // Discard changes in debounce time to store last stable value
+            if (sqlDPs[id].timeout) clearTimeout(sqlDPs[id].timeout);
             sqlDPs[id].timeout = setTimeout(pushHelper, settings.debounce, id);
-        } else if (!settings.debounce) {
+        } else {
             pushHelper(id);
         }
     }
