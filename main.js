@@ -273,11 +273,14 @@ function getSqlLiteDir(fileName) {
 function testConnection(msg) {
     msg.message.config.port = parseInt(msg.message.config.port, 10) || 0;
     var params = {
-        server:     msg.message.config.host + (msg.message.config.port ? ':' + msg.message.config.port : ''),
-        host:       msg.message.config.host + (msg.message.config.port ? ':' + msg.message.config.port : ''),
+        server:     msg.message.config.host,
+        host:       msg.message.config.host,
         user:       msg.message.config.user,
         password:   msg.message.config.password
     };
+    if (msg.message.config.port) {
+        params.port = msg.message.config.port;
+    }
 
     if (msg.message.config.dbtype === 'postgresql' && !SQL.PostgreSQLClient) {
         var postgres = require(__dirname + '/lib/postgresql-client');
