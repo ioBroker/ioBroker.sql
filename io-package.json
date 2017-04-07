@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.5.2",
+        "version": "1.5.3",
         "news": {
+            "1.5.3": {
+                "en": "fix in datatype conversions",
+                "de": "Fehlerbehebung in Datentypkonvertierungen",
+                "ru": "fix in datatype conversions"
+            },
             "1.5.2": {
                 "en": "Fix connection check in Admin when providing port number",
                 "de": "Fehler der Admin-Seite behoben wenn eine Port-Nummer angegeben wurde",

@@ -680,7 +680,7 @@ function pushHistory(id, state, timerRelog) {
 
         if (typeof state.val === 'string' && settings.storageType !== 'String') {
             var f = parseFloat(state.val);
-            if (f.toString() == state.val) {
+            if (f == state.val) {
                 state.val = f;
             }
         }
@@ -773,7 +773,7 @@ function pushHelper(_id) {
         if (typeof sqlDPs[_id].state.val === 'string' && _settings.storageType !== 'String') {
             adapter.log.debug('Do Automatic Datatype conversion for ' + _id);
             var f = parseFloat(sqlDPs[_id].state.val);
-            if (f.toString() == sqlDPs[_id].state.val) {
+            if (f == sqlDPs[_id].state.val) {
                 sqlDPs[_id].state.val = f;
             } else if (sqlDPs[_id].state.val === 'true') {
                 sqlDPs[_id].state.val = true;
