@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.5.3",
+        "version": "1.5.4",
         "news": {
+            "1.5.4": {
+                "en": "fix dependencies to some libraries",
+                "de": "Versionsabhängigkeiten zu einigen Libraries aktualisiert",
+                "ru": "fix dependencies to some libraries"
+            },
             "1.5.3": {
                 "en": "fix in datatype conversions",
                 "de": "Fehlerbehebung in Datentypkonvertierungen",
