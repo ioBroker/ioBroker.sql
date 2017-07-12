@@ -294,8 +294,11 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
+## 1.5.4 (2017-06-12)
+* (Apollon77) fix dependency to other library
+
 ## 1.5.3 (2017-04-07)
-* fix in datatype conversions
+* (Apollon77) fix in datatype conversions
 
 ### 1.5.0 (2017-03-02)
 * (Apollon77) Add option to define storage datatype per datapoint inclusing converting the value if needed
