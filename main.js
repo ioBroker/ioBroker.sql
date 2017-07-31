@@ -736,7 +736,7 @@ function reLogHelper(_id) {
         return;
     }
     sqlDPs[_id].relogTimeout = null;
-    if (!sqlDPs[_id].state) {
+    //if (!sqlDPs[_id].state) {
         //we have a not-that-often-updated state to log, so get the last state
         adapter.getForeignState(_id, function (err, state) {
             if (err) {
@@ -748,16 +748,15 @@ function reLogHelper(_id) {
             else {
                 adapter.log.debug('init timed Relog: getState ' + _id + ':  Value=' + state.val + ', ack=' + state.ack + ', ts=' + state.ts  + ', lc=' + state.lc);
                 // only if state is still not set
-                if (!sqlDPs[_id].state) {
+                //if (!sqlDPs[_id].state) {
                     sqlDPs[_id].state = state;
                     pushHistory(_id, sqlDPs[_id].state, true);
-                }
+                //}
             }
         });
-    } else {
-        pushHistory(_id, sqlDPs[_id].state, true);
-    }
-
+    //} else {
+    //    pushHistory(_id, sqlDPs[_id].state, true);
+    //}
 }
 
 function pushHelper(_id) {

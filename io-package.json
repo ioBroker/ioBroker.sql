@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.5.4",
+        "version": "1.5.5",
         "news": {
+            "1.5.5": {
+                "en": "fix behaviour of log interval to always log the current value",
+                "de": "Verhalten vom Logging in bestimmten Zeitabständen geändert, sodass immer der aktuellste Wert geloggt wird",
+                "ru": "fix behaviour of log interval to always log the current value"
+            },
             "1.5.4": {
                 "en": "fix dependencies to some libraries",
                 "de": "Versionsabhängigkeiten zu einigen Libraries aktualisiert",
