@@ -294,6 +294,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
+## 1.5.6 (2017-08-02)
+* (Apollon77) fix behaviour of log interval to always log the current value
+
 ## 1.5.4 (2017-06-12)
 * (Apollon77) fix dependency to other library
 

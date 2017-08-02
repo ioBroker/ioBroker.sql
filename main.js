@@ -670,14 +670,6 @@ function pushHistory(id, state, timerRelog) {
 
         if (!settings || !state) return;
 
-        if (sqlDPs[id].relogTimeout) {
-            clearTimeout(sqlDPs[id].relogTimeout);
-            sqlDPs[id].relogTimeout = null;
-        }
-        if (settings.changesRelogInterval > 0) {
-            sqlDPs[id].relogTimeout = setTimeout(reLogHelper, settings.changesRelogInterval * 1000, id);
-        }
-
         if (typeof state.val === 'string' && settings.storageType !== 'String') {
             var f = parseFloat(state.val);
             if (f == state.val) {
@@ -709,6 +701,14 @@ function pushHistory(id, state, timerRelog) {
             else {
                 adapter.log.debug('Min-Delta ignored because no number ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
             }
+        }
+
+        if (sqlDPs[id].relogTimeout) {
+            clearTimeout(sqlDPs[id].relogTimeout);
+            sqlDPs[id].relogTimeout = null;
+        }
+        if (settings.changesRelogInterval > 0) {
+            sqlDPs[id].relogTimeout = setTimeout(reLogHelper, settings.changesRelogInterval * 1000, id);
         }
 
         if (timerRelog) {
