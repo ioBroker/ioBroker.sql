@@ -12,7 +12,7 @@ services:
   - mysql
   - postgresql
 before_install:
-  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CC=clang++; export CXX=clang++; export CXXFLAGS=-std=c++11; fi'
+  - 'if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export export CXX=g++-4.8; fi'
 before_script:
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install mariadb && mysql.server start; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rm -rf /usr/local/var/postgres; fi'
@@ -23,8 +23,7 @@ before_script:
   - sleep 15
   - npm install winston@2.3.1
   - 'npm install https://github.com/ioBroker/ioBroker.js-controller/tarball/master --production'
-env:
-  - CXX=g++-4.8
+
 addons:
   apt:
     sources:
