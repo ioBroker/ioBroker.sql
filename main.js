@@ -52,6 +52,8 @@ adapter.on('objectChange', function (id, obj) {
             subscribeAll = true;
             adapter.subscribeForeignStates('*');
         }
+        if (sqlDPs[id] && sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
+
         // todo remove history sometime (2016.08)
         sqlDPs[id] = obj.common.custom || obj.common.history;
         if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
@@ -70,7 +72,6 @@ adapter.on('objectChange', function (id, obj) {
         } else {
             sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
         }
-        if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
         if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
             sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
         }
