@@ -68,6 +68,17 @@
                 <td></td>
                 <td></td>
             </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="translate">Save last previous value</td>
+                <td>
+                    <input type="checkbox" data-field="saveLastValue" data-default="false">
+                </td>
+                <td></td>
+                <td></td>
+            </tr>
         </table>
     </div>
 </script>
@@ -127,12 +138,13 @@
     //   as input function receives object with all information concerning it
     if (typeof defaults !== 'undefined') {
         defaults.sql = function (obj, instanceObj) {
-            if (obj && obj.common && obj.common.type != 'number') {
+            if (obj && obj.common && obj.common.type !== 'number') {
                 return {
                     enabled:     false,
                     changesOnly: false,
                     debounce:    0,
                     retention:   instanceObj.native.retention,
+                    saveLastValue: instanceObj.native.saveLastValue,
                     changesRelogInterval: instanceObj.native.changesRelogInterval,
                     changesMinDelta: 0,
                     storageType: ''
@@ -143,6 +155,7 @@
                 changesOnly: true,
                 debounce:    instanceObj.native.debounce,
                 retention:   instanceObj.native.retention,
+                saveLastValue: instanceObj.native.saveLastValue,
                 changesRelogInterval: instanceObj.native.changesRelogInterval,
                 changesMinDelta: instanceObj.native.changesMinDelta,
                 storageType: ''

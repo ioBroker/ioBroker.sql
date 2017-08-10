@@ -48,12 +48,16 @@
     }
 
     function load(settings, onChange) {
+        $('#tabs').tabs();
+
+        if (settings.saveLastValue === undefined) settings.saveLastValue = false;
+
         // works only with newest admin adapter
         if (typeof systemConfig !== 'undefined') {
             convertComma = systemConfig.common.isFloatComma;
         }
 
-       for (var key in settings) {
+        for (var key in settings) {
             setValue(key, settings[key], onChange);
         }
         $('#passwordConfirm').val(settings.password);
@@ -128,10 +132,7 @@
         onChange(false);
     }
 
-    // ... and the function save has to exist.
-    // you have to make sure the callback is called with the settings object as first param!
     function save(callback) {
-        // example: select elements with class=value and build settings object
         var settings = {};
         $('.value').each(function () {
             var $this = $(this);
@@ -234,134 +235,125 @@
         <td><img src="sql.png"></td>
         <td style="padding-top: 20px;padding-left: 10px"><h3 class="translate">SQL history adapter settings</h3></td>
     </tr></table>
-    <table>
-        <tr><td colspan="3"><h4 class="translate">DB settings:</h4></td></tr>
-        <tr>
-            <td class="translate">DB Type</td>
-            <td><select id="dbtype" class="value">
-                <option value="mysql">MySQL</option>
-                <option value="postgresql">PostgreSQL</option>
-                <option value="sqlite">SQLite3</option>
-                <option value="mssql">MS-SQL</option>
-            </select></td>
-            <td class="translate"></td>
-        </tr>
-        <tr class="real-sql">
-            <td class="translate">Host</td>
-            <td><input id="host" type="text" class="value"/></td>
-            <td></td>
-        </tr>
-        <tr class="real-sql">
-            <td class="translate">Port</td>
-            <td><input id="port" type="text" class="value"/></td>
-            <td></td>
-        </tr>
-        <tr class="ms-sql real-sql">
-            <td class="translate">DB Name</td>
-            <td><input id="dbname" type="text" class="value"/></td>
-            <td></td>
-        </tr>
-        <tr class="real-sql">
-            <td class="translate">User</td>
-            <td><input id="user" type="text" class="value"/></td>
-            <td></td>
-        </tr>
-        <tr class="real-sql">
-            <td class="translate">Password</td>
-            <td><input id="password" type="password" class="value"/></td>
-            <td></td>
-        </tr>
-        <tr class="real-sql">
-            <td class="translate">Password confirm</td>
-            <td><input id="passwordConfirm" type="password"/></td>
-            <td></td>
-        </tr>
-        <tr class="baby-sql">
-            <td class="translate">File for sqlite:</td>
-            <td><input id="fileName" type="text" class="value"/></td>
-            <td></td>
-        </tr>
-        <tr class="baby-sql">
-            <td class="translate">requestInterval</td>
-            <td><input id="requestInterval" type="text" class="value"/></td>
-            <td></td>
-        </tr>
-        <tr class="ms-sql real-sql">
-            <td class="translate">Encrypt:</td>
-            <td><input id="encrypt" type="checkbox" class="value"/></td>
-            <td></td>
-        </tr>
-        <tr class="ms-sql real-sql">
-            <td class="translate">Round real to:</td>
-            <td><input id="round" type="text" class="value"/></td>
-            <td></td>
-        </tr>
-        <tr class="ms-sql real-sql">
-            <td class="translate">Allow parallel requests:</td>
-            <td><input id="multiRequests" type="checkbox" class="value"/></td>
-            <td></td>
-        </tr>
-        <tr><td colspan="3"><h4 class="translate">Default settings:</h4></td></tr>
-        <tr>
-            <td class="translate">debounce</td>
-            <td><input id="debounce" type="text" size="5" class="value number"/></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td class="translate">log changes interval(s)</td>
-            <td><input id="changesRelogInterval" type="text" size="5" class="value number"/></td>
-            <td class="translate">0 = disable</td>
-        </tr>
-        <tr>
-            <td class="translate">log changes minimal delta</td>
-            <td><input id="changesMinDelta" type="text" size="5" class="value number"/></td>
-            <td class="translate">0 = disable delta check</td>
-        </tr>
-        <tr>
-            <td class="translate">retention</td>
-            <td><select id="retention" class="value">
-                <option value="0"           class="translate">keep forever</option>
-                <option value="63072000"    class="translate">2 years</option>
-                <option value="31536000"    class="translate">1 year</option>
-                <option value="15811200"    class="translate">6 months</option>
-                <option value="7948800"     class="translate">3 months</option>
-                <option value="2678400"     class="translate">1 months</option>
-                <option value="1209600"     class="translate">2 weeks</option>
-                <option value="604800"      class="translate">1 week</option>
-                <option value="432000"      class="translate">5 days</option>
-                <option value="259200"      class="translate">3 days</option>
-                <option value="86400"       class="translate">1 day</option>
-            </select></td>
-            <td></td>
-        </tr>
-
-    </table>
-    <br><button id="test" class="translate">Test connection</button>
-    <button id="reset" class="translate">Reset DB</button>
-    <!--h4  class="translate">Demo Data:</h4>
-    <table>
-        <tr>
-            <td class="translate">ID</td>
-            <td class="translate">Start</td>
-            <td class="translate">End</td>
-            <td class="translate">Steps</td>
-            <td class="translate">Curve</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td class="translate"><input id="demoID" type="text" /></td>
-            <td class="translate"><input id="demoStart" /></td>
-            <td class="translate"><input id="demoEnd"  /></td>
-            <td class="translate"><input id="demoStep" type="number" min="1" step="1" value="60"/></td>
-            <td class="translate"><select id="demoCurve">
-                <option value="sin"  class="translate">Sinus</option>
-                <option value="dec"  class="translate">DEC</option>
-                <option value="inc"  class="translate">INC</option>
-                <option value="dec/int"  class="translate">DEC/INC</option>
-            </select></td>
-            <td class="translate"><button id="generateDemo">Generate</button></td>
-        </tr>
-    </table-->
-
+    <div id="tabs">
+        <ul>
+            <li><a href="#tabs-1" class="translate">DB settings</a></li>
+            <li><a href="#tabs-2" class="translate">Default settings</a></li>
+        </ul>
+        <div id="tabs-1">
+            <table>
+            <tr>
+                <td><label class="translate" for="dbtype">DB Type</label></td>
+                <td><select id="dbtype" class="value">
+                    <option value="mysql">MySQL</option>
+                    <option value="postgresql">PostgreSQL</option>
+                    <option value="sqlite">SQLite3</option>
+                    <option value="mssql">MS-SQL</option>
+                </select></td>
+                <td></td>
+            </tr>
+            <tr class="real-sql">
+                <td><label class="translate" for="host">Host</label></td>
+                <td><input id="host" type="text" class="value"/></td>
+                <td></td>
+            </tr>
+            <tr class="real-sql">
+                <td><label class="translate" for="port">Port</label></td>
+                <td><input id="port" type="text" class="value"/></td>
+                <td></td>
+            </tr>
+            <tr class="ms-sql real-sql">
+                <td><label class="translate" for="dbname">DB Name</label></td>
+                <td><input id="dbname" type="text" class="value"/></td>
+                <td></td>
+            </tr>
+            <tr class="real-sql">
+                <td><label class="translate" for="user">User</label></td>
+                <td><input id="user" type="text" class="value"/></td>
+                <td></td>
+            </tr>
+            <tr class="real-sql">
+                <td><label class="translate" for="password">Password</label></td>
+                <td><input id="password" type="password" class="value"/></td>
+                <td></td>
+            </tr>
+            <tr class="real-sql">
+                <td><label class="translate" for="passwordConfirm">Password confirm</label></td>
+                <td><input id="passwordConfirm" type="password"/></td>
+                <td></td>
+            </tr>
+            <tr class="baby-sql">
+                <td><label class="translate" for="fileName">File for sqlite:</label></td>
+                <td><input id="fileName" type="text" class="value"/></td>
+                <td></td>
+            </tr>
+            <tr class="baby-sql">
+                <td><label class="translate" for="requestInterval">requestInterval</label></td>
+                <td><input id="requestInterval" type="text" class="value"/></td>
+                <td></td>
+            </tr>
+            <tr class="ms-sql real-sql">
+                <td><label class="translate" for="encrypt">Encrypt:</label></td>
+                <td><input id="encrypt" type="checkbox" class="value"/></td>
+                <td></td>
+            </tr>
+            <tr class="ms-sql real-sql">
+                <td><label class="translate" for="round">Round real to:</label></td>
+                <td><input id="round" type="text" class="value"/></td>
+                <td></td>
+            </tr>
+            <tr class="ms-sql real-sql">
+                <td><label class="translate" for="multiRequests">Allow parallel requests:</label></td>
+                <td><input id="multiRequests" type="checkbox" class="value"/></td>
+                <td></td>
+            </tr>
+            </table>
+            <br>
+            <button id="test" class="translate">Test connection</button>
+            <button id="reset" class="translate">Reset DB</button>
+        </div>
+        <div id="tabs-2">
+            <table>
+                <tr><td colspan="3"><h4 class="translate">Default settings:</h4></td></tr>
+                <tr>
+                    <td><label class="translate" for="debounce">debounce</label></td>
+                    <td><input id="debounce" type="text" size="5" class="value number"/></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><label class="translate" for="changesRelogInterval">log changes interval(s)</label></td>
+                    <td><input id="changesRelogInterval" type="text" size="5" class="value number"/></td>
+                    <td class="translate">0 = disable</td>
+                </tr>
+                <tr>
+                    <td><label class="translate" for="changesMinDelta">log changes minimal delta</label></td>
+                    <td><input id="changesMinDelta" type="text" size="5" class="value number"/></td>
+                    <td class="translate">0 = disable delta check</td>
+                </tr>
+                <tr>
+                    <td><label class="translate" for="retention">retention</label></td>
+                    <td><select id="retention" class="value">
+                        <option value="0"           class="translate">keep forever</option>
+                        <option value="63072000"    class="translate">2 years</option>
+                        <option value="31536000"    class="translate">1 year</option>
+                        <option value="15811200"    class="translate">6 months</option>
+                        <option value="7948800"     class="translate">3 months</option>
+                        <option value="2678400"     class="translate">1 months</option>
+                        <option value="1209600"     class="translate">2 weeks</option>
+                        <option value="604800"      class="translate">1 week</option>
+                        <option value="432000"      class="translate">5 days</option>
+                        <option value="259200"      class="translate">3 days</option>
+                        <option value="86400"       class="translate">1 day</option>
+                    </select></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><label class="translate" for="saveLastValue">Save last previous value:</label></td>
+                    <td><input id="saveLastValue" type="checkbox" class="valuer"/></td>
+                    <td></td>
+                </tr>
+            </table>
+        </div>
+    </div>
 </div>
 </html>

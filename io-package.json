@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.5.6",
+        "version": "1.5.7",
         "news": {
+            "1.5.7": {
+                "en": "add \"save last value\" option",
+                "de": "Die Option um vorheriges Wert zu speichern ist hinzugefügt",
+                "ru": "Возможность сохранять предыдущее значение при сохранении только изменений"
+            },
             "1.5.6": {
                 "en": "fix behaviour of log interval to always log the current value",
                 "de": "Verhalten vom Logging in bestimmten Zeitabständen geändert, sodass immer der aktuellste Wert geloggt wird",
@@ -33,115 +38,6 @@
                 "en": "Changed Debounce-Feature to log the last stable value that did not changed for given time!! Add option to define storage datatype per datapoint inclusing converting the value if needed",
                 "de": "Debounce-Feature geändert, sodass der letzte Wert der in der angegeben Zeit stabil geblieben ist geloggt wird!! Hinzufügen der Option den Speicher-Datenyp eines Datenpunktes inklusive der nötigen Konvertierung definieren zu können",
                 "ru": "Changed Debounce-Feature to log the last stable value that did not changed for given time!! Add option to define storage datatype per datapoint inclusing converting the value if needed"
-            },
-            "1.4.6": {
-                "en": "Fix typo with PostgreSQL",
-                "de": "Fehler mit PostgreSQL behoben",
-                "ru": "Fix typo with PostgreSQL"
-            },
-            "1.4.5": {
-                "en": "Small fix again for older configurations, fix for DBConverter Analyze function",
-                "de": "Nochmals kleine Fehlerbehebung für ältere Konfigurationen, Fehlerbehebung für Datenbank-Konverter Analyse-Funktion",
-                "ru": "Small fix again for older configurations, fix for DBConverter Analyze function"
-            },
-            "1.4.4": {
-                "en": "Small fix for older configurations",
-                "de": "Kleine Fehlerbehebung für ältere Konfigurationen",
-                "ru": "Small fix for older configurations"
-            },
-            "1.4.3": {
-                "en": "Enhance Min-Delta logic for datapoints from type mixed, change host/port handling to avoid edge cases",
-                "de": "Min-Delta-Logik verbessert für Mixed-Datenpunkte. Host/Port-Handling angepasst um pot. Probleme zu vermeiden",
-                "ru": "Enhance Min-Delta logic for datapoints from type mixed, change host/port handling to avoid edge cases"
-            },
-            "1.4.2": {
-                "en": "Fix handling of float values in Adapter config and Datapoint config.",
-                "de": "Fehlerbehebung bei der Eingabe von Zahlen mit Kommastellen in der Adapter- und Datenpunk-Konfiguration.",
-                "ru": "Fix handling of float values in Adapter config and Datapoint config."
-            },
-            "1.4.1": {
-                "en": "Rollback to sql-client 0.7 to get rid of the mmagic dependecy that brings problems on older systems",
-                "de": "sql-client Library auf 0.7 zurückgerollt um Probleme mit älteren Systemen zu umgehen",
-                "ru": "Rollback to sql-client 0.7 to get rid of the mmagic dependecy that brings problems on older systems"
-            },
-            "1.4.0": {
-                "en": "Add messages enableHistory/disableHistory/getEnabledDPs, add support to log changes only if value differs a minimum value for numbers.",
-                "de": "Messages enableHistory/disableHistory/getEnabledDPs hinzugefügt, Unterstützung zum Loggen wenn der Zahlenwert um einen Mindestwert abweicht.",
-                "ru": "Add messages enableHistory/disableHistory/getEnabledDPs, add support to log changes only if value differs a minimum value for numbers."
-            },
-            "1.3.4": {
-                "en": "Allow database names with '-' for MySQL",
-                "de": "Datenbanknamen mit '-' erlauben",
-                "ru": "Allow database names with '-' for MySQL"
-            },
-            "1.3.3": {
-                "en": "Update dependecies",
-                "de": "Abhängigkeiten aktualisiert",
-                "ru": "Update dependecies"
-            },
-            "1.3.2": {
-                "en": "Fix insert of string with '",
-                "de": "Korrigiere das Problem mit Strings, die Hochkomma haben",
-                "ru": "Исправлена проблема со строками содержащими кавычки"
-            },
-            "1.3.0": {
-                "en": "add option to re-log unchanged values to make it easier for visualization",
-                "de": "Neue Option hinzugefügt um nicht-geänderte Werte in definierten Abständen zu loggen um Visualisierungen einfacher zu machen.",
-                "ru": "add option to re-log unchanged values to make it easier for visualization"
-            },"1.2.1": {
-                "en": "Fix selector for SQL objects",
-                "de": "Korrigiere auswahl von SQL objekten",
-                "ru": "Исправлен выбор SQL объектов при старте"
-            },
-			"1.2.0": {
-                "en": "сompatible only with new admin",
-                "de": "Nur mit neuem Admin kompatibel",
-                "ru": "Совместимо только с новым админ-драйвером"
-            },
-            "1.1.0": {
-                "en": "change name of object from history to custom",
-                "de": "Ändere Name vom Storage-Object von history nach custom",
-                "ru": "Изменено имя объекта для настроек с history на custom"
-            },
-            "1.0.10": {
-                "en": "fix multi requests if sqlite",
-                "de": "fix multi requests if sqlite",
-                "ru": "fix multi requests if sqlite"
-            },
-            "1.0.9": {
-                "en": "allow settings for parallel requests",
-                "de": "allow settings for parallel requests",
-                "ru": "allow settings for parallel requests"
-            },
-            "1.0.7": {
-                "en": "draw line to the end if ignore null",
-                "de": "draw line to the end if ignore null",
-                "ru": "draw line to the end if ignore null"
-            },
-            "1.0.6": {
-                "en": "allow setup DB name for mysql and mssql",
-                "de": "allow setup DB name for mysql and mssql",
-                "ru": "allow setup DB name for mysql and mssql"
-            },
-            "1.0.5": {
-                "en": "switch max and min with each other",
-                "de": "switch max and min with each other",
-                "ru": "switch max and min with each other"
-            },
-            "1.0.4": {
-                "en": "check retention of data if set [never]",
-                "de": "check retention of data if set [never]",
-                "ru": "check retention of data if set [never]"
-            },
-            "1.0.3": {
-                "en": "try to calculate old timestamps",
-                "de": "try to calculate old timestamps",
-                "ru": "try to calculate old timestamps"
-            },
-            "1.0.2": {
-                "en": "fix error with io-package",
-                "de": "fix error with io-package",
-                "ru": "fix error with io-package"
             }
         },
         "mode":                     "daemon",
@@ -187,7 +83,8 @@
         "dbname":    "iobroker",
         "multiRequests": true,
         "changesRelogInterval":      0,
-        "changesMinDelta": 0
+        "changesMinDelta": 0,
+        "saveLastValue": false
     },
     "objects": [
         {

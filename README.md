@@ -291,8 +291,31 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 });
 ```
 
+## Connection Settings
+- **DB Type**: Type of the SQL DB: MySQL, PostgreSQL, MS-SQL or SQLite3
+- **Host**: IP address or host name with SQL Server
+- **Port**: Port of SQL Server (leave blank if not sure)
+- **Database name**: Database name. Default iobroker
+- **User**: User name for SQL. Must exists in the DB.
+- **Password**: Password for SQL.
+- **Password confirm**: Just repeat password here.
+- **Encrypt**: Some DBs support encryption.
+- **Round real to**: Number of digits after comma.
+- **Allow parallel requests**: Allow simultaneous SQL requests to DB.
+
+## Default Settings
+- **De-bounce interval**: Do not store values often than this interval.
+- **Log unchanged values any**: Write additionally the values every X seconds.
+- **Minimum difference from last value to log**: Minimum interval between two values.
+- **Storage retention**: How long the values will be stored in DB.
+- **Save last previous value**: Active only if "log changes only" is enabled. If active, before every value the last non-changed value will be stored in DB.
+
+
 
 ## Changelog
+
+## 1.5.7 (2017-08-10)
+* (bluefox) add "save last value" option
 
 ## 1.5.6 (2017-08-02)
 * (Apollon77) fix behaviour of log interval to always log the current value
