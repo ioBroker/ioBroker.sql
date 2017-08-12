@@ -725,12 +725,12 @@ function pushHistory(id, state, timerRelog) {
         } else {
             if (settings.changesOnly && sqlDPs[id].skipped && settings.saveLastValue) {
                 pushHelper(id);
-                sqlDPs[id].skipped = false;
             }
             // only store state if really changed
             sqlDPs[id].state = state;
         }
         sqlDPs[id].lastLogTime = state.ts;
+        sqlDPs[id].skipped = false;
 
         if (settings.debounce) {
             // Discard changes in debounce time to store last stable value
