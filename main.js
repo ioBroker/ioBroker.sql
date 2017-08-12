@@ -52,6 +52,7 @@ adapter.on('objectChange', function (id, obj) {
             subscribeAll = true;
             adapter.subscribeForeignStates('*');
         }
+        var writeNull = !sqlDPs[id];
         if (sqlDPs[id] && sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
 
         // todo remove history sometime (2016.08)
@@ -86,6 +87,9 @@ adapter.on('objectChange', function (id, obj) {
         // add one day if retention is too small
         if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
             sqlDPs[id][adapter.namespace].retention += 86400;
+        }
+        if (writeNull) {
+            writeNulls(id);
         }
         adapter.log.info('enabled logging of ' + id);
     } else {
@@ -545,6 +549,20 @@ function fixSelector(callback) {
     });
 }
 
+function writeNulls(id, now) {
+    if (!id) {
+        now = new Date().getTime();
+        for (var _id in sqlDPs) {
+            if (sqlDPs.hasOwnProperty(_id)) {
+                writeNulls(_id, now);
+            }
+        }
+    } else {
+        now = now || new Date().getTime();
+        pushHistory(id, {val: null, ts: now, ack: true});
+    }
+}
+
 function main() {
     adapter.config.dbname = adapter.config.dbname || 'iobroker';
 
@@ -646,6 +664,8 @@ function main() {
                     }
                 }
             }
+
+            writeNulls();
 
             if (count < 20) {
                 for (var _id in sqlDPs) {
