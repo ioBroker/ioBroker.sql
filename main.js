@@ -683,6 +683,7 @@ function pushHistory(id, state, timerRelog) {
             if (settings.changesRelogInterval === 0) {
                 if (state.ts !== state.lc) {
                     sqlDPs[id].skipped = true;
+                    sqlDPs[id].state = state; // remember new timestamp
                     adapter.log.debug('value not changed ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
                     return;
                 }
@@ -690,6 +691,7 @@ function pushHistory(id, state, timerRelog) {
             else if (sqlDPs[id].lastLogTime) {
                 if ((state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) {
                     sqlDPs[id].skipped = true;
+                    sqlDPs[id].state = state; // remember new timestamp
                     adapter.log.debug('value not changed ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
                     return;
                 }
@@ -700,6 +702,7 @@ function pushHistory(id, state, timerRelog) {
             if ((settings.changesMinDelta !== 0) && (typeof state.val === 'number') && (Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta)) {
                 adapter.log.debug('Min-Delta not reached ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
                 sqlDPs[id].skipped = true;
+                sqlDPs[id].state = state; // remember new timestamp
                 return;
             }
             else if (typeof state.val === 'number') {
