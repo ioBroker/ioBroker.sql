@@ -1009,7 +1009,6 @@ function pushValueIntoDB(id, state, cb) {
     if (state.val === 'null') {
         if (sqlDPs[id].type === undefined) {
             // read type from DB
-            var isTrigger = tasksReadType.length;
             tasksReadType.push({id: id, state: state});
             if (tasksReadType.length === 1) {
                 processReadTypes();
@@ -1592,6 +1591,8 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
         for (var ti = 0; ti < dbNames.length; ti++ ) {
             if (resultData[ti]) {
                 for (var index in resultData[ti]) {
+                    if (!resultData[ti].hasOwnProperty(index)) continue;
+
                     var id = resultData[ti][index].name;
                     if (!result[id]) {
                         result[id] = {};
