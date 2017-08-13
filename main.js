@@ -33,6 +33,7 @@ var from    = {};
 var clientPool;
 var subscribeAll = false;
 var tasks   = [];
+var tasksReadType = [];
 var multiRequests = true;
 
 var adapter = utils.adapter('sql');
@@ -940,6 +941,24 @@ function _insertValueIntoDB(query, id, cb) {
     });
 }
 
+function processReadTypes() {
+    if (tasksReadType && tasksReadType.length) {
+        var task = tasksReadType.shift();
+        adapter.getForeignObject(task.id, function (err, obj) {
+            if (obj && obj.common && obj.common.type) {
+                sqlDPs[task.id].type = types[obj.common.type];
+            } else {
+                sqlDPs[task.id].type = 1; // string
+            }
+            pushValueIntoDB(task.id, task.state);
+
+            setTimeout(function () {
+                processReadTypes();
+            }, 50);
+        });
+    }
+}
+
 function pushValueIntoDB(id, state) {
     if (!clientPool) {
         adapter.log.warn('No connection to SQL-DB');
@@ -950,12 +969,12 @@ function pushValueIntoDB(id, state) {
     if (state.val === 'null') {
         if (sqlDPs[id].type === undefined) {
             // read type from DB
-            adapter.getForeignObject(id, function (err, obj) {
-                sqlDPs[id].type = types[obj.common.type];
-                setTimeout(function () {
-                    pushValueIntoDB(id, state);
-                }, 0);
-            });
+            var isTrigger = tasksReadType.length;
+            tasksReadType.push({id: id, state: state});
+            if (tasksReadType.length === 1) {
+                processReadTypes();
+            }
+
             return;
         } else {
             type = sqlDPs[id].type;
@@ -1202,15 +1221,27 @@ function _getDataFromDB(query, options, callback) {
                     if (isNumber === null && rows[c].val !== null) {
                         isNumber = (parseFloat(rows[c].val) == rows[c].val);
                     }
-                    if (typeof rows[c].ts === 'string') rows[c].ts = parseInt(rows[c].ts, 10);
+                    if (typeof rows[c].ts === 'string') {
+                        rows[c].ts = parseInt(rows[c].ts, 10);
+                    }
 
                     // if less than 2000.01.01 00:00:00
-                    if (rows[c].ts < 946681200000) rows[c].ts *= 1000;
+                    if (rows[c].ts < 946681200000) {
+                        rows[c].ts *= 1000;
+                    }
 
-                    if (adapter.common.loglevel === 'debug') rows[c].date = new Date(parseInt(rows[c].ts, 10));
-                    if (options.ack) rows[c].ack = !!rows[c].ack;
-                    if (isNumber && adapter.config.round) rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
-                    if (sqlDPs[options.index].type === 2) rows[c].val = !!rows[c].val;
+                    if (adapter.common.loglevel === 'debug') {
+                        rows[c].date = new Date(parseInt(rows[c].ts, 10));
+                    }
+                    if (options.ack) {
+                        rows[c].ack = !!rows[c].ack;
+                    }
+                    if (isNumber && adapter.config.round && rows[c].val !== null) {
+                        rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
+                    }
+                    if (sqlDPs[options.index].type === 2) {
+                        rows[c].val = !!rows[c].val;
+                    }
                 }
             }
 
