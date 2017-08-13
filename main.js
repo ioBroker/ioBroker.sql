@@ -179,7 +179,7 @@ function connect() {
                     }, 30000);
                     return;
                 }
-                _client.execute('CREATE DATABASE ' + adapter.config.dbname + ';', function (err, rows, fields) {
+                _client.execute('CREATE DATABASE ' + adapter.config.dbname + ';', function (err /* , rows, fields */) {
                     _client.disconnect();
                     if (err && err.code !== '42P04') { // if error not about yet exists
                         _client = false;
@@ -322,7 +322,7 @@ function testConnection(msg) {
                 }
                 return adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
             }
-            client.execute("SELECT 2 + 3 AS x", function (err, rows, fields) {
+            client.execute("SELECT 2 + 3 AS x", function (err /* , rows, fields */) {
                 client.disconnect();
                 if (timeout) {
                     clearTimeout(timeout);
@@ -378,21 +378,18 @@ function _userQuery(msg, callback) {
             if (err) {
                 adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
                 if (callback) callback();
-                return;
             } else {
-                client.execute(msg.message, function (err, rows, fields) {
+                client.execute(msg.message, function (err, rows /* , fields */) {
                     if (rows && rows.rows) rows = rows.rows;
                     clientPool.return(client);
                     adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null, result: rows}, msg.callback);
                     if (callback) callback();
-                    return;
                 });
             }
         });
     } catch (err) {
         adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
         if (callback) callback();
-        return;
     }
 }
 // execute custom query
@@ -422,7 +419,7 @@ function oneScript(script, cb) {
                 return;
             }
             adapter.log.debug(script);
-            client.execute(script, function(err, rows, fields) {
+            client.execute(script, function(err /* , rows, fields */) {
                 adapter.log.debug('Response: ' + JSON.stringify(err));
                 if (err) {
                     // Database 'iobroker' already exists. Choose a different database name.
@@ -510,9 +507,9 @@ function processMessage(msg) {
         testConnection(msg);
     } else if (msg.command === 'destroy') {
         destroyDB(msg);
-    } else if (msg.command === 'generateDemo') {
+    } /* else if (msg.command === 'generateDemo') {
         generateDemo(msg);
-    } else if (msg.command === 'query') {
+    } */ else if (msg.command === 'query') {
         query(msg);
     } else if (msg.command === 'storeState') {
         storeState(msg);
@@ -559,7 +556,7 @@ function writeNulls(id, now) {
         }
     } else {
         now = now || new Date().getTime();
-        pushHistory(id, {val: null, ts: now, ack: true});
+        pushHistory(id, {val: null, ts: now, ack: true, q: 0x40, from: 'system.adapter.' + adapter.namespace}); /* substitute value on device */
     }
 }
 
@@ -834,7 +831,7 @@ function getAllIds(cb) {
             if (cb) cb(err);
             return;
         }
-        client.execute(query, function (err, rows, fields) {
+        client.execute(query, function (err, rows /* , fields */) {
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -865,7 +862,7 @@ function getAllFroms(cb) {
             if (cb) cb(err);
             return;
         }
-        client.execute(query, function (err, rows, fields) {
+        client.execute(query, function (err, rows /* , fields */) {
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -894,7 +891,7 @@ function _checkRetention(query, cb) {
             if (cb) cb();
             return;
         }
-        client.execute(query, function (err, rows, fields) {
+        client.execute(query, function (err /* , rows, fields */ ) {
             if (err) adapter.log.error('Cannot delete ' + query + ': ' + err);
             clientPool.return(client);
             if (cb) cb();
@@ -934,7 +931,7 @@ function _insertValueIntoDB(query, id, cb) {
             if (cb) cb();
             return;
         }
-        client.execute(query, function (err, rows, fields) {
+        client.execute(query, function (err /* , rows, fields */) {
             if (err) adapter.log.error('Cannot insert ' + query + ': ' + err);
             clientPool.return(client);
             checkRetention(id);
@@ -948,7 +945,24 @@ function pushValueIntoDB(id, state) {
         adapter.log.warn('No connection to SQL-DB');
         return;
     }
-    var type = types[typeof state.val];
+    var type;
+
+    if (state.val === 'null') {
+        if (sqlDPs[id].type === undefined) {
+            // read type from DB
+            adapter.getForeignObject(id, function (err, obj) {
+                sqlDPs[id].type = types[obj.common.type];
+                setTimeout(function () {
+                    pushValueIntoDB(id, state);
+                }, 0);
+            });
+            return;
+        } else {
+            type = sqlDPs[id].type;
+        }
+    } else {
+        type = types[typeof state.val];
+    }
     if (type === undefined) {
         adapter.log.warn('Cannot store values of type "' + typeof state.val + '"');
         return;
@@ -1058,7 +1072,7 @@ function getId(id, type, cb) {
             if (cb) cb(err);
             return;
         }
-        client.execute(query, function (err, rows, fields) {
+        client.execute(query, function (err, rows /* , fields */) {
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1070,7 +1084,7 @@ function getId(id, type, cb) {
                 if (type !== null) {
                     // insert
                     query = SQLFuncs.getIdInsert(adapter.config.dbname, id, type);
-                    client.execute(query, function (err, rows, fields) {
+                    client.execute(query, function (err /* , rows, fields */) {
                         if (err) {
                             adapter.log.error('Cannot insert ' + query + ': ' + err);
                             if (cb) cb(err);
@@ -1078,7 +1092,7 @@ function getId(id, type, cb) {
                             return;
                         }
                         query = SQLFuncs.getIdSelect(adapter.config.dbname,id);
-                        client.execute(query, function (err, rows, fields) {
+                        client.execute(query, function (err, rows /* , fields */) {
                             if (rows && rows.rows) rows = rows.rows;
                             if (err) {
                                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1109,7 +1123,7 @@ function getId(id, type, cb) {
 }
 // my be it is required to cache all the data in memory
 function getFrom(_from, cb) {
-    var sources    = (adapter.config.dbtype !== 'postgresql' ? (adapter.config.dbname + '.') : '') + 'sources';
+    // var sources    = (adapter.config.dbtype !== 'postgresql' ? (adapter.config.dbname + '.') : '') + 'sources';
     var query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
 
     clientPool.borrow(function (err, client) {
@@ -1117,7 +1131,7 @@ function getFrom(_from, cb) {
             if (cb) cb(err);
             return;
         }
-        client.execute(query, function (err, rows, fields) {
+        client.execute(query, function (err, rows /* , fields */) {
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1128,7 +1142,7 @@ function getFrom(_from, cb) {
             if (!rows.length) {
                 // insert
                 query = SQLFuncs.getFromInsert(adapter.config.dbname, _from);
-                client.execute(query, function (err, rows, fields) {
+                client.execute(query, function (err /* , rows, fields */) {
                     if (err) {
                         adapter.log.error('Cannot insert ' + query + ': ' + err);
                         if (cb) cb(err);
@@ -1137,7 +1151,7 @@ function getFrom(_from, cb) {
                     }
 
                     query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
-                    client.execute(query, function (err, rows, fields) {
+                    client.execute(query, function (err, rows /* , fields */) {
                         if (rows && rows.rows) rows = rows.rows;
                         if (err) {
                             adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1175,7 +1189,7 @@ function _getDataFromDB(query, options, callback) {
             if (callback) callback(err);
             return;
         }
-        client.execute(query, function (err, rows, fields) {
+        client.execute(query, function (err, rows /* , fields */) {
             if (rows && rows.rows) rows = rows.rows;
             // because descending
             if (!err && rows && !options.start && options.count) {
@@ -1299,7 +1313,7 @@ function getHistory(msg) {
         }
     }
 }
-
+/*
 function generateDemo(msg) {
     var id      = adapter.name +'.' + adapter.instance + '.Demo.' + (msg.message.id || 'Demo_Data');
     var start   = new Date(msg.message.start).getTime();
@@ -1321,7 +1335,7 @@ function generateDemo(msg) {
 
     function generate() {
         if (curve === 'sin') {
-            if (sin == 6.2) {
+            if (sin === 6.2) {
                 sin = 0;
             } else {
                 sin = Math.round((sin + 0.1) * 10) / 10;
@@ -1381,7 +1395,7 @@ function generateDemo(msg) {
 
     generate();
 }
-
+*/
 function storeState(msg) {
     if (!msg.message || !msg.message.id || !msg.message.state) {
         adapter.log.error('storeState called with invalid data');
@@ -1404,8 +1418,8 @@ function storeState(msg) {
     }
 
     adapter.sendTo(msg.from, msg.command, {
-        success:                  true,
-        connected:                (clientPool)?true:false
+        success:    true,
+        connected:  !!clientPool
     }, msg.callback);
 }
 
@@ -1420,7 +1434,7 @@ function getDpOverview(msg) {
             }, msg.callback);
             return;
         }
-        client.execute(query, function (err, rows, fields) {
+        client.execute(query, function (err, rows /* , fields */) {
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1432,7 +1446,6 @@ function getDpOverview(msg) {
             }
             adapter.log.info('Query result ' + JSON.stringify(rows));
             if (rows.length) {
-                var id;
                 for (var r = 0; r < rows.length; r++) {
                     if (!result[rows[r].type]) result[rows[r].type] = {};
                     result[rows[r].type][rows[r].id] = {};
@@ -1462,7 +1475,7 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
         } else {
             var query = SQLFuncs.getFirstTs(adapter.config.dbname, dbNames[typeId]);
             adapter.log.info(query);
-            dbClient.execute(query, function (err, rows, fields) {
+            dbClient.execute(query, function (err, rows /* , fields */) {
                 if (rows && rows.rows) rows = rows.rows;
                 if (err) {
                     adapter.log.error('Cannot select ' + query + ': ' + err);

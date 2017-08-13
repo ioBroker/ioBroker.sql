@@ -39,6 +39,7 @@ systemDictionary = {
     "DB settings":          {"en": "DB settings",           "de": "DB Einstellungen",               "ru": "Настройки соединения с DB"},
     "Default settings":     {"en": "Default settings",      "de": "Default Einstellungen",          "ru": "Настройки по умолчанию"},
     "Save last previous value": {"en": "Save last previous value", "de": "Speichere letztes Wert bei Änderung", "ru": "Сохранять предыдущее значение"},
+    "Save last previous value:": {"en": "Save last previous value:", "de": "Speichere letztes Wert bei Änderung:", "ru": "Сохранять предыдущее значение:"},
     "retention":            {"en": "Storage retention:",    "de": "Storage Vorhaltezeit:",          "ru": "Время хранения в базе:"},
     "keep forever":         {"en": "keep forever",          "de": "keine automatische Löschung",    "ru": "хранить вечно"},
     "2 years":              {"en": "2 years",               "de": "2 Jahre",                        "ru": "2 года"},
@@ -69,6 +70,11 @@ systemDictionary = {
     "Test connection":      {"en": "Test connection",       "de": "Verbindung testen",              "ru": "Проверить соединение"},
     "requestInterval":      {"en": "Pause between requests(ms):","de": "Intervall zwischen DB Anfragen(ms):",  "ru": "Пауза между запросами к базе:"},
     "Round real to:":       {"en": "Round real to:",        "de": "Aufrunden auf: ",                "ru": "Округлять до:"},
+    "Password confirmation is not equal with password!": {
+        "en": "Password confirmation is not equal with password!",
+        "de": "Kennwort-Bestätigung ist nicht gleich mit dem Kennwort!",
+        "ru": "Подтверждение пароля не совпадает с паролем!"
+    },
     "Are you sure? All data will be dropped.": {
         "en": "Are you sure? All data will be dropped.",
         "de": "Sind Sie sicher? ALLE Daten werden geöscht.",

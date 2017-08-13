@@ -1,4 +1,5 @@
 <html>
+<head>
 <meta charset="UTF-8">
 <title></title>
 <!-- these 4 files always have to be included -->
@@ -39,7 +40,9 @@
                             }
                         }
 
-                        if (val != newVal) $(this).val(newVal);
+                        if (val != newVal) {
+                            $(this).val(newVal);
+                        }
                     }
                 }
                 $(this).trigger('change');
@@ -58,7 +61,9 @@
         }
 
         for (var key in settings) {
-            setValue(key, settings[key], onChange);
+            if (settings.hasOwnProperty(key)) {
+                setValue(key, settings[key], onChange);
+            }
         }
         $('#passwordConfirm').val(settings.password);
 
@@ -125,7 +130,7 @@
                 end:    $('#demoEnd').val(),
                 step:   $('#demoStep').val(),
                 curve:  $('#demoCurve').val()
-            }, function (e) {
+            }, function (/* e */) {
                 $('.loader').hide();
             })
         });
@@ -228,7 +233,8 @@
         }
     }
 </style>
-
+</head>
+<body>
 <div id="adapter-container">
     <div id="loader" class="loader"></div>
     <table><tr>
@@ -254,22 +260,22 @@
             </tr>
             <tr class="real-sql">
                 <td><label class="translate" for="host">Host</label></td>
-                <td><input id="host" type="text" class="value"/></td>
+                <td><input id="host" class="value"/></td>
                 <td></td>
             </tr>
             <tr class="real-sql">
                 <td><label class="translate" for="port">Port</label></td>
-                <td><input id="port" type="text" class="value"/></td>
+                <td><input id="port" class="value"/></td>
                 <td></td>
             </tr>
             <tr class="ms-sql real-sql">
                 <td><label class="translate" for="dbname">DB Name</label></td>
-                <td><input id="dbname" type="text" class="value"/></td>
+                <td><input id="dbname" class="value"/></td>
                 <td></td>
             </tr>
             <tr class="real-sql">
                 <td><label class="translate" for="user">User</label></td>
-                <td><input id="user" type="text" class="value"/></td>
+                <td><input id="user" class="value"/></td>
                 <td></td>
             </tr>
             <tr class="real-sql">
@@ -284,12 +290,12 @@
             </tr>
             <tr class="baby-sql">
                 <td><label class="translate" for="fileName">File for sqlite:</label></td>
-                <td><input id="fileName" type="text" class="value"/></td>
+                <td><input id="fileName" class="value"/></td>
                 <td></td>
             </tr>
             <tr class="baby-sql">
                 <td><label class="translate" for="requestInterval">requestInterval</label></td>
-                <td><input id="requestInterval" type="text" class="value"/></td>
+                <td><input id="requestInterval" class="value"/></td>
                 <td></td>
             </tr>
             <tr class="ms-sql real-sql">
@@ -299,7 +305,7 @@
             </tr>
             <tr class="ms-sql real-sql">
                 <td><label class="translate" for="round">Round real to:</label></td>
-                <td><input id="round" type="text" class="value"/></td>
+                <td><input id="round" class="value"/></td>
                 <td></td>
             </tr>
             <tr class="ms-sql real-sql">
@@ -317,17 +323,17 @@
                 <tr><td colspan="3"><h4 class="translate">Default settings:</h4></td></tr>
                 <tr>
                     <td><label class="translate" for="debounce">debounce</label></td>
-                    <td><input id="debounce" type="text" size="5" class="value number"/></td>
+                    <td><input id="debounce" size="5" class="value number"/></td>
                     <td></td>
                 </tr>
                 <tr>
                     <td><label class="translate" for="changesRelogInterval">log changes interval(s)</label></td>
-                    <td><input id="changesRelogInterval" type="text" size="5" class="value number"/></td>
+                    <td><input id="changesRelogInterval" size="5" class="value number"/></td>
                     <td class="translate">0 = disable</td>
                 </tr>
                 <tr>
                     <td><label class="translate" for="changesMinDelta">log changes minimal delta</label></td>
-                    <td><input id="changesMinDelta" type="text" size="5" class="value number"/></td>
+                    <td><input id="changesMinDelta" size="5" class="value number"/></td>
                     <td class="translate">0 = disable delta check</td>
                 </tr>
                 <tr>
@@ -356,4 +362,5 @@
         </div>
     </div>
 </div>
+</body>
 </html>
