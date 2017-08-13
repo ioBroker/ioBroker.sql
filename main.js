@@ -28,13 +28,15 @@ var dbNames = [
     'ts_bool'
 ];
 
-var sqlDPs  = {};
-var from    = {};
 var clientPool;
-var subscribeAll = false;
-var tasks   = [];
+var sqlDPs        = {};
+var from          = {};
+var subscribeAll  = false;
+var tasks         = [];
 var tasksReadType = [];
 var multiRequests = true;
+var tasksStart    = [];
+var finished      = false;
 
 var adapter = utils.adapter('sql');
 adapter.on('objectChange', function (id, obj) {
@@ -123,7 +125,10 @@ process.on('SIGINT', function () {
     // close connection to DB
     finish();
 });
-
+process.on('SIGTERM', function () {
+    // close connection to DB
+    finish();
+});
 var _client = false;
 function connect() {
     if (!clientPool) {
@@ -247,7 +252,10 @@ function connect() {
             if (!multiRequests) {
                 getAllIds(function () {
                     getAllFroms();
+                    processStartValues();
                 });
+            } else {
+                processStartValues();
             }
         }
     });
@@ -490,26 +498,75 @@ function allScripts(scripts, index, cb) {
 
 function finish(callback) {
     var count = 0;
+    if (finished) {
+        if (callback) callback();
+        return;
+    }
+    finished = true;
+    var now = new Date().getTime();
     for (var id in sqlDPs) {
+        if (!sqlDPs.hasOwnProperty(id)) continue;
+
         if (sqlDPs[id].relogTimeout) {
             clearTimeout(sqlDPs[id].relogTimeout);
+            sqlDPs[id].relogTimeout = null;
         }
         if (sqlDPs[id].timeout) {
             clearTimeout(sqlDPs[id].timeout);
+            sqlDPs[id].timeout  = null;
         }
+        var state = sqlDPs[id].state ? Object.assign({}, sqlDPs[id].state) : null;
+
         if (sqlDPs[id].skipped) {
             count++;
-            adapter.log.error('Store ' + id);
             pushValueIntoDB(id, sqlDPs[id].skipped, function () {
                 if (!--count && callback) {
                     if (clientPool) {
                         clientPool.close();
                         clientPool = null;
                     }
-                    callback();
+                    setTimeout(callback, 500);
                 }
             });
             sqlDPs[id].skipped = null;
+        }
+
+        var nullValue = {val: 'null', ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
+        if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== 'null') {
+            count++;
+            (function (_id, _state, _nullValue) {
+                _state.ts   = now;
+                _state.from = 'system.adapter.' + adapter.namespace;
+                nullValue.ts += 4;
+                nullValue.lc += 4; // because of MS SQL
+                adapter.log.error('Write 1/2 "' + _state.val + '" _id: ' + _id);
+                pushValueIntoDB(_id, _state, function () {
+                    // terminate values with null to indicate adapter stop. timestamp + 1#
+                    adapter.log.error('Write 2/2 "null" _id: ' + _id);
+                    pushValueIntoDB(_id, _nullValue, function () {
+                        if (!--count && callback) {
+                            if (clientPool) {
+                                clientPool.close();
+                                clientPool = null;
+                            }
+                            setTimeout(callback, 500);
+                        }
+                    });
+                });
+            })(id, state, nullValue);
+        } else {
+            // terminate values with null to indicate adapter stop. timestamp + 1
+            count++;
+            adapter.log.error('Write 0 "null" _id: ' + id);
+            pushValueIntoDB(id, nullValue, function () {
+                if (!--count && callback) {
+                    if (clientPool) {
+                        clientPool.close();
+                        clientPool = null;
+                    }
+                    setTimeout(callback, 500);
+                }
+            });
         }
     }
 
@@ -586,6 +643,39 @@ function fixSelector(callback) {
     });
 }
 
+function processStartValues() {
+    if (tasksStart && tasksStart.length) {
+        var task = tasksStart.shift();
+        if (sqlDPs[task.id][adapter.namespace].changesOnly) {
+            adapter.getForeignState(task.id, function (err, state) {
+                var now = task.now || new Date().getTime();
+                pushHistory(task.id, {
+                    val:  null,
+                    ts:   state ? now - 4 : now, // 4 is because of MS SQL
+                    ack:  true,
+                    q:    0x40,
+                    from: 'system.adapter.' + adapter.namespace
+                });
+                if (state) {
+                    state.ts = now;
+                    state.from = 'system.adapter.' + adapter.namespace;
+                    pushHistory(task.id, state);
+                }
+                setTimeout(processStartValues, 0);
+            });
+        } else {
+            pushHistory(task.id, {
+                val:  null,
+                ts:   task.now || new Date().getTime(),
+                ack:  true,
+                q:    0x40,
+                from: 'system.adapter.' + adapter.namespace
+            });
+            setTimeout(processStartValues, 0);
+        }
+    }
+}
+
 function writeNulls(id, now) {
     if (!id) {
         now = new Date().getTime();
@@ -596,7 +686,10 @@ function writeNulls(id, now) {
         }
     } else {
         now = now || new Date().getTime();
-        pushHistory(id, {val: null, ts: now, ack: true, q: 0x40, from: 'system.adapter.' + adapter.namespace}); /* substitute value on device */
+        tasksStart.push({id: id, now: now});
+        if (tasksStart.length === 1 && clientPool) {
+            processStartValues();
+        }
     }
 }
 
@@ -736,16 +829,20 @@ function pushHistory(id, state, timerRelog) {
                 state.val = f;
             }
         }
+        if (state.val === null) {
+            state.val = 'null';
+        }
+
         if (sqlDPs[id].state && settings.changesOnly && !timerRelog) {
             if (settings.changesRelogInterval === 0) {
-                if ((sqlDPs[id].state.val !== null || state.val === null) && state.ts !== state.lc) {
+                if ((sqlDPs[id].state.val !== 'null' || state.val === 'null') && state.ts !== state.lc) {
                     sqlDPs[id].skipped = state; // remember new timestamp
                     adapter.log.debug('value not changed ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
                     return;
                 }
             }
             else if (sqlDPs[id].lastLogTime) {
-                if ((sqlDPs[id].state.val !== null || state.val === null) && (state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) {
+                if ((sqlDPs[id].state.val !== 'null' || state.val === 'null') && (state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) {
                     sqlDPs[id].skipped = state; // remember new timestamp
                     adapter.log.debug('value not changed ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
                     return;
@@ -754,7 +851,7 @@ function pushHistory(id, state, timerRelog) {
                     adapter.log.debug('value-changed-relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
                 }
             }
-            if (sqlDPs[id].state.val !== null && (settings.changesMinDelta !== 0) && (typeof state.val === 'number') && (Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta)) {
+            if (sqlDPs[id].state.val !== 'null' && (settings.changesMinDelta !== 0) && (typeof state.val === 'number') && (Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta)) {
                 adapter.log.debug('Min-Delta not reached ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
                 sqlDPs[id].skipped = state; // remember new timestamp
                 return;
@@ -775,7 +872,7 @@ function pushHistory(id, state, timerRelog) {
             sqlDPs[id].relogTimeout = setTimeout(reLogHelper, settings.changesRelogInterval * 1000, id);
         }
 
-
+        var ignoreDebonce = false;
         if (timerRelog) {
             state.ts = new Date().getTime();
             adapter.log.debug('timed-relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
@@ -784,13 +881,18 @@ function pushHistory(id, state, timerRelog) {
                 sqlDPs[id].state = sqlDPs[id].skipped;
                 pushHelper(id);
             }
+            if (sqlDPs[id].state && ((sqlDPs[id].state.val === 'null' && state.val !== 'null') || (sqlDPs[id].state.val !== 'null' && state.val === 'null'))) {
+                ignoreDebonce = true;
+            } else if (!sqlDPs[id].state && state.val === 'null') {
+                ignoreDebonce = true;
+            }
             // only store state if really changed
             sqlDPs[id].state = state;
         }
         sqlDPs[id].lastLogTime = state.ts;
         sqlDPs[id].skipped = null;
 
-        if (settings.debounce) {
+        if (settings.debounce && !ignoreDebonce) {
             // Discard changes in debounce time to store last stable value
             if (sqlDPs[id].timeout) clearTimeout(sqlDPs[id].timeout);
             sqlDPs[id].timeout = setTimeout(pushHelper, settings.debounce, id);
@@ -1034,7 +1136,7 @@ function pushValueIntoDB(id, state, cb) {
                 adapter.log.warn('Cannot get index of "' + id + '": ' + err);
                 if (cb) cb('Cannot get index of "' + id + '": ' + err);
             } else {
-                pushValueIntoDB(id, state);
+                pushValueIntoDB(id, state, cb);
             }
         });
     }
@@ -1047,7 +1149,7 @@ function pushValueIntoDB(id, state, cb) {
                 adapter.log.warn('Cannot get "from" for "' + state.from + '": ' + err);
                 if (cb) cb('Cannot get "from" for "' + state.from + '": ' + err);
             } else {
-                pushValueIntoDB(id, state);
+                pushValueIntoDB(id, state, cb);
             }
         });
     }
