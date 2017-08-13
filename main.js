@@ -489,7 +489,7 @@ function allScripts(scripts, index, cb) {
 }
 
 function finish(callback) {
-    if (clientPool) clientPool.close();
+    var count = 0;
     for (var id in sqlDPs) {
         if (sqlDPs[id].relogTimeout) {
             clearTimeout(sqlDPs[id].relogTimeout);
@@ -497,31 +497,70 @@ function finish(callback) {
         if (sqlDPs[id].timeout) {
             clearTimeout(sqlDPs[id].timeout);
         }
+        if (sqlDPs[id].skipped) {
+            count++;
+            adapter.log.error('Store ' + id);
+            pushValueIntoDB(id, sqlDPs[id].skipped, function () {
+                if (!--count && callback) {
+                    if (clientPool) {
+                        clientPool.close();
+                        clientPool = null;
+                    }
+                    callback();
+                }
+            });
+            sqlDPs[id].skipped = null;
+        }
     }
-    if (callback)   callback();
+
+    if (!count && callback) {
+        if (clientPool) {
+            clientPool.close();
+            clientPool = null;
+        }
+        callback();
+    }
 }
 
 function processMessage(msg) {
     if (msg.command === 'getHistory') {
         getHistory(msg);
-    } else if (msg.command === 'test') {
+    }
+    else if (msg.command === 'test') {
         testConnection(msg);
-    } else if (msg.command === 'destroy') {
+    }
+    else if (msg.command === 'destroy') {
         destroyDB(msg);
-    } /* else if (msg.command === 'generateDemo') {
+    }
+    /* else if (msg.command === 'generateDemo') {
         generateDemo(msg);
-    } */ else if (msg.command === 'query') {
+    } */
+    else if (msg.command === 'query') {
         query(msg);
-    } else if (msg.command === 'storeState') {
+    }
+    else if (msg.command === 'storeState') {
         storeState(msg);
-    } else if (msg.command === 'getDpOverview') {
+    }
+    else if (msg.command === 'getDpOverview') {
         getDpOverview(msg);
-    } else if (msg.command === 'enableHistory') {
+    }
+    else if (msg.command === 'enableHistory') {
         enableHistory(msg);
-    } else if (msg.command === 'disableHistory') {
+    }
+    else if (msg.command === 'disableHistory') {
         disableHistory(msg);
-    } else if (msg.command === 'getEnabledDPs') {
+    }
+    else if (msg.command === 'getEnabledDPs') {
         getEnabledDPs(msg);
+    } else if (msg.command === 'stopInstance') {
+        finish(function () {
+            if (msg.callback) {
+                adapter.sendTo(msg.from, msg.command, 'stopped', msg.callback);
+                setTimeout(function () {
+                    process.exit(0);
+                }, 200);
+            }
+        });
     }
 }
 
@@ -959,9 +998,10 @@ function processReadTypes() {
     }
 }
 
-function pushValueIntoDB(id, state) {
+function pushValueIntoDB(id, state, cb) {
     if (!clientPool) {
         adapter.log.warn('No connection to SQL-DB');
+        if (cb) cb('No connection to SQL-DB');
         return;
     }
     var type;
@@ -984,6 +1024,7 @@ function pushValueIntoDB(id, state) {
     }
     if (type === undefined) {
         adapter.log.warn('Cannot store values of type "' + typeof state.val + '"');
+        if (cb) cb('Cannot store values of type "' + typeof state.val + '"');
         return;
     }
     // get id if state
@@ -992,6 +1033,7 @@ function pushValueIntoDB(id, state) {
         return getId(id, type, function (err) {
             if (err) {
                 adapter.log.warn('Cannot get index of "' + id + '": ' + err);
+                if (cb) cb('Cannot get index of "' + id + '": ' + err);
             } else {
                 pushValueIntoDB(id, state);
             }
@@ -1004,6 +1046,7 @@ function pushValueIntoDB(id, state) {
         return getFrom(state.from, function (err) {
             if (err) {
                 adapter.log.warn('Cannot get "from" for "' + state.from + '": ' + err);
+                if (cb) cb('Cannot get "from" for "' + state.from + '": ' + err);
             } else {
                 pushValueIntoDB(id, state);
             }
@@ -1020,6 +1063,7 @@ function pushValueIntoDB(id, state) {
         if (typeof state.val === 'object') state.val = JSON.stringify(state.val);
     } catch (err) {
         adapter.log.error('Cannot convert the object value "' + id + '"');
+        if (cb) cb('Cannot convert the object value "' + id + '"');
         return;
     }
 
@@ -1034,15 +1078,16 @@ function pushValueIntoDB(id, state) {
     if (!multiRequests) {
         if (tasks.length > 100) {
             adapter.log.error('Cannot queue new requests, because more than 100');
+            if (cb) cb('Cannot queue new requests, because more than 100');
             return;
         }
 
-        tasks.push({operation: 'insert', query: query, id: id});
+        tasks.push({operation: 'insert', query: query, id: id, callback: cb});
         if (tasks.length === 1) {
             processTasks();
         }
     } else {
-        _insertValueIntoDB(query, id);
+        _insertValueIntoDB(query, id, cb);
     }
 }
 
@@ -1056,29 +1101,41 @@ function processTasks() {
     if (tasks.length) {
         if (tasks[0].operation === 'insert') {
             _insertValueIntoDB(tasks[0].query, tasks[0].id, function () {
+                if (tasks[0].callback) tasks[0].callback();
                 tasks.shift();
                 lockTasks = false;
                 if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
             });
-        } else if (tasks[0].operation === 'select') {
+        }
+        else if (tasks[0].operation === 'select') {
             _getDataFromDB(tasks[0].query, tasks[0].options, function (err, rows) {
                 if (tasks[0].callback) tasks[0].callback(err, rows);
                 tasks.shift();
                 lockTasks = false;
                 if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
             });
-        } else if (tasks[0].operation === 'userQuery') {
+        }
+        else if (tasks[0].operation === 'userQuery') {
             _userQuery(tasks[0].msg, function () {
+                if (tasks[0].callback) tasks[0].callback();
                 tasks.shift();
                 lockTasks = false;
                 if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
             });
-        } else if (tasks[0].operation === 'delete') {
+        }
+        else if (tasks[0].operation === 'delete') {
             _checkRetention(tasks[0].query, function () {
+                if (tasks[0].callback) tasks[0].callback();
                 tasks.shift();
                 lockTasks = false;
                 if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
             });
+        } else {
+            adapter.log.error('unknown task: ' + tasks[0].operation);
+            if (tasks[0].callback) tasks[0].callback();
+            tasks.shift();
+            lockTasks = false;
+            if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
         }
     }
 }
