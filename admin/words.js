@@ -75,6 +75,11 @@ systemDictionary = {
         "de": "Kennwort-Bestätigung ist nicht gleich mit dem Kennwort!",
         "ru": "Подтверждение пароля не совпадает с паролем!"
     },
+    "Input path with the file name.": {
+        "en": "E.g. /opt/sqlite/data.db",
+        "de": "Z.B. /opt/sqlite/data.db",
+        "ru": "Например /opt/sqlite/data.db"
+    },
     "Are you sure? All data will be dropped.": {
         "en": "Are you sure? All data will be dropped.",
         "de": "Sind Sie sicher? ALLE Daten werden geöscht.",
