@@ -38,8 +38,6 @@ systemDictionary = {
     },
     "DB settings":          {"en": "DB settings",           "de": "DB Einstellungen",               "ru": "Настройки соединения с DB"},
     "Default settings":     {"en": "Default settings",      "de": "Default Einstellungen",          "ru": "Настройки по умолчанию"},
-    "Save last previous value": {"en": "Save last previous value", "de": "Speichere letztes Wert bei Änderung", "ru": "Сохранять предыдущее значение"},
-    "Save last previous value:": {"en": "Save last previous value:", "de": "Speichere letztes Wert bei Änderung:", "ru": "Сохранять предыдущее значение:"},
     "retention":            {"en": "Storage retention:",    "de": "Storage Vorhaltezeit:",          "ru": "Время хранения в базе:"},
     "keep forever":         {"en": "keep forever",          "de": "keine automatische Löschung",    "ru": "хранить вечно"},
     "2 years":              {"en": "2 years",               "de": "2 Jahre",                        "ru": "2 года"},

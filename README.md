@@ -310,9 +310,6 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 - **Log unchanged values any**: Write additionally the values every X seconds.
 - **Minimum difference from last value to log**: Minimum interval between two values.
 - **Storage retention**: How long the values will be stored in DB.
-- **Save last previous value**: Active only if "log changes only" is enabled. If active, before every value the last non-changed value will be stored in DB.
-
-
 
 ## Changelog
 

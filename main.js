@@ -71,7 +71,6 @@ adapter.on('objectChange', function (id, obj) {
             sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
         }
         sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
-        sqlDPs[id][adapter.namespace].saveLastValue = sqlDPs[id][adapter.namespace].saveLastValue === 'true' || sqlDPs[id][adapter.namespace].saveLastValue === true;
         if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
             sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
         } else {
@@ -769,7 +768,6 @@ function main() {
                                 sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
                             }
                             sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
-                            sqlDPs[id][adapter.namespace].saveLastValue = sqlDPs[id][adapter.namespace].saveLastValue === 'true' || sqlDPs[id][adapter.namespace].saveLastValue === true;
 
                             if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
                                 sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
@@ -877,7 +875,7 @@ function pushHistory(id, state, timerRelog) {
             state.ts = new Date().getTime();
             adapter.log.debug('timed-relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
         } else {
-            if (settings.changesOnly && sqlDPs[id].skipped && settings.saveLastValue) {
+            if (settings.changesOnly && sqlDPs[id].skipped) {
                 sqlDPs[id].state = sqlDPs[id].skipped;
                 pushHelper(id);
             }
@@ -1571,7 +1569,6 @@ function generateDemo(msg) {
     obj.common.custom[adapter.namespace] = {
         enabled:        true,
         changesOnly:    false,
-        saveLastValue:  false,
         debounce:       1000,
         retention:      31536000
     };

@@ -53,8 +53,6 @@
     function load(settings, onChange) {
         $('#tabs').tabs();
 
-        if (settings.saveLastValue === undefined) settings.saveLastValue = false;
-
         // works only with newest admin adapter
         if (typeof systemConfig !== 'undefined') {
             convertComma = systemConfig.common.isFloatComma;
@@ -351,11 +349,6 @@
                         <option value="259200"      class="translate">3 days</option>
                         <option value="86400"       class="translate">1 day</option>
                     </select></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td><label class="translate" for="saveLastValue">Save last previous value:</label></td>
-                    <td><input id="saveLastValue" type="checkbox" class="value"/></td>
                     <td></td>
                 </tr>
             </table>

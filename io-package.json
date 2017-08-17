@@ -84,8 +84,7 @@
         "dbname":    "iobroker",
         "multiRequests": true,
         "changesRelogInterval":      0,
-        "changesMinDelta": 0,
-        "saveLastValue": false
+        "changesMinDelta": 0
     },
     "objects": [
         {
