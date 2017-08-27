@@ -544,7 +544,14 @@ function finish(callback) {
             clearTimeout(sqlDPs[id].timeout);
             sqlDPs[id].timeout  = null;
         }
-        var state = sqlDPs[id].state ? Object.assign({}, sqlDPs[id].state) : null;
+        var tmpState;
+        if (Object.assign) {
+            tmpState = Object.assign({}, sqlDPs[id].state);
+        }
+        else {
+            tmpState = JSON.parse(JSON.stringify(state));
+        }
+        var state = sqlDPs[id].state ? tmpState : null;
 
         if (sqlDPs[id].skipped) {
             count++;
@@ -1189,10 +1196,17 @@ function pushValueIntoDB(id, state, cb) {
         if (cb) cb('Cannot store values of type "' + typeof state.val + '"');
         return;
     }
+    var tmpState;
     // get id if state
     if (sqlDPs[id].index === undefined) {
         sqlDPs[id].isRunning = sqlDPs[id].isRunning || [];
-        sqlDPs[id].isRunning.push({id: id, state: Object.assign({}, state), cb: cb});
+        if (Object.assign) {
+            tmpState = Object.assign({}, state);
+        }
+        else {
+            tmpState = JSON.parse(JSON.stringify(state));
+        }
+        sqlDPs[id].isRunning.push({id: id, state: tmpState, cb: cb});
 
         if (sqlDPs[id].isRunning.length === 1) {
             // read or create in DB
@@ -1220,7 +1234,13 @@ function pushValueIntoDB(id, state, cb) {
     // get from
     if (state.from && !from[state.from]) {
         isFromRunning[state.from] = isFromRunning[state.from] || [];
-        isFromRunning[state.from].push({id: id, state: Object.assign({}, state), cb: cb});
+        if (Object.assign) {
+            tmpState = Object.assign({}, state);
+        }
+        else {
+            tmpState = JSON.parse(JSON.stringify(state));
+        }
+        isFromRunning[state.from].push({id: id, state: tmpState, cb: cb});
 
         if (isFromRunning[state.from].length === 1) {
             // read or create in DB
