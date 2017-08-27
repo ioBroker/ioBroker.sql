@@ -549,7 +549,7 @@ function finish(callback) {
             tmpState = Object.assign({}, sqlDPs[id].state);
         }
         else {
-            tmpState = JSON.parse(JSON.stringify(state));
+            tmpState = JSON.parse(JSON.stringify(sqlDPs[id].state));
         }
         var state = sqlDPs[id].state ? tmpState : null;
 
