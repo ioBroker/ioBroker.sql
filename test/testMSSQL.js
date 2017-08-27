@@ -78,6 +78,7 @@ function sendTo(target, command, message, callback) {
 describe('Test MSSQL', function() {
     before('Test MSSQL: Start js-controller', function (_done) {
         this.timeout(600000); // because of first install from npm
+        setup.adapterStarted = false;
 
         console.log('Started in TRAVIS: ' + (process.env.TRAVIS && process.env.TRAVIS==='true'));
         console.log('Started in APPVEYOR: ' + (process.env.APPVEYOR && process.env.APPVEYOR==='True'));

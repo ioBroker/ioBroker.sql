@@ -78,6 +78,7 @@ function sendTo(target, command, message, callback) {
 describe('Test MySQL', function() {
     before('Test MySQL: Start js-controller', function (_done) {
         this.timeout(600000); // because of first install from npm
+        setup.adapterStarted = false;
 
         setup.setupController(function () {
             var config = setup.getAdapterConfig();
