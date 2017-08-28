@@ -574,9 +574,9 @@ function finish(callback) {
             sqlDPs[id].skipped = null;
         }
 
-        var nullValue = {val: 'null', ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
+        var nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
         if (sqlDPs[id][adapter.namespace]) {
-            if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== 'null') {
+            if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
                 count++;
                 (function (_id, _state, _nullValue) {
                     _state.ts   = now;
@@ -609,7 +609,7 @@ function finish(callback) {
             } else {
                 // terminate values with null to indicate adapter stop. timestamp + 1
                 count++;
-                adapter.log.debug('Write 0 "null" _id: ' + id);
+                adapter.log.debug('Write 0 NULL _id: ' + id);
                 pushValueIntoDB(id, nullValue, function () {
                     if (!--count) {
                         if (clientPool) {
@@ -894,20 +894,17 @@ function pushHistory(id, state, timerRelog) {
                 state.val = f;
             }
         }
-        if (state.val === null) {
-            state.val = 'null';
-        }
 
         if (sqlDPs[id].state && settings.changesOnly && !timerRelog) {
             if (settings.changesRelogInterval === 0) {
-                if ((sqlDPs[id].state.val !== 'null' || state.val === 'null') && state.ts !== state.lc) {
+                if (state.ts !== state.lc) {
                     sqlDPs[id].skipped = state; // remember new timestamp
                     adapter.log.debug('value not changed ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
                     return;
                 }
             }
             else if (sqlDPs[id].lastLogTime) {
-                if ((sqlDPs[id].state.val !== 'null' || state.val === 'null') && (state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) {
+                if ((state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) {
                     sqlDPs[id].skipped = state; // remember new timestamp
                     adapter.log.debug('value not changed ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
                     return;
@@ -916,7 +913,7 @@ function pushHistory(id, state, timerRelog) {
                     adapter.log.debug('value-changed-relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
                 }
             }
-            if (sqlDPs[id].state.val !== 'null' && (settings.changesMinDelta !== 0) && (typeof state.val === 'number') && (Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta)) {
+            if (sqlDPs[id].state.val !== null && (settings.changesMinDelta !== 0) && (typeof state.val === 'number') && (Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta)) {
                 adapter.log.debug('Min-Delta not reached ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
                 sqlDPs[id].skipped = state; // remember new timestamp
                 return;
@@ -946,9 +943,9 @@ function pushHistory(id, state, timerRelog) {
                 sqlDPs[id].state = sqlDPs[id].skipped;
                 pushHelper(id);
             }
-            if (sqlDPs[id].state && ((sqlDPs[id].state.val === 'null' && state.val !== 'null') || (sqlDPs[id].state.val !== 'null' && state.val === 'null'))) {
+            if (sqlDPs[id].state && ((sqlDPs[id].state.val === null && state.val !== null) || (sqlDPs[id].state.val !== null && state.val === null))) {
                 ignoreDebonce = true;
-            } else if (!sqlDPs[id].state && state.val === 'null') {
+            } else if (!sqlDPs[id].state && state.val === null) {
                 ignoreDebonce = true;
             }
             // only store state if really changed
@@ -1188,7 +1185,7 @@ function pushValueIntoDB(id, state, cb) {
     }
     var type;
 
-    if (state.val === 'null') {
+    if (state.val === null) {
         if (sqlDPs[id].type === undefined) {
             // read type from DB
             tasksReadType.push({id: id, state: state});
