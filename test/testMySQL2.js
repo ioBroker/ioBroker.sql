@@ -277,11 +277,6 @@ describe('Test MySQL-with-dash', function() {
             }, function (result) {
                 console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.equal(2);
-                var found = 0;
-                for (var i = 0; i < result.result.length; i++) {
-                    if (result.result[i].val >= 2 && result.result[i].val <= 3) found ++;
-                }
-                expect(found).to.be.equal(2);
                 done();
             });
         });
