@@ -1233,7 +1233,7 @@ function pushValueIntoDB(id, state, cb) {
                     adapter.log.warn('Cannot get index of "' + _id + '": ' + err);
                     if (sqlDPs[_id].isRunning) {
                         for (var t = 0; t < sqlDPs[_id].isRunning.length; t++) {
-                            sqlDPs[_id].isRunning[t].cb('Cannot get index of "' + sqlDPs[_id].isRunning[t].id + '": ' + err);
+                            if (sqlDPs[_id].isRunning[t].cb) sqlDPs[_id].isRunning[t].cb('Cannot get index of "' + sqlDPs[_id].isRunning[t].id + '": ' + err);
                         }
                     }
                 } else {
@@ -1267,7 +1267,7 @@ function pushValueIntoDB(id, state, cb) {
                     adapter.log.warn('Cannot get "from" for "' + from + '": ' + err);
                     if (isFromRunning[from]) {
                         for (var t = 0; t < isFromRunning[from].length; t++) {
-                            isFromRunning[from][t].cb('Cannot get "from" for "' + from + '": ' + err);
+                            if (isFromRunning[from][t].cb) isFromRunning[from][t].cb('Cannot get "from" for "' + from + '": ' + err);
                         }
                     }
                 } else {
