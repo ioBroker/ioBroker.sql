@@ -1185,7 +1185,8 @@ function pushValueIntoDB(id, state, cb) {
     }
     var type;
 
-    if (state.val === null) {
+    if (sqlDPs[id].type) type = sqlDPs[id].type;
+    if (state.val === null && !type) {
         if (sqlDPs[id].type === undefined) {
             // read type from DB
             tasksReadType.push({id: id, state: state});
@@ -1194,8 +1195,6 @@ function pushValueIntoDB(id, state, cb) {
             }
 
             return;
-        } else {
-            type = sqlDPs[id].type;
         }
     } else {
         if (sqlDPs[id][adapter.namespace].storageType) {
