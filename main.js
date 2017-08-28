@@ -888,7 +888,7 @@ function pushHistory(id, state, timerRelog) {
 
         if (!settings || !state) return;
 
-        if (typeof state.val === 'string' && settings.storageType !== 'String') {
+        if (state.val != null && typeof state.val === 'string' && settings.storageType !== 'String') {
             var f = parseFloat(state.val);
             if (f == state.val) {
                 state.val = f;
@@ -999,32 +999,37 @@ function pushHelper(_id) {
             sqlDPs[_id].state.val = JSON.stringify(sqlDPs[_id].state.val);
         }
 
-        adapter.log.debug('Datatype ' + _id + ': Currently: ' + typeof sqlDPs[_id].state.val + ', StorageType: ' + _settings.storageType);
-        if (typeof sqlDPs[_id].state.val === 'string' && _settings.storageType !== 'String') {
-            adapter.log.debug('Do Automatic Datatype conversion for ' + _id);
-            var f = parseFloat(sqlDPs[_id].state.val);
-            if (f == sqlDPs[_id].state.val) {
-                sqlDPs[_id].state.val = f;
-            } else if (sqlDPs[_id].state.val === 'true') {
-                sqlDPs[_id].state.val = true;
-            } else if (sqlDPs[_id].state.val === 'false') {
-                sqlDPs[_id].state.val = false;
+        if (sqlDPs[_id].state-val !== null) {
+            adapter.log.debug('Datatype ' + _id + ': Currently: ' + typeof sqlDPs[_id].state.val + ', StorageType: ' + _settings.storageType);
+            if (typeof sqlDPs[_id].state.val === 'string' && _settings.storageType !== 'String') {
+                adapter.log.debug('Do Automatic Datatype conversion for ' + _id);
+                var f = parseFloat(sqlDPs[_id].state.val);
+                if (f == sqlDPs[_id].state.val) {
+                    sqlDPs[_id].state.val = f;
+                } else if (sqlDPs[_id].state.val === 'true') {
+                    sqlDPs[_id].state.val = true;
+                } else if (sqlDPs[_id].state.val === 'false') {
+                    sqlDPs[_id].state.val = false;
+                }
+            }
+            if (_settings.storageType === 'String' && typeof sqlDPs[_id].state.val !== 'string') {
+                sqlDPs[_id].state.val = sqlDPs[_id].state.val.toString();
+            }
+            else if (_settings.storageType === 'Number' && typeof sqlDPs[_id].state.val !== 'number') {
+                if (typeof sqlDPs[_id].state.val === 'boolean') {
+                    sqlDPs[_id].state.val = sqlDPs[_id].state.val?1:0;
+                }
+                else {
+                    adapter.log.info('Do not store value "' + sqlDPs[_id].state.val + '" for ' + _id + ' because no number');
+                    return;
+                }
+            }
+            else if (_settings.storageType === 'Boolean' && typeof sqlDPs[_id].state.val !== 'boolean') {
+                sqlDPs[_id].state.val = !!sqlDPs[_id].state.val;
             }
         }
-        if (_settings.storageType === 'String' && typeof sqlDPs[_id].state.val !== 'string') {
-            sqlDPs[_id].state.val = sqlDPs[_id].state.val.toString();
-        }
-        else if (_settings.storageType === 'Number' && typeof sqlDPs[_id].state.val !== 'number') {
-            if (typeof sqlDPs[_id].state.val === 'boolean') {
-                sqlDPs[_id].state.val = sqlDPs[_id].state.val?1:0;
-            }
-            else {
-                adapter.log.info('Do not store value "' + sqlDPs[_id].state.val + '" for ' + _id + ' because no number');
-                return;
-            }
-        }
-        else if (_settings.storageType === 'Boolean' && typeof sqlDPs[_id].state.val !== 'boolean') {
-            sqlDPs[_id].state.val = !!sqlDPs[_id].state.val;
+        else {
+            adapter.log.debug('Datatype ' + _id + ': Currently: null');
         }
         pushValueIntoDB(_id, sqlDPs[_id].state);
     }
