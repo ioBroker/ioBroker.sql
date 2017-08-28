@@ -1152,18 +1152,29 @@ function _insertValueIntoDB(query, id, cb) {
 function processReadTypes() {
     if (tasksReadType && tasksReadType.length) {
         var task = tasksReadType.shift();
-        adapter.getForeignObject(task.id, function (err, obj) {
-            if (obj && obj.common && obj.common.type) {
-                sqlDPs[task.id].type = types[obj.common.type];
-            } else {
-                sqlDPs[task.id].type = 1; // string
-            }
+        if (sqlDPs[task.id].storageType) {
+            sqlDPs[task.id].type = types[sqlDPs[task.id].storageType.toLowerCase()];
+
             pushValueIntoDB(task.id, task.state);
 
             setTimeout(function () {
                 processReadTypes();
             }, 50);
-        });
+        }
+        else {
+            adapter.getForeignObject(task.id, function (err, obj) {
+                if (obj && obj.common && obj.common.type) {
+                    sqlDPs[task.id].type = types[obj.common.type.toLowerCase()];
+                } else {
+                    sqlDPs[task.id].type = 1; // string
+                }
+                pushValueIntoDB(task.id, task.state);
+
+                setTimeout(function () {
+                    processReadTypes();
+                }, 50);
+            });
+        }
     }
 }
 

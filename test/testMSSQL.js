@@ -252,12 +252,12 @@ describe('Test MSSQL', function() {
         sendTo('sql.0', 'query', "SELECT id FROM iobroker.dbo.datapoints WHERE name='system.adapter.sql.0.memRss'", function (result) {
             sendTo('sql.0', 'query', 'SELECT * FROM iobroker.dbo.ts_number WHERE id=' + result.result[0].id, function (result) {
                 console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.at.least(4);
+                expect(result.result.length).to.be.at.least(5);
                 var found = 0;
                 for (var i = 0; i < result.result.length; i++) {
                     if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
                 }
-                expect(found).to.be.equal(4);
+                expect(found).to.be.equal(5);
 
                 setTimeout(function () {
                     done();
@@ -282,12 +282,12 @@ describe('Test MSSQL', function() {
             }
         }, function (result) {
             console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
-            expect(result.result.length).to.be.at.least(4);
+            expect(result.result.length).to.be.at.least(5);
             var found = 0;
             for (var i = 0; i < result.result.length; i++) {
                 if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
             }
-            expect(found).to.be.equal(4);
+            expect(found).to.be.equal(5);
 
             sendTo('sql.0', 'getHistory', {
                 id: 'system.adapter.sql.0.memRss',
