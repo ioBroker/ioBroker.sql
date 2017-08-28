@@ -1154,7 +1154,7 @@ function processReadTypes() {
         var task = tasksReadType.shift();
         if (sqlDPs[task.id].storageType) {
             sqlDPs[task.id].type = types[sqlDPs[task.id].storageType.toLowerCase()];
-
+            adapter.log.debug('Type (from Def) for ' + task.id + ': ' + sqlDPs[task.id].type);
             pushValueIntoDB(task.id, task.state);
 
             setTimeout(function () {
@@ -1168,6 +1168,7 @@ function processReadTypes() {
                 } else {
                     sqlDPs[task.id].type = 1; // string
                 }
+                adapter.log.debug('Type (from Obj) for ' + task.id + ': ' + sqlDPs[task.id].type);
                 pushValueIntoDB(task.id, task.state);
 
                 setTimeout(function () {
