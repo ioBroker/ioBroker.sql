@@ -1152,8 +1152,9 @@ function _insertValueIntoDB(query, id, cb) {
 function processReadTypes() {
     if (tasksReadType && tasksReadType.length) {
         var task = tasksReadType.shift();
-        if (sqlDPs[task.id].storageType) {
-            sqlDPs[task.id].type = types[sqlDPs[task.id].storageType.toLowerCase()];
+        adapter.log.debug('Type set in Def for ' + task.id + ': ' + sqlDPs[task.id][adapter.namespace].storageType);
+        if (sqlDPs[task.id][adapter.namespace].storageType) {
+            sqlDPs[task.id].type = types[sqlDPs[task.id][adapter.namespace].storageType.toLowerCase()];
             adapter.log.debug('Type (from Def) for ' + task.id + ': ' + sqlDPs[task.id].type);
             pushValueIntoDB(task.id, task.state);
 
@@ -1200,8 +1201,8 @@ function pushValueIntoDB(id, state, cb) {
             type = sqlDPs[id].type;
         }
     } else {
-        if (sqlDPs[id].storageType) {
-            type = types[sqlDPs[id].storageType.toLowerCase()];
+        if (sqlDPs[id][adapter.namespace].storageType) {
+            type = types[sqlDPs[id][adapter.namespace].storageType.toLowerCase()];
         }
         else {
             type = types[typeof state.val];
