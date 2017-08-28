@@ -1200,7 +1200,12 @@ function pushValueIntoDB(id, state, cb) {
             type = sqlDPs[id].type;
         }
     } else {
-        type = types[typeof state.val];
+        if (sqlDPs[id].storageType) {
+            type = types[sqlDPs[id].storageType.toLowerCase()];
+        }
+        else {
+            type = types[typeof state.val];
+        }
     }
 
     if (type === undefined) {
