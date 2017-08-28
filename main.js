@@ -999,7 +999,7 @@ function pushHelper(_id) {
             sqlDPs[_id].state.val = JSON.stringify(sqlDPs[_id].state.val);
         }
 
-        if (sqlDPs[_id].state-val !== null) {
+        if (sqlDPs[_id].state.val !== null) {
             adapter.log.debug('Datatype ' + _id + ': Currently: ' + typeof sqlDPs[_id].state.val + ', StorageType: ' + _settings.storageType);
             if (typeof sqlDPs[_id].state.val === 'string' && _settings.storageType !== 'String') {
                 adapter.log.debug('Do Automatic Datatype conversion for ' + _id);
