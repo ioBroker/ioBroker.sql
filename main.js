@@ -938,6 +938,7 @@ function pushHistory(id, state, timerRelog) {
         if (timerRelog) {
             state.ts = new Date().getTime();
             adapter.log.debug('timed-relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
+            ignoreDebonce = true;
         } else {
             if (settings.changesOnly && sqlDPs[id].skipped) {
                 sqlDPs[id].state = sqlDPs[id].skipped;
@@ -948,6 +949,7 @@ function pushHistory(id, state, timerRelog) {
             } else if (!sqlDPs[id].state && state.val === null) {
                 ignoreDebonce = true;
             }
+            
             // only store state if really changed
             sqlDPs[id].state = state;
         }
@@ -970,22 +972,25 @@ function reLogHelper(_id) {
         return;
     }
     sqlDPs[_id].relogTimeout = null;
-    adapter.getForeignState(_id, function (err, state) {
-        if (err) {
-            adapter.log.info('init timed Relog: can not get State for ' + _id + ' : ' + err);
-        }
-        else if (!state) {
-            adapter.log.info('init timed Relog: disable relog because state not set so far ' + _id + ': ' + JSON.stringify(state));
-        }
-        else {
-            adapter.log.debug('init timed Relog: getState ' + _id + ':  Value=' + state.val + ', ack=' + state.ack + ', ts=' + state.ts  + ', lc=' + state.lc);
-            // only if state is still not set
-            //if (!sqlDPs[_id].state) {
+    if (sqlDPs[_id].skipped) {
+        pushHistory(_id, sqlDPs[_id].skipped, true);
+        sqlDPs[_id].skipped = null;
+    }
+    else {
+        adapter.getForeignState(_id, function (err, state) {
+            if (err) {
+                adapter.log.info('init timed Relog: can not get State for ' + _id + ' : ' + err);
+            }
+            else if (!state) {
+                adapter.log.info('init timed Relog: disable relog because state not set so far ' + _id + ': ' + JSON.stringify(state));
+            }
+            else {
+                adapter.log.debug('init timed Relog: getState ' + _id + ':  Value=' + state.val + ', ack=' + state.ack + ', ts=' + state.ts  + ', lc=' + state.lc);
                 sqlDPs[_id].state = state;
                 pushHistory(_id, sqlDPs[_id].state, true);
-            //}
-        }
-    });
+            }
+        });
+    }
 }
 
 function pushHelper(_id) {

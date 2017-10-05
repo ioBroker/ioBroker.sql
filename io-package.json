@@ -7,8 +7,13 @@
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
             "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
         },
-        "version": "1.5.7",
+        "version": "1.5.8",
         "news": {
+            "1.5.8": {
+                "en": "fix relog value feature",
+                "de": "Erneutes Logging korrigiert",
+                "ru": "fix relog value feature"
+            },
             "1.5.7": {
                 "en": "add \"save last value\" option",
                 "de": "Die Option um vorheriges Wert zu speichern ist hinzugefügt",

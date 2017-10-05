@@ -313,6 +313,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
+## 1.5.8 (2017-10-05)
+* (Apollon77) fix relog value feature
+
 ## 1.5.7 (2017-08-10)
 * (bluefox) add "save last value" option
 
