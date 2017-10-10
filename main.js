@@ -750,6 +750,10 @@ function writeNulls(id, now) {
         if (tasksStart.length === 1 && connected) {
             processStartValues();
         }
+        if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+            if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
+            sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
+        }
     }
 }
 
@@ -949,7 +953,7 @@ function pushHistory(id, state, timerRelog) {
             } else if (!sqlDPs[id].state && state.val === null) {
                 ignoreDebonce = true;
             }
-            
+
             // only store state if really changed
             sqlDPs[id].state = state;
         }
