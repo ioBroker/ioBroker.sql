@@ -57,7 +57,8 @@
         "enabled":                  true,
         "stopBeforeUpdate":         true,
         "authors": [
-            "bluefox <dogafox@gmail.com>"
+            "bluefox <dogafox@gmail.com>",
+            "Apollon77 <ingo@fischer-ka.de>"
         ],
         "license":                  "MIT",
         "readme":                   "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
