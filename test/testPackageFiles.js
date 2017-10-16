@@ -1,5 +1,7 @@
-/* jshint -W097 */// jshint strict:false
-/*jslint node: true */
+/* jshint -W097 */
+/* jshint strict:false */
+/* jslint node: true */
+/* jshint expr: true */
 var expect = require('chai').expect;
 var fs        = require('fs');
 
@@ -26,16 +28,20 @@ describe('Test package.json and io-package.json', function() {
         }
 
         expect(ioPackage.common.authors).to.exist;
-        if (Array.isArray(ioPackage.common.authors)) {
-            expect(ioPackage.common.authors.length).to.not.be.equal(0);
-            if (ioPackage.common.authors.length === 1) {
-                expect(ioPackage.common.authors[0]).to.not.be.equal('my Name <my@email.com>');
+        if (ioPackage.common.name.indexOf('template') !== 0) {
+            if (Array.isArray(ioPackage.common.authors)) {
+                expect(ioPackage.common.authors.length).to.not.be.equal(0);
+                if (ioPackage.common.authors.length === 1) {
+                    expect(ioPackage.common.authors[0]).to.not.be.equal('my Name <my@email.com>');
+                }
+            }
+            else {
+                expect(ioPackage.common.authors).to.not.be.equal('my Name <my@email.com>');
             }
         }
         else {
-            expect(ioPackage.common.authors).to.not.be.equal('my Name <my@email.com>');
+            console.log('Testing for set authors field in io-package skipped because template adapter');
         }
-
         done();
     });
 });
