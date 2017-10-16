@@ -25,6 +25,17 @@ describe('Test package.json and io-package.json', function() {
             console.log('WARNING: No news entry for current version exists in io-package.json, no rollback in Admin possible!');
         }
 
+        expect(ioPackage.common.authors).to.exist;
+        if (Array.isArray(ioPackage.common.authors)) {
+            expect(ioPackage.common.authors.length).to.not.be.equal(0);
+            if (ioPackage.common.authors.length === 1) {
+                expect(ioPackage.common.authors[0]).to.not.be.equal('my Name <my@email.com>');
+            }
+        }
+        else {
+            expect(ioPackage.common.authors).to.not.be.equal('my Name <my@email.com>');
+        }
+
         done();
     });
 });
