@@ -50,7 +50,7 @@ apt-get install mysql-server mysql-client
 
 mysql -uroot -p
 
-CREATE USER 'iobroker‘@’%’ IDENTIFIED BY 'iobroker';
+CREATE USER 'iobroker'@'%' IDENTIFIED BY 'iobroker';
 GRANT ALL PRIVILEGES ON * . * TO 'iobroker'@'%';
 FLUSH PRIVILEGES;
 ```
