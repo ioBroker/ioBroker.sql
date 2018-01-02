@@ -40,7 +40,7 @@ var finished      = false;
 var connected     = null;
 var isFromRunning = {};
 
-var adapter = utils.adapter('sql');
+var adapter = utils.Adapter('sql');
 adapter.on('objectChange', function (id, obj) {
     if (obj && obj.common &&
         (
