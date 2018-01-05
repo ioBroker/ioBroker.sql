@@ -15,6 +15,7 @@ services:
   - postgresql
 install:
   - ps: 'Install-Product node $env:nodejs_version $env:platform'
+  - npm install -g npm@3
   - npm install
   - npm install winston@2.3.1
   - 'npm install https://github.com/ioBroker/ioBroker.js-controller/tarball/master --production'
