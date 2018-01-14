@@ -120,18 +120,7 @@
         }).trigger('change');
 
         $('#demoStart, #demoEnd').datepicker().val(new Date().toDateString());
-        $('#generateDemo').button().click(function () {
-            $(".loader").show();
-            sendTo('', 'generateDemo', {
-                id:     $('#demoID').val(),
-                start:  $('#demoStart').val(),
-                end:    $('#demoEnd').val(),
-                step:   $('#demoStep').val(),
-                curve:  $('#demoCurve').val()
-            }, function (/* e */) {
-                $('.loader').hide();
-            })
-        });
+
         onChange(false);
     }
 

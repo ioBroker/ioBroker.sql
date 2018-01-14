@@ -1,0 +1,129 @@
+<script type="text/x-iobroker" data-template-name="history">
+    <div class="row">
+        <div class="col s4">
+            <input type="checkbox" data-field="enabled" data-default="false"/>
+            <!-- this field is mandatory, just to find out if to include this settings or not</span-->
+            <span class="translate">enabled</span>
+        </div>
+        <div class="col s4">
+            <input type="checkbox" data-field="changesOnly" data-default="true"/>
+            <span class="translate">log changes only</span>
+        </div>
+        <div class="col s4">
+            <input type="number" data-field="debounce" min="500" max="86400000" data-default="10000" />
+            <label class="translate">De-bounce interval(ms)</label>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col s4">
+        </div>
+        <div class="col s4">
+            <input type="number" data-field="changesRelogInterval" min="0" max="86400000" data-default="0" />
+            <label class="translate">log changes interval(s) (0 = disable)</label>
+        </div>
+        <div class="col s4">
+            <input type="number" data-field="changesMinDelta" min="0" max="86400000" data-default="0" />
+            <label class="translate">log changes minimal delta (0 = disable delta check)</label>
+        </div>
+    </div>
+    <div class="row">
+         <div class="col s4">
+        </div>
+        <div class="col s4">
+            <input type="number" data-field="maxLength" min="100" max="5000" data-default="960" />
+            <label class="translate">maximum datapoint count in RAM</label>
+        </div>
+        <div class="col s4">
+            <select data-field="retention" data-default="31536000">
+                        <option value="0"           class="translate">keep forever</option>
+                        <option value="63072000"    class="translate">2 years</option>
+                        <option value="31536000"    class="translate">1 year</option>
+                        <option value="15811200"    class="translate">6 months</option>
+                        <option value="7948800"     class="translate">3 months</option>
+                        <option value="2678400"     class="translate">1 months</option>
+                        <option value="1209600"     class="translate">2 weeks</option>
+                        <option value="604800"      class="translate">1 week</option>
+                        <option value="432000"      class="translate">5 days</option>
+                        <option value="259200"      class="translate">3 days</option>
+                        <option value="86400"       class="translate">1 day</option>
+                    </select>
+            <label class="translate">Storage retention</label>
+        </div>
+    </div>
+    <div class="row">
+       <div class="col s4">
+       </div>
+       <div class="col s4">
+            <select data-field="storageType" data-default="">
+                <option value=""          class="translate">Automatic</option>
+                <option value="String"    class="translate">String</option>
+                <option value="Number"    class="translate">Number</option>
+                <option value="Boolean"   class="translate">Boolean</option>
+            </select>
+            <label class="translate">Store as</label>
+       </div>
+       <div class="col s4">
+       </div>
+   </div>
+
+</script>
+
+<!-- translations -->
+<script type="text/javascript">
+    systemDictionary = $.extend(systemDictionary, {
+        "1 day": {                                       "en": "1 day",                                           "de": "1 Tag",                                           "ru": "1 день",                                          "pt": "1 dia",                                           "nl": "1 dag",                                           "fr": "Un jour",                                         "it": "1 giorno",                                        "es": "1 día",                                           "pl": "1 dzień"},
+        "1 months": {                                    "en": "1 months",                                        "de": "1 Monat",                                         "ru": "1 месяц",                                         "pt": "1 mês",                                           "nl": "1 maanden",                                       "fr": "1 mois",                                          "it": "1 mese",                                          "es": "1 mes",                                           "pl": "1 miesiąc"},
+        "1 week": {                                      "en": "1 week",                                          "de": "1 Woche",                                         "ru": "1 неделя",                                        "pt": "1 semana",                                        "nl": "1 week",                                          "fr": "1 semaine",                                       "it": "1 settimana",                                     "es": "1 semana",                                        "pl": "1 tydzień"},
+        "1 year": {                                      "en": "1 year",                                          "de": "1 Jahr",                                          "ru": "1 год",                                           "pt": "1 ano",                                           "nl": "1 jaar",                                          "fr": "1 an",                                            "it": "1 anno",                                          "es": "1 año",                                           "pl": "1 rok"},
+        "2 weeks": {                                     "en": "2 weeks",                                         "de": "2 Wochen",                                        "ru": "2 недели",                                        "pt": "2 semanas",                                       "nl": "2 weken",                                         "fr": "2 semaines",                                      "it": "2 settimane",                                     "es": "2 semanas",                                       "pl": "2 tygodnie"},
+        "2 years": {                                     "en": "2 years",                                         "de": "2 Jahre",                                         "ru": "2 года",                                          "pt": "2 anos",                                          "nl": "2 jaar",                                          "fr": "2 ans",                                           "it": "2 anni",                                          "es": "2 años",                                          "pl": "2 lata"},
+        "3 days": {                                      "en": "3 days",                                          "de": "3 Tage",                                          "ru": "3 дня",                                           "pt": "3 dias",                                          "nl": "3 dagen",                                         "fr": "3 jours",                                         "it": "3 giorni",                                        "es": "3 días",                                          "pl": "3 dni"},
+        "3 months": {                                    "en": "3 months",                                        "de": "3 Monate",                                        "ru": "3 месяца",                                        "pt": "3 meses",                                         "nl": "3 maanden",                                       "fr": "3 mois",                                          "it": "3 mesi",                                          "es": "3 meses",                                         "pl": "3 miesiące"},
+        "5 days": {                                      "en": "5 days",                                          "de": "5 Tage",                                          "ru": "5 дней",                                          "pt": "5 dias",                                          "nl": "5 dagen",                                         "fr": "5 jours",                                         "it": "5 giorni",                                        "es": "5 dias",                                          "pl": "5 dni"},
+        "6 months": {                                    "en": "6 months",                                        "de": "6 Monate",                                        "ru": "6 месяцев",                                       "pt": "6 meses",                                         "nl": "6 maanden",                                       "fr": "6 mois",                                          "it": "6 mesi",                                          "es": "6 meses",                                         "pl": "6 miesięcy"},
+        "Store as": {                                    "en": "Store as",                                        "de": "Speichern als",                                   "ru": "Сохранить как",                                   "pt": "Armazenar como",                                  "nl": "Opslaan als",                                     "fr": "Magasin comme",                                   "it": "Conservare come",                                 "es": "Przechowuj jako",                                 "pl": "Przechowuj jako"},
+        "Automatic": {                                   "en": "Automatic",                                       "de": "Automatisch",                                     "ru": "автоматическая",                                  "pt": "Automático",                                      "nl": "automatisch",                                     "fr": "Automatique",                                     "it": "Automatico",                                      "es": "Automatycznyy",                                   "pl": "Automatyczny"},
+        "String": {                                      "en": "String",                                          "de": "Zeichenfolge",                                    "ru": "строка",                                          "pt": "Corda",                                           "nl": "Draad",                                           "fr": "Chaîne",                                          "it": "Stringa",                                         "es": "Strunowy",                                        "pl": "Strunowy"},
+        "Number": {                                      "en": "Number",                                          "de": "Nummer",                                          "ru": "Число",                                           "pt": "Número",                                          "nl": "Aantal",                                          "fr": "Nombre",                                          "it": "Numero",                                          "es": "Numer",                                           "pl": "Numer"},
+        "Boolean": {                                     "en": "Boolean",                                         "de": "Boolesch",                                        "ru": "логический",                                      "pt": "boleano",                                         "nl": "Boolean",                                         "fr": "Booléen",                                         "it": "booleano",                                        "es": "Booleano",                                        "pl": "Boolean"},
+        "De-bounce interval(ms)": {                      "en": "De-bounce interval(ms)",                          "de": "Entprellzeit(ms)",                                "ru": "Минимальный интервал(ms)",                        "pt": "Intervalo de desvio (ms)",                        "nl": "De-bounce interval (ms)",                         "fr": "Intervalle de rebond (ms)",                       "it": "Intervallo di rimbalzo (ms)",                     "es": "Intervalo de rebote (ms)",                        "pl": "Interwał odbicia (ms)"},
+        "Storage retention": {                           "en": "Storage retention",                               "de": "Storage Vorhaltezeit",                            "ru": "Сохранять в файле",                               "pt": "Retenção de armazenamento",                       "nl": "Opslag retentie",                                 "fr": "Conservation du stockage",                        "it": "Conservazione di memoria",                        "es": "Retención de almacenamiento",                     "pl": "Przechowywanie danych"},
+        "enabled": {                                     "en": "enabled",                                         "de": "Aktiviert",                                       "ru": "активно",                                         "pt": "ativado",                                         "nl": "ingeschakeld",                                    "fr": "activée",                                         "it": "abilitato",                                       "es": "habilitado",                                      "pl": "włączony"},
+        "keep forever": {                                "en": "keep forever",                                    "de": "keine automatische Löschung",                     "ru": "хранить вечно",                                   "pt": "mantenha para sempre",                            "nl": "blijf voor altijd",                               "fr": "garde pour toujours",                             "it": "tienilo per sempre",                              "es": "mantener para siempre",                           "pl": "zachowaj na zawsze"},
+        "log changes interval(s) (0 = disable)": {       "en": "Log values any(s)<br>(0 = disable)",              "de": "Nach Intervall aufzeichnen(s)<br>(0 = Deaktivieren)", "ru": "Запись значений каждые (сек)<br>(0 = не активно)", "pt": "Intervalo (s) de alterações no log (s)<br>(0 = desativado)", "nl": "log wijzigt interval (s)<br>(0 = uitschakelen)",  "fr": "log changements intervalle (s)<br>(0 = désactiver)", "it": "log changes interval (s)<br>(0 = disabilita)",    "es": "Log valores any (s) <br> (0 = desactivar)",       "pl": "Wartości logów any (s) <br> (0 = wyłączone)"},
+        "log changes minimal delta (0 = disable delta check)": {"en": "Minimum difference from last value to log<br>(0 = disable delta check)", "de": "Minimale Abweichung vom letzten Wert für Aufzeichnung<br>(0 = Abweichungsprüfung deaktivieren)", "ru": "Минимальная разница с последним записанным значением<br>(0 = не проверять минимальное изменение)", "pt": "log altera delta mínimo<br>(0 = desabilita o checkout delta)", "nl": "log veranderingen minimale delta<br>(0 = deltablokkering uitschakelen)", "fr": "log change delta minimal<br>(0 = désactiver le contrôle delta)", "it": "registro cambia delta minimo<br>(0 = disabilita il controllo delta)", "es": "Diferencia mínima entre el último valor y el log <br> (0 = desactivar la verificación delta)", "pl": "Minimalna różnica od ostatniej wartości do log <br> (0 = wyłącz kontrolę delta)"},
+        "log changes only": {                            "en": "log changes only",                                "de": "Änderungen aufzeichnen",                          "ru": "Только изменения",                                "pt": "somente mudanças de log",                         "nl": "alleen logboekwijzigingen",                       "fr": "modifications du journal uniquement",             "it": "registra solo le modifiche",                      "es": "solo cambios de registro",                        "pl": "tylko zmiany w dzienniku"},
+        "maximum datapoint count in RAM": {              "en": "maximum datapoint count in RAM",                  "de": "maximale Anzahl Datenpunkte in RAM",              "ru": "макс. кол-во значений в RAM памяти",              "pt": "contagem máxima do datapoint na RAM",             "nl": "maximum aantal datapunten in RAM",                "fr": "nombre de points de données maximum en RAM",      "it": "massimo conteggio dei punti di accesso nella RAM", "es": "recuento máximo de datos en RAM",                 "pl": "maksymalna liczba punktów w pamięci RAM"},
+    });
+    // There are two ways how to predefine default settings:
+    // - with attribute "data-default" (content independent)
+    // - with function in global variable "defaults". Function name is equal with adapter name.
+    //   as input function receives object with all information concerning it
+    if (typeof defaults !== 'undefined') {
+        defaults.history = function (obj, instanceObj) {
+            if (obj && obj.common && obj.common.type !== 'number') {
+                return {
+                    enabled:                false,
+                    changesOnly:            false,
+                    debounce:               0,
+                    maxLength:              10,
+                    retention:              instanceObj.native.retention,
+                    changesRelogInterval:   instanceObj.native.changesRelogInterval,
+                    changesMinDelta:        0,
+                    storageType:            ''
+                };
+            } else {
+                return {
+                    enabled:                false,
+                    changesOnly:            true,
+                    debounce:               instanceObj.native.debounce,
+                    maxLength:              instanceObj.native.maxLength,
+                    retention:              instanceObj.native.retention,
+                    changesRelogInterval:   instanceObj.native.changesRelogInterval,
+                    changesMinDelta:        instanceObj.native.changesMinDelta,
+                    storageType:            ''
+                };
+            }
+        }
+    }
+</script>

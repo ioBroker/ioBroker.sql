@@ -312,6 +312,8 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 - **Storage retention**: How long the values will be stored in DB.
 
 ## Changelog
+## 1.6.0 (2018-01-14)
+* (bluefox) Ready for Admin3
 
 ## 1.5.8 (2017-10-05)
 * (Apollon77) fix relog value feature
@@ -450,7 +452,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 The MIT License (MIT)
 
-Copyright (c) 2015-2017 bluefox
+Copyright (c) 2015-2018 bluefox <dogafox@gmail.com>, Apollon77
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

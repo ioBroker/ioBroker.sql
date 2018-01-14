@@ -1,0 +1,275 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<!-- Materialze style -->
+    <link rel="stylesheet" type="text/css" href="../../css/adapter.css"/>
+    <link rel="stylesheet" type="text/css" href="../../lib/css/materialize.css">
+
+    <script type="text/javascript" src="../../lib/js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="../../socket.io/socket.io.js"></script>
+
+    <script type="text/javascript" src="../../js/translate.js"></script>
+    <script type="text/javascript" src="../../lib/js/materialize.js"></script>
+    <script type="text/javascript" src="../../js/adapter-settings.js"></script>
+    <script type="text/javascript" src="words.js"></script>
+
+<script type="text/javascript">
+    var convertComma = null;
+    function setValue(id, value, onChange) {
+        var $value = $('#' + id + '.value');
+        if ($value.attr('type') === 'checkbox') {
+            $value.prop('checked', value).change(function () {
+                onChange();
+            });
+        } else {
+            $value.val(value).change(function() {
+                onChange();
+            }).keyup(function() {
+                // Check that only numbers entered
+                if ($(this).hasClass('number')) {
+                    var val = $(this).val();
+                    if (val) {
+                        var newVal = '';
+                        for (var i = 0; i < val.length; i++) {
+                            if ((val[i] >= '0' && val[i] <= '9') || val[i] === '-' || val[i] === '+' || val[i] === '.' || val[i] === ',') {
+                                if (val[i] === '.' && convertComma === true)  val[i] = ',';
+                                if (val[i] === ',' && convertComma === false) val[i] = '.';
+                                newVal += val[i];
+                            }
+                        }
+
+                        if (val != newVal) {
+                            $(this).val(newVal);
+                        }
+                    }
+                }
+                $(this).trigger('change');
+           });
+        }
+    }
+
+    function load(settings, onChange) {
+        // works only with newest admin adapter
+        if (typeof systemConfig !== 'undefined') {
+            convertComma = systemConfig.common.isFloatComma;
+        }
+
+        for (var key in settings) {
+            if (settings.hasOwnProperty(key)) {
+                setValue(key, settings[key], onChange);
+            }
+        }
+        $('#passwordConfirm').val(settings.password);
+
+        $('#test').on('click', function () {
+            getIsAdapterAlive(function (isAlive) {
+                if (!isAlive) {
+                    showToast(null, _('Start or enable adapter first'));
+                } else {
+                    $('#test').addClass('disabled');
+                    sendTo(null, 'test', {
+                        config: {
+                            dbtype:   $('#dbtype').val(),
+                            port:     $('#port').val(),
+                            host:     $('#host').val(),
+                            user:     $('#user').val(),
+                            fileName: $('#fileName').val(),
+                            password: $('#password').val()
+                        }
+                    }, function (response) {
+                        $('#test').removeClass('disabled');
+                        if (response.error) {
+                            showError(response.error);
+                        } else {
+                            showMessage('OK');
+                        }
+                    });
+                }
+            });
+        });
+
+        $('#reset').on('click', function () {
+            getIsAdapterAlive(function (isAlive) {
+                if (!isAlive) {
+                    showToast(null, _('Start or enable adapter first'));
+                } else {
+                    if (confirm(_('Are you sure? All data will be dropped.'))) {
+                        $('#reset').addClass('disabled');
+                        sendTo(null, 'destroy', null, function (response) {
+                            $('#reset').removeClass('disabled');
+                            if (response.error) {
+                                showError(response.error);
+                            } else {
+                                showToast(null, _('Adapter will be restarted'));
+                            }
+                        });
+                    }
+                }
+            });
+        });
+        $('#dbtype').on('change', function () {
+            if ($(this).val() === 'sqlite') {
+                $('.baby-sql').show();
+                $('.real-sql').hide();
+                $('.ms-sql').hide();
+            } else if ($(this).val() === 'mssql') {
+                $('.baby-sql').hide();
+                $('.real-sql').show();
+                $('.ms-sql').show();
+            } else {
+                $('.baby-sql').hide();
+                $('.ms-sql').hide();
+                $('.real-sql').show();
+            }
+        }).trigger('change');
+
+        onChange(false);
+    }
+
+    function save(callback) {
+        var settings = {};
+        $('.value').each(function () {
+            var $this = $(this);
+            var id = $this.attr('id');
+
+            if ($this.attr('type') === 'checkbox') {
+                settings[id] = $this.prop('checked');
+            } else {
+                settings[id] = $this.val();
+           }
+        });
+
+        if (($('#dbtype').val() !== 'sqlite') && ($('#passwordConfirm').val() !== $('#password').val())) {
+            showMessage(_('Password confirmation is not equal with password!'));
+            return;
+        }
+
+        callback(settings);
+    }
+</script>
+</head>
+<body>
+<div class="m adapter-container">
+    <div class="row">
+        <div class="col s12">
+            <ul class="tabs">
+                <li class="tab col s2"><a href="#tab-main"    class="translate active">DB settings</a></li>
+                <li class="tab col s2"><a href="#tab-default" class="translate">Default settings</a></li>
+            </ul>
+        </div>
+        <div id="tab-main"    class="col s12 page">
+            <div class="row">
+                <div class="col s12 m4 l2">
+                    <img src="sql.png" class="logo">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col s12 m4">
+                    <select id="dbtype" class="value">
+                        <option value="mysql">MySQL</option>
+                        <option value="postgresql">PostgreSQL</option>
+                        <option value="sqlite">SQLite3</option>
+                        <option value="mssql">MS-SQL</option>
+                    </select>
+                    <label class="translate" for="dbtype">DB Type</label>
+                </div>
+            </div>
+            <div class="row real-sql">
+                <div class="col s12 m8">
+                    <input id="host" class="value"/>
+                    <label class="translate" for="host">Host</label>
+                </div>
+                <div class="col s12 m4">
+                    <input id="port" type="number" min="1" max="65565" class="value"/>
+                    <label class="translate" for="port">Port</label>
+                </div>
+            </div>
+            <div class="row ms-sql real-sql">
+                <div class="col s12">
+                    <input id="dbname" class="value"/>
+                    <label class="translate" for="dbname">DB Name</label>
+                </div>
+            </div>
+            <div class="row real-sql">
+                <div class="col s12 m4">
+                    <input id="user" class="value"/>
+                    <label class="translate" for="user">User</label>
+                </div>
+                <div class="col s12 m4">
+                    <input id="password" type="password" class="value"/>
+                    <label class="translate" for="password">Password</label>
+                </div>
+                <div class="col s12 m4">
+                    <input id="passwordConfirm" type="password"/>
+                    <label class="translate" for="passwordConfirm">Password confirm</label>
+                </div>
+            </div>
+            <div class="row baby-sql">
+                <div class="col s12 m8">
+                    <input id="fileName" class="value"/>
+                    <label for="fileName"><span class="translate">File for sqlite:</span> (<span>Input path with the file name.</span>)</label>
+                </div>
+                <div class="col s12 m4">
+                    <input id="requestInterval" class="value"/>
+                    <label class="translate" for="requestInterval">requestInterval</label>
+                </div>
+            </div>
+            <div class="row ms-sql real-sql">
+                <div class="col s12 m4">
+                    <input id="encrypt" type="checkbox" class="value"/>
+                    <label class="translate" for="encrypt">Encrypt:</label>
+                </div>
+                <div class="col s12 m4">
+                    <input id="round" class="value"/>
+                    <label class="translate" for="round">Round real to:</label>
+                </div>
+                <div class="col s12 m4">
+                    <input id="multiRequests" type="checkbox" class="value"/>
+                    <label class="translate" for="multiRequests">Allow parallel requests:</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col s12">
+                    <a id="test"  class="btn"><i class="material-icons">wifi_tethering</i><span class="translate">Test connection</span></a>
+                    <a id="reset" class="btn"><i class="material-icons">report</i><span class="translate">Reset DB</span></a>
+                </div>
+            </div>
+        </div>
+        <div id="tab-default" class="col s12 page">
+                <div class="row">
+                    <div class="col s12 m6">
+                        <input id="debounce" size="5" class="value" type="number"/>
+                        <label class="translate" for="debounce">debounce</label>
+                    </div>
+                    <div class="col s12 m6">
+                        <input id="changesRelogInterval" size="5" class="value" type="number"/>
+                        <label for="changesRelogInterval"><span class="translate">log changes interval(s)</span> (<span class="translate" >0 = disable</span></label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col s12 m6">
+                        <input id="changesMinDelta" size="5" class="value number"/>
+                        <label for="changesMinDelta"><span class="translate">log changes minimal delta</span> (<span class="translate" >0 = disable delta check</span></label>
+                    </div>
+                    <div class="col s12 6">
+                        <select id="retention" class="value">
+                            <option value="0"           class="translate">keep forever</option>
+                            <option value="63072000"    class="translate">2 years</option>
+                            <option value="31536000"    class="translate">1 year</option>
+                            <option value="15811200"    class="translate">6 months</option>
+                            <option value="7948800"     class="translate">3 months</option>
+                            <option value="2678400"     class="translate">1 months</option>
+                            <option value="1209600"     class="translate">2 weeks</option>
+                            <option value="604800"      class="translate">1 week</option>
+                            <option value="432000"      class="translate">5 days</option>
+                            <option value="259200"      class="translate">3 days</option>
+                            <option value="86400"       class="translate">1 day</option>
+                        </select>
+                        <label class="translate" for="retention">retention</label>
+                    </div>
+                </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

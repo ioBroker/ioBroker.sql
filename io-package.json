@@ -2,13 +2,41 @@
     "common": {
         "name": "sql",
         "title": "SQL History",
+        "titleLang": {
+            "en": "SQL logging",
+            "de": "SQL-Protokollierung",
+            "ru": "Ведение журнала SQL",
+            "pt": "Log de SQL",
+            "nl": "SQL logging",
+            "fr": "Journalisation SQL",
+            "it": "Registrazione SQL",
+            "es": "Registro de SQL",
+            "pl": "Rejestrowanie SQL"
+        },
         "desc": {
             "en": "Logging of states into SQL DB",
             "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
-            "ru": "Сохраняет историю событий для отдельных состояний в SQL DB"
+            "ru": "Сохраняет историю событий для отдельных состояний в SQL DB",
+            "pt": "Registro de estados em SQL DB",
+            "nl": "Logging van toestanden in SQL DB",
+            "fr": "Journalisation des états dans la base de données SQL",
+            "it": "Registrazione degli stati nel DB SQL",
+            "es": "Registro de estados en SQL DB",
+            "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.5.8",
+        "version": "1.6.0",
         "news": {
+            "1.6.0":{
+                "en": "Ready for Admin3",
+                "de": "Bereit für Admin3",
+                "ru": "Готово для Admin3",
+                "pt": "Pronto para Admin3",
+                "nl": "Klaar voor Admin3",
+                "fr": "Prêt pour Admin3",
+                "it": "Pronto per Admin3",
+                "es": "Listo para Admin3",
+                "pl": "Gotowy na Admin3"
+            },
             "1.5.8": {
                 "en": "fix relog value feature",
                 "de": "Erneutes Logging korrigiert",
@@ -56,6 +84,7 @@
         "getHistory":           	true,
         "enabled":                  true,
         "stopBeforeUpdate":         true,
+        "materialize":              true,
         "authors": [
             "bluefox <dogafox@gmail.com>",
             "Apollon77 <ingo@fischer-ka.de>"
