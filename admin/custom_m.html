@@ -100,7 +100,7 @@
     // - with function in global variable "defaults". Function name is equal with adapter name.
     //   as input function receives object with all information concerning it
     if (typeof defaults !== 'undefined') {
-        defaults.history = function (obj, instanceObj) {
+        defaults.sql = function (obj, instanceObj) {
             if (obj && obj.common && obj.common.type !== 'number') {
                 return {
                     enabled:                false,
