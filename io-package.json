@@ -24,8 +24,19 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.6.0",
+        "version": "1.6.1",
         "news": {
+            "1.6.1": {
+                "en": "Admin3 Fixes",
+                "de": "Admin3-Korrekturen",
+                "ru": "Исправления Admin3",
+                "pt": "Admin3 Fixes",
+                "nl": "Admin3 Fixes",
+                "fr": "Corrections Admin3",
+                "it": "Correzioni di Admin3",
+                "es": "Correcciones de Admin3",
+                "pl": "Poprawki Admin3"
+            },
             "1.6.0":{
                 "en": "Ready for Admin3",
                 "de": "Bereit für Admin3",
