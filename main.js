@@ -70,8 +70,14 @@ adapter.on('objectChange', function (id, obj) {
             clearTimeout(sqlDPs[id].relogTimeout);
         }
 
+        var storedIndex = null;
+        var storedType = null;
+        if (sqlDPs[id] && sqlDPs[id].index) storedIndex = sqlDPs[id].index;
+        if (sqlDPs[id] && sqlDPs[id].dbtype) storedType = sqlDPs[id].dbtype;
         // todo remove history sometime (2016.08)
         sqlDPs[id] = obj.common.custom || obj.common.history;
+        if (storedIndex !== null) sqlDPs[id].index = storedIndex;
+        if (storedType !== null) sqlDPs[id].dbtype = storedType;
 
         if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
             sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention || adapter.config.retention, 10) || 0;
@@ -565,6 +571,7 @@ function allScripts(scripts, index, cb) {
 }
 
 function finish(callback) {
+    adapter.unsubscribeForeignStates('*');
     var count = 0;
     if (finished) {
         if (callback) {
@@ -633,7 +640,6 @@ function finish(callback) {
                         // terminate values with null to indicate adapter stop. timestamp + 1#
                         adapter.log.debug('Write 2/2 "null" _id: ' + _id);
                         pushValueIntoDB(_id, _nullValue, function () {
-                            delete sqlDPs[id];
                             if (!--count) {
                                 if (clientPool) {
                                     clientPool.close();
@@ -656,7 +662,6 @@ function finish(callback) {
                 count++;
                 adapter.log.debug('Write 0 NULL _id: ' + id);
                 pushValueIntoDB(id, nullValue, function () {
-                    delete sqlDPs[id];
                     if (!--count) {
                         if (clientPool) {
                             clientPool.close();
