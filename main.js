@@ -892,7 +892,7 @@ function pushHistory(id, state, timerRelog) {
 
         if (!settings || !state) return;
 
-        if (state.val != null && typeof state.val === 'string' && settings.storageType !== 'String') {
+        if (state.val !== null && typeof state.val === 'string' && settings.storageType !== 'String') {
             var f = parseFloat(state.val);
             if (f == state.val) {
                 state.val = f;
@@ -1303,7 +1303,7 @@ function pushValueIntoDB(id, state, cb) {
     }
 
     try {
-        if (typeof state.val === 'object') {
+        if (state.val !== null && typeof state.val === 'object') {
             state.val = JSON.stringify(state.val);
         }
     } catch (err) {
