@@ -124,7 +124,7 @@ describe('Test MySQL-with-dash', function() {
                             debounce:     0,
                             retention:    31536000,
                             changesMinDelta: 0.5,
-                            storageType: 'Number'
+                            storageType:  false
                         }
                     }, function (result) {
                         expect(result.error).to.be.undefined;
@@ -135,7 +135,7 @@ describe('Test MySQL-with-dash', function() {
                                 changesOnly:  false,
                                 debounce:     0,
                                 retention:    31536000,
-                                storageType: 'String'
+                                storageType:  false
                             }
                         }, function (result) {
                             expect(result.error).to.be.undefined;
@@ -146,7 +146,7 @@ describe('Test MySQL-with-dash', function() {
                                     changesOnly:  false,
                                     debounce:     0,
                                     retention:    31536000,
-                                    storageType: 'Boolean'
+                                    storageType:  false
                                 }
                             }, function (result) {
                                 expect(result.error).to.be.undefined;
@@ -294,8 +294,11 @@ describe('Test MySQL-with-dash', function() {
                 else if (result.result[i].name === 'system.adapter.sql.0.memHeapTotal') {
                     expect(result.result[i].type).to.be.equal(1);
                 }
-                else if (result.result[i].name === 'system.adapter.sql.0.uptime') {
+                else if (result.result[i].name === 'system.adapter.sql.0.alive') {
                     expect(result.result[i].type).to.be.equal(2);
+                }
+                else if (result.result[i].name === 'system.adapter.sql.0.uptime') {
+                    expect(result.result[i].type).to.be.equal(0);
                 }
             }
 

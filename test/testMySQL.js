@@ -320,7 +320,7 @@ describe('Test MySQL', function() {
                     expect(result.result[i].type).to.be.equal(2);
                 }
                 else if (result.result[i].name === 'system.adapter.sql.0.uptime') {
-                    expect(result.result[i].type).to.be.equal(1);
+                    expect(result.result[i].type).to.be.equal(0);
                 }
             }
 
