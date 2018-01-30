@@ -1213,7 +1213,7 @@ function processReadTypes() {
         }
         else if (sqlDPs[task.id].dbtype !== undefined) {
             sqlDPs[task.id].type = sqlDPs[task.id].dbtype;
-            sqlDPs[task.id][adapter.namespace].storageType = storageTypes[qlDPs[task.id].type];
+            sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
             adapter.log.debug('Type (from DB-Type) for ' + task.id + ': ' + sqlDPs[task.id].type);
             processVerifyTypes(task);
         }
