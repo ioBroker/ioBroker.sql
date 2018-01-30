@@ -78,6 +78,7 @@ adapter.on('objectChange', function (id, obj) {
         sqlDPs[id] = obj.common.custom || obj.common.history;
         if (storedIndex !== null) sqlDPs[id].index = storedIndex;
         if (storedType !== null) sqlDPs[id].dbtype = storedType;
+        adapter.log.info('remembered Index/Type ' + sqlDPs[id].index + ' / ' + sqlDPs[id].dbtype);
 
         if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
             sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention || adapter.config.retention, 10) || 0;
@@ -146,7 +147,7 @@ adapter.on('objectChange', function (id, obj) {
                             // terminate values with null to indicate adapter stop. timestamp + 1#
                             adapter.log.debug('Write 2/2 "null" _id: ' + _id);
                             pushValueIntoDB(_id, _nullValue, function() {
-                                delete sqlDPs[id];
+                                delete sqlDPs[id][adapter.namespace];
                             });
                         });
                     })(id, state, nullValue);
@@ -155,12 +156,12 @@ adapter.on('objectChange', function (id, obj) {
                     // terminate values with null to indicate adapter stop. timestamp + 1
                     adapter.log.debug('Write 0 NULL _id: ' + id);
                     pushValueIntoDB(id, nullValue, function() {
-                        delete sqlDPs[id];
+                        delete sqlDPs[id][adapter.namespace];
                     });
                 }
             }
             else {
-                delete sqlDPs[id];
+                delete sqlDPs[id][adapter.namespace];
             }
         }
     }
@@ -1279,6 +1280,7 @@ function processVerifyTypes(task) {
 }
 
 function pushValueIntoDB(id, state, cb) {
+    if (!sqlDPs[id]) return;
     if (!clientPool) {
         adapter.log.warn('No connection to SQL-DB');
         if (cb) cb('No connection to SQL-DB');
