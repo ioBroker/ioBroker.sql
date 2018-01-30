@@ -72,8 +72,8 @@ adapter.on('objectChange', function (id, obj) {
 
         var storedIndex = null;
         var storedType = null;
-        if (sqlDPs[id] && sqlDPs[id].index) storedIndex = sqlDPs[id].index;
-        if (sqlDPs[id] && sqlDPs[id].dbtype) storedType = sqlDPs[id].dbtype;
+        if (sqlDPs[id] && sqlDPs[id].index !== undefined) storedIndex = sqlDPs[id].index;
+        if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) storedType = sqlDPs[id].dbtype;
         // todo remove history sometime (2016.08)
         sqlDPs[id] = obj.common.custom || obj.common.history;
         if (storedIndex !== null) sqlDPs[id].index = storedIndex;
