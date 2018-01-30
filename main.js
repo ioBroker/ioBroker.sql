@@ -57,7 +57,7 @@ adapter.on('objectChange', function (id, obj) {
             (obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled)
         )
     ) {
-        if (!sqlDPs[id] && !subscribeAll) {
+        if (!sqlDPs[id][adapter.namespace] && !subscribeAll) {
             // un-subscribe
             for (var _id in sqlDPs) {
                 adapter.unsubscribeForeignStates(_id);
@@ -107,7 +107,8 @@ adapter.on('objectChange', function (id, obj) {
             writeNulls(id);
         }
         adapter.log.info('enabled logging of ' + id);
-    } else {
+    }
+    else {
         if (sqlDPs[id]) {
             adapter.log.info('disabled logging of ' + id);
             if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
@@ -632,6 +633,7 @@ function finish(callback) {
                         // terminate values with null to indicate adapter stop. timestamp + 1#
                         adapter.log.debug('Write 2/2 "null" _id: ' + _id);
                         pushValueIntoDB(_id, _nullValue, function () {
+                            delete sqlDPs[id];
                             if (!--count) {
                                 if (clientPool) {
                                     clientPool.close();
@@ -644,7 +646,6 @@ function finish(callback) {
                                         }
                                     }, 500, finished);
                                     finished = true;
-
                                 }
                             }
                         });
@@ -655,6 +656,7 @@ function finish(callback) {
                 count++;
                 adapter.log.debug('Write 0 NULL _id: ' + id);
                 pushValueIntoDB(id, nullValue, function () {
+                    delete sqlDPs[id];
                     if (!--count) {
                         if (clientPool) {
                             clientPool.close();
@@ -1168,7 +1170,7 @@ function _checkRetention(query, cb) {
 }
 
 function checkRetention(id) {
-    if (sqlDPs[id][adapter.namespace].retention) {
+    if (sqlDPs[id] && sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].retention) {
         var d = new Date();
         var dt = d.getTime();
         // check every 6 hours
