@@ -1224,7 +1224,7 @@ function processReadTypes() {
                 } else {
                     sqlDPs[task.id].type = 1; // string
                 }
-                sqlDPs[task.id][adapter.namespace].storageType = storageTypes[qlDPs[task.id].type];
+                sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
                 adapter.log.debug('Type (from Obj) for ' + task.id + ': ' + sqlDPs[task.id].type);
                 processVerifyTypes(task);
             });
