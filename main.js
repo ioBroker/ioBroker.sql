@@ -1204,27 +1204,20 @@ function pushValueIntoDB(id, state, cb) {
     }
     var type;
 
-    if (sqlDPs[id].type || sqlDPs[id].type === 0) type = sqlDPs[id].type;
-    if (state.val === null || type === undefined) {
-        if (sqlDPs[id].type === undefined) {
-            // read type from DB
-            tasksReadType.push({id: id, state: state});
-            if (tasksReadType.length === 1) {
-                processReadTypes();
-            }
+    if (sqlDPs[id].type !== undefined) {
+        type = sqlDPs[id].type;
+    }
+    else {
+        // read type from DB
+        tasksReadType.push({id: id, state: state});
+        if (tasksReadType.length === 1) {
+            processReadTypes();
+        }
 
-            return;
-        }
-    } else {
-        if (sqlDPs[id][adapter.namespace].storageType) {
-            type = types[sqlDPs[id][adapter.namespace].storageType.toLowerCase()];
-        }
-        else {
-            type = types[typeof state.val];
-        }
+        return;
     }
 
-    if (type === undefined) {
+    if (type === undefined) { // Can not happen anymore
         if (state.val === null) {
             adapter.log.warn('Ignore null value for ' + id + ' because no type defined till now.');
             if (cb) cb('Ignore null value for ' + id + ' because no type defined till now.');
