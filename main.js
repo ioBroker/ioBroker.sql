@@ -1204,8 +1204,8 @@ function pushValueIntoDB(id, state, cb) {
     }
     var type;
 
-    if (sqlDPs[id].type) type = sqlDPs[id].type;
-    if (state.val === null || !type) {
+    if (sqlDPs[id].type || sqlDPs[id].type === 0) type = sqlDPs[id].type;
+    if (state.val === null || type === undefined) {
         if (sqlDPs[id].type === undefined) {
             // read type from DB
             tasksReadType.push({id: id, state: state});
@@ -1225,6 +1225,11 @@ function pushValueIntoDB(id, state, cb) {
     }
 
     if (type === undefined) {
+        if (state.val === null) {
+            adapter.log.warn('Ignore null value for ' + id + ' because no type defined till now.');
+            if (cb) cb('Ignore null value for ' + id + ' because no type defined till now.');
+            return;
+        }
         adapter.log.warn('Cannot store values of type "' + typeof state.val + '" for ' + id);
         if (cb) cb('Cannot store values of type "' + typeof state.val + '" ' + id);
         return;
@@ -1322,7 +1327,6 @@ function pushValueIntoDB(id, state, cb) {
     sqlDPs[id].ts = state.ts;
 
     var query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
-    adapter.log.debug(query);
     if (!multiRequests) {
         if (tasks.length > 100) {
             adapter.log.error('Cannot queue new requests, because more than 100');
