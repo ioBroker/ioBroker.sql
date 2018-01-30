@@ -177,7 +177,7 @@ describe('Test MySQL', function() {
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
-            expect(Object.keys(result).length).to.be.equal(3);
+            expect(Object.keys(result).length).to.be.equal(4);
             expect(result['system.adapter.sql.0.memRss'].enabled).to.be.true;
             done();
         });
@@ -345,7 +345,7 @@ describe('Test MySQL', function() {
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
-            expect(Object.keys(result).length).to.be.equal(2);
+            expect(Object.keys(result).length).to.be.equal(3);
             done();
         });
     });

@@ -1006,11 +1006,11 @@ function pushHelper(_id) {
     if (_settings) {
         sqlDPs[_id].timeout = null;
 
-        if (typeof sqlDPs[_id].state.val === 'object') {
-            sqlDPs[_id].state.val = JSON.stringify(sqlDPs[_id].state.val);
-        }
-
         if (sqlDPs[_id].state.val !== null) {
+            if (typeof sqlDPs[_id].state.val === 'object') {
+                sqlDPs[_id].state.val = JSON.stringify(sqlDPs[_id].state.val);
+            }
+
             adapter.log.debug('Datatype ' + _id + ': Currently: ' + typeof sqlDPs[_id].state.val + ', StorageType: ' + _settings.storageType);
             if (typeof sqlDPs[_id].state.val === 'string' && _settings.storageType !== 'String') {
                 adapter.log.debug('Do Automatic Datatype conversion for ' + _id);
@@ -1048,6 +1048,7 @@ function pushHelper(_id) {
 
 function getAllIds(cb) {
     var query = SQLFuncs.getIdSelect(adapter.config.dbname);
+    adapter.log.debug(query);
     clientPool.borrow(function (err, client) {
         if (err) {
             if (cb) cb(err);
@@ -1079,6 +1080,7 @@ function getAllIds(cb) {
 
 function getAllFroms(cb) {
     var query = SQLFuncs.getFromSelect(adapter.config.dbname);
+    adapter.log.debug(query);
     clientPool.borrow(function (err, client) {
         if (err) {
             if (cb) cb(err);
@@ -1129,6 +1131,7 @@ function checkRetention(id) {
         if (!sqlDPs[id].lastCheck || dt - sqlDPs[id].lastCheck >= 21600000/* 6 hours */) {
             sqlDPs[id].lastCheck = dt;
             var query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, dbNames[sqlDPs[id].type], sqlDPs[id][adapter.namespace].retention);
+            adapter.log.debug(query);
 
             if (!multiRequests) {
                 if (tasks.length > 100) {
@@ -1202,7 +1205,7 @@ function pushValueIntoDB(id, state, cb) {
     var type;
 
     if (sqlDPs[id].type) type = sqlDPs[id].type;
-    if (state.val === null && !type) {
+    if (state.val === null || !type) {
         if (sqlDPs[id].type === undefined) {
             // read type from DB
             tasksReadType.push({id: id, state: state});
@@ -1319,6 +1322,7 @@ function pushValueIntoDB(id, state, cb) {
     sqlDPs[id].ts = state.ts;
 
     var query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
+    adapter.log.debug(query);
     if (!multiRequests) {
         if (tasks.length > 100) {
             adapter.log.error('Cannot queue new requests, because more than 100');
@@ -1386,6 +1390,7 @@ function processTasks() {
 // my be it is required to cache all the data in memory
 function getId(id, type, cb) {
     var query = SQLFuncs.getIdSelect(adapter.config.dbname, id);
+    adapter.log.debug(query);
 
     if (!clientPool) {
         if (cb) cb('No connection', id);
@@ -1409,6 +1414,7 @@ function getId(id, type, cb) {
                 if (type !== null) {
                     // insert
                     query = SQLFuncs.getIdInsert(adapter.config.dbname, id, type);
+                    adapter.log.debug(query);
                     client.execute(query, function (err /* , rows, fields */) {
                         if (err) {
                             adapter.log.error('Cannot insert ' + query + ': ' + err);
@@ -1417,6 +1423,7 @@ function getId(id, type, cb) {
                             return;
                         }
                         query = SQLFuncs.getIdSelect(adapter.config.dbname,id);
+                        adapter.log.debug(query);
                         client.execute(query, function (err, rows /* , fields */) {
                             if (rows && rows.rows) {
                                 rows = rows.rows;
@@ -1452,6 +1459,7 @@ function getId(id, type, cb) {
 function getFrom(_from, cb) {
     // var sources    = (adapter.config.dbtype !== 'postgresql' ? (adapter.config.dbname + '.') : '') + 'sources';
     var query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
+    adapter.log.debug(query);
 
     if (!clientPool) {
         if (cb) cb('No connection', _from);
@@ -1474,6 +1482,7 @@ function getFrom(_from, cb) {
             if (!rows.length) {
                 // insert
                 query = SQLFuncs.getFromInsert(adapter.config.dbname, _from);
+                adapter.log.debug(query);
                 client.execute(query, function (err /* , rows, fields */) {
                     if (err) {
                         adapter.log.error('Cannot insert ' + query + ': ' + err);
@@ -1483,6 +1492,7 @@ function getFrom(_from, cb) {
                     }
 
                     query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
+                    adapter.log.debug(query);
                     client.execute(query, function (err, rows /* , fields */) {
                         if (rows && rows.rows) rows = rows.rows;
                         if (err) {
@@ -1566,6 +1576,7 @@ function _getDataFromDB(query, options, callback) {
 
 function getDataFromDB(db, options, callback) {
     var query = SQLFuncs.getHistory(adapter.config.dbname, db, options);
+    adapter.log.debug(query);
     if (!multiRequests) {
         if (tasks.length > 100) {
             adapter.log.error('Cannot queue new requests, because more than 100');
