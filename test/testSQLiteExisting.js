@@ -119,7 +119,7 @@ describe('Test SQLite', function() {
                             debounce:     0,
                             retention:    31536000,
                             changesMinDelta: 0.5,
-                            storageType: 'Number'
+                            storageType:  false
                         }
                     }, function (result) {
                         expect(result.error).to.be.undefined;
@@ -130,7 +130,7 @@ describe('Test SQLite', function() {
                                 changesOnly:  false,
                                 debounce:     0,
                                 retention:    31536000,
-                                storageType: 'String'
+                                storageType:  'Number'
                             }
                         }, function (result) {
                             expect(result.error).to.be.undefined;
@@ -141,7 +141,7 @@ describe('Test SQLite', function() {
                                     changesOnly:  false,
                                     debounce:     0,
                                     retention:    31536000,
-                                    storageType: 'Boolean'
+                                    storageType:  false
                                 }
                             }, function (result) {
                                 expect(result.error).to.be.undefined;

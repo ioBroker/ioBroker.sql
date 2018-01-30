@@ -28,6 +28,12 @@ var dbNames = [
     'ts_bool'
 ];
 
+var storageTypes = [
+    'Number',
+    'String',
+    'Boolean'
+];
+
 var clientPool;
 var sqlDPs        = {};
 var from          = {};
@@ -278,7 +284,9 @@ function connect() {
                     processStartValues();
                 });
             } else {
-                processStartValues();
+                getAllIds(function () {
+                    processStartValues();
+                });
             }
         }
     });
@@ -1068,7 +1076,7 @@ function getAllIds(cb) {
                     id = rows[r].name;
                     sqlDPs[id] = sqlDPs[id] || {};
                     sqlDPs[id].index = rows[r].id;
-                    sqlDPs[id].type  = rows[r].type;
+                    sqlDPs[id].dbtype  = rows[r].type;
                 }
 
                 if (cb) cb();
@@ -1131,7 +1139,6 @@ function checkRetention(id) {
         if (!sqlDPs[id].lastCheck || dt - sqlDPs[id].lastCheck >= 21600000/* 6 hours */) {
             sqlDPs[id].lastCheck = dt;
             var query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, dbNames[sqlDPs[id].type], sqlDPs[id][adapter.namespace].retention);
-            adapter.log.debug(query);
 
             if (!multiRequests) {
                 if (tasks.length > 100) {
@@ -1172,11 +1179,12 @@ function processReadTypes() {
         if (sqlDPs[task.id][adapter.namespace].storageType) {
             sqlDPs[task.id].type = types[sqlDPs[task.id][adapter.namespace].storageType.toLowerCase()];
             adapter.log.debug('Type (from Def) for ' + task.id + ': ' + sqlDPs[task.id].type);
-            pushValueIntoDB(task.id, task.state);
-
-            setTimeout(function () {
-                processReadTypes();
-            }, 50);
+            processVerifyTypes(task);
+        }
+        else if (sqlDPs[task.id].dbtype !== undefined) {
+            sqlDPs[task.id].type = sqlDPs[task.id].dbtype;
+            adapter.log.debug('Type (from DB-Type) for ' + task.id + ': ' + sqlDPs[task.id].type);
+            processVerifyTypes(task);
         }
         else {
             adapter.getForeignObject(task.id, function (err, obj) {
@@ -1186,14 +1194,43 @@ function processReadTypes() {
                     sqlDPs[task.id].type = 1; // string
                 }
                 adapter.log.debug('Type (from Obj) for ' + task.id + ': ' + sqlDPs[task.id].type);
-                pushValueIntoDB(task.id, task.state);
-
-                setTimeout(function () {
-                    processReadTypes();
-                }, 50);
+                processVerifyTypes(task);
             });
         }
     }
+}
+
+function processVerifyTypes(task) {
+    if (sqlDPs[task.id].dbtype !== undefined && sqlDPs[task.id].type !== sqlDPs[task.id].dbtype) {
+        sqlDPs[task.id].dbtype = sqlDPs[task.id].type;
+
+        var query = SQLFuncs.getIdUpdate(adapter.config.dbname, task.id, sqlDPs[task.id].type);
+        adapter.log.debug(query);
+        clientPool.borrow(function (err, client) {
+            if (err) {
+                processVerifyTypes(task);
+                return;
+            }
+            client.execute(query, function (err, rows /* , fields */) {
+                if (err) {
+                    adapter.log.error('error updating history config for ' + task.id + ' to pin datatype: ' + query + ': ' + err);
+                }
+                else {
+                    adapter.log.info('changed history configuration to pin detected datatype for ' + task.id);
+                }
+                clientPool.return(client);
+                processVerifyTypes(task);
+            });
+        });
+
+        return;
+    }
+
+    pushValueIntoDB(task.id, task.state);
+
+    setTimeout(function () {
+        processReadTypes();
+    }, 50);
 }
 
 function pushValueIntoDB(id, state, cb) {
