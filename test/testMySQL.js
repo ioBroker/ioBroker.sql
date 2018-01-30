@@ -140,7 +140,7 @@ describe('Test MySQL', function() {
                             expect(result.error).to.be.undefined;
                             expect(result.success).to.be.true;
                             sendTo('sql.0', 'enableHistory', {
-                                id: 'system.adapter.sql.0.uptime',
+                                id: 'system.adapter.sql.0.alive',
                                 options: {
                                     changesOnly:  false,
                                     debounce:     0,
@@ -150,10 +150,22 @@ describe('Test MySQL', function() {
                             }, function (result) {
                                 expect(result.error).to.be.undefined;
                                 expect(result.success).to.be.true;
-                                // wait till adapter receives the new settings
-                                setTimeout(function () {
-                                    done();
-                                }, 10000);
+                                sendTo('sql.0', 'enableHistory', {
+                                    id: 'system.adapter.sql.0.uptime',
+                                    options: {
+                                        changesOnly:  false,
+                                        debounce:     0,
+                                        retention:    31536000,
+                                        storageType:  false
+                                    }
+                                }, function (result) {
+                                    expect(result.error).to.be.undefined;
+                                    expect(result.success).to.be.true;
+                                    // wait till adapter receives the new settings
+                                    setTimeout(function () {
+                                        done();
+                                    }, 10000);
+                                });
                             });
                         });
                     });
@@ -304,8 +316,11 @@ describe('Test MySQL', function() {
                 else if (result.result[i].name === 'system.adapter.sql.0.memHeapTotal') {
                     expect(result.result[i].type).to.be.equal(1);
                 }
-                else if (result.result[i].name === 'system.adapter.sql.0.uptime') {
+                else if (result.result[i].name === 'system.adapter.sql.0.alive') {
                     expect(result.result[i].type).to.be.equal(2);
+                }
+                else if (result.result[i].name === 'system.adapter.sql.0.uptime') {
+                    expect(result.result[i].type).to.be.equal(1);
                 }
             }
 
