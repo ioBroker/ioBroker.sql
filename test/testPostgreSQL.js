@@ -310,7 +310,7 @@ describe('Test PostgreSQL', function() {
         }, function (result) {
             expect(result.error).to.be.undefined;
             expect(result.success).to.be.true;
-            done();
+            setTimeout(done, 2000);
         });
     });
     it('Test ' + adapterShortName + ': Check Enabled Points after Disable', function (done) {
