@@ -138,17 +138,23 @@ adapter.on('objectChange', function (id, obj) {
                         pushValueIntoDB(_id, _state, function () {
                             // terminate values with null to indicate adapter stop. timestamp + 1#
                             adapter.log.debug('Write 2/2 "null" _id: ' + _id);
-                            pushValueIntoDB(_id, _nullValue);
+                            pushValueIntoDB(_id, _nullValue, function() {
+                                delete sqlDPs[id];
+                            });
                         });
                     })(id, state, nullValue);
                 }
                 else {
                     // terminate values with null to indicate adapter stop. timestamp + 1
                     adapter.log.debug('Write 0 NULL _id: ' + id);
-                    pushValueIntoDB(id, nullValue);
+                    pushValueIntoDB(id, nullValue, function() {
+                        delete sqlDPs[id];
+                    });
                 }
             }
-            delete sqlDPs[id];
+            else {
+                delete sqlDPs[id];
+            }
         }
     }
 });
