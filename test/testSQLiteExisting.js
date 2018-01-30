@@ -75,8 +75,8 @@ function sendTo(target, command, message, callback) {
     });
 }
 
-describe('Test SQLite', function() {
-    before('Test SQLite: Start js-controller', function (_done) {
+describe('Test SQLite Existing', function() {
+    before('Test SQLite Existing: Start js-controller', function (_done) {
         this.timeout(600000); // because of first install from npm
         setup.adapterStarted = false;
 
@@ -101,7 +101,7 @@ describe('Test SQLite', function() {
         });
     });
 
-    it('Test SQLite: Check if adapter started', function (done) {
+    it('Test SQLite Existing: Check if adapter started', function (done) {
         this.timeout(60000);
         checkConnectionOfAdapter(function () {
             objects.setObject('system.adapter.test.0', {
@@ -178,7 +178,7 @@ describe('Test SQLite', function() {
             done();
         });
     });
-    it('Test SQLite: Write values into DB', function (done) {
+    it('Test SQLite Existing: Write values into DB', function (done) {
         this.timeout(10000);
 
         this.timeout(10000);
@@ -232,7 +232,7 @@ describe('Test SQLite', function() {
             }, 100);
         });
     });
-    it('Test SQLite: Read values from DB using query', function (done) {
+    it('Test SQLite Existing: Read values from DB using query', function (done) {
         this.timeout(10000);
 
         sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
@@ -251,7 +251,7 @@ describe('Test SQLite', function() {
             });
         });
     });
-    it('Test SQLite: Read values from DB using GetHistory', function (done) {
+    it('Test SQLite Existing: Read values from DB using GetHistory', function (done) {
         this.timeout(20000);
 
         sendTo('sql.0', 'getHistory', {
@@ -336,7 +336,7 @@ describe('Test SQLite', function() {
         });
     });
 
-    after('Test SQLite: Stop js-controller', function (done) {
+    after('Test SQLite Existing: Stop js-controller', function (done) {
         this.timeout(6000);
 
         setup.stopController(function (normalTerminated) {

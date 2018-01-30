@@ -48,6 +48,8 @@ var isFromRunning = {};
 
 var adapter = utils.Adapter('sql');
 adapter.on('objectChange', function (id, obj) {
+    var tmpState;
+    var now = new Date().getTime();
     if (obj && obj.common &&
         (
             // todo remove history sometime (2016.08) - Do not forget object selector in io-package.json
@@ -70,14 +72,6 @@ adapter.on('objectChange', function (id, obj) {
 
         // todo remove history sometime (2016.08)
         sqlDPs[id] = obj.common.custom || obj.common.history;
-
-        if (!sqlDPs[id]) {
-            adapter.log.info('disabled logging of ' + id);
-            if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
-            if (sqlDPs[id].timeout) clearTimeout(sqlDPs[id].timeout);
-            delete sqlDPs[id];
-            return;
-        }
 
         if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
             sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention || adapter.config.retention, 10) || 0;
@@ -118,6 +112,42 @@ adapter.on('objectChange', function (id, obj) {
             adapter.log.info('disabled logging of ' + id);
             if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
             if (sqlDPs[id].timeout) clearTimeout(sqlDPs[id].timeout);
+
+            if (Object.assign) {
+                tmpState = Object.assign({}, sqlDPs[id].state);
+            }
+            else {
+                tmpState = JSON.parse(JSON.stringify(sqlDPs[id].state));
+            }
+            var state = sqlDPs[id].state ? tmpState : null;
+
+            if (sqlDPs[id].skipped) {
+                pushValueIntoDB(id, sqlDPs[id].skipped);
+                sqlDPs[id].skipped = null;
+            }
+
+            var nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
+            if (sqlDPs[id][adapter.namespace]) {
+                if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
+                    (function (_id, _state, _nullValue) {
+                        _state.ts   = now;
+                        _state.from = 'system.adapter.' + adapter.namespace;
+                        nullValue.ts += 4;
+                        nullValue.lc += 4; // because of MS SQL
+                        adapter.log.debug('Write 1/2 "' + _state.val + '" _id: ' + _id);
+                        pushValueIntoDB(_id, _state, function () {
+                            // terminate values with null to indicate adapter stop. timestamp + 1#
+                            adapter.log.debug('Write 2/2 "null" _id: ' + _id);
+                            pushValueIntoDB(_id, _nullValue);
+                        });
+                    })(id, state, nullValue);
+                }
+                else {
+                    // terminate values with null to indicate adapter stop. timestamp + 1
+                    adapter.log.debug('Write 0 NULL _id: ' + id);
+                    pushValueIntoDB(id, nullValue);
+                }
+            }
             delete sqlDPs[id];
         }
     }
@@ -1183,6 +1213,7 @@ function processReadTypes() {
         }
         else if (sqlDPs[task.id].dbtype !== undefined) {
             sqlDPs[task.id].type = sqlDPs[task.id].dbtype;
+            sqlDPs[task.id][adapter.namespace].storageType = storageTypes[qlDPs[task.id].type];
             adapter.log.debug('Type (from DB-Type) for ' + task.id + ': ' + sqlDPs[task.id].type);
             processVerifyTypes(task);
         }
@@ -1193,6 +1224,7 @@ function processReadTypes() {
                 } else {
                     sqlDPs[task.id].type = 1; // string
                 }
+                sqlDPs[task.id][adapter.namespace].storageType = storageTypes[qlDPs[task.id].type];
                 adapter.log.debug('Type (from Obj) for ' + task.id + ': ' + sqlDPs[task.id].type);
                 processVerifyTypes(task);
             });

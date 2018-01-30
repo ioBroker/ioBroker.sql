@@ -75,8 +75,8 @@ function sendTo(target, command, message, callback) {
     });
 }
 
-describe('Test MySQL', function() {
-    before('Test MySQL: Start js-controller', function (_done) {
+describe('Test MySQL Existing', function() {
+    before('Test MySQL Existing: Start js-controller', function (_done) {
         this.timeout(600000); // because of first install from npm
         setup.adapterStarted = false;
 
@@ -105,7 +105,7 @@ describe('Test MySQL', function() {
         });
     });
 
-    it('Test MySQL: Check if adapter started', function (done) {
+    it('Test MySQL Existing: Check if adapter started', function (done) {
         this.timeout(60000);
         checkConnectionOfAdapter(function () {
             objects.setObject('system.adapter.test.0', {
@@ -182,7 +182,7 @@ describe('Test MySQL', function() {
             done();
         });
     });
-    it('Test MySQL: Write values into DB', function (done) {
+    it('Test MySQL Existing: Write values into DB', function (done) {
         this.timeout(10000);
 
         states.setState('system.adapter.sql.0.memRss', {val: true, ts: now - 20000}, function (err) {
@@ -241,7 +241,7 @@ describe('Test MySQL', function() {
             }, 100);
         });
     });
-    it('Test MySQL: Read values from DB using query', function (done) {
+    it('Test MySQL Existing: Read values from DB using query', function (done) {
         this.timeout(10000);
 
         sendTo('sql.0', 'query', 'SELECT id FROM iobroker.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
@@ -267,7 +267,7 @@ describe('Test MySQL', function() {
             });
         });
     });
-    it('Test MySQL: Read values from DB using GetHistory', function (done) {
+    it('Test MySQL Existing: Read values from DB using GetHistory', function (done) {
         this.timeout(10000);
 
         sendTo('sql.0', 'getHistory', {
@@ -350,7 +350,7 @@ describe('Test MySQL', function() {
         });
     });
 
-    after('Test MySQL: Stop js-controller', function (done) {
+    after('Test MySQL Existing: Stop js-controller', function (done) {
         this.timeout(6000);
 
         setup.stopController(function (normalTerminated) {
