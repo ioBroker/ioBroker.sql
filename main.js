@@ -57,7 +57,7 @@ adapter.on('objectChange', function (id, obj) {
             (obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled)
         )
     ) {
-        if (!sqlDPs[id][adapter.namespace] && !subscribeAll) {
+        if (!(sqlDPs[id] && sqlDPs[id][adapter.namespace]) && !subscribeAll) {
             // un-subscribe
             for (var _id in sqlDPs) {
                 adapter.unsubscribeForeignStates(_id);
