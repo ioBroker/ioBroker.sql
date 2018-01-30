@@ -977,8 +977,10 @@ function reLogHelper(_id) {
     }
     sqlDPs[_id].relogTimeout = null;
     if (sqlDPs[_id].skipped) {
-        pushHistory(_id, sqlDPs[_id].skipped, true);
+        sqlDPs[_id].state = sqlDPs[_id].skipped;
+        sqlDPs[_id].state.from = 'system.adapter.' + adapter.namespace;
         sqlDPs[_id].skipped = null;
+        pushHistory(_id, sqlDPs[_id].state, true);
     }
     else {
         adapter.getForeignState(_id, function (err, state) {
@@ -986,7 +988,7 @@ function reLogHelper(_id) {
                 adapter.log.info('init timed Relog: can not get State for ' + _id + ' : ' + err);
             }
             else if (!state) {
-                adapter.log.info('init timed Relog: disable relog because state not set so far ' + _id + ': ' + JSON.stringify(state));
+                adapter.log.info('init timed Relog: disable relog because state not set so far for ' + _id + ': ' + JSON.stringify(state));
             }
             else {
                 adapter.log.debug('init timed Relog: getState ' + _id + ':  Value=' + state.val + ', ack=' + state.ack + ', ts=' + state.ts  + ', lc=' + state.lc);
@@ -1220,8 +1222,8 @@ function pushValueIntoDB(id, state, cb) {
     }
 
     if (type === undefined) {
-        adapter.log.warn('Cannot store values of type "' + typeof state.val + '"');
-        if (cb) cb('Cannot store values of type "' + typeof state.val + '"');
+        adapter.log.warn('Cannot store values of type "' + typeof state.val + '" for ' + id);
+        if (cb) cb('Cannot store values of type "' + typeof state.val + '" ' + id);
         return;
     }
     var tmpState;
