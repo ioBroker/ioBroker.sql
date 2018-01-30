@@ -24,8 +24,13 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.6.1",
+        "version": "1.6.2",
         "news": {
+            "1.6.2": {
+                "en": "fix relog value feature",
+                "de": "Erneutes Logging korrigiert",
+                "ru": "fix relog value feature"
+            },
             "1.6.1": {
                 "en": "Admin3 Fixes",
                 "de": "Admin3-Korrekturen",
