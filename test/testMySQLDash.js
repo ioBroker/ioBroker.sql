@@ -109,6 +109,7 @@ describe('Test MySQL-with-dash', function() {
     it('Test MySQL-with-dash: Check if adapter started', function (done) {
         this.timeout(60000);
         checkConnectionOfAdapter(function () {
+            now = new Date().getTime();
             objects.setObject('system.adapter.test.0', {
                     common: {
 

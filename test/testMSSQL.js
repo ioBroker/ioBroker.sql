@@ -118,6 +118,7 @@ describe('Test MSSQL', function() {
             return;
         }
         checkConnectionOfAdapter(function () {
+            now = new Date().getTime();
             objects.setObject('system.adapter.test.0', {
                     common: {
 
