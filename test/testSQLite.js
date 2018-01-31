@@ -161,7 +161,7 @@ describe('Test SQLite', function() {
                                     // wait till adapter receives the new settings
                                     setTimeout(function () {
                                         done();
-                                    }, 10000);
+                                    }, 20000);
                                 });
                             });
                         });

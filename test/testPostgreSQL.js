@@ -154,7 +154,7 @@ describe('Test PostgreSQL', function() {
                                 // wait till adapter receives the new settings
                                 setTimeout(function () {
                                     done();
-                                }, 10000);
+                                }, 20000);
                             });
                         });
                     });
