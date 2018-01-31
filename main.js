@@ -77,8 +77,15 @@ adapter.on('objectChange', function (id, obj) {
         // todo remove history sometime (2016.08)
         sqlDPs[id] = obj.common.custom || obj.common.history;
         if (storedIndex !== null) sqlDPs[id].index = storedIndex;
-        if (storedType !== null) sqlDPs[id].dbtype = storedType;
-        adapter.log.info('remembered Index/Type ' + sqlDPs[id].index + ' / ' + sqlDPs[id].dbtype);
+        if (storedType !== null) {
+            if (sqlDPs[id][adapter.namespace].storageType && storageTypes.indexOf(sqlDPs[id][adapter.namespace].storageType) === storedType) {
+                sqlDPs[id].dbtype = storedType;
+            }
+            else {
+                adapter.log.info('Can not reuse DB type because Store-As is different. First stored data will define it.');
+            }
+        }
+        adapter.log.debug('remembered Index/Type ' + sqlDPs[id].index + ' / ' + sqlDPs[id].dbtype);
 
         if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
             sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention || adapter.config.retention, 10) || 0;
@@ -1716,7 +1723,8 @@ function getHistory(msg) {
         sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
     }
     if (sqlDPs[options.id].type === undefined) {
-        adapter.log.debug('For getHistory for id ' + options.id + ': Type empty!! Index = ' + sqlDPs[options.id].index);
+        adapter.log.warn('For getHistory for id ' + options.id + ': Type empty. Need to write data first. Index = ' + sqlDPs[options.id].index);
+        commons.sendResponse(adapter, msg, options, [], startTime);
     }
     if (options.id && sqlDPs[options.id].index === undefined) {
         // read or create in DB
