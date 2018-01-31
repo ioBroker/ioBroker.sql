@@ -82,7 +82,7 @@ adapter.on('objectChange', function (id, obj) {
                 sqlDPs[id].dbtype = storedType;
             }
             else {
-                adapter.log.info('Can not reuse DB type because Store-As is different. First stored data will define it. (' + storageTypes.indexOf(sqlDPs[id][adapter.namespace].storageType) + ' vs. ' + storedType + ')');
+                adapter.log.info('Can not reuse DB type because Store-As is different. First stored data will define it. (' + sqlDPs[id][adapter.namespace].storageType + ' -> ' + storageTypes.indexOf(sqlDPs[id][adapter.namespace].storageType) + ' vs. ' + storedType + ')');
             }
         }
         adapter.log.debug('remembered Index/Type ' + sqlDPs[id].index + ' / ' + sqlDPs[id].dbtype);
