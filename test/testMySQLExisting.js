@@ -13,6 +13,8 @@ var sendToID = 1;
 var adapterShortName = setup.adapterName.substring(setup.adapterName.indexOf('.')+1);
 
 var now = new Date().getTime();
+var now2;
+if (!now2) now2 = new Date().getTime();
 
 function checkConnectionOfAdapter(cb, counter) {
     counter = counter || 0;
@@ -274,7 +276,7 @@ describe('Test MySQL Existing', function() {
         sendTo('sql.0', 'getHistory', {
             id: 'system.adapter.sql.0.memRss',
             options: {
-                start:     now - 30000,
+                start:     now2 - 30000,
                 limit:     50,
                 count:     50,
                 aggregate: 'none'
@@ -291,7 +293,7 @@ describe('Test MySQL Existing', function() {
             sendTo('sql.0', 'getHistory', {
                 id: 'system.adapter.sql.0.memRss',
                 options: {
-                    start:     now - 15000,
+                    start:     now2 - 15000,
                     end:       now,
                     limit:     2,
                     count:     2,
