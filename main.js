@@ -1250,7 +1250,7 @@ function processVerifyTypes(task) {
     if (sqlDPs[task.id].dbtype !== undefined && sqlDPs[task.id].type !== sqlDPs[task.id].dbtype) {
         sqlDPs[task.id].dbtype = sqlDPs[task.id].type;
 
-        var query = SQLFuncs.getIdUpdate(adapter.config.dbname, task.id, sqlDPs[task.id].type);
+        var query = SQLFuncs.getIdUpdate(adapter.config.dbname, sqlDPs[task.index].type, sqlDPs[task.id].type);
         adapter.log.debug(query);
         clientPool.borrow(function (err, client) {
             if (err) {

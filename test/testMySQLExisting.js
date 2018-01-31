@@ -314,7 +314,7 @@ describe('Test MySQL Existing', function() {
                     expect(result.result[i].type).to.be.equal(0);
                 }
                 else if (result.result[i].name === 'system.adapter.sql.0.memHeapTotal') {
-                    expect(result.result[i].type).to.be.equal(1);
+                    expect(result.result[i].type).to.be.equal(0);
                 }
                 else if (result.result[i].name === 'system.adapter.sql.0.alive') {
                     expect(result.result[i].type).to.be.equal(2);
