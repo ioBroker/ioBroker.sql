@@ -1734,7 +1734,7 @@ function getHistory(msg) {
     }
     if (sqlDPs[options.id].type === undefined) {
         adapter.log.warn('For getHistory for id ' + options.id + ': Type empty. Need to write data first. Index = ' + sqlDPs[options.id].index);
-        commons.sendResponse(adapter, msg, options, [], startTime);
+        commons.sendResponse(adapter, msg, options, 'Please wait till next data record is logged and reload.', startTime);
     }
     if (options.id && sqlDPs[options.id].index === undefined) {
         // read or create in DB
