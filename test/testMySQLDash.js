@@ -335,7 +335,7 @@ describe('Test MySQL-with-dash', function() {
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
-            expect(Object.keys(result).length).to.be.equal(2);
+            expect(Object.keys(result).length).to.be.equal(3);
             done();
         });
     });
