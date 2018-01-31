@@ -78,7 +78,7 @@ adapter.on('objectChange', function (id, obj) {
         sqlDPs[id] = obj.common.custom || obj.common.history;
         if (storedIndex !== null) sqlDPs[id].index = storedIndex;
         if (storedType !== null) {
-            if (sqlDPs[id][adapter.namespace].storageType) {
+            /*if (sqlDPs[id][adapter.namespace].storageType) {
                 if (storageTypes.indexOf(sqlDPs[id][adapter.namespace].storageType) === storedType) {
                     sqlDPs[id].dbtype = storedType;
                 }
@@ -88,7 +88,8 @@ adapter.on('objectChange', function (id, obj) {
             }
             else {
                 sqlDPs[id].dbtype = storedType;
-            }
+            }*/
+            sqlDPs[id].dbtype = storedType;
         }
         adapter.log.debug('remembered Index/Type ' + sqlDPs[id].index + ' / ' + sqlDPs[id].dbtype);
 
@@ -1724,8 +1725,12 @@ function getHistory(msg) {
     }
 
     if (sqlDPs[options.id].type === undefined && sqlDPs[options.id].dbtype !== undefined) {
-        adapter.log.debug('For getHistory for id ' + options.id + ': Type empty, use dbtype ' + sqlDPs[options.id].dbtype);
-        sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
+        if (sqlDPs[options.id][adapter.namespace].storageType) {
+            if (storageTypes.indexOf(sqlDPs[options.id][adapter.namespace].storageType) === sqlDPs[options.id].dbtype) {
+                adapter.log.debug('For getHistory for id ' + options.id + ': Type empty, use dbtype ' + sqlDPs[options.id].dbtype);
+                sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
+            }
+        }
     }
     if (sqlDPs[options.id].type === undefined) {
         adapter.log.warn('For getHistory for id ' + options.id + ': Type empty. Need to write data first. Index = ' + sqlDPs[options.id].index);
