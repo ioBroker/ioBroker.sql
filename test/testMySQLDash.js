@@ -151,10 +151,22 @@ describe('Test MySQL-with-dash', function() {
                             }, function (result) {
                                 expect(result.error).to.be.undefined;
                                 expect(result.success).to.be.true;
-                                // wait till adapter receives the new settings
-                                setTimeout(function () {
-                                    done();
-                                }, 10000);
+                                sendTo('sql.0', 'enableHistory', {
+                                    id: 'system.adapter.sql.0.alive',
+                                    options: {
+                                        changesOnly:  false,
+                                        debounce:     0,
+                                        retention:    31536000,
+                                        storageType:  false
+                                    }
+                                }, function (result) {
+                                    expect(result.error).to.be.undefined;
+                                    expect(result.success).to.be.true;
+                                    // wait till adapter receives the new settings
+                                    setTimeout(function () {
+                                        done();
+                                    }, 10000);
+                                });
                             });
                         });
                     });
@@ -228,9 +240,9 @@ describe('Test MySQL-with-dash', function() {
     it('Test MySQL-with-dash: Read values from DB using query', function (done) {
         this.timeout(10000);
 
-        sendTo('sql.0', 'query', 'SELECT id FROM iobroker.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
+        sendTo('sql.0', 'query', 'SELECT id FROM io-broker.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
             console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
-            sendTo('sql.0', 'query', 'SELECT * FROM iobroker.ts_number WHERE id=' + result.result[0].id, function (result) {
+            sendTo('sql.0', 'query', 'SELECT * FROM io-broker.ts_number WHERE id=' + result.result[0].id, function (result) {
                 console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(5);
                 var found = 0;
@@ -284,7 +296,7 @@ describe('Test MySQL-with-dash', function() {
     it('Test ' + adapterShortName + ': Check Datapoint Types', function (done) {
         this.timeout(5000);
 
-        sendTo('sql.0', 'query', "SELECT name, type FROM iobroker.datapoints", function (result) {
+        sendTo('sql.0', 'query', "SELECT name, type FROM io-broker.datapoints", function (result) {
             console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
             expect(result.result.length).to.least(3);
             for (var i = 0; i < result.result.length; i++) {
@@ -292,7 +304,7 @@ describe('Test MySQL-with-dash', function() {
                     expect(result.result[i].type).to.be.equal(0);
                 }
                 else if (result.result[i].name === 'system.adapter.sql.0.memHeapTotal') {
-                    expect(result.result[i].type).to.be.equal(1);
+                    expect(result.result[i].type).to.be.equal(0);
                 }
                 else if (result.result[i].name === 'system.adapter.sql.0.alive') {
                     expect(result.result[i].type).to.be.equal(2);
