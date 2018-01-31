@@ -178,7 +178,7 @@ describe('Test MySQL-with-dash', function() {
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
-            expect(Object.keys(result).length).to.be.equal(3);
+            expect(Object.keys(result).length).to.be.equal(4);
             expect(result['system.adapter.sql.0.memRss'].enabled).to.be.true;
             done();
         });
@@ -240,9 +240,9 @@ describe('Test MySQL-with-dash', function() {
     it('Test MySQL-with-dash: Read values from DB using query', function (done) {
         this.timeout(10000);
 
-        sendTo('sql.0', 'query', 'SELECT id FROM io-broker.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
+        sendTo('sql.0', 'query', 'SELECT id FROM `io-broker`.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
             console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
-            sendTo('sql.0', 'query', 'SELECT * FROM io-broker.ts_number WHERE id=' + result.result[0].id, function (result) {
+            sendTo('sql.0', 'query', 'SELECT * FROM `io-broker`.ts_number WHERE id=' + result.result[0].id, function (result) {
                 console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(5);
                 var found = 0;
@@ -296,7 +296,7 @@ describe('Test MySQL-with-dash', function() {
     it('Test ' + adapterShortName + ': Check Datapoint Types', function (done) {
         this.timeout(5000);
 
-        sendTo('sql.0', 'query', "SELECT name, type FROM io-broker.datapoints", function (result) {
+        sendTo('sql.0', 'query', "SELECT name, type FROM `io-broker`.datapoints", function (result) {
             console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
             expect(result.result.length).to.least(3);
             for (var i = 0; i < result.result.length; i++) {
