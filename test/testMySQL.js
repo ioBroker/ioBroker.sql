@@ -106,7 +106,7 @@ describe('Test MySQL', function() {
     });
 
     it('Test MySQL: Check if adapter started', function (done) {
-        this.timeout(60000);
+        this.timeout(90000);
         checkConnectionOfAdapter(function () {
             now = new Date().getTime();
             objects.setObject('system.adapter.test.0', {
