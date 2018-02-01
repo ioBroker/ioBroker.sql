@@ -60,7 +60,9 @@ adapter.on('objectChange', function (id, obj) {
         if (!(sqlDPs[id] && sqlDPs[id][adapter.namespace]) && !subscribeAll) {
             // un-subscribe
             for (var _id in sqlDPs) {
-                adapter.unsubscribeForeignStates(_id);
+                if (sqlDPs.hasOwnProperty(_id) && sqlDPs[_id] && sqlDPs[_id][adapter.namespace]) {
+                    adapter.unsubscribeForeignStates(_id);
+                }
             }
             subscribeAll = true;
             adapter.subscribeForeignStates('*');
@@ -805,7 +807,7 @@ function writeNulls(id, now) {
     if (!id) {
         now = new Date().getTime();
         for (var _id in sqlDPs) {
-            if (sqlDPs.hasOwnProperty(_id)) {
+            if (sqlDPs.hasOwnProperty(_id) && sqlDPs[_id] && sqlDPs[_id][adapter.namespace]) {
                 writeNulls(_id, now);
             }
         }
@@ -815,7 +817,7 @@ function writeNulls(id, now) {
         if (tasksStart.length === 1 && connected) {
             processStartValues();
         }
-        if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+        if (sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
             if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
             sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
         }
@@ -933,7 +935,9 @@ function main() {
 
             if (count < 20) {
                 for (var _id in sqlDPs) {
-                    adapter.subscribeForeignStates(_id);
+                    if (sqlDPs.hasOwnProperty(_id) && sqlDPs[_id] && sqlDPs[_id][adapter.namespace]) {
+                        adapter.subscribeForeignStates(_id);
+                    }
                 }
             } else {
                 subscribeAll = true;
@@ -2052,8 +2056,9 @@ function disableHistory(msg) {
 function getEnabledDPs(msg) {
     var data = {};
     for (var id in sqlDPs) {
-        if (!sqlDPs.hasOwnProperty(id)) continue;
-        data[id] = sqlDPs[id][adapter.namespace];
+        if (sqlDPs.hasOwnProperty(id) && sqlDPs[id] && sqlDPs[id][adapter.namespace]) {
+            data[id] = sqlDPs[id][adapter.namespace];
+        }
     }
 
     adapter.sendTo(msg.from, msg.command, data, msg.callback);
