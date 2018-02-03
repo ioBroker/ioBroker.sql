@@ -307,9 +307,10 @@ describe('Test MySQL', function() {
     it('Test ' + adapterShortName + ': Check Datapoint Types', function (done) {
         this.timeout(5000);
 
-        sendTo('sql.0', 'query', "SELECT name, type FROM iobroker.datapoints", function (result) {
+        sendTo('sql.0', 'query', "SELECT id, name, type FROM iobroker.datapoints", function (result) {
             console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
             expect(result.result.length).to.least(3);
+            var uptime_id = null;
             for (var i = 0; i < result.result.length; i++) {
                 if (result.result[i].name === 'system.adapter.sql.0.memRss') {
                     expect(result.result[i].type).to.be.equal(0);
@@ -322,12 +323,15 @@ describe('Test MySQL', function() {
                 }
                 else if (result.result[i].name === 'system.adapter.sql.0.uptime') {
                     expect(result.result[i].type).to.be.equal(0);
+                    uptime_id = result.result[i].id;
+                    expect(uptime_id).to.be.not.null;
                 }
             }
 
-            setTimeout(function () {
+            sendTo('sql.0', 'query', "UPDATE iobroker.datapoints SET type=NULL WHERE id=" + uptime_id, function (result) {
+                console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
                 done();
-            }, 3000);
+            });
         });
     });
     it('Test ' + adapterShortName + ': Disable Datapoint again', function (done) {
