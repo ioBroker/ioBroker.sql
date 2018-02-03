@@ -1137,7 +1137,7 @@ function getAllIds(cb) {
                     id = rows[r].name;
                     sqlDPs[id] = sqlDPs[id] || {};
                     sqlDPs[id].index = rows[r].id;
-                    sqlDPs[id].dbtype  = rows[r].type;
+                    if (rows[r].type !== null) sqlDPs[id].dbtype = rows[r].type;
                 }
 
                 if (cb) cb();
