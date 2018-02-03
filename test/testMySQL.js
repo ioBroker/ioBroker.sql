@@ -330,6 +330,7 @@ describe('Test MySQL', function() {
 
             sendTo('sql.0', 'query', "UPDATE iobroker.datapoints SET type=NULL WHERE id=" + uptime_id, function (result) {
                 console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
+                expect(result.result.affectedRows).to.be.equal(1);
                 done();
             });
         });

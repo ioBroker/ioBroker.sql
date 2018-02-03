@@ -1264,7 +1264,7 @@ function processReadTypes() {
 }
 
 function processVerifyTypes(task) {
-    if (sqlDPs[task.id].dbtype !== undefined && sqlDPs[task.id].type !== sqlDPs[task.id].dbtype) {
+    if (sqlDPs[task.id].index !== undefined && sqlDPs[task.id].type !== sqlDPs[task.id].dbtype) {
         sqlDPs[task.id].dbtype = sqlDPs[task.id].type;
 
         var query = SQLFuncs.getIdUpdate(adapter.config.dbname, sqlDPs[task.id].index, sqlDPs[task.id].type);
