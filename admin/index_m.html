@@ -124,6 +124,7 @@
         }).trigger('change');
 
         onChange(false);
+        if (M) M.updateTextFields();
     }
 
     function save(callback) {
@@ -154,112 +155,116 @@
     .page {
         height: calc(100% - 50px) !important;
     }
+    .marg{
+        margin-top: 3em;
+    }
 </style>
 </head>
 <body>
-<div class="m adapter-container">
-    <div class="row">
-        <div class="col s12">
-            <ul class="tabs">
-                <li class="tab col s2"><a href="#tab-main"    class="translate active">DB settings</a></li>
-                <li class="tab col s2"><a href="#tab-default" class="translate">Default settings</a></li>
-            </ul>
-        </div>
-        <div id="tab-main"    class="col s12 page">
-            <div class="row">
-                <div class="col s12 m4 l2">
-                    <img src="sql.png" class="logo">
-                </div>
+    <div class="m adapter-container">
+        <div class="row">
+            <div class="col s12">
+                <ul class="tabs">
+                    <li class="tab col s3"><a href="#tab-main" class="translate active">DB settings</a></li>
+                    <li class="tab col s3"><a href="#tab-default" class="translate">Default settings</a></li>
+                </ul>
             </div>
-            <div class="row">
-                <div class="col s12 m4">
-                    <select id="dbtype" class="value">
+            <div id="tab-main" class="col s12 page">
+                <div class="row">
+                    <div class="col s6">
+                        <img src="sql.png" class="logo">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12 m4">
+                        <select id="dbtype" class="value">
                         <option value="mysql">MySQL</option>
                         <option value="postgresql">PostgreSQL</option>
                         <option value="sqlite">SQLite3</option>
                         <option value="mssql">MS-SQL</option>
                     </select>
-                    <label class="translate" for="dbtype">DB Type</label>
+                        <label class="translate" for="dbtype">DB Type</label>
+                    </div>
                 </div>
-            </div>
-            <div class="row real-sql">
-                <div class="col s12 m8">
-                    <input id="host" class="value"/>
-                    <label class="translate" for="host">Host</label>
-                </div>
-                <div class="col s12 m4">
-                    <input id="port" type="number" min="1" max="65565" class="value"/>
-                    <label class="translate" for="port">Port</label>
-                </div>
-            </div>
-            <div class="row ms-sql real-sql">
-                <div class="col s12">
-                    <input id="dbname" class="value"/>
-                    <label class="translate" for="dbname">DB Name</label>
-                </div>
-            </div>
-            <div class="row real-sql">
-                <div class="col s12 m4">
-                    <input id="user" class="value"/>
-                    <label class="translate" for="user">User</label>
-                </div>
-                <div class="col s12 m4">
-                    <input id="password" type="password" class="value"/>
-                    <label class="translate" for="password">Password</label>
-                </div>
-                <div class="col s12 m4">
-                    <input id="passwordConfirm" type="password"/>
-                    <label class="translate" for="passwordConfirm">Password confirm</label>
-                </div>
-            </div>
-            <div class="row baby-sql">
-                <div class="col s12 m8">
-                    <input id="fileName" class="value"/>
-                    <label for="fileName"><span class="translate">File for sqlite:</span> (<span>Input path with the file name.</span>)</label>
-                </div>
-                <div class="col s12 m4">
-                    <input id="requestInterval" class="value"/>
-                    <label class="translate" for="requestInterval">requestInterval</label>
-                </div>
-            </div>
-            <div class="row ms-sql real-sql">
-                <div class="col s12 m4">
-                    <input id="encrypt" type="checkbox" class="value"/>
-                    <label class="translate" for="encrypt">Encrypt:</label>
-                </div>
-                <div class="col s12 m4">
-                    <input id="round" class="value"/>
-                    <label class="translate" for="round">Round real to:</label>
-                </div>
-                <div class="col s12 m4">
-                    <input id="multiRequests" type="checkbox" class="value"/>
-                    <label class="translate" for="multiRequests">Allow parallel requests:</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col s12">
-                    <a id="test"  class="btn"><i class="material-icons">wifi_tethering</i><span class="translate">Test connection</span></a>
-                    <a id="reset" class="btn"><i class="material-icons">report</i><span class="translate">Reset DB</span></a>
-                </div>
-            </div>
-        </div>
-        <div id="tab-default" class="col s12 page">
                 <div class="row">
-                    <div class="col s12 m6">
-                        <input id="debounce" size="5" class="value" type="number"/>
+                    <div class="input-field real-sql col s12 m3 l4">
+                        <input id="host" type="text" class="value" />
+                        <label class="translate" for="host">Host</label>
+                    </div>
+                    <div class="input-field real-sql col s12 m3 l4 ">
+                        <input id="port" type="number" min="1" max="65565" class="value" />
+                        <label class="translate" for="port">Port</label>
+                    </div>
+                    <div class="input-field ms-sql real-sql col s12 m6 l4">
+                        <input id="dbname" type="text" class="value" />
+                        <label class="translate" for="dbname">DB Name</label>
+                    </div>
+                </div>
+                <div class="row real-sql">
+                    <div class="input-field col s12 m6 l4">
+                        <input id="user" type="text" class="value" />
+                        <label class="translate" for="user">User</label>
+                    </div>
+                    <div class="input-field col s12 m3 l4">
+                        <input id="password" type="password" class="value" />
+                        <label class="translate" for="password">Password</label>
+                    </div>
+                    <div class="input-field col s12 m3 l4">
+                        <input id="passwordConfirm" type="password" />
+                        <label class="translate" for="passwordConfirm">Password confirm</label>
+                    </div>
+                </div>
+                <div class="row baby-sql">
+                    <div class="input-field col s12 m6 l4">
+                        <input id="fileName" type="text" class="value" />
+                        <label for="fileName" class="translate">File for sqlite:</label>
+                        <span class="translate">Input path with the file name.</span>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input id="requestInterval" type="number" class="value" />
+                        <label class="translate" for="requestInterval">requestInterval</label>
+                    </div>
+                </div>
+                <div class="row ms-sql real-sql">
+                    <div class="input-field col s12 m4">
+                        <input id="encrypt" type="checkbox" class="value" />
+                        <label class="translate" for="encrypt">Encrypt:</label>
+                    </div>
+                    <div class="input-field col s12 m4">
+                        <input id="round" type="text" class="value" />
+                        <label class="translate" for="round">Round real to:</label>
+                    </div>
+                    <div class="input-field col s12 m4">
+                        <input id="multiRequests" type="checkbox" class="value" />
+                        <label class="translate" for="multiRequests">Allow parallel requests:</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col s12">
+                        <a id="test" class="waves-effect waves-light btn"><i class="material-icons left">wifi_tethering</i><span class="translate">Test connection</span></a>                       
+                        <a id="reset" class="waves-effect waves-light btn"><i class="material-icons left">report</i><span class="translate">Reset DB</span></a>
+                    </div>
+                </div>
+            </div>
+            <div id="tab-default" class="col s12 page">
+                <div class="row marg">
+                    <div class="input-field col s12 m6 l4">
+                        <input id="debounce" size="5" class="value" type="number" />
                         <label class="translate" for="debounce">debounce</label>
                     </div>
-                    <div class="col s12 m6">
-                        <input id="changesRelogInterval" size="5" class="value" type="number"/>
-                        <label for="changesRelogInterval"><span class="translate">log changes interval(s)</span> (<span class="translate" >0 = disable</span></label>
+                    <div class="input-field col s12 m6 l4">
+                        <input id="changesRelogInterval" size="5" class="value" type="number" />
+                        <label for="changesRelogInterval" class="translate">log changes interval(s)</label>
+                        (<span class="translate">0 = disable</span>)
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col s12 m6">
-                        <input id="changesMinDelta" size="5" class="value number"/>
-                        <label for="changesMinDelta"><span class="translate">log changes minimal delta</span> (<span class="translate" >0 = disable delta check</span></label>
+                    <div class="input-field col s12 m6 l4">
+                        <input id="changesMinDelta" type="number" size="5" class="value" />
+                        <label for="changesMinDelta" class="translate">log changes minimal delta</label>
+                        (<span class="translate">0 = disable delta check</span>)
                     </div>
-                    <div class="col s12 6">
+                    <div class="input-field col s12 m6 l4">
                         <select id="retention" class="value">
                             <option value="0"           class="translate">keep forever</option>
                             <option value="63072000"    class="translate">2 years</option>
@@ -276,8 +281,9 @@
                         <label class="translate" for="retention">retention</label>
                     </div>
                 </div>
+            </div>
         </div>
     </div>
-</div>
 </body>
+
 </html>
