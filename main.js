@@ -790,7 +790,8 @@ function processStartValues() {
                 }
                 setTimeout(processStartValues, 0);
             });
-        } else {
+        }
+        else {
             pushHistory(task.id, {
                 val:  null,
                 ts:   task.now || new Date().getTime(),
@@ -799,6 +800,10 @@ function processStartValues() {
                 from: 'system.adapter.' + adapter.namespace
             });
             setTimeout(processStartValues, 0);
+        }
+        if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
+            if (sqlDPs[task.id].relogTimeout) clearTimeout(sqlDPs[task.id].relogTimeout);
+            sqlDPs[task.id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500, task.id);
         }
     }
 }
@@ -816,10 +821,6 @@ function writeNulls(id, now) {
         tasksStart.push({id: id, now: now});
         if (tasksStart.length === 1 && connected) {
             processStartValues();
-        }
-        if (sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
-            if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
-            sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
         }
     }
 }
