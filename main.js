@@ -1250,7 +1250,11 @@ function processReadTypes() {
         }
         else {
             adapter.getForeignObject(task.id, function (err, obj) {
+                if (err) {
+                    adapter.log.warn('Error while get Object for Def: ' + err);
+                }
                 if (obj && obj.common && obj.common.type) {
+                    adapter.log.debug(obj.common.type.toLowerCase() + ' / ' + types[obj.common.type.toLowerCase()] + ' / ' + JSON.stringify(obj.common));
                     sqlDPs[task.id].type = types[obj.common.type.toLowerCase()];
                 } else {
                     sqlDPs[task.id].type = 1; // string
