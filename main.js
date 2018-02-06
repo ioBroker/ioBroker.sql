@@ -67,7 +67,7 @@ adapter.on('objectChange', function (id, obj) {
             subscribeAll = true;
             adapter.subscribeForeignStates('*');
         }
-        var writeNull = !sqlDPs[id];
+        var writeNull = !(sqlDPs[id] && sqlDPs[id][adapter.namespace]);
         if (sqlDPs[id] && sqlDPs[id].relogTimeout) {
             clearTimeout(sqlDPs[id].relogTimeout);
         }
