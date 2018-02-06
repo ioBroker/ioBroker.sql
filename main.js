@@ -1281,7 +1281,7 @@ function processReadTypes() {
                             adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + obj.common.type.toLowerCase() + ' and no state)');
                             sqlDPs[task.id].type = 1; // string
                         }
-                        else if (state && types[typeof state.val] !== undefined) {
+                        else if (state && state.val !== null && state.val !== undefined && types[typeof state.val] !== undefined) {
                             sqlDPs[task.id].type = types[typeof state.val];
                             sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
                         }
@@ -1299,7 +1299,7 @@ function processReadTypes() {
 }
 
 function processVerifyTypes(task) {
-    if (sqlDPs[task.id].index !== undefined && sqlDPs[task.id].type !== sqlDPs[task.id].dbtype) {
+    if (sqlDPs[task.id].index !== undefined && sqlDPs[task.id].type !== undefined && sqlDPs[task.id].type !== sqlDPs[task.id].dbtype) {
         sqlDPs[task.id].dbtype = sqlDPs[task.id].type;
 
         var query = SQLFuncs.getIdUpdate(adapter.config.dbname, sqlDPs[task.id].index, sqlDPs[task.id].type);
@@ -1326,9 +1326,7 @@ function processVerifyTypes(task) {
 
     pushValueIntoDB(task.id, task.state);
 
-    setTimeout(function () {
-        processReadTypes();
-    }, 50);
+    setTimeout(processReadTypes, 50);
 }
 
 function pushValueIntoDB(id, state, cb) {
