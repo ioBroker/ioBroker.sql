@@ -781,7 +781,6 @@ function fixSelector(callback) {
 function processStartValues() {
     if (tasksStart && tasksStart.length) {
         var task = tasksStart.shift();
-        var delay = (tasksStart.length%50 === 0) ? 1000 : 0;
         if (sqlDPs[task.id][adapter.namespace].changesOnly) {
             adapter.getForeignState(task.id, function (err, state) {
                 var now = task.now || new Date().getTime();
@@ -797,7 +796,7 @@ function processStartValues() {
                     state.from = 'system.adapter.' + adapter.namespace;
                     pushHistory(task.id, state);
                 }
-                setTimeout(processStartValues, delay);
+                setTimeout(processStartValues, 0);
             });
         }
         else {
@@ -808,7 +807,7 @@ function processStartValues() {
                 q:    0x40,
                 from: 'system.adapter.' + adapter.namespace
             });
-            setTimeout(processStartValues, delay);
+            setTimeout(processStartValues, 0);
         }
         if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
             if (sqlDPs[task.id].relogTimeout) clearTimeout(sqlDPs[task.id].relogTimeout);
