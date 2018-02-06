@@ -19,7 +19,8 @@ var types   = {
     'number':  0,
     'string':  1,
     'boolean': 2,
-    'object':  1
+    'object':  1,
+    'mixed':  1
 };
 
 var dbNames = [
@@ -587,23 +588,8 @@ function allScripts(scripts, index, cb) {
 }
 
 function finish(callback) {
-    adapter.unsubscribeForeignStates('*');
-    var count = 0;
-    if (finished) {
-        if (callback) {
-            if (finished === true) {
-                callback();
-            } else {
-                finished.push(callback);
-            }
-        }
-        return;
-    }
-    finished = [callback];
-    var now = new Date().getTime();
-    for (var id in sqlDPs) {
-        if (!sqlDPs.hasOwnProperty(id)) continue;
 
+    function finishId(id) {
         if (sqlDPs[id].relogTimeout) {
             clearTimeout(sqlDPs[id].relogTimeout);
             sqlDPs[id].relogTimeout = null;
@@ -697,7 +683,30 @@ function finish(callback) {
         }
     }
 
-    if (!count && callback) {
+    adapter.unsubscribeForeignStates('*');
+    var count = 0;
+    if (finished) {
+        if (callback) {
+            if (finished === true) {
+                callback();
+            } else {
+                finished.push(callback);
+            }
+        }
+        return;
+    }
+    finished = [callback];
+    var now = new Date().getTime();
+    var dpcount = 0;
+    var delay = 0;
+    for (var id in sqlDPs) {
+        if (!sqlDPs.hasOwnProperty(id)) continue;
+        dpcount++;
+        delay += (dpcount%50 === 0) ? 1000: 0;
+        setTimeout(finishId, delay, id);
+    }
+
+    if (!dpcount && callback) {
         if (clientPool) {
             clientPool.close();
             clientPool = null;
@@ -773,6 +782,7 @@ function fixSelector(callback) {
 function processStartValues() {
     if (tasksStart && tasksStart.length) {
         var task = tasksStart.shift();
+        var delay = (tasksStart.length%50 === 0) ? 1000 : 0;
         if (sqlDPs[task.id][adapter.namespace].changesOnly) {
             adapter.getForeignState(task.id, function (err, state) {
                 var now = task.now || new Date().getTime();
@@ -788,7 +798,7 @@ function processStartValues() {
                     state.from = 'system.adapter.' + adapter.namespace;
                     pushHistory(task.id, state);
                 }
-                setTimeout(processStartValues, 0);
+                setTimeout(processStartValues, delay);
             });
         }
         else {
@@ -799,7 +809,7 @@ function processStartValues() {
                 q:    0x40,
                 from: 'system.adapter.' + adapter.namespace
             });
-            setTimeout(processStartValues, 0);
+            setTimeout(processStartValues, delay);
         }
         if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
             if (sqlDPs[task.id].relogTimeout) clearTimeout(sqlDPs[task.id].relogTimeout);
@@ -927,6 +937,10 @@ function main() {
                             if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
                                 sqlDPs[id][adapter.namespace].retention += 86400;
                             }
+                            if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
+                                if (sqlDPs[task.id].relogTimeout) clearTimeout(sqlDPs[task.id].relogTimeout);
+                                sqlDPs[task.id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500, task.id);
+                            }
                         }
                     }
                 }
@@ -962,6 +976,7 @@ function pushHistory(id, state, timerRelog) {
 
         if (!settings || !state) return;
 
+        adapter.log.debug('new value received for ' + id + ', new-value=' + state.val + ', ts=' + state.ts + ', relog=' + timerRelog);
         if (state.val !== null && typeof state.val === 'string' && settings.storageType !== 'String') {
             var f = parseFloat(state.val);
             if (f == state.val) {
@@ -1020,7 +1035,8 @@ function pushHistory(id, state, timerRelog) {
             }
             if (sqlDPs[id].state && ((sqlDPs[id].state.val === null && state.val !== null) || (sqlDPs[id].state.val !== null && state.val === null))) {
                 ignoreDebonce = true;
-            } else if (!sqlDPs[id].state && state.val === null) {
+            }
+            else if (!sqlDPs[id].state && state.val === null) {
                 ignoreDebonce = true;
             }
 
@@ -1257,7 +1273,9 @@ function processReadTypes() {
                 if (obj && obj.common && obj.common.type) {
                     adapter.log.debug(obj.common.type.toLowerCase() + ' / ' + types[obj.common.type.toLowerCase()] + ' / ' + JSON.stringify(obj.common));
                     sqlDPs[task.id].type = types[obj.common.type.toLowerCase()];
-                } else {
+                }
+                if (sqlDPs[task.id].type === undefined) {
+                    adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + obj.common.type.toLowerCase() + ')');
                     sqlDPs[task.id].type = 1; // string
                 }
                 sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
