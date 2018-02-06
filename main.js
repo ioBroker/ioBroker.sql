@@ -19,8 +19,7 @@ var types   = {
     'number':  0,
     'string':  1,
     'boolean': 2,
-    'object':  1,
-    'mixed':  1
+    'object':  1
 };
 
 var dbNames = [
@@ -1273,14 +1272,28 @@ function processReadTypes() {
                 if (obj && obj.common && obj.common.type) {
                     adapter.log.debug(obj.common.type.toLowerCase() + ' / ' + types[obj.common.type.toLowerCase()] + ' / ' + JSON.stringify(obj.common));
                     sqlDPs[task.id].type = types[obj.common.type.toLowerCase()];
+                    sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
+                    adapter.log.debug('Type (from Obj) for ' + task.id + ': ' + sqlDPs[task.id].type);
+                    processVerifyTypes(task);
                 }
                 if (sqlDPs[task.id].type === undefined) {
-                    adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + obj.common.type.toLowerCase() + ')');
-                    sqlDPs[task.id].type = 1; // string
+                    adapter.getForeignState(task.id, function (err, state) {
+                        if (err) {
+                            adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + obj.common.type.toLowerCase() + ' and no state)');
+                            sqlDPs[task.id].type = 1; // string
+                        }
+                        else if (state && types[typeof state.val] !== undefined) {
+                            sqlDPs[task.id].type = types[typeof state.val];
+                            sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
+                        }
+                        else {
+                            adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + (typeof state.val) + ')');
+                            sqlDPs[task.id].type = 1; // string
+                        }
+                        adapter.log.debug('Type (from State) for ' + task.id + ': ' + sqlDPs[task.id].type);
+                        processVerifyTypes(task);
+                    });
                 }
-                sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
-                adapter.log.debug('Type (from Obj) for ' + task.id + ': ' + sqlDPs[task.id].type);
-                processVerifyTypes(task);
             });
         }
     }
