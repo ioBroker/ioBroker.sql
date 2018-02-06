@@ -935,9 +935,9 @@ function main() {
                             if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
                                 sqlDPs[id][adapter.namespace].retention += 86400;
                             }
-                            if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
-                                if (sqlDPs[task.id].relogTimeout) clearTimeout(sqlDPs[task.id].relogTimeout);
-                                sqlDPs[task.id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500, task.id);
+                            if (sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+                                if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
+                                sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
                             }
                         }
                     }
