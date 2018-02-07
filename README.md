@@ -312,9 +312,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 - **Storage retention**: How long the values will be stored in DB.
 
 ## Changelog
-## 1.6.8 (2018-02-xx)
+## 1.6.9 (2018-02-07)
 * (bondrogeen) Admin3 Fixes
-* (Apollon77) optimize relog feature
+* (Apollon77) optimize relog feature and other things
 
 ## 1.6.7 (2018-01-31)
 * (Bluefox) Admin3 Fixes

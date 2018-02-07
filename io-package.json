@@ -24,8 +24,19 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.6.8",
+        "version": "1.6.9",
         "news": {
+            "1.6.9": {
+                "en": "More Fixes and Optimizations",
+                "de": "Weitere Fixes und Optimierungen",
+                "ru": "Дополнительные исправления и оптимизации",
+                "pt": "Mais correções e otimizações",
+                "nl": "Meer oplossingen en optimalisaties",
+                "fr": "Plus de correctifs et d'optimisations",
+                "it": "Altre correzioni e ottimizzazioni",
+                "es": "Más soluciones y optimizaciones",
+                "pl": "Więcej poprawek i optymalizacji"
+            },
             "1.6.7": {
                 "en": "fix relog value feature",
                 "de": "Erneutes Logging korrigiert",
