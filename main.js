@@ -790,11 +790,11 @@ function processStartValues() {
                     ack:  true,
                     q:    0x40,
                     from: 'system.adapter.' + adapter.namespace
-                });
+                }, true);
                 if (state) {
                     state.ts = now;
                     state.from = 'system.adapter.' + adapter.namespace;
-                    pushHistory(task.id, state);
+                    pushHistory(task.id, state, true);
                 }
                 setTimeout(processStartValues, 0);
             });
@@ -806,7 +806,7 @@ function processStartValues() {
                 ack:  true,
                 q:    0x40,
                 from: 'system.adapter.' + adapter.namespace
-            });
+            }, true);
             setTimeout(processStartValues, 0);
         }
         if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
