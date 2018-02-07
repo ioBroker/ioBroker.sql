@@ -787,14 +787,16 @@ function processStartValues() {
                 pushHistory(task.id, {
                     val:  null,
                     ts:   state ? now - 4 : now, // 4 is because of MS SQL
+                    lc:   state ? now - 4 : now, // 4 is because of MS SQL
                     ack:  true,
                     q:    0x40,
                     from: 'system.adapter.' + adapter.namespace
-                }, true);
+                });
                 if (state) {
                     state.ts = now;
+                    state.lc = now;
                     state.from = 'system.adapter.' + adapter.namespace;
-                    pushHistory(task.id, state, true);
+                    pushHistory(task.id, state);
                 }
                 setTimeout(processStartValues, 0);
             });
@@ -803,10 +805,11 @@ function processStartValues() {
             pushHistory(task.id, {
                 val:  null,
                 ts:   task.now || new Date().getTime(),
+                lc:   task.now || new Date().getTime(),
                 ack:  true,
                 q:    0x40,
                 from: 'system.adapter.' + adapter.namespace
-            }, true);
+            });
             setTimeout(processStartValues, 0);
         }
         if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
@@ -993,7 +996,7 @@ function pushHistory(id, state, timerRelog) {
             else if (sqlDPs[id].lastLogTime) {
                 if ((state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) {
                     sqlDPs[id].skipped = state; // remember new timestamp
-                    adapter.log.debug('value not changed ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
+                    adapter.log.debug('value not changed relog' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
                     return;
                 }
                 if (state.ts !== state.lc) {
