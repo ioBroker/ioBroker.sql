@@ -77,8 +77,8 @@ function sendTo(target, command, message, callback) {
     });
 }
 
-describe('Test MySQL Existing', function() {
-    before('Test MySQL Existing: Start js-controller', function (_done) {
+describe('Test MySQL Existing No Nulls', function() {
+    before('Test MySQL Existing No Nulls: Start js-controller', function (_done) {
         this.timeout(600000); // because of first install from npm
         setup.adapterStarted = false;
 
@@ -108,7 +108,7 @@ describe('Test MySQL Existing', function() {
         });
     });
 
-    it('Test MySQL Existing: Check if adapter started', function (done) {
+    it('Test MySQL Existing No Nulls: Check if adapter started', function (done) {
         this.timeout(60000);
         checkConnectionOfAdapter(function () {
             now = new Date().getTime();
@@ -186,7 +186,7 @@ describe('Test MySQL Existing', function() {
             done();
         });
     });
-    it('Test MySQL Existing: Write values into DB', function (done) {
+    it('Test MySQL Existing No Nulls: Write values into DB', function (done) {
         this.timeout(10000);
 
         states.setState('system.adapter.sql.0.memRss', {val: true, ts: now - 20000}, function (err) {
@@ -245,7 +245,7 @@ describe('Test MySQL Existing', function() {
             }, 100);
         });
     });
-    it('Test MySQL Existing: Read values from DB using query', function (done) {
+    it('Test MySQL Existing No Nulls: Read values from DB using query', function (done) {
         this.timeout(10000);
 
         sendTo('sql.0', 'query', 'SELECT id FROM iobroker.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
@@ -261,7 +261,7 @@ describe('Test MySQL Existing', function() {
                     if (result.result[i].val === 2.2) found22 = true;
                     if (result.result[i].val === 2.3) found23 = true;
                 }
-                expect(found).to.be.equal(10);
+                expect(found).to.be.equal(15);
                 expect(found22).to.be.false;
                 expect(found23).to.be.true;
 
@@ -271,7 +271,7 @@ describe('Test MySQL Existing', function() {
             });
         });
     });
-    it('Test MySQL Existing: Read values from DB using GetHistory', function (done) {
+    it('Test MySQL Existing No Nulls: Read values from DB using GetHistory', function (done) {
         this.timeout(10000);
 
         sendTo('sql.0', 'getHistory', {
@@ -289,7 +289,7 @@ describe('Test MySQL Existing', function() {
             for (var i = 0; i < result.result.length; i++) {
                 if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
             }
-            expect(found).to.be.equal(10);
+            expect(found).to.be.equal(15);
 
             sendTo('sql.0', 'getHistory', {
                 id: 'system.adapter.sql.0.memRss',
@@ -354,7 +354,7 @@ describe('Test MySQL Existing', function() {
         });
     });
 
-    after('Test MySQL Existing: Stop js-controller', function (done) {
+    after('Test MySQL Existing No Nulls: Stop js-controller', function (done) {
         this.timeout(6000);
 
         setup.stopController(function (normalTerminated) {
