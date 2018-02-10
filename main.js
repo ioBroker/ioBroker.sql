@@ -1289,7 +1289,7 @@ function processReadTypes() {
                             sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
                         }
                         else {
-                            adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + (typeof state.val) + ')');
+                            adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + (state?(typeof state.val):'state not existing') + ')');
                             sqlDPs[task.id].type = 1; // string
                         }
                         adapter.log.debug('Type (from State) for ' + task.id + ': ' + sqlDPs[task.id].type);
