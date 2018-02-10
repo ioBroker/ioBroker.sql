@@ -54,6 +54,7 @@
             convertComma = systemConfig.common.isFloatComma;
         }
 
+        if (settings.writeNulls === undefined) settings.writeNulls = true;
         for (var key in settings) {
             if (settings.hasOwnProperty(key)) {
                 setValue(key, settings[key], onChange);
@@ -240,8 +241,14 @@
                     </div>
                 </div>
                 <div class="row">
+                    <div class="input-field col s12 m4">
+                        <input id="writeNulls" type="checkbox" class="value" />
+                        <label class="translate" for="writeNulls">Write NULL values on start/stop boundaries:</label>
+                    </div>
+                </div>
+                <div class="row">
                     <div class="col s12">
-                        <a id="test" class="waves-effect waves-light btn"><i class="material-icons left">wifi_tethering</i><span class="translate">Test connection</span></a>                       
+                        <a id="test" class="waves-effect waves-light btn"><i class="material-icons left">wifi_tethering</i><span class="translate">Test connection</span></a>
                         <a id="reset" class="waves-effect waves-light btn"><i class="material-icons left">report</i><span class="translate">Reset DB</span></a>
                     </div>
                 </div>

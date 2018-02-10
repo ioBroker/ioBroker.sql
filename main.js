@@ -125,7 +125,7 @@ adapter.on('objectChange', function (id, obj) {
         if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
             sqlDPs[id][adapter.namespace].retention += 86400;
         }
-        if (writeNull) {
+        if (writeNull && adapter.config.writeNulls) {
             writeNulls(id);
         }
         adapter.log.info('enabled logging of ' + id);
@@ -150,7 +150,7 @@ adapter.on('objectChange', function (id, obj) {
             }
 
             var nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
-            if (sqlDPs[id][adapter.namespace]) {
+            if (sqlDPs[id][adapter.namespace] && adapter.config.writeNulls) {
                 if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
                     (function (_id, _state, _nullValue) {
                         _state.ts   = now;
@@ -628,7 +628,7 @@ function finish(callback) {
         }
 
         var nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
-        if (sqlDPs[id][adapter.namespace]) {
+        if (sqlDPs[id][adapter.namespace] && adapter.config.writeNulls) {
             if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
                 count++;
                 (function (_id, _state, _nullValue) {
@@ -841,6 +841,8 @@ function main() {
 
     adapter.config.dbname = adapter.config.dbname || 'iobroker';
 
+    if (adapter.config.writeNulls === undefined) adapter.config.writeNulls = true;
+
     adapter.config.retention = parseInt(adapter.config.retention, 10) || 0;
     adapter.config.debounce  = parseInt(adapter.config.debounce,  10) || 0;
     adapter.config.requestInterval = (adapter.config.requestInterval === undefined || adapter.config.requestInterval === null  || adapter.config.requestInterval === '') ? 0 : parseInt(adapter.config.requestInterval, 10) || 0;
@@ -947,7 +949,7 @@ function main() {
                 }
             }
 
-            writeNulls();
+            if (adapter.config.writeNulls) writeNulls();
 
             if (count < 20) {
                 for (var _id in sqlDPs) {

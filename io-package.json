@@ -146,7 +146,8 @@
         "dbname":    "iobroker",
         "multiRequests": true,
         "changesRelogInterval":      0,
-        "changesMinDelta": 0
+        "changesMinDelta": 0,
+        "writeNulls": true
     },
     "instanceObjects": [
         {

@@ -41,5 +41,6 @@
   "Are you sure? All data will be dropped.": "Weet je het zeker? Alle gegevens worden verwijderd.",
   "Reset DB": "Stel DB opnieuw in",
   "Ok": "OK",
-  "Allow parallel requests:": "Sta parallelle verzoeken toe"
+  "Allow parallel requests:": "Sta parallelle verzoeken toe",
+  "Write NULL values on start/stop boundaries:": "Schrijf NULL-waarden op start / stop-grenzen:"
 }

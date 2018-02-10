@@ -41,5 +41,6 @@
   "Are you sure? All data will be dropped.": "Вы уверенны? Все данные в базе будут удалены.",
   "Reset DB": "Сбросить DB",
   "Ok": "Ok",
-  "Allow parallel requests:": "Разрешить параллельные запросы к базе"
+  "Allow parallel requests:": "Разрешить параллельные запросы к базе",
+  "Write NULL values on start/stop boundaries:": "Запись значений NULL на границах начала / остановки:"
 }

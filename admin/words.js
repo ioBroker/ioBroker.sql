@@ -45,5 +45,16 @@ systemDictionary = {
     "Are you sure? All data will be dropped.": {     "en": "Are you sure? All data will be dropped.",         "de": "Sind Sie sicher? ALLE Daten werden geöscht.",     "ru": "Вы уверенны? Все данные в базе будут удалены.",   "pt": "Você tem certeza? Todos os dados serão descartados.", "nl": "Weet je het zeker? Alle gegevens worden verwijderd.", "fr": "Êtes-vous sûr? Toutes les données seront supprimées.", "it": "Sei sicuro? Tutti i dati verranno eliminati.",    "es": "¿Estás seguro? Todos los datos serán eliminados.", "pl": "Jesteś pewny? Wszystkie dane zostaną usunięte."},
     "Reset DB": {                                    "en": "Reset DB",                                        "de": "Alle Daten in DB löschen",                        "ru": "Сбросить DB",                                     "pt": "Redefinir DB",                                    "nl": "Stel DB opnieuw in",                              "fr": "Reset DB",                                        "it": "Ripristina DB",                                   "es": "Restablecer DB",                                  "pl": "Zresetuj DB"},
     "Ok": {                                          "en": "Ok",                                              "de": "Ok",                                              "ru": "Ok",                                              "pt": "Está bem",                                        "nl": "OK",                                              "fr": "D'accord",                                        "it": "Ok",                                              "es": "De acuerdo",                                      "pl": "Ok"},
-    "Allow parallel requests:": {                    "en": "Allow parallel requests",                         "de": "Parallelanfragen erlauben",                       "ru": "Разрешить параллельные запросы к базе",           "pt": "Permitir pedidos paralelos",                      "nl": "Sta parallelle verzoeken toe",                    "fr": "Autoriser les demandes parallèles",               "it": "Consenti richieste parallele",                    "es": "Permitir solicitudes paralelas",                  "pl": "Pozwól na równoległe żądania"}
+    "Allow parallel requests:": {                    "en": "Allow parallel requests",                         "de": "Parallelanfragen erlauben",                       "ru": "Разрешить параллельные запросы к базе",           "pt": "Permitir pedidos paralelos",                      "nl": "Sta parallelle verzoeken toe",                    "fr": "Autoriser les demandes parallèles",               "it": "Consenti richieste parallele",                    "es": "Permitir solicitudes paralelas",                  "pl": "Pozwól na równoległe żądania"},
+    "Write NULL values on start/stop boundaries:": {
+        "en": "Write NULL values on start/stop boundaries:",
+        "de": "Schreibe NULL-Werte an Start- / Stop-Grenzen:",
+        "ru": "Запись значений NULL на границах начала / остановки:",
+        "pt": "Escreva valores NULL nos limites de início / parada:",
+        "nl": "Schrijf NULL-waarden op start / stop-grenzen:",
+        "fr": "Écrire des valeurs NULL sur les limites de démarrage / arrêt:",
+        "it": "Scrivi valori NULL sui limiti di avvio / arresto:",
+        "es": "Escribe valores NULL en los límites de inicio / finalización:",
+        "pl": "Napisz wartości NULL na granicach start / stop:"
+    }
 };

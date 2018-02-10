@@ -41,5 +41,6 @@
   "Are you sure? All data will be dropped.": "Are you sure? All data will be dropped.",
   "Reset DB": "Reset DB",
   "Ok": "Ok",
-  "Allow parallel requests:": "Allow parallel requests"
+  "Allow parallel requests:": "Allow parallel requests",
+  "Write NULL values on start/stop boundaries:": "Write NULL values on start/stop boundaries:"
 }

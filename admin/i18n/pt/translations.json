@@ -41,5 +41,6 @@
   "Are you sure? All data will be dropped.": "Você tem certeza? Todos os dados serão descartados.",
   "Reset DB": "Redefinir DB",
   "Ok": "Está bem",
-  "Allow parallel requests:": "Permitir pedidos paralelos"
+  "Allow parallel requests:": "Permitir pedidos paralelos",
+  "Write NULL values on start/stop boundaries:": "Escreva valores NULL nos limites de início / parada:"
 }
