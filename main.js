@@ -1769,9 +1769,13 @@ function getHistory(msg) {
     if (sqlDPs[options.id].type === undefined && sqlDPs[options.id].dbtype !== undefined) {
         if (sqlDPs[options.id][adapter.namespace] && sqlDPs[options.id][adapter.namespace].storageType) {
             if (storageTypes.indexOf(sqlDPs[options.id][adapter.namespace].storageType) === sqlDPs[options.id].dbtype) {
-                adapter.log.debug('For getHistory for id ' + options.id + ': Type empty, use dbtype ' + sqlDPs[options.id].dbtype);
+                adapter.log.debug('For getHistory for id ' + options.id + ': Type empty, use storageType dbtype ' + sqlDPs[options.id].dbtype);
                 sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
             }
+        }
+        else {
+            adapter.log.debug('For getHistory for id ' + options.id + ': Type empty, use dbtype ' + sqlDPs[options.id].dbtype);
+            sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
         }
     }
     if (sqlDPs[options.id].type === undefined) {

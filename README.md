@@ -312,7 +312,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 - **Storage retention**: How long the values will be stored in DB.
 
 ## Changelog
-## 1.7.0 (2018-02-10)
+## 1.7.1 (2018-02-10)
 * (Apollon77) Make option to write NULL values on start/stop boundaries configurable
 
 ## 1.6.9 (2018-02-07)
