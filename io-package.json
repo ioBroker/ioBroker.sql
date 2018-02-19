@@ -26,6 +26,17 @@
         },
         "version": "1.7.1",
         "news": {
+            "1.7.1": {
+                "en": "More Fixes and Optimizations, Allow to configure NULL writing",
+                "de": "Weitere Fixes und Optimierungen, erlauben, NULL-Schreiben zu konfigurieren",
+                "ru": "Дополнительные исправления и оптимизации. Позвольте настроить NULL-запись.",
+                "pt": "Mais correções e otimizações, Permite configurar a escrita NULL",
+                "nl": "Meer correcties en optimalisaties, toestaan ​​om NULL-schrijven te configureren",
+                "fr": "Plus de correctifs et d'optimisations, Autoriser la configuration de l'écriture NULL",
+                "it": "Altre correzioni e ottimizzazioni, Permetti di configurare la scrittura NULL",
+                "es": "Más soluciones y optimizaciones, permiten configurar la escritura NULL",
+                "pl": "Więcej poprawek i optymalizacji, Pozwól skonfigurować NULL pisania"
+            },
             "1.6.9": {
                 "en": "More Fixes and Optimizations",
                 "de": "Weitere Fixes und Optimierungen",
