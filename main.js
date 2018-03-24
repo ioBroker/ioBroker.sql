@@ -868,6 +868,7 @@ function main() {
     }
 
     multiRequests = clients[adapter.config.dbtype].multiRequests;
+    if (!multiRequests) adapter.config.writeNulls = false;
 
     adapter.config.port = parseInt(adapter.config.port, 10) || 0;
     if (adapter.config.round !== null && adapter.config.round !== undefined) {

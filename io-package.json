@@ -24,8 +24,19 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.7.1",
+        "version": "1.7.2",
         "news": {
+            "1.7.2": {
+                "en": "Disable to write NULLs for SQLite",
+                "de": "Deaktivieren Sie, um NULL für SQLite zu schreiben",
+                "ru": "Отключить запись NULL для SQLite",
+                "pt": "Desativar para escrever NULLs para SQLite",
+                "nl": "Uitschakelen om NULL's voor SQLite te schrijven",
+                "fr": "Désactiver pour écrire des valeurs NULL pour SQLite",
+                "it": "Disabilita per scrivere NULL per SQLite",
+                "es": "Deshabilitar para escribir NULL para SQLite",
+                "pl": "Wyłącz, aby pisać wartości NULL dla SQLite"
+            },
             "1.7.1": {
                 "en": "More Fixes and Optimizations, Allow to configure NULL writing",
                 "de": "Weitere Fixes und Optimierungen, erlauben, NULL-Schreiben zu konfigurieren",

@@ -312,6 +312,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 - **Storage retention**: How long the values will be stored in DB.
 
 ## Changelog
+## 1.7.2 (2018-03-24)
+* (Apollon77) Disable to write NULLs for SQLite
+
 ## 1.7.1 (2018-02-10)
 * (Apollon77) Make option to write NULL values on start/stop boundaries configurable
 
