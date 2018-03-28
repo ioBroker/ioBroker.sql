@@ -24,8 +24,19 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.7.2",
+        "version": "1.7.3",
         "news": {
+            "1.7.3": {
+                "en": "Respect 'keep forever' setting for retention from datapoint configuration",
+                "de": "Beachten der 'Keep forever' Einstellung für die Aufbewahrung von Datenpunktkonfiguration",
+                "ru": "Упорядочить «сохранить навсегда» для сохранения из конфигурации данных",
+                "pt": "Respeito 'manter sempre' configurado para retenção da configuração do ponto de dados",
+                "nl": "Respecteer 'blijf voor altijd' instelling voor retentie van datapuntconfiguratie",
+                "fr": "Respectez le paramètre 'keep forever' pour la rétention à partir de la configuration du point de données",
+                "it": "Rispettare l'impostazione 'keep forever' per la conservazione dalla configurazione del datapoint",
+                "es": "Respetar la configuración 'mantener para siempre' para la retención desde la configuración del punto de datos",
+                "pl": "Szanuj ustawienie \"zachowaj na zawsze\", aby zachować dane z konfiguracji punktu danych"
+            },
             "1.7.2": {
                 "en": "Disable to write NULLs for SQLite",
                 "de": "Deaktivieren Sie, um NULL für SQLite zu schreiben",

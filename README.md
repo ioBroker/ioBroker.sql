@@ -312,6 +312,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 - **Storage retention**: How long the values will be stored in DB.
 
 ## Changelog
+
+## 1.7.3 (2018-03-28)
+* (Apollon77) Respect 'keep forever' setting for retention from datapoint configuration
+
 ## 1.7.2 (2018-03-24)
 * (Apollon77) Disable to write NULLs for SQLite
 
