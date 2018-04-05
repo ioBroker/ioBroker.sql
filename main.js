@@ -1779,10 +1779,6 @@ function getHistory(msg) {
             sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
         }
     }
-    if (sqlDPs[options.id].type === undefined) {
-        adapter.log.warn('For getHistory for id ' + options.id + ': Type empty. Need to write data first. Index = ' + sqlDPs[options.id].index);
-        commons.sendResponse(adapter, msg, options, 'Please wait till next data record is logged and reload.', startTime);
-    }
     if (options.id && sqlDPs[options.id].index === undefined) {
         // read or create in DB
         return getId(options.id, null, function (err) {
@@ -1793,6 +1789,11 @@ function getHistory(msg) {
                 getHistory(msg);
             }
         });
+    }
+    if (options.id && sqlDPs[options.id].type === undefined) {
+        adapter.log.warn('For getHistory for id ' + options.id + ': Type empty. Need to write data first. Index = ' + sqlDPs[options.id].index);
+        commons.sendResponse(adapter, msg, options, 'Please wait till next data record is logged and reload.', startTime);
+        return;
     }
     var type = sqlDPs[options.id].type;
     if (options.id) {
