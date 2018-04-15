@@ -26,6 +26,17 @@
         },
         "version": "1.7.4",
         "news": {
+            "1.7.4": {
+                "en": "Fix getHistory",
+                "de": "Repariere getHistory",
+                "ru": "Исправить getHistory",
+                "pt": "Corrigir o getHistory",
+                "nl": "GetHistory repareren",
+                "fr": "Fixer getHistory",
+                "it": "Correggere getHistory",
+                "es": "Arreglar getHistory",
+                "pl": "Napraw getHistory"
+            },
             "1.7.3": {
                 "en": "Respect 'keep forever' setting for retention from datapoint configuration",
                 "de": "Beachten der 'Keep forever' Einstellung für die Aufbewahrung von Datenpunktkonfiguration",
