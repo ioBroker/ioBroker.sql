@@ -24,8 +24,19 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.7.4",
+        "version": "1.8.0",
         "news": {
+            "1.8.0": {
+                "en": "Update sqlite3, nodejs 10 compatible",
+                "de": "Aktualisieren Sie sqlite3, nodejs 10 kompatibel",
+                "ru": "Обновление sqlite3, nodejs 10 совместимо",
+                "pt": "Atualizar sqlite3, compatível com nodejs 10",
+                "nl": "Update sqlite3, nodejs 10 compatibel",
+                "fr": "Mettre à jour sqlite3, nodejs 10 compatible",
+                "it": "Aggiornamento sqlite3, nodejs 10 compatibile",
+                "es": "Actualizar sqlite3, nodejs 10 compatible",
+                "pl": "Zaktualizuj sqlite3, kompatybilny z nodej 10"
+            },
             "1.7.4": {
                 "en": "Fix getHistory",
                 "de": "Repariere getHistory",
