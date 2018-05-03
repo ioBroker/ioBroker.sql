@@ -315,6 +315,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## 1.8.0 (2018-04-29)
 * (Apollon77) Update sqlite3, nodejs 10 compatible
+* (BuZZy1337) Admin fix
 
 ## 1.7.4 (2018-04-15)
 * (Apollon77) Fix getHistory
