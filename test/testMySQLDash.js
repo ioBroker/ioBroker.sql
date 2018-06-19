@@ -163,10 +163,33 @@ describe('Test MySQL-with-dash', function() {
                                 }, function (result) {
                                     expect(result.error).to.be.undefined;
                                     expect(result.success).to.be.true;
-                                    // wait till adapter receives the new settings
-                                    setTimeout(function () {
-                                        done();
-                                    }, 20000);
+                                    objects.setObject('sql.0.testValue2', {
+                                        common: {
+                                            type: 'number',
+                                            role: 'state'
+                                        },
+                                        type: 'state'
+                                    },
+                                    function () {
+                                        sendTo('sql.0', 'enableHistory', {
+                                            id: 'sql.0.testValue2',
+                                            options: {
+                                                changesOnly:  true,
+                                                debounce:     0,
+                                                retention:    31536000,
+                                                maxLength:    3,
+                                                changesMinDelta: 0.5,
+                                                aliasId: 'sql.0.testValue2-alias'
+                                            }
+                                        }, function (result) {
+                                            expect(result.error).to.be.undefined;
+                                            expect(result.success).to.be.true;
+                                            // wait till adapter receives the new settings
+                                            setTimeout(function () {
+                                                done();
+                                            }, 2000);
+                                        });
+                                    });
                                 });
                             });
                         });
@@ -179,7 +202,7 @@ describe('Test MySQL-with-dash', function() {
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
-            expect(Object.keys(result).length).to.be.equal(4);
+            expect(Object.keys(result).length).to.be.equal(5);
             expect(result['system.adapter.sql.0.memRss'].enabled).to.be.true;
             done();
         });
@@ -223,7 +246,21 @@ describe('Test MySQL-with-dash', function() {
                                                             if (err) {
                                                                 console.log(err);
                                                             }
-                                                            setTimeout(done, 5000);
+                                                            setTimeout(function () {
+                                                                states.setState('sql.0.testValue2', {val: 1, ts: now - 2000}, function (err) {
+                                                                    if (err) {
+                                                                        console.log(err);
+                                                                    }
+                                                                    setTimeout(function () {
+                                                                        states.setState('sql.0.testValue2', {val: 3, ts: now - 3000}, function (err) {
+                                                                            if (err) {
+                                                                                console.log(err);
+                                                                            }
+                                                                            setTimeout(done, 5000);
+                                                                        });
+                                                                    }, 100);
+                                                                });
+                                                            }, 100);
                                                         });
                                                     }, 100);
                                                 });
@@ -320,6 +357,42 @@ describe('Test MySQL-with-dash', function() {
             }, 3000);
         });
     });
+
+    it('Test ' + adapterShortName + ': Read values from DB using GetHistory for aliased testValue2', function (done) {
+        this.timeout(25000);
+
+        sendTo('sql.0', 'getHistory', {
+            id: 'sql.0.testValue2',
+            options: {
+                start:     now - 5000,
+                end:       now,
+                count:     50,
+                aggregate: 'none'
+            }
+        }, function (result) {
+            console.log(JSON.stringify(result.result, null, 2));
+            expect(result.result.length).to.be.equal(2);
+
+            sendTo('sql.0', 'getHistory', {
+                id: 'sql.0.testValue2-alias',
+                options: {
+                    start:     now - 5000,
+                    end:       now,
+                    count:     50,
+                    aggregate: 'none'
+                }
+            }, function (result2) {
+                console.log(JSON.stringify(result2.result, null, 2));
+                expect(result2.result.length).to.be.equal(2);
+                for (var i = 0; i < result2.result.length; i++) {
+                    expect(result2.result[i].val).to.be.equal(result.result[i].val);
+                }
+
+                done();
+            });
+        });
+    });
+
     it('Test ' + adapterShortName + ': Disable Datapoint again', function (done) {
         this.timeout(5000);
 
@@ -336,7 +409,7 @@ describe('Test MySQL-with-dash', function() {
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
-            expect(Object.keys(result).length).to.be.equal(3);
+            expect(Object.keys(result).length).to.be.equal(4);
             done();
         });
     });
