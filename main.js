@@ -45,6 +45,7 @@ var tasksStart    = [];
 var finished      = false;
 var connected     = null;
 var isFromRunning = {};
+var aliasMap   = {};
 
 var adapter = utils.Adapter('sql');
 adapter.on('objectChange', function (id, obj) {
@@ -57,11 +58,18 @@ adapter.on('objectChange', function (id, obj) {
             (obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled)
         )
     ) {
+        var realId = id;
+        if (obj.common.custom && obj.common.custom[adapter.namespace] && obj.common.custom[adapter.namespace].aliasId) {
+            aliasMap[id] = obj.common.custom[adapter.namespace].aliasId;
+            adapter.log.debug('Found Alias: ' + id + ' --> ' + aliasMap[id]);
+            id = aliasMap[id];
+        }
+
         if (!(sqlDPs[id] && sqlDPs[id][adapter.namespace]) && !subscribeAll) {
             // un-subscribe
             for (var _id in sqlDPs) {
-                if (sqlDPs.hasOwnProperty(_id) && sqlDPs[_id] && sqlDPs[_id][adapter.namespace]) {
-                    adapter.unsubscribeForeignStates(_id);
+                if (sqlDPs.hasOwnProperty(sqlDPs[_id].realId)) {
+                    adapter.unsubscribeForeignStates(sqlDPs[_id].realId);
                 }
             }
             subscribeAll = true;
@@ -94,6 +102,7 @@ adapter.on('objectChange', function (id, obj) {
             sqlDPs[id].dbtype = storedType;
         }
         adapter.log.debug('remembered Index/Type ' + sqlDPs[id].index + ' / ' + sqlDPs[id].dbtype);
+        sqlDPs[id].realId  = realId;
 
         if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
             sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
@@ -128,11 +137,12 @@ adapter.on('objectChange', function (id, obj) {
         if (writeNull && adapter.config.writeNulls) {
             writeNulls(id);
         }
-        adapter.log.info('enabled logging of ' + id);
+        adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId) + ', ' + Object.keys(sqlDPs).length + ' points now activated');
     }
     else {
+        id = aliasMap[id] ? aliasMap[id] : id;
         if (sqlDPs[id]) {
-            adapter.log.info('disabled logging of ' + id);
+            adapter.log.info('disabled logging of ' + id + ', ' + Object.keys(sqlDPs).length + ' points now activated');
             if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
             if (sqlDPs[id].timeout) clearTimeout(sqlDPs[id].timeout);
 
@@ -183,6 +193,7 @@ adapter.on('objectChange', function (id, obj) {
 });
 
 adapter.on('stateChange', function (id, state) {
+    id = aliasMap[id] ? aliasMap[id] : id;
     pushHistory(id, state);
 });
 
@@ -724,9 +735,6 @@ function processMessage(msg) {
     else if (msg.command === 'destroy') {
         destroyDB(msg);
     }
-    /* else if (msg.command === 'generateDemo') {
-        generateDemo(msg);
-    } */
     else if (msg.command === 'query') {
         query(msg);
     }
@@ -782,7 +790,7 @@ function processStartValues() {
     if (tasksStart && tasksStart.length) {
         var task = tasksStart.shift();
         if (sqlDPs[task.id][adapter.namespace].changesOnly) {
-            adapter.getForeignState(task.id, function (err, state) {
+            adapter.getForeignState(sqlDPs[task.id].realId, function (err, state) {
                 var now = task.now || new Date().getTime();
                 pushHistory(task.id, {
                     val:  null,
@@ -902,13 +910,19 @@ function main() {
                 for (var i = 0, l = doc.rows.length; i < l; i++) {
                     if (doc.rows[i].value) {
                         var id = doc.rows[i].id;
+                        var realId = id;
+                        if (doc.rows[i].value[adapter.namespace] && doc.rows[i].value[adapter.namespace].aliasId) {
+                            aliasMap[id] = doc.rows[i].value[adapter.namespace].aliasId;
+                            adapter.log.debug('Found Alias: ' + id + ' --> ' + aliasMap[id]);
+                            id = aliasMap[id];
+                        }
                         sqlDPs[id] = doc.rows[i].value;
 
                         if (!sqlDPs[id][adapter.namespace]) {
                             delete sqlDPs[id];
                         } else {
                             count++;
-                            adapter.log.info('enabled logging of ' + id);
+                            adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId) + ', ' + count + ' points now activated');
                             if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
                                 sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
                             } else {
@@ -945,6 +959,8 @@ function main() {
                                 if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
                                 sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
                             }
+
+                            history[id].realId  = realId;
                         }
                     }
                 }
@@ -954,8 +970,8 @@ function main() {
 
             if (count < 20) {
                 for (var _id in sqlDPs) {
-                    if (sqlDPs.hasOwnProperty(_id) && sqlDPs[_id] && sqlDPs[_id][adapter.namespace]) {
-                        adapter.subscribeForeignStates(_id);
+                    if (sqlDPs.hasOwnProperty(_id)) {
+                        adapter.subscribeForeignStates(sqlDPs[_id].realId);
                     }
                 }
             } else {
@@ -1073,7 +1089,7 @@ function reLogHelper(_id) {
         pushHistory(_id, sqlDPs[_id].state, true);
     }
     else {
-        adapter.getForeignState(_id, function (err, state) {
+        adapter.getForeignState(sqlDPs[_id].realId, function (err, state) {
             if (err) {
                 adapter.log.info('init timed Relog: can not get State for ' + _id + ' : ' + err);
             }
@@ -1270,7 +1286,7 @@ function processReadTypes() {
             processVerifyTypes(task);
         }
         else {
-            adapter.getForeignObject(task.id, function (err, obj) {
+            adapter.getForeignObject(sqlDPs[task.id].realId, function (err, obj) {
                 if (err) {
                     adapter.log.warn('Error while get Object for Def: ' + err);
                 }
@@ -1282,7 +1298,7 @@ function processReadTypes() {
                     processVerifyTypes(task);
                 }
                 if (sqlDPs[task.id].type === undefined) {
-                    adapter.getForeignState(task.id, function (err, state) {
+                    adapter.getForeignState(sqlDPs[task.id].realId, function (err, state) {
                         if (err) {
                             adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + obj.common.type.toLowerCase() + ' and no state)');
                             sqlDPs[task.id].type = 1; // string
@@ -1746,6 +1762,9 @@ function getHistory(msg) {
         addId:      msg.message.options.addId || false,
         sessionId:  msg.message.options.sessionId
     };
+    if (options.id && aliasMap[options.id]) {
+        options.id = aliasMap[options.id];
+    }
 
     if (options.ignoreNull === 'true')  options.ignoreNull = true;  // include nulls and replace them with last value
     if (options.ignoreNull === 'false') options.ignoreNull = false; // include nulls
@@ -1822,88 +1841,7 @@ function getHistory(msg) {
         }
     }
 }
-/*
-function generateDemo(msg) {
-    var id      = adapter.name +'.' + adapter.instance + '.Demo.' + (msg.message.id || 'Demo_Data');
-    var start   = new Date(msg.message.start).getTime();
-    var end     = new Date(msg.message.end).getTime();
-    var value   = 1;
-    var sin     = 0.1;
-    var up      = true;
-    var curve   = msg.message.curve;
-    var step    = (msg.message.step || 60) * 1000;
 
-
-    if (end < start) {
-        var tmp = end;
-        end = start;
-        start = tmp;
-    }
-
-    end = new Date(end).setHours(24);
-
-    function generate() {
-        if (curve === 'sin') {
-            if (sin === 6.2) {
-                sin = 0;
-            } else {
-                sin = Math.round((sin + 0.1) * 10) / 10;
-            }
-            value = Math.round(Math.sin(sin) * 10000) / 100;
-        } else if (curve === 'dec') {
-            value++;
-        } else if (curve === 'inc') {
-            value--;
-        } else {
-            if (up) {
-                value++;
-            } else {
-                value--;
-            }
-        }
-        start += step;
-
-        pushValueIntoDB(id, {
-            ts:   new Date(start).getTime(),
-            val:  value,
-            q:    0,
-            ack:  true
-        });
-
-
-        if (start <= end) {
-            setTimeout(function () {
-                generate();
-            }, 15);
-        } else {
-            adapter.sendTo(msg.from, msg.command, 'finished', msg.callback);
-        }
-    }
-    var obj = {
-        type: 'state',
-        common: {
-            name:       msg.message.id,
-            type:       'state',
-            enabled:    false,
-            custom:     {}
-        }
-    };
-    obj.common.custom[adapter.namespace] = {
-        enabled:        true,
-        changesOnly:    false,
-        debounce:       1000,
-        retention:      31536000
-    };
-
-
-    adapter.setObject('demo.' + msg.message.id, obj);
-
-    sqlDPs[id] = {};
-    sqlDPs[id][adapter.namespace] = obj.common.custom[adapter.namespace];
-
-    generate();
-}
-*/
 function storeState(msg) {
     if (!msg.message || !msg.message.id || !msg.message.state) {
         adapter.log.error('storeState called with invalid data');
@@ -1913,16 +1851,20 @@ function storeState(msg) {
         return;
     }
 
+    var id;
     if (Array.isArray(msg.message)) {
         for (var i = 0; i < msg.message.length; i++) {
-            pushValueIntoDB(msg.message[i].id, msg.message[i].state);
+            id = aliasMap[msg.message[i].id] ? aliasMap[msg.message[i].id] : msg.message[i].id;
+            pushValueIntoDB(id, msg.message[i].state);
         }
     } else if (Array.isArray(msg.message.state)) {
         for (var j = 0; j < msg.message.state.length; j++) {
-            pushValueIntoDB(msg.message.id, msg.message.state[j]);
+            id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
+            pushValueIntoDB(id, msg.message.state[j]);
         }
     } else {
-        pushValueIntoDB(msg.message.id, msg.message.state);
+        id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
+        pushValueIntoDB(id, msg.message.state);
     }
 
     adapter.sendTo(msg.from, msg.command, {
@@ -2101,7 +2043,7 @@ function getEnabledDPs(msg) {
     var data = {};
     for (var id in sqlDPs) {
         if (sqlDPs.hasOwnProperty(id) && sqlDPs[id] && sqlDPs[id][adapter.namespace]) {
-            data[id] = sqlDPs[id][adapter.namespace];
+            data[sqlDPs[id].realId] = sqlDPs[id][adapter.namespace];
         }
     }
 

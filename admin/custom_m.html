@@ -55,7 +55,15 @@
             <label class="translate">Storage retention</label>
         </div>
     </div>
-
+    <div class="row">
+        <div class="col s8">
+            <input class="value" data-field="aliasId" data-default="" type="text" maxlength="10" />
+            <label class="translate">aliasId</label>
+        </div>
+        <div class="col s4">
+            <label class="translate">Alias Info</label>
+        </div>
+    </div>
 </script>
 
 <!-- translations -->
@@ -84,6 +92,28 @@
         "log changes minimal delta (0 = disable delta check)": {"en": "Minimum difference from last value to log<br>(0 = disable delta check)", "de": "Minimale Abweichung vom letzten Wert für Aufzeichnung<br>(0 = Abweichungsprüfung deaktivieren)", "ru": "Минимальная разница с последним записанным значением<br>(0 = не проверять минимальное изменение)", "pt": "log altera delta mínimo<br>(0 = desabilita o checkout delta)", "nl": "log veranderingen minimale delta<br>(0 = deltablokkering uitschakelen)", "fr": "log change delta minimal<br>(0 = désactiver le contrôle delta)", "it": "registro cambia delta minimo<br>(0 = disabilita il controllo delta)", "es": "Diferencia mínima entre el último valor y el log <br> (0 = desactivar la verificación delta)", "pl": "Minimalna różnica od ostatniej wartości do log <br> (0 = wyłącz kontrolę delta)"},
         "log changes only": {                            "en": "log changes only",                                "de": "Änderungen aufzeichnen",                          "ru": "Только изменения",                                "pt": "somente mudanças de log",                         "nl": "alleen logboekwijzigingen",                       "fr": "modifications du journal uniquement",             "it": "registra solo le modifiche",                      "es": "solo cambios de registro",                        "pl": "tylko zmiany w dzienniku"},
         "maximum datapoint count in RAM": {              "en": "maximum datapoint count in RAM",                  "de": "maximale Anzahl Datenpunkte in RAM",              "ru": "макс. кол-во значений в RAM памяти",              "pt": "contagem máxima do datapoint na RAM",             "nl": "maximum aantal datapunten in RAM",                "fr": "nombre de points de données maximum en RAM",      "it": "massimo conteggio dei punti di accesso nella RAM", "es": "recuento máximo de datos en RAM",                 "pl": "maksymalna liczba punktów w pamięci RAM"},
+        "aliasId": {
+            "en": "Alias-ID",
+            "de": "Alias-ID",
+            "ru": "Псевдоним ИД",
+            "pt": "Alias-ID",
+            "nl": "Alias-ID",
+            "fr": "Alias-ID",
+            "it": "Alias-ID",
+            "es": "Alias-ID",
+            "pl": "Alias-ID"
+        },
+        "Alias Info": {
+            "en": "if not empty data will be logged as this ID in data files",
+            "de": "Wenn nicht, werden leere Daten als diese ID in Datendateien protokolliert",
+            "ru": "если не пустые данные будут регистрироваться как этот идентификатор в файлах данных",
+            "pt": "se não os dados vazios serão registrados como este ID em arquivos de dados",
+            "nl": "zo niet, dan worden lege gegevens als deze ID opgeslagen in databestanden",
+            "fr": "sinon les données vides seront enregistrées comme cet ID dans les fichiers de données",
+            "it": "in caso contrario, i dati vuoti verranno registrati come questo ID nei file di dati",
+            "es": "si no se registrarán datos vacíos como esta ID en los archivos de datos",
+            "pl": "jeśli nie, puste dane będą rejestrowane jako ten ID w plikach danych"
+        }
     });
     // There are two ways how to predefine default settings:
     // - with attribute "data-default" (content independent)
@@ -100,7 +130,8 @@
                     retention:              instanceObj.native.retention,
                     changesRelogInterval:   instanceObj.native.changesRelogInterval,
                     changesMinDelta:        0,
-                    storageType:            ''
+                    storageType:            '',
+                    aliasId:                ''
                 };
             } else {
                 return {
@@ -111,7 +142,8 @@
                     retention:              instanceObj.native.retention,
                     changesRelogInterval:   instanceObj.native.changesRelogInterval,
                     changesMinDelta:        instanceObj.native.changesMinDelta,
-                    storageType:            ''
+                    storageType:            '',
+                    aliasId:                ''
                 };
             }
         }

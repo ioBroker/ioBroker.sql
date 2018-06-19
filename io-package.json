@@ -24,8 +24,19 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.8.0",
+        "version": "1.9.0",
         "news": {
+            "1.9.0": {
+                "en": "Add option to write data to a different ID to make device changes easier. Retrieving data works for both IDs",
+                "de": "Option zum Schreiben von Daten in eine andere ID hinzufügen, um Geräteänderungen zu vereinfachen. Das Abrufen von Daten funktioniert für beide IDs",
+                "ru": "Добавьте параметр для записи данных на другой идентификатор, чтобы упростить внесение изменений. Получение данных для обоих ID",
+                "pt": "Adicione a opção de gravar dados em um ID diferente para facilitar as alterações no dispositivo. Recuperar dados funciona para os dois IDs",
+                "nl": "Optie toevoegen om gegevens naar een andere ID te schrijven om apparaatwijzigingen gemakkelijker te maken. Het ophalen van gegevens werkt voor beide ID's",
+                "fr": "Ajoutez une option pour écrire des données sur un ID différent afin de faciliter les changements de périphérique. Récupération des données fonctionne pour les deux ID",
+                "it": "Aggiungi l'opzione per scrivere i dati su un ID diverso per facilitare le modifiche ai dispositivi. Il recupero dei dati funziona per entrambi gli ID",
+                "es": "Agregue la opción para escribir datos en una ID diferente para facilitar los cambios en el dispositivo. La recuperación de datos funciona para ambos ID",
+                "pl": "Dodaj opcję zapisywania danych do innego identyfikatora, aby ułatwić zmianę urządzenia. Pobieranie danych działa dla obu identyfikatorów"
+            },
             "1.8.0": {
                 "en": "Update sqlite3, nodejs 10 compatible",
                 "de": "Aktualisieren Sie sqlite3, nodejs 10 kompatibel",

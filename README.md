@@ -244,7 +244,8 @@ sendTo('sql.0', 'enableHistory', {
         debounce:     0,
         retention:    31536000,
         maxLength:    3,
-        changesMinDelta: 0.5
+        changesMinDelta: 0.5,
+        aliasId: ""
     }
 }, function (result) {
     if (result.error) {
@@ -286,7 +287,8 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             "maxLength":3,
             "changesMinDelta":0.5,
             "enabled":true,
-            "changesRelogInterval":0
+            "changesRelogInterval":0,
+            "aliasId": ""
         }
         ...
     }
@@ -312,6 +314,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 - **Storage retention**: How long the values will be stored in DB.
 
 ## Changelog
+
+## 1.9.0 (2018-06-19)
+* (Apollon77) Add option to log datapoints as other ID (alias) to easier migrate devices and such
 
 ## 1.8.0 (2018-04-29)
 * (Apollon77) Update sqlite3, nodejs 10 compatible
