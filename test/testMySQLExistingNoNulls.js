@@ -121,7 +121,7 @@ describe('Test MySQL Existing No Nulls', function() {
                 function () {
                     states.subscribeMessage('system.adapter.test.0');
                     sendTo('sql.0', 'enableHistory', {
-                        id: 'system.adapter.sql.0.memRss',
+                        id: 'sql.0.memRss',
                         options: {
                             changesOnly:  true,
                             debounce:     0,
@@ -182,49 +182,49 @@ describe('Test MySQL Existing No Nulls', function() {
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
             expect(Object.keys(result).length).to.be.equal(4);
-            expect(result['system.adapter.sql.0.memRss'].enabled).to.be.true;
+            expect(result['sql.0.memRss'].enabled).to.be.true;
             done();
         });
     });
     it('Test MySQL Existing No Nulls: Write values into DB', function (done) {
         this.timeout(10000);
 
-        states.setState('system.adapter.sql.0.memRss', {val: true, ts: now - 20000}, function (err) {
+        states.setState('sql.0.memRss', {val: true, ts: now - 20000}, function (err) {
             if (err) {
                 console.log(err);
             }
             setTimeout(function () {
-                states.setState('system.adapter.sql.0.memRss', {val: 2, ts: now - 10000}, function (err) {
+                states.setState('sql.0.memRss', {val: 2, ts: now - 10000}, function (err) {
                     if (err) {
                         console.log(err);
                     }
                     setTimeout(function () {
-                        states.setState('system.adapter.sql.0.memRss', {val: 2, ts: now - 5000}, function (err) {
+                        states.setState('sql.0.memRss', {val: 2, ts: now - 5000}, function (err) {
                             if (err) {
                                 console.log(err);
                             }
                             setTimeout(function () {
-                                states.setState('system.adapter.sql.0.memRss', {val: 2.2, ts: now - 4000}, function (err) {
+                                states.setState('sql.0.memRss', {val: 2.2, ts: now - 4000}, function (err) {
                                     if (err) {
                                         console.log(err);
                                     }
                                     setTimeout(function () {
-                                        states.setState('system.adapter.sql.0.memRss', {val: 2.3, ts: now - 3500}, function (err) {
+                                        states.setState('sql.0.memRss', {val: 2.3, ts: now - 3500}, function (err) {
                                             if (err) {
                                                 console.log(err);
                                             }
                                             setTimeout(function () {
-                                                states.setState('system.adapter.sql.0.memRss', {val: '2.5', ts: now - 3000}, function (err) {
+                                                states.setState('sql.0.memRss', {val: '2.5', ts: now - 3000}, function (err) {
                                                     if (err) {
                                                         console.log(err);
                                                     }
                                                     setTimeout(function () {
-                                                        states.setState('system.adapter.sql.0.memRss', {val: 3, ts: now - 1000}, function (err) {
+                                                        states.setState('sql.0.memRss', {val: 3, ts: now - 1000}, function (err) {
                                                             if (err) {
                                                                 console.log(err);
                                                             }
                                                             setTimeout(function () {
-                                                                states.setState('system.adapter.sql.0.memRss', {val: 'Test', ts: now - 500}, function (err) {
+                                                                states.setState('sql.0.memRss', {val: 'Test', ts: now - 500}, function (err) {
                                                                     if (err) {
                                                                         console.log(err);
                                                                     }
@@ -248,7 +248,7 @@ describe('Test MySQL Existing No Nulls', function() {
     it('Test MySQL Existing No Nulls: Read values from DB using query', function (done) {
         this.timeout(10000);
 
-        sendTo('sql.0', 'query', 'SELECT id FROM iobroker.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
+        sendTo('sql.0', 'query', 'SELECT id FROM iobroker.datapoints WHERE name="sql.0.memRss"', function (result) {
             console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
             sendTo('sql.0', 'query', 'SELECT * FROM iobroker.ts_number WHERE id=' + result.result[0].id, function (result) {
                 console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
@@ -275,7 +275,7 @@ describe('Test MySQL Existing No Nulls', function() {
         this.timeout(10000);
 
         sendTo('sql.0', 'getHistory', {
-            id: 'system.adapter.sql.0.memRss',
+            id: 'sql.0.memRss',
             options: {
                 start:     now2 - 30000,
                 limit:     50,
@@ -292,7 +292,7 @@ describe('Test MySQL Existing No Nulls', function() {
             expect(found).to.be.equal(15);
 
             sendTo('sql.0', 'getHistory', {
-                id: 'system.adapter.sql.0.memRss',
+                id: 'sql.0.memRss',
                 options: {
                     start:     now2 - 15000,
                     end:       now,
@@ -314,7 +314,7 @@ describe('Test MySQL Existing No Nulls', function() {
             console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
             expect(result.result.length).to.least(3);
             for (var i = 0; i < result.result.length; i++) {
-                if (result.result[i].name === 'system.adapter.sql.0.memRss') {
+                if (result.result[i].name === 'sql.0.memRss') {
                     expect(result.result[i].type).to.be.equal(0);
                 }
                 else if (result.result[i].name === 'system.adapter.sql.0.memHeapTotal') {
@@ -337,7 +337,7 @@ describe('Test MySQL Existing No Nulls', function() {
         this.timeout(5000);
 
         sendTo('sql.0', 'disableHistory', {
-            id: 'system.adapter.sql.0.memRss',
+            id: 'sql.0.memRss',
         }, function (result) {
             expect(result.error).to.be.undefined;
             expect(result.success).to.be.true;

@@ -118,31 +118,28 @@ describe('Test MySQL-with-dash', function() {
                 },
                 function () {
                     states.subscribeMessage('system.adapter.test.0');
-                    sendTo('sql.0', 'enableHistory', {
-                        id: 'system.adapter.sql.0.memRss',
-                        options: {
-                            changesOnly:  true,
-                            debounce:     0,
-                            retention:    31536000,
-                            changesMinDelta: 0.5,
-                            storageType:  false
-                        }
-                    }, function (result) {
-                        expect(result.error).to.be.undefined;
-                        expect(result.success).to.be.true;
+                    objects.setObject('sql.0.memRss', {
+                        common: {
+                            type: 'number',
+                            role: 'state'
+                        },
+                        type: 'state'
+                    },
+                    function () {
                         sendTo('sql.0', 'enableHistory', {
-                            id: 'system.adapter.sql.0.memHeapTotal',
+                            id: 'sql.0.memRss',
                             options: {
-                                changesOnly:  false,
+                                changesOnly:  true,
                                 debounce:     0,
                                 retention:    31536000,
+                                changesMinDelta: 0.5,
                                 storageType:  false
                             }
                         }, function (result) {
                             expect(result.error).to.be.undefined;
                             expect(result.success).to.be.true;
                             sendTo('sql.0', 'enableHistory', {
-                                id: 'system.adapter.sql.0.uptime',
+                                id: 'system.adapter.sql.0.memHeapTotal',
                                 options: {
                                     changesOnly:  false,
                                     debounce:     0,
@@ -153,7 +150,7 @@ describe('Test MySQL-with-dash', function() {
                                 expect(result.error).to.be.undefined;
                                 expect(result.success).to.be.true;
                                 sendTo('sql.0', 'enableHistory', {
-                                    id: 'system.adapter.sql.0.alive',
+                                    id: 'system.adapter.sql.0.uptime',
                                     options: {
                                         changesOnly:  false,
                                         debounce:     0,
@@ -163,31 +160,43 @@ describe('Test MySQL-with-dash', function() {
                                 }, function (result) {
                                     expect(result.error).to.be.undefined;
                                     expect(result.success).to.be.true;
-                                    objects.setObject('sql.0.testValue2', {
-                                        common: {
-                                            type: 'number',
-                                            role: 'state'
+                                    sendTo('sql.0', 'enableHistory', {
+                                        id: 'system.adapter.sql.0.alive',
+                                        options: {
+                                            changesOnly:  false,
+                                            debounce:     0,
+                                            retention:    31536000,
+                                            storageType:  false
+                                        }
+                                    }, function (result) {
+                                        expect(result.error).to.be.undefined;
+                                        expect(result.success).to.be.true;
+                                        objects.setObject('sql.0.testValue2', {
+                                            common: {
+                                                type: 'number',
+                                                role: 'state'
+                                            },
+                                            type: 'state'
                                         },
-                                        type: 'state'
-                                    },
-                                    function () {
-                                        sendTo('sql.0', 'enableHistory', {
-                                            id: 'sql.0.testValue2',
-                                            options: {
-                                                changesOnly:  true,
-                                                debounce:     0,
-                                                retention:    31536000,
-                                                maxLength:    3,
-                                                changesMinDelta: 0.5,
-                                                aliasId: 'sql.0.testValue2-alias'
-                                            }
-                                        }, function (result) {
-                                            expect(result.error).to.be.undefined;
-                                            expect(result.success).to.be.true;
-                                            // wait till adapter receives the new settings
-                                            setTimeout(function () {
-                                                done();
-                                            }, 2000);
+                                        function () {
+                                            sendTo('sql.0', 'enableHistory', {
+                                                id: 'sql.0.testValue2',
+                                                options: {
+                                                    changesOnly:  true,
+                                                    debounce:     0,
+                                                    retention:    31536000,
+                                                    maxLength:    3,
+                                                    changesMinDelta: 0.5,
+                                                    aliasId: 'sql.0.testValue2-alias'
+                                                }
+                                            }, function (result) {
+                                                expect(result.error).to.be.undefined;
+                                                expect(result.success).to.be.true;
+                                                // wait till adapter receives the new settings
+                                                setTimeout(function () {
+                                                    done();
+                                                }, 2000);
+                                            });
                                         });
                                     });
                                 });
@@ -203,7 +212,7 @@ describe('Test MySQL-with-dash', function() {
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
             expect(Object.keys(result).length).to.be.equal(5);
-            expect(result['system.adapter.sql.0.memRss'].enabled).to.be.true;
+            expect(result['sql.0.memRss'].enabled).to.be.true;
             done();
         });
     });
@@ -212,37 +221,37 @@ describe('Test MySQL-with-dash', function() {
 
         this.timeout(10000);
 
-        states.setState('system.adapter.sql.0.memRss', {val: true, ts: now - 20000}, function (err) {
+        states.setState('sql.0.memRss', {val: true, ts: now - 20000}, function (err) {
             if (err) {
                 console.log(err);
             }
             setTimeout(function () {
-                states.setState('system.adapter.sql.0.memRss', {val: 2, ts: now - 10000}, function (err) {
+                states.setState('sql.0.memRss', {val: 2, ts: now - 10000}, function (err) {
                     if (err) {
                         console.log(err);
                     }
                     setTimeout(function () {
-                        states.setState('system.adapter.sql.0.memRss', {val: 2, ts: now - 5000}, function (err) {
+                        states.setState('sql.0.memRss', {val: 2, ts: now - 5000}, function (err) {
                             if (err) {
                                 console.log(err);
                             }
                             setTimeout(function () {
-                                states.setState('system.adapter.sql.0.memRss', {val: 2.2, ts: now - 4000}, function (err) {
+                                states.setState('sql.0.memRss', {val: 2.2, ts: now - 4000}, function (err) {
                                     if (err) {
                                         console.log(err);
                                     }
                                     setTimeout(function () {
-                                        states.setState('system.adapter.sql.0.memRss', {val: '2.5', ts: now - 3000}, function (err) {
+                                        states.setState('sql.0.memRss', {val: '2.5', ts: now - 3000}, function (err) {
                                             if (err) {
                                                 console.log(err);
                                             }
                                             setTimeout(function () {
-                                                states.setState('system.adapter.sql.0.memRss', {val: 3, ts: now - 1000}, function (err) {
+                                                states.setState('sql.0.memRss', {val: 3, ts: now - 1000}, function (err) {
                                                     if (err) {
                                                         console.log(err);
                                                     }
                                                     setTimeout(function () {
-                                                        states.setState('system.adapter.sql.0.memRss', {val: 'Test', ts: now - 500}, function (err) {
+                                                        states.setState('sql.0.memRss', {val: 'Test', ts: now - 500}, function (err) {
                                                             if (err) {
                                                                 console.log(err);
                                                             }
@@ -278,7 +287,7 @@ describe('Test MySQL-with-dash', function() {
     it('Test MySQL-with-dash: Read values from DB using query', function (done) {
         this.timeout(10000);
 
-        sendTo('sql.0', 'query', 'SELECT id FROM `io-broker`.datapoints WHERE name="system.adapter.sql.0.memRss"', function (result) {
+        sendTo('sql.0', 'query', 'SELECT id FROM `io-broker`.datapoints WHERE name="sql.0.memRss"', function (result) {
             console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
             sendTo('sql.0', 'query', 'SELECT * FROM `io-broker`.ts_number WHERE id=' + result.result[0].id, function (result) {
                 console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
@@ -299,7 +308,7 @@ describe('Test MySQL-with-dash', function() {
         this.timeout(10000);
 
         sendTo('sql.0', 'getHistory', {
-            id: 'system.adapter.sql.0.memRss',
+            id: 'sql.0.memRss',
             options: {
                 start:     now - 30000,
                 limit:     50,
@@ -316,7 +325,7 @@ describe('Test MySQL-with-dash', function() {
             expect(found).to.be.equal(5);
 
             sendTo('sql.0', 'getHistory', {
-                id: 'system.adapter.sql.0.memRss',
+                id: 'sql.0.memRss',
                 options: {
                     start:     now - 15000,
                     end:       now,
@@ -338,7 +347,7 @@ describe('Test MySQL-with-dash', function() {
             console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
             expect(result.result.length).to.least(3);
             for (var i = 0; i < result.result.length; i++) {
-                if (result.result[i].name === 'system.adapter.sql.0.memRss') {
+                if (result.result[i].name === 'sql.0.memRss') {
                     expect(result.result[i].type).to.be.equal(0);
                 }
                 else if (result.result[i].name === 'system.adapter.sql.0.memHeapTotal') {
@@ -397,7 +406,7 @@ describe('Test MySQL-with-dash', function() {
         this.timeout(5000);
 
         sendTo('sql.0', 'disableHistory', {
-            id: 'system.adapter.sql.0.memRss',
+            id: 'sql.0.memRss',
         }, function (result) {
             expect(result.error).to.be.undefined;
             expect(result.success).to.be.true;
