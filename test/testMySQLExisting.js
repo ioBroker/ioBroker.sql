@@ -264,7 +264,7 @@ describe('Test MySQL Existing', function() {
                     if (result.result[i].val === 2.2) found22 = true;
                     if (result.result[i].val === 2.3) found23 = true;
                 }
-                expect(found).to.be.equal(10);
+                expect(found).to.be.equal(12);
                 expect(found22).to.be.false;
                 expect(found23).to.be.true;
 
@@ -292,7 +292,7 @@ describe('Test MySQL Existing', function() {
             for (var i = 0; i < result.result.length; i++) {
                 if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
             }
-            expect(found).to.be.equal(10);
+            expect(found).to.be.equal(12);
 
             sendTo('sql.0', 'getHistory', {
                 id: 'sql.0.memRss',

@@ -251,7 +251,7 @@ describe('Test SQLite', function() {
                 for (var i = 0; i < result.result.length; i++) {
                     if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
                 }
-                expect(found).to.be.equal(5);
+                expect(found).to.be.equal(6);
 
                 setTimeout(function () {
                     done();
@@ -277,7 +277,7 @@ describe('Test SQLite', function() {
             for (var i = 0; i < result.result.length; i++) {
                 if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
             }
-            expect(found).to.be.equal(5);
+            expect(found).to.be.equal(6);
 
             sendTo('sql.0', 'getHistory', {
                 id: 'sql.0.memRss',

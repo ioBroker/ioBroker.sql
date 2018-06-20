@@ -265,7 +265,7 @@ describe('Test MySQL Existing No Nulls', function() {
                     if (result.result[i].val === 2.2) found22 = true;
                     if (result.result[i].val === 2.3) found23 = true;
                 }
-                expect(found).to.be.equal(15);
+                expect(found).to.be.equal(18);
                 expect(found22).to.be.false;
                 expect(found23).to.be.true;
 
@@ -293,7 +293,7 @@ describe('Test MySQL Existing No Nulls', function() {
             for (var i = 0; i < result.result.length; i++) {
                 if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
             }
-            expect(found).to.be.equal(15);
+            expect(found).to.be.equal(18);
 
             sendTo('sql.0', 'getHistory', {
                 id: 'sql.0.memRss',
