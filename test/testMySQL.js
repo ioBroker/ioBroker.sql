@@ -117,68 +117,70 @@ describe('Test MySQL', function() {
                 },
                 function () {
                     states.subscribeMessage('system.adapter.test.0');
-                    objects.setObject('sql.0.memRss', {
-                        common: {
-                            type: 'number',
-                            role: 'state'
+                    setTimeout(function() {
+                        objects.setObject('sql.0.memRss', {
+                            common: {
+                                type: 'number',
+                                role: 'state'
+                            },
+                            type: 'state'
                         },
-                        type: 'state'
-                    },
-                    function () {
-                        sendTo('sql.0', 'enableHistory', {
-                            id: 'sql.0.memRss',
-                            options: {
-                                changesOnly:  true,
-                                debounce:     0,
-                                retention:    31536000,
-                                changesMinDelta: 0.5,
-                                storageType: 'Number'
-                            }
-                        }, function (result) {
-                            expect(result.error).to.be.undefined;
-                            expect(result.success).to.be.true;
+                        function () {
                             sendTo('sql.0', 'enableHistory', {
-                                id: 'system.adapter.sql.0.memHeapTotal',
+                                id: 'sql.0.memRss',
                                 options: {
-                                    changesOnly:  false,
+                                    changesOnly:  true,
                                     debounce:     0,
                                     retention:    31536000,
-                                    storageType: 'String'
+                                    changesMinDelta: 0.5,
+                                    storageType: 'Number'
                                 }
                             }, function (result) {
                                 expect(result.error).to.be.undefined;
                                 expect(result.success).to.be.true;
                                 sendTo('sql.0', 'enableHistory', {
-                                    id: 'system.adapter.sql.0.alive',
+                                    id: 'system.adapter.sql.0.memHeapTotal',
                                     options: {
                                         changesOnly:  false,
                                         debounce:     0,
                                         retention:    31536000,
-                                        storageType: 'Boolean'
+                                        storageType: 'String'
                                     }
                                 }, function (result) {
                                     expect(result.error).to.be.undefined;
                                     expect(result.success).to.be.true;
                                     sendTo('sql.0', 'enableHistory', {
-                                        id: 'system.adapter.sql.0.uptime',
+                                        id: 'system.adapter.sql.0.alive',
                                         options: {
                                             changesOnly:  false,
                                             debounce:     0,
                                             retention:    31536000,
-                                            storageType:  false
+                                            storageType: 'Boolean'
                                         }
                                     }, function (result) {
                                         expect(result.error).to.be.undefined;
                                         expect(result.success).to.be.true;
-                                        // wait till adapter receives the new settings
-                                        setTimeout(function () {
-                                            done();
-                                        }, 70000);
+                                        sendTo('sql.0', 'enableHistory', {
+                                            id: 'system.adapter.sql.0.uptime',
+                                            options: {
+                                                changesOnly:  false,
+                                                debounce:     0,
+                                                retention:    31536000,
+                                                storageType:  false
+                                            }
+                                        }, function (result) {
+                                            expect(result.error).to.be.undefined;
+                                            expect(result.success).to.be.true;
+                                            // wait till adapter receives the new settings
+                                            setTimeout(function () {
+                                                done();
+                                            }, 70000);
+                                        });
                                     });
                                 });
                             });
                         });
-                    });
+                    }, 10000);
                 });
         });
     });
@@ -189,7 +191,9 @@ describe('Test MySQL', function() {
             console.log(JSON.stringify(result));
             expect(Object.keys(result).length).to.be.equal(4);
             expect(result['sql.0.memRss'].enabled).to.be.true;
-            done();
+            setTimeout(function () {
+                done();
+            }, 15000);
         });
     });
     it('Test MySQL: Write values into DB', function (done) {

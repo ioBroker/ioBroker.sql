@@ -120,42 +120,32 @@ describe('Test MySQL Existing No Nulls', function() {
                 },
                 function () {
                     states.subscribeMessage('system.adapter.test.0');
-                    sendTo('sql.0', 'enableHistory', {
-                        id: 'sql.0.memRss',
-                        options: {
-                            changesOnly:  true,
-                            debounce:     0,
-                            retention:    31536000,
-                            changesMinDelta: 0.5,
-                            storageType:  false
-                        }
-                    }, function (result) {
-                        expect(result.error).to.be.undefined;
-                        expect(result.success).to.be.true;
+                    setTimeout(function() {
                         sendTo('sql.0', 'enableHistory', {
-                            id: 'system.adapter.sql.0.memHeapTotal',
+                            id: 'sql.0.memRss',
                             options: {
-                                changesOnly:  false,
+                                changesOnly:  true,
                                 debounce:     0,
                                 retention:    31536000,
-                                storageType:  'Number'
+                                changesMinDelta: 0.5,
+                                storageType:  false
                             }
                         }, function (result) {
                             expect(result.error).to.be.undefined;
                             expect(result.success).to.be.true;
                             sendTo('sql.0', 'enableHistory', {
-                                id: 'system.adapter.sql.0.alive',
+                                id: 'system.adapter.sql.0.memHeapTotal',
                                 options: {
                                     changesOnly:  false,
                                     debounce:     0,
                                     retention:    31536000,
-                                    storageType:  false
+                                    storageType:  'Number'
                                 }
                             }, function (result) {
                                 expect(result.error).to.be.undefined;
                                 expect(result.success).to.be.true;
                                 sendTo('sql.0', 'enableHistory', {
-                                    id: 'system.adapter.sql.0.uptime',
+                                    id: 'system.adapter.sql.0.alive',
                                     options: {
                                         changesOnly:  false,
                                         debounce:     0,
@@ -165,14 +155,26 @@ describe('Test MySQL Existing No Nulls', function() {
                                 }, function (result) {
                                     expect(result.error).to.be.undefined;
                                     expect(result.success).to.be.true;
-                                    // wait till adapter receives the new settings
-                                    setTimeout(function () {
-                                        done();
-                                    }, 20000);
+                                    sendTo('sql.0', 'enableHistory', {
+                                        id: 'system.adapter.sql.0.uptime',
+                                        options: {
+                                            changesOnly:  false,
+                                            debounce:     0,
+                                            retention:    31536000,
+                                            storageType:  false
+                                        }
+                                    }, function (result) {
+                                        expect(result.error).to.be.undefined;
+                                        expect(result.success).to.be.true;
+                                        // wait till adapter receives the new settings
+                                        setTimeout(function () {
+                                            done();
+                                        }, 20000);
+                                    });
                                 });
                             });
                         });
-                    });
+                    }, 10000);
                 });
         });
     });
@@ -183,7 +185,9 @@ describe('Test MySQL Existing No Nulls', function() {
             console.log(JSON.stringify(result));
             expect(Object.keys(result).length).to.be.equal(4);
             expect(result['sql.0.memRss'].enabled).to.be.true;
-            done();
+            setTimeout(function () {
+                done();
+            }, 15000);
         });
     });
     it('Test MySQL Existing No Nulls: Write values into DB', function (done) {
