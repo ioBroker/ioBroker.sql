@@ -100,7 +100,22 @@ describe('Test PostgreSQL', function() {
                 function (_objects, _states) {
                     objects = _objects;
                     states  = _states;
-                    _done();
+                    objects.setObject('sql.0.memRss', {
+                        common: {
+                            type: 'number',
+                            role: 'state',
+                            custom: {
+                                "sql.0": {
+                                    changesOnly:  true,
+                                    debounce:     0,
+                                    retention:    31536000,
+                                    maxLength:    3,
+                                    changesMinDelta: 0.5
+                                }
+                            }
+                        },
+                        type: 'state'
+                    }, _done);
                 });
         });
     });
@@ -117,51 +132,33 @@ describe('Test PostgreSQL', function() {
             },
             function () {
                 states.subscribeMessage('system.adapter.test.0');
-                setTimeout(function() {
-                    objects.setObject('sql.0.memRss', {
-                        common: {
-                            type: 'number',
-                            role: 'state',
-                            custom: {
-                                "sql.0": {
-                                    changesOnly:  true,
-                                    debounce:     0,
-                                    retention:    31536000,
-                                    maxLength:    3,
-                                    changesMinDelta: 0.5
-                                }
-                            }
-                        },
-                        type: 'state'
-                    },
-                    function () {
+                setTimeout(function () {
+                    sendTo('sql.0', 'enableHistory', {
+                        id: 'system.adapter.sql.0.memHeapTotal',
+                        options: {
+                            changesOnly:  false,
+                            debounce:     0,
+                            retention:    31536000,
+                            storageType: 'String'
+                        }
+                    }, function (result) {
+                        expect(result.error).to.be.undefined;
+                        expect(result.success).to.be.true;
                         sendTo('sql.0', 'enableHistory', {
-                            id: 'system.adapter.sql.0.memHeapTotal',
+                            id: 'system.adapter.sql.0.uptime',
                             options: {
                                 changesOnly:  false,
                                 debounce:     0,
                                 retention:    31536000,
-                                storageType: 'String'
+                                storageType: 'Boolean'
                             }
                         }, function (result) {
                             expect(result.error).to.be.undefined;
                             expect(result.success).to.be.true;
-                            sendTo('sql.0', 'enableHistory', {
-                                id: 'system.adapter.sql.0.uptime',
-                                options: {
-                                    changesOnly:  false,
-                                    debounce:     0,
-                                    retention:    31536000,
-                                    storageType: 'Boolean'
-                                }
-                            }, function (result) {
-                                expect(result.error).to.be.undefined;
-                                expect(result.success).to.be.true;
-                                // wait till adapter receives the new settings
-                                setTimeout(function () {
-                                    done();
-                                }, 20000);
-                            });
+                            // wait till adapter receives the new settings
+                            setTimeout(function () {
+                                done();
+                            }, 20000);
                         });
                     });
                 }, 10000);
