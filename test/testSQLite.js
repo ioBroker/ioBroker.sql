@@ -102,6 +102,7 @@ describe('Test SQLite', function() {
                             role: 'state',
                             custom: {
                                 "sql.0": {
+                                    enabled: true,
                                     changesOnly:  true,
                                     debounce:     0,
                                     retention:    31536000,
