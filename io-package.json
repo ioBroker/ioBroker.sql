@@ -24,9 +24,9 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.9.0",
+        "version": "1.9.1",
         "news": {
-            "1.9.0": {
+            "1.9.1": {
                 "en": "Add option to write data to a different ID to make device changes easier. Retrieving data works for both IDs",
                 "de": "Option zum Schreiben von Daten in eine andere ID hinzufügen, um Geräteänderungen zu vereinfachen. Das Abrufen von Daten funktioniert für beide IDs",
                 "ru": "Добавьте параметр для записи данных на другой идентификатор, чтобы упростить внесение изменений. Получение данных для обоих ID",

@@ -960,7 +960,7 @@ function main() {
                                 sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
                             }
 
-                            history[id].realId  = realId;
+                            sqlDPs[id].realId  = realId;
                         }
                     }
                 }
