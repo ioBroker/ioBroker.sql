@@ -173,7 +173,7 @@ describe('Test PostgreSQL', function() {
         });
     });
     it('Test ' + adapterShortName + ': Check Enabled Points after Enable', function (done) {
-        this.timeout(5000);
+        this.timeout(20000);
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));

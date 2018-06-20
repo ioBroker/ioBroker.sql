@@ -183,7 +183,7 @@ describe('Test MSSQL', function() {
         });
     });
     it('Test ' + adapterShortName + ': Check Enabled Points after Enable', function (done) {
-        this.timeout(5000);
+        this.timeout(20000);
         if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
             done();
             return;
