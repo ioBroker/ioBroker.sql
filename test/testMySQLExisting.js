@@ -192,12 +192,12 @@ describe('Test MySQL Existing', function() {
     it('Test MySQL Existing: Write values into DB', function (done) {
         this.timeout(10000);
 
-        states.setState('sql.0.memRss', {val: true, ts: now - 20000}, function (err) {
+        states.setState('sql.0.memRss', {val: 2, ts: now - 20000}, function (err) {
             if (err) {
                 console.log(err);
             }
             setTimeout(function () {
-                states.setState('sql.0.memRss', {val: 2, ts: now - 10000}, function (err) {
+                states.setState('sql.0.memRss', {val: true, ts: now - 10000}, function (err) {
                     if (err) {
                         console.log(err);
                     }
