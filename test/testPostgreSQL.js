@@ -110,66 +110,62 @@ describe('Test PostgreSQL', function() {
         checkConnectionOfAdapter(function () {
             now = new Date().getTime();
             objects.setObject('system.adapter.test.0', {
-                    common: {
+                common: {
 
-                    },
-                    type: 'instance'
                 },
-                function () {
-                    states.subscribeMessage('system.adapter.test.0');
-                    setTimeout(function() {
-                        objects.setObject('sql.0.memRss', {
-                            common: {
-                                type: 'number',
-                                role: 'state'
-                            },
-                            type: 'state'
-                        },
-                        function () {
-                            sendTo('sql.0', 'enableHistory', {
-                                id: 'sql.0.memRss',
-                                options: {
+                type: 'instance'
+            },
+            function () {
+                states.subscribeMessage('system.adapter.test.0');
+                setTimeout(function() {
+                    objects.setObject('sql.0.memRss', {
+                        common: {
+                            type: 'number',
+                            role: 'state',
+                            custom: {
+                                "sql.0": {
                                     changesOnly:  true,
                                     debounce:     0,
                                     retention:    31536000,
-                                    changesMinDelta: 0.5,
-                                    storageType: 'Number'
+                                    maxLength:    3,
+                                    changesMinDelta: 0.5
+                                }
+                            }
+                        },
+                        type: 'state'
+                    },
+                    function () {
+                        sendTo('sql.0', 'enableHistory', {
+                            id: 'system.adapter.sql.0.memHeapTotal',
+                            options: {
+                                changesOnly:  false,
+                                debounce:     0,
+                                retention:    31536000,
+                                storageType: 'String'
+                            }
+                        }, function (result) {
+                            expect(result.error).to.be.undefined;
+                            expect(result.success).to.be.true;
+                            sendTo('sql.0', 'enableHistory', {
+                                id: 'system.adapter.sql.0.uptime',
+                                options: {
+                                    changesOnly:  false,
+                                    debounce:     0,
+                                    retention:    31536000,
+                                    storageType: 'Boolean'
                                 }
                             }, function (result) {
                                 expect(result.error).to.be.undefined;
                                 expect(result.success).to.be.true;
-                                sendTo('sql.0', 'enableHistory', {
-                                    id: 'system.adapter.sql.0.memHeapTotal',
-                                    options: {
-                                        changesOnly:  false,
-                                        debounce:     0,
-                                        retention:    31536000,
-                                        storageType: 'String'
-                                    }
-                                }, function (result) {
-                                    expect(result.error).to.be.undefined;
-                                    expect(result.success).to.be.true;
-                                    sendTo('sql.0', 'enableHistory', {
-                                        id: 'system.adapter.sql.0.uptime',
-                                        options: {
-                                            changesOnly:  false,
-                                            debounce:     0,
-                                            retention:    31536000,
-                                            storageType: 'Boolean'
-                                        }
-                                    }, function (result) {
-                                        expect(result.error).to.be.undefined;
-                                        expect(result.success).to.be.true;
-                                        // wait till adapter receives the new settings
-                                        setTimeout(function () {
-                                            done();
-                                        }, 20000);
-                                    });
-                                });
+                                // wait till adapter receives the new settings
+                                setTimeout(function () {
+                                    done();
+                                }, 20000);
                             });
                         });
-                    }, 10000);
-                });
+                    });
+                }, 10000);
+            });
         });
     });
     it('Test ' + adapterShortName + ': Check Enabled Points after Enable', function (done) {

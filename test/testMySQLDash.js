@@ -111,36 +111,55 @@ describe('Test MySQL-with-dash', function() {
         checkConnectionOfAdapter(function () {
             now = new Date().getTime();
             objects.setObject('system.adapter.test.0', {
-                    common: {
+                common: {
 
-                    },
-                    type: 'instance'
                 },
-                function () {
-                    states.subscribeMessage('system.adapter.test.0');
-                    setTimeout(function() {
-                        objects.setObject('sql.0.memRss', {
-                            common: {
-                                type: 'number',
-                                role: 'state'
-                            },
-                            type: 'state'
-                        },
-                        function () {
-                            sendTo('sql.0', 'enableHistory', {
-                                id: 'sql.0.memRss',
-                                options: {
+                type: 'instance'
+            },
+            function () {
+                states.subscribeMessage('system.adapter.test.0');
+                setTimeout(function() {
+                    objects.setObject('sql.0.memRss', {
+                        common: {
+                            type: 'number',
+                            role: 'state',
+                            custom: {
+                                "sql.0": {
                                     changesOnly:  true,
                                     debounce:     0,
                                     retention:    31536000,
-                                    changesMinDelta: 0.5,
+                                    maxLength:    3,
+                                    changesMinDelta: 0.5
+                                }
+                            }
+                        },
+                        type: 'state'
+                    },
+                    function () {
+                        sendTo('sql.0', 'enableHistory', {
+                            id: 'system.adapter.sql.0.memHeapTotal',
+                            options: {
+                                changesOnly:  false,
+                                debounce:     0,
+                                retention:    31536000,
+                                storageType:  false
+                            }
+                        }, function (result) {
+                            expect(result.error).to.be.undefined;
+                            expect(result.success).to.be.true;
+                            sendTo('sql.0', 'enableHistory', {
+                                id: 'system.adapter.sql.0.uptime',
+                                options: {
+                                    changesOnly:  false,
+                                    debounce:     0,
+                                    retention:    31536000,
                                     storageType:  false
                                 }
                             }, function (result) {
                                 expect(result.error).to.be.undefined;
                                 expect(result.success).to.be.true;
                                 sendTo('sql.0', 'enableHistory', {
-                                    id: 'system.adapter.sql.0.memHeapTotal',
+                                    id: 'system.adapter.sql.0.alive',
                                     options: {
                                         changesOnly:  false,
                                         debounce:     0,
@@ -150,62 +169,39 @@ describe('Test MySQL-with-dash', function() {
                                 }, function (result) {
                                     expect(result.error).to.be.undefined;
                                     expect(result.success).to.be.true;
-                                    sendTo('sql.0', 'enableHistory', {
-                                        id: 'system.adapter.sql.0.uptime',
-                                        options: {
-                                            changesOnly:  false,
-                                            debounce:     0,
-                                            retention:    31536000,
-                                            storageType:  false
-                                        }
-                                    }, function (result) {
-                                        expect(result.error).to.be.undefined;
-                                        expect(result.success).to.be.true;
+                                    objects.setObject('sql.0.testValue2', {
+                                        common: {
+                                            type: 'number',
+                                            role: 'state'
+                                        },
+                                        type: 'state'
+                                    },
+                                    function () {
                                         sendTo('sql.0', 'enableHistory', {
-                                            id: 'system.adapter.sql.0.alive',
+                                            id: 'sql.0.testValue2',
                                             options: {
-                                                changesOnly:  false,
+                                                changesOnly:  true,
                                                 debounce:     0,
                                                 retention:    31536000,
-                                                storageType:  false
+                                                maxLength:    3,
+                                                changesMinDelta: 0.5,
+                                                aliasId: 'sql.0.testValue2-alias'
                                             }
                                         }, function (result) {
                                             expect(result.error).to.be.undefined;
                                             expect(result.success).to.be.true;
-                                            objects.setObject('sql.0.testValue2', {
-                                                common: {
-                                                    type: 'number',
-                                                    role: 'state'
-                                                },
-                                                type: 'state'
-                                            },
-                                            function () {
-                                                sendTo('sql.0', 'enableHistory', {
-                                                    id: 'sql.0.testValue2',
-                                                    options: {
-                                                        changesOnly:  true,
-                                                        debounce:     0,
-                                                        retention:    31536000,
-                                                        maxLength:    3,
-                                                        changesMinDelta: 0.5,
-                                                        aliasId: 'sql.0.testValue2-alias'
-                                                    }
-                                                }, function (result) {
-                                                    expect(result.error).to.be.undefined;
-                                                    expect(result.success).to.be.true;
-                                                    // wait till adapter receives the new settings
-                                                    setTimeout(function () {
-                                                        done();
-                                                    }, 2000);
-                                                });
-                                            });
+                                            // wait till adapter receives the new settings
+                                            setTimeout(function () {
+                                                done();
+                                            }, 2000);
                                         });
                                     });
                                 });
                             });
                         });
-                    }, 10000);
-                });
+                    });
+                }, 10000);
+            });
         });
     });
     it('Test ' + adapterShortName + ': Check Enabled Points after Enable', function (done) {
