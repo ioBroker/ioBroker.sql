@@ -398,6 +398,58 @@ describe('Test MySQL-with-dash', function() {
         });
     });
 
+    it('Test ' + adapterShortName + ': Remove Alias-ID', function (done) {
+        this.timeout(5000);
+
+        sendTo('sql.0', 'enableHistory', {
+            id: 'sql.0.testValue2',
+            options: {
+                aliasId: ''
+            }
+        }, function (result) {
+            expect(result.error).to.be.undefined;
+            expect(result.success).to.be.true;
+            // wait till adapter receives the new settings
+            setTimeout(function () {
+                done();
+            }, 2000);
+        });
+    });
+    it('Test ' + adapterShortName + ': Add Alias-ID again', function (done) {
+        this.timeout(5000);
+
+        sendTo('sql.0', 'enableHistory', {
+            id: 'sql.0.testValue2',
+            options: {
+                aliasId: 'this.is.a.test-value'
+            }
+        }, function (result) {
+            expect(result.error).to.be.undefined;
+            expect(result.success).to.be.true;
+            // wait till adapter receives the new settings
+            setTimeout(function () {
+                done();
+            }, 2000);
+        });
+    });
+    it('Test ' + adapterShortName + ': Change Alias-ID', function (done) {
+        this.timeout(5000);
+
+        sendTo('sql.0', 'enableHistory', {
+            id: 'sql.0.testValue2',
+            options: {
+                aliasId: 'this.is.another.test-value'
+            }
+        }, function (result) {
+            expect(result.error).to.be.undefined;
+            expect(result.success).to.be.true;
+            // wait till adapter receives the new settings
+            setTimeout(function () {
+                done();
+            }, 2000);
+        });
+    });
+
     it('Test ' + adapterShortName + ': Disable Datapoint again', function (done) {
         this.timeout(5000);
 
