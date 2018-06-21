@@ -147,7 +147,7 @@ adapter.on('objectChange', function (id, obj) {
             if (writeNull && adapter.config.writeNulls) {
                 writeNulls(id);
             }
-            adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId) + ', ' + Object.keys(sqlDPs).length + ' points now activated');
+            adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId));
         }
     }
     else {
@@ -157,7 +157,7 @@ adapter.on('objectChange', function (id, obj) {
         }
         id = formerAliasId;
         if (sqlDPs[id]) {
-            adapter.log.info('disabled logging of ' + id + ', ' + Object.keys(sqlDPs).length + ' points now activated');
+            adapter.log.info('disabled logging of ' + id);
             if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
             if (sqlDPs[id].timeout) clearTimeout(sqlDPs[id].timeout);
 
