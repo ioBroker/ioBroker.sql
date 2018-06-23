@@ -26,7 +26,7 @@
   "optionalDependencies": {
     "mysql": "^2.15.0",
     "pg": "^6.1.5",
-    "sqlite3": "4.0.0",
+    "sqlite3": "^4.0.1",
     "mssql": "^3.3.0"
   },
   "dependencies": {
