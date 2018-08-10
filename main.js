@@ -361,15 +361,10 @@ function connect(callback) {
             }, 30000);
         } else {
             adapter.log.info('Connected to ' + adapter.config.dbtype);
-            setConnected(true);
             // read all DB IDs and all FROM ids
-            if (!multiRequests) {
-                getAllIds(function () {
-                    getAllFroms(callback);
-                });
-            } else {
-                getAllIds(callback);
-            }
+            getAllIds(function () {
+                getAllFroms(callback);
+            });
         }
     });
 }
@@ -999,6 +994,7 @@ function main() {
                     }
                     adapter.subscribeForeignObjects('*');
                     adapter.log.debug('Initialization done');
+                    setConnected(true);
                     processStartValues();
                 });
             });
@@ -1179,11 +1175,11 @@ function getAllIds(cb) {
             return;
         }
         client.execute(query, function (err, rows /* , fields */) {
+            clientPool.return(client);
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
                 if (cb) cb(err);
-                clientPool.return(client);
                 return;
             }
             if (rows.length) {
@@ -1194,10 +1190,8 @@ function getAllIds(cb) {
                     sqlDPs[id].index = rows[r].id;
                     if (rows[r].type !== null) sqlDPs[id].dbtype = rows[r].type;
                 }
-
-                if (cb) cb();
-                clientPool.return(client);
             }
+            if (cb) cb();
         });
     });
 }
@@ -1211,21 +1205,19 @@ function getAllFroms(cb) {
             return;
         }
         client.execute(query, function (err, rows /* , fields */) {
+            clientPool.return(client);
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
                 if (cb) cb(err);
-                clientPool.return(client);
                 return;
             }
             if (rows.length) {
                 for (var r = 0; r < rows.length; r++) {
                     from[rows[r].name] = rows[r].id;
                 }
-
-                if (cb) cb();
-                clientPool.return(client);
             }
+            if (cb) cb();
         });
     });
 }
