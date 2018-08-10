@@ -104,7 +104,7 @@ adapter.on('objectChange', function (id, obj) {
         if (storedType !== null) sqlDPs[id].dbtype = storedType;
 
         if (sqlDPs[id].index === undefined) {
-            getId(id, sqlDPs[id].dbtype !== undefined ? sqlDPs[id].dbtype : null, reInit);
+            getId(id, sqlDPs[id].dbtype, reInit);
         }
         else {
             reInit();
@@ -1574,7 +1574,7 @@ function getId(id, type, cb) {
                 return;
             }
             if (!rows.length) {
-                if (type !== null) {
+                if (type !== null && type !== undefined) {
                     // insert
                     query = SQLFuncs.getIdInsert(adapter.config.dbname, id, type);
                     adapter.log.debug(query);
