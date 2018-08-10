@@ -365,13 +365,10 @@ function connect(callback) {
             // read all DB IDs and all FROM ids
             if (!multiRequests) {
                 getAllIds(function () {
-                    getAllFroms();
-                    processStartValues(callback);
+                    getAllFroms(callback);
                 });
             } else {
-                getAllIds(function () {
-                    processStartValues(callback);
-                });
+                getAllIds(callback);
             }
         }
     });
@@ -1000,10 +997,11 @@ function main() {
                         subscribeAll = true;
                         adapter.subscribeForeignStates('*');
                     }
+                    adapter.subscribeForeignObjects('*');
+                    adapter.log.debug('Initialization done');
+                    processStartValues();
                 });
             });
-
-            adapter.subscribeForeignObjects('*');            
         });
     }
 }
