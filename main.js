@@ -104,7 +104,7 @@ adapter.on('objectChange', function (id, obj) {
         if (storedType !== null) sqlDPs[id].dbtype = storedType;
 
         if (sqlDPs[id].index === undefined) {
-            getId(id, sqlDPs[id].dbtype, reInit);
+            getId(id, sqlDPs[id].dbtype !== undefined ? sqlDPs[id].dbtype : null, reInit);
         }
         else {
             reInit();
