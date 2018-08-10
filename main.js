@@ -241,7 +241,7 @@ function setConnected(isConnected) {
 }
 
 var _client = false;
-function connect() {
+function connect(callback) {
     if (!clientPool) {
         setConnected(false);
 
@@ -294,7 +294,7 @@ function connect() {
                 if (err) {
                     adapter.log.error(err);
                     setTimeout(function () {
-                        connect();
+                        connect(callback);
                     }, 30000);
                     return;
                 }
@@ -304,12 +304,12 @@ function connect() {
                         _client = false;
                         adapter.log.error(err);
                         setTimeout(function () {
-                            connect();
+                            connect(callback);
                         }, 30000);
                     } else {
                         _client = true;
                         setTimeout(function () {
-                            connect();
+                            connect(callback);
                         }, 100);
                     }
                 });
@@ -331,11 +331,11 @@ function connect() {
                     if (err) {
                         adapter.log.error(err);
                         setTimeout(function () {
-                            connect();
+                            connect(callback);
                         }, 30000);
                     } else {
                         setTimeout(function () {
-                            connect();
+                            connect(callback);
                         }, 0);
                     }
                 });
@@ -348,7 +348,7 @@ function connect() {
             }
             setConnected(false);
             return setTimeout(function () {
-                connect();
+                connect(callback);
             }, 30000);
         }
     }
@@ -357,7 +357,7 @@ function connect() {
         if (err) {
             //adapter.log.error(err);
             return setTimeout(function () {
-                connect();
+                connect(callback);
             }, 30000);
         } else {
             adapter.log.info('Connected to ' + adapter.config.dbtype);
@@ -366,11 +366,11 @@ function connect() {
             if (!multiRequests) {
                 getAllIds(function () {
                     getAllFroms();
-                    processStartValues();
+                    processStartValues(callback);
                 });
             } else {
                 getAllIds(function () {
-                    processStartValues();
+                    processStartValues(callback);
                 });
             }
         }
@@ -690,18 +690,20 @@ function finish(callback) {
                 adapter.log.debug('Write 0 NULL _id: ' + id);
                 pushValueIntoDB(id, nullValue, function () {
                     if (!--count) {
-                        if (clientPool) {
-                            clientPool.close();
-                            clientPool = null;
-                        }
-                        if (typeof finished === 'object') {
-                            setTimeout(function (cb) {
-                                for (var f = 0; f < cb.length; f++) {
-                                    cb[f]();
-                                }
-                            }, 500, finished);
-                            finished = true;
-                        }
+                        setTimeout(function() {
+                            if (clientPool) {
+                                clientPool.close();
+                                clientPool = null;
+                            }
+                            if (typeof finished === 'object') {
+                                setTimeout(function (cb) {
+                                    for (var f = 0; f < cb.length; f++) {
+                                        cb[f]();
+                                    }
+                                }, 500, finished);
+                                finished = true;
+                            }
+                        }, 5000);
                     }
                 });
             }
@@ -801,7 +803,7 @@ function fixSelector(callback) {
     });
 }
 
-function processStartValues() {
+function processStartValues(callback) {
     if (tasksStart && tasksStart.length) {
         var task = tasksStart.shift();
         if (sqlDPs[task.id][adapter.namespace].changesOnly) {
@@ -839,6 +841,9 @@ function processStartValues() {
             if (sqlDPs[task.id].relogTimeout) clearTimeout(sqlDPs[task.id].relogTimeout);
             sqlDPs[task.id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500, task.id);
         }
+    }
+    else {
+        if (callback) callback();
     }
 }
 
@@ -917,89 +922,89 @@ function main() {
     }
     SQLFuncs = require(__dirname + '/lib/' + adapter.config.dbtype);
 
-    fixSelector(function () {
-        // read all custom settings
-        adapter.objects.getObjectView('custom', 'state', {}, function (err, doc) {
-            var count = 0;
-            if (doc && doc.rows) {
-                for (var i = 0, l = doc.rows.length; i < l; i++) {
-                    if (doc.rows[i].value) {
-                        var id = doc.rows[i].id;
-                        var realId = id;
-                        if (doc.rows[i].value[adapter.namespace] && doc.rows[i].value[adapter.namespace].aliasId) {
-                            aliasMap[id] = doc.rows[i].value[adapter.namespace].aliasId;
-                            adapter.log.debug('Found Alias: ' + id + ' --> ' + aliasMap[id]);
-                            id = aliasMap[id];
-                        }
-                        sqlDPs[id] = doc.rows[i].value;
-
-                        if (!sqlDPs[id][adapter.namespace]) {
-                            delete sqlDPs[id];
-                        } else {
-                            count++;
-                            adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId) + ', ' + count + ' points now activated');
-                            if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
-                                sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
-                            } else {
-                                sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
-                            }
-
-                            if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
-                                sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
-                            } else {
-                                sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
-                            }
-                            sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
-
-                            if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
-                                sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
-                            } else {
-                                sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
-                            }
-                            if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
-                                sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
-                            }
-                            if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
-                                sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta) || 0;
-                            } else {
-                                sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
-                            }
-                            if (!sqlDPs[id][adapter.namespace].storageType) sqlDPs[id][adapter.namespace].storageType = false;
-
-                            // add one day if retention is too small
-                            if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
-                                sqlDPs[id][adapter.namespace].retention += 86400;
-                            }
-                            if (sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
-                                if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
-                                sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
-                            }
-
-                            sqlDPs[id].realId  = realId;
-                        }
-                    }
-                }
-            }
-
-            if (adapter.config.writeNulls) writeNulls();
-
-            if (count < 20) {
-                for (var _id in sqlDPs) {
-                    if (sqlDPs.hasOwnProperty(_id)) {
-                        adapter.subscribeForeignStates(sqlDPs[_id].realId);
-                    }
-                }
-            } else {
-                subscribeAll = true;
-                adapter.subscribeForeignStates('*');
-            }
-        });
-    });
-
-    adapter.subscribeForeignObjects('*');
-
     if (adapter.config.dbtype === 'sqlite' || adapter.config.host) {
-        connect();
+        connect(function() {
+            fixSelector(function () {
+                // read all custom settings
+                adapter.objects.getObjectView('custom', 'state', {}, function (err, doc) {
+                    var count = 0;
+                    if (doc && doc.rows) {
+                        for (var i = 0, l = doc.rows.length; i < l; i++) {
+                            if (doc.rows[i].value) {
+                                var id = doc.rows[i].id;
+                                var realId = id;
+                                if (doc.rows[i].value[adapter.namespace] && doc.rows[i].value[adapter.namespace].aliasId) {
+                                    aliasMap[id] = doc.rows[i].value[adapter.namespace].aliasId;
+                                    adapter.log.debug('Found Alias: ' + id + ' --> ' + aliasMap[id]);
+                                    id = aliasMap[id];
+                                }
+                                sqlDPs[id] = doc.rows[i].value;
+
+                                if (!sqlDPs[id][adapter.namespace]) {
+                                    delete sqlDPs[id];
+                                } else {
+                                    count++;
+                                    adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId) + ', ' + count + ' points now activated');
+                                    if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
+                                        sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
+                                    } else {
+                                        sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
+                                    }
+
+                                    if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
+                                        sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
+                                    } else {
+                                        sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
+                                    }
+                                    sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
+
+                                    if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
+                                        sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
+                                    } else {
+                                        sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
+                                    }
+                                    if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+                                        sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
+                                    }
+                                    if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
+                                        sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta) || 0;
+                                    } else {
+                                        sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
+                                    }
+                                    if (!sqlDPs[id][adapter.namespace].storageType) sqlDPs[id][adapter.namespace].storageType = false;
+
+                                    // add one day if retention is too small
+                                    if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
+                                        sqlDPs[id][adapter.namespace].retention += 86400;
+                                    }
+                                    if (sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+                                        if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
+                                        sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
+                                    }
+
+                                    sqlDPs[id].realId  = realId;
+                                }
+                            }
+                        }
+                    }
+
+                    if (adapter.config.writeNulls) writeNulls();
+
+                    if (count < 20) {
+                        for (var _id in sqlDPs) {
+                            if (sqlDPs.hasOwnProperty(_id)) {
+                                adapter.subscribeForeignStates(sqlDPs[_id].realId);
+                            }
+                        }
+                    } else {
+                        subscribeAll = true;
+                        adapter.subscribeForeignStates('*');
+                    }
+                });
+            });
+
+            adapter.subscribeForeignObjects('*');            
+        });
     }
 }
 
