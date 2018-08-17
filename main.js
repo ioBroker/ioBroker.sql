@@ -930,7 +930,15 @@ function main() {
                                     adapter.log.debug('Found Alias: ' + id + ' --> ' + aliasMap[id]);
                                     id = aliasMap[id];
                                 }
+
+                                var storedIndex = null;
+                                var storedType = null;
+                                if (sqlDPs[id] && sqlDPs[id].index !== undefined) storedIndex = sqlDPs[id].index;
+                                if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) storedType = sqlDPs[id].dbtype;
+                                // todo remove history sometime (2016.08)
                                 sqlDPs[id] = doc.rows[i].value;
+                                if (storedIndex !== null) sqlDPs[id].index = storedIndex;
+                                if (storedType !== null) sqlDPs[id].dbtype = storedType;
 
                                 if (!sqlDPs[id][adapter.namespace]) {
                                     delete sqlDPs[id];
