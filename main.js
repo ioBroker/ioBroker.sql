@@ -1091,7 +1091,7 @@ function pushHistory(id, state, timerRelog) {
         if (settings.debounce && !ignoreDebonce) {
             // Discard changes in debounce time to store last stable value
             if (sqlDPs[id].timeout) clearTimeout(sqlDPs[id].timeout);
-            sqlDPs[id].timeout = setTimeout(pushHelper, settings.debounce, id);
+            sqlDPs[id].timeout = setTimeout(pushHelper, settings.debounce, id, true);
         } else {
             pushHelper(id);
         }
@@ -1127,12 +1127,12 @@ function reLogHelper(_id) {
     }
 }
 
-function pushHelper(_id) {
+function pushHelper(_id, timeoutTriggered) {
     if (!sqlDPs[_id] || !sqlDPs[_id].state) return;
     var _settings = sqlDPs[_id][adapter.namespace];
     // if it was not deleted in this time
     if (_settings) {
-        sqlDPs[_id].timeout = null;
+        if (timeoutTriggered) sqlDPs[_id].timeout = null;
 
         if (sqlDPs[_id].state.val !== null) {
             if (typeof sqlDPs[_id].state.val === 'object') {
