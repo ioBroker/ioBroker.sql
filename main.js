@@ -1135,7 +1135,7 @@ function pushHelper(_id, timeoutTriggered) {
         if (timeoutTriggered) sqlDPs[_id].timeout = null;
 
         if (sqlDPs[_id].state.val !== null) {
-            if (typeof sqlDPs[_id].state.val === 'object') {
+            if (typeof sqlDPs[_id].state.val === 'object' || typeof sqlDPs[_id].state.val === 'undefined') {
                 sqlDPs[_id].state.val = JSON.stringify(sqlDPs[_id].state.val);
             }
         }
@@ -1478,7 +1478,7 @@ function pushValueIntoDB(id, state, cb) {
     }
 
     try {
-        if (state.val !== null && typeof state.val === 'object') {
+        if (state.val !== null && (typeof state.val === 'object' || typeof state.val === 'undefined')) {
             state.val = JSON.stringify(state.val);
         }
     } catch (err) {
