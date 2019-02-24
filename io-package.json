@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.9.3",
+        "version": "1.9.4",
         "news": {
+            "1.9.4": {
+                "en": "Fix several smaller issues and timing on initialization/Start optimized",
+                "de": "Behebung mehrerer kleinerer Probleme und Timing bei der Initialisierung / Start optimiert",
+                "ru": "Исправлено несколько мелких проблем и времени при инициализации / Запуск оптимизирован",
+                "pt": "Corrigir vários problemas menores e tempo na inicialização / Iniciar otimizado",
+                "nl": "Los enkele kleinere problemen en timing op bij initialisatie / Start geoptimaliseerd",
+                "fr": "Résoudre plusieurs problèmes mineurs et le calendrier d'initialisation / démarrage optimisé",
+                "it": "Risolti diversi problemi minori e tempistiche sull'inizializzazione / Avvio ottimizzato",
+                "es": "Solucionar varios problemas más pequeños y el tiempo de inicio / inicio optimizado",
+                "pl": "Napraw kilka mniejszych problemów i czas podczas inicjalizacji / Uruchom zoptymalizowany",
+                "zh-cn": "修复几个较小的问题和初始化/开始优化的时间"
+            },
             "1.9.2": {
                 "en": "Add option to write data to a different ID to make device changes easier. Retrieving data works for both IDs",
                 "de": "Option zum Schreiben von Daten in eine andere ID hinzufügen, um Geräteänderungen zu vereinfachen. Das Abrufen von Daten funktioniert für beide IDs",

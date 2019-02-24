@@ -315,6 +315,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
+## 1.9.4 (2019-02-24)
+* (Apollon77) Fix several smaller issues and topics
+* (Apollon77) Optimize Texts (for Admin v3 UI)
+
 ## 1.9.0 (2018-06-19)
 * (Apollon77) Add option to log datapoints as other ID (alias) to easier migrate devices and such
 
