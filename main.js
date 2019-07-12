@@ -3,56 +3,97 @@
 /* jslint node: true */
 'use strict';
 
-var utils    = require('@iobroker/adapter-core'); // Get common adapter utils
-var SQL      = require('sql-client');
-var commons  = require(__dirname + '/lib/aggregate');
-var SQLFuncs = null;
-var fs       = require('fs');
+const utils    = require('@iobroker/adapter-core'); // Get common adapter utils
+const SQL      = require('sql-client');
+const commons  = require(__dirname + '/lib/aggregate');
+let   SQLFuncs = null;
+const fs       = require('fs');
 
-var clients = {
+const clients = {
     postgresql: {name: 'PostgreSQLClient',  multiRequests: true},
     mysql:      {name: 'MySQLClient',       multiRequests: true},
     sqlite:     {name: 'SQLite3Client',     multiRequests: false},
     mssql:      {name: 'MSSQLClient',       multiRequests: true}
 };
 
-var types   = {
+const types   = {
     'number':  0,
     'string':  1,
     'boolean': 2,
     'object':  1
 };
 
-var dbNames = [
+const dbNames = [
     'ts_number',
     'ts_string',
     'ts_bool'
 ];
 
-var storageTypes = [
+const storageTypes = [
     'Number',
     'String',
     'Boolean'
 ];
 
-var clientPool;
-var sqlDPs        = {};
-var from          = {};
-var subscribeAll  = false;
-var tasks         = [];
-var tasksReadType = [];
-var multiRequests = true;
-var tasksStart    = [];
-var finished      = false;
-var connected     = null;
-var isFromRunning = {};
-var aliasMap   = {};
+let clientPool;
+const sqlDPs        = {};
+const from          = {};
+let subscribeAll  = false;
+const tasks         = [];
+const tasksReadType = [];
+let multiRequests = true;
+const tasksStart    = [];
+let finished      = false;
+let connected     = null;
+const isFromRunning = {};
+const aliasMap   = {};
 
-var adapter = utils.Adapter('sql');
-adapter.on('objectChange', function (id, obj) {
-    var tmpState;
-    var now = new Date().getTime();
-    var formerAliasId = aliasMap[id] ? aliasMap[id] : id;
+const adapter = utils.Adapter('sql');
+
+function reInit(id, writeNull) {
+    adapter.log.debug('remembered Index/Type ' + sqlDPs[id].index + ' / ' + sqlDPs[id].dbtype);
+    sqlDPs[id].realId  = realId;
+
+    if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
+        sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
+    } else {
+        sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
+    }
+    if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
+        sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
+    } else {
+        sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
+    }
+    sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
+    if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
+        sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
+    } else {
+        sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
+    }
+    if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+        sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
+    }
+    if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
+        sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta.toString().replace(/,/g, '.')) || 0;
+    } else {
+        sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
+    }
+    if (!sqlDPs[id][adapter.namespace].storageType) sqlDPs[id][adapter.namespace].storageType = false;
+
+    // add one day if retention is too small
+    if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
+        sqlDPs[id][adapter.namespace].retention += 86400;
+    }
+    if (writeNull && adapter.config.writeNulls) {
+        writeNulls(id);
+    }
+    adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId));
+}
+
+adapter.on('objectChange', (id, obj) => {
+    let tmpState;
+    const now = new Date().getTime();
+    const formerAliasId = aliasMap[id] ? aliasMap[id] : id;
     if (obj && obj.common &&
         (
             // todo remove history sometime (2016.08) - Do not forget object selector in io-package.json
@@ -60,8 +101,8 @@ adapter.on('objectChange', function (id, obj) {
             (obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled)
         )
     ) {
-        var realId = id;
-        var checkForRemove = true;
+        const realId = id;
+        let checkForRemove = true;
         if (obj.common.custom && obj.common.custom[adapter.namespace] && obj.common.custom[adapter.namespace].aliasId) {
             if (obj.common.custom[adapter.namespace].aliasId !== id) {
                 aliasMap[id] = obj.common.custom[adapter.namespace].aliasId;
@@ -81,77 +122,41 @@ adapter.on('objectChange', function (id, obj) {
 
         if (!(sqlDPs[formerAliasId] && sqlDPs[formerAliasId][adapter.namespace]) && !subscribeAll) {
             // un-subscribe
-            for (var _id in sqlDPs) {
-                if (sqlDPs.hasOwnProperty(sqlDPs[_id].realId)) {
+            for (const _id in sqlDPs) {
+                if (sqlDPs.hasOwnProperty(_id) && sqlDPs.hasOwnProperty(sqlDPs[_id].realId)) {
                     adapter.unsubscribeForeignStates(sqlDPs[_id].realId);
                 }
             }
             subscribeAll = true;
             adapter.subscribeForeignStates('*');
         }
-        var writeNull = !(sqlDPs[id] && sqlDPs[id][adapter.namespace]);
+        const writeNull = !(sqlDPs[id] && sqlDPs[id][adapter.namespace]);
         if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].relogTimeout) {
             clearTimeout(sqlDPs[formerAliasId].relogTimeout);
         }
 
-        var storedIndex = null;
-        var storedType = null;
-        if (sqlDPs[id] && sqlDPs[id].index !== undefined) storedIndex = sqlDPs[id].index;
-        if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) storedType = sqlDPs[id].dbtype;
-            else if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].dbtype !== undefined) storedType = sqlDPs[formerAliasId].dbtype;
-        // todo remove history sometime (2016.08)
-        sqlDPs[id] = obj.common.custom || obj.common.history;
+        let storedIndex = null;
+        let storedType = null;
+        if (sqlDPs[id] && sqlDPs[id].index !== undefined) {
+            storedIndex = sqlDPs[id].index;
+        }
+        if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) {
+            storedType = sqlDPs[id].dbtype;
+        } else if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].dbtype !== undefined) {
+            storedType = sqlDPs[formerAliasId].dbtype;
+        }
+
+            // todo remove history sometime (2016.08)
+        sqlDPs[id] = obj.common.custom;
         if (storedIndex !== null) sqlDPs[id].index = storedIndex;
         if (storedType !== null) sqlDPs[id].dbtype = storedType;
 
         if (sqlDPs[id].index === undefined) {
-            getId(id, sqlDPs[id].dbtype, reInit);
+            getId(id, sqlDPs[id].dbtype, () => reInit(id, writeNull));
+        } else {
+            reInit(id, writeNull);
         }
-        else {
-            reInit();
-        }
-
-        function reInit() {
-            adapter.log.debug('remembered Index/Type ' + sqlDPs[id].index + ' / ' + sqlDPs[id].dbtype);
-            sqlDPs[id].realId  = realId;
-
-            if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
-                sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
-            } else {
-                sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
-            }
-            if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
-                sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
-            } else {
-                sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
-            }
-            sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
-            if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
-                sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
-            } else {
-                sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
-            }
-            if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
-                sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
-            }
-            if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
-                sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta.toString().replace(/,/g, '.')) || 0;
-            } else {
-                sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
-            }
-            if (!sqlDPs[id][adapter.namespace].storageType) sqlDPs[id][adapter.namespace].storageType = false;
-
-            // add one day if retention is too small
-            if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
-                sqlDPs[id][adapter.namespace].retention += 86400;
-            }
-            if (writeNull && adapter.config.writeNulls) {
-                writeNulls(id);
-            }
-            adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId));
-        }
-    }
-    else {
+    } else {
         if (aliasMap[id]) {
             adapter.log.debug('Removed Alias: ' + id + ' !-> ' + aliasMap[id]);
             delete aliasMap[id];
@@ -159,23 +164,22 @@ adapter.on('objectChange', function (id, obj) {
         id = formerAliasId;
         if (sqlDPs[id]) {
             adapter.log.info('disabled logging of ' + id);
-            if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
-            if (sqlDPs[id].timeout) clearTimeout(sqlDPs[id].timeout);
+            sqlDPs[id].relogTimeout && clearTimeout(sqlDPs[id].relogTimeout);
+            sqlDPs[id].timeout && clearTimeout(sqlDPs[id].timeout);
 
             if (Object.assign) {
                 tmpState = Object.assign({}, sqlDPs[id].state);
-            }
-            else {
+            } else {
                 tmpState = JSON.parse(JSON.stringify(sqlDPs[id].state));
             }
-            var state = sqlDPs[id].state ? tmpState : null;
+            const state = sqlDPs[id].state ? tmpState : null;
 
             if (sqlDPs[id].skipped) {
                 pushValueIntoDB(id, sqlDPs[id].skipped);
                 sqlDPs[id].skipped = null;
             }
 
-            var nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
+            const nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
             if (sqlDPs[id][adapter.namespace] && adapter.config.writeNulls) {
                 if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
                     (function (_id, _state, _nullValue) {
@@ -184,55 +188,41 @@ adapter.on('objectChange', function (id, obj) {
                         nullValue.ts += 4;
                         nullValue.lc += 4; // because of MS SQL
                         adapter.log.debug('Write 1/2 "' + _state.val + '" _id: ' + _id);
-                        pushValueIntoDB(_id, _state, function () {
+                        pushValueIntoDB(_id, _state, () => {
                             // terminate values with null to indicate adapter stop. timestamp + 1#
                             adapter.log.debug('Write 2/2 "null" _id: ' + _id);
-                            pushValueIntoDB(_id, _nullValue, function() {
-                                delete sqlDPs[id][adapter.namespace];
-                            });
+                            pushValueIntoDB(_id, _nullValue, () => delete sqlDPs[id][adapter.namespace]);
                         });
                     })(id, state, nullValue);
                 }
                 else {
                     // terminate values with null to indicate adapter stop. timestamp + 1
                     adapter.log.debug('Write 0 NULL _id: ' + id);
-                    pushValueIntoDB(id, nullValue, function() {
-                        delete sqlDPs[id][adapter.namespace];
-                    });
+                    pushValueIntoDB(id, nullValue, () => delete sqlDPs[id][adapter.namespace]);
                 }
-            }
-            else {
+            } else {
                 delete sqlDPs[id][adapter.namespace];
             }
         }
     }
 });
 
-adapter.on('stateChange', function (id, state) {
+adapter.on('stateChange', (id, state) => {
     id = aliasMap[id] ? aliasMap[id] : id;
     pushHistory(id, state);
 });
 
-adapter.on('unload', function (callback) {
-    finish(callback);
-});
+adapter.on('unload', callback => finish(callback));
 
-adapter.on('ready', function () {
-    main();
-});
+adapter.on('ready', () => main());
 
-adapter.on('message', function (msg) {
-    processMessage(msg);
-});
+adapter.on('message', msg => processMessage(msg));
 
-process.on('SIGINT', function () {
-    // close connection to DB
-    finish();
-});
-process.on('SIGTERM', function () {
-    // close connection to DB
-    finish();
-});
+// close connection to DB
+process.on('SIGINT', () => finish());
+
+// close connection to DB
+process.on('SIGTERM', () => finish());
 
 function setConnected(isConnected) {
     if (connected !== isConnected) {
@@ -241,12 +231,12 @@ function setConnected(isConnected) {
     }
 }
 
-var _client = false;
+let _client = false;
 function connect(callback) {
     if (!clientPool) {
         setConnected(false);
 
-        var params = {
+        let params = {
             server:     adapter.config.host, // needed for MSSQL
             host:       adapter.config.host, // needed for PostgeSQL , MySQL
             user:       adapter.config.user,
@@ -291,27 +281,21 @@ function connect(callback) {
 
             // connect first to DB postgres and create iobroker DB
             _client = new SQL[clients[adapter.config.dbtype].name](params);
-            return _client.connect(function (err) {
+            return _client.connect(err => {
                 if (err) {
                     adapter.log.error(err);
-                    setTimeout(function () {
-                        connect(callback);
-                    }, 30000);
+                    setTimeout(() => connect(callback), 30000);
                     return;
                 }
-                _client.execute('CREATE DATABASE ' + adapter.config.dbname + ';', function (err /* , rows, fields */) {
+                _client.execute('CREATE DATABASE ' + adapter.config.dbname + ';', (err /* , rows, fields */) => {
                     _client.disconnect();
                     if (err && err.code !== '42P04') { // if error not about yet exists
                         _client = false;
                         adapter.log.error(err);
-                        setTimeout(function () {
-                            connect(callback);
-                        }, 30000);
+                        setTimeout(() => connect(callback), 30000);
                     } else {
                         _client = true;
-                        setTimeout(function () {
-                            connect(callback);
-                        }, 100);
+                        setTimeout(() => connect(callback), 100);
                     }
                 });
             });
@@ -328,16 +312,12 @@ function connect(callback) {
                 adapter.log.error('Selected SQL DB was not installed properly:  "' + adapter.config.dbtype + '". SQLite requires build tools on system. See README.md');
             } else {
                 clientPool = new SQL[clients[adapter.config.dbtype].name + 'Pool'](params);
-                return clientPool.open(function (err) {
+                return clientPool.open(err => {
                     if (err) {
                         adapter.log.error(err);
-                        setTimeout(function () {
-                            connect(callback);
-                        }, 30000);
+                        setTimeout(() => connect(callback), 30000);
                     } else {
-                        setTimeout(function () {
-                            connect(callback);
-                        }, 0);
+                        setTimeout(() => connect(callback), 0);
                     }
                 });
             }
@@ -348,24 +328,19 @@ function connect(callback) {
                 adapter.log.error(ex.toString());
             }
             setConnected(false);
-            return setTimeout(function () {
-                connect(callback);
-            }, 30000);
+            return setTimeout(() => connect(callback), 30000);
         }
     }
 
-    allScripts(SQLFuncs.init(adapter.config.dbname), function (err) {
+    allScripts(SQLFuncs.init(adapter.config.dbname), err => {
         if (err) {
             //adapter.log.error(err);
-            return setTimeout(function () {
-                connect(callback);
-            }, 30000);
+            return setTimeout(() => connect(callback), 30000);
         } else {
             adapter.log.info('Connected to ' + adapter.config.dbtype);
             // read all DB IDs and all FROM ids
-            getAllIds(function () {
-                getAllFroms(callback);
-            });
+            getAllIds(() =>
+                getAllFroms(callback));
         }
     });
 }
@@ -380,9 +355,9 @@ function getSqlLiteDir(fileName) {
     else {
         // normally /opt/iobroker/node_modules/iobroker.js-controller
         // but can be /example/ioBroker.js-controller
-        var tools = require(utils.controllerDir + '/lib/tools');
-        var config = tools.getConfigFileName().replace(/\\/g, '/');
-        var parts = config.split('/');
+        const tools = require(utils.controllerDir + '/lib/tools');
+        let config = tools.getConfigFileName().replace(/\\/g, '/');
+        const parts = config.split('/');
         parts.pop();
         config = parts.join('/') + '/sqlite';
         // create sqlite directory
@@ -396,7 +371,7 @@ function getSqlLiteDir(fileName) {
 
 function testConnection(msg) {
     msg.message.config.port = parseInt(msg.message.config.port, 10) || 0;
-    var params = {
+    let params = {
         server:     msg.message.config.host,
         host:       msg.message.config.host,
         user:       msg.message.config.user,
@@ -407,14 +382,14 @@ function testConnection(msg) {
     }
 
     if (msg.message.config.dbtype === 'postgresql' && !SQL.PostgreSQLClient) {
-        var postgres = require(__dirname + '/lib/postgresql-client');
-        for (var attr in postgres) {
+        const postgres = require(__dirname + '/lib/postgresql-client');
+        for (const attr in postgres) {
             if (!SQL[attr]) SQL[attr] = postgres[attr];
         }
     } else
     if (msg.message.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
-        var mssql = require(__dirname + '/lib/mssql-client');
-        for (var _attr in mssql) {
+        const mssql = require(__dirname + '/lib/mssql-client');
+        for (const _attr in mssql) {
             if (!SQL[_attr]) SQL[_attr] = mssql[_attr];
         }
     }
@@ -424,15 +399,15 @@ function testConnection(msg) {
     } else if (msg.message.config.dbtype === 'sqlite') {
         params = getSqlLiteDir(msg.message.config.fileName);
     }
-    var timeout;
+    let timeout;
     try {
-        var client = new SQL[clients[msg.message.config.dbtype].name](params);
-        timeout = setTimeout(function () {
+        const client = new SQL[clients[msg.message.config.dbtype].name](params);
+        timeout = setTimeout(() => {
             timeout = null;
             adapter.sendTo(msg.from, msg.command, {error: 'connect timeout'}, msg.callback);
         }, 5000);
 
-        client.connect(function (err) {
+        client.connect(err => {
             if (err) {
                 if (timeout) {
                     clearTimeout(timeout);
@@ -440,7 +415,7 @@ function testConnection(msg) {
                 }
                 return adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
             }
-            client.execute("SELECT 2 + 3 AS x", function (err /* , rows, fields */) {
+            client.execute("SELECT 2 + 3 AS x", (err /* , rows, fields */) => {
                 client.disconnect();
                 if (timeout) {
                     clearTimeout(timeout);
@@ -464,23 +439,22 @@ function testConnection(msg) {
 
 function destroyDB(msg) {
     try {
-        allScripts(SQLFuncs.destroy(adapter.config.dbname), function (err) {
+        allScripts(SQLFuncs.destroy(adapter.config.dbname), err => {
             if (err) {
                 adapter.log.error(err);
                 adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
             } else {
                 adapter.sendTo(msg.from, msg.command, {error: null}, msg.callback);
                 // restart adapter
-                setTimeout(function () {
-                    adapter.getForeignObject('system.adapter.' + adapter.namespace, function (err, obj) {
+                setTimeout(() =>
+                    adapter.getForeignObject('system.adapter.' + adapter.namespace, (err, obj) => {
                         if (!err) {
                             adapter.setForeignObject(obj._id, obj);
                         } else {
                             adapter.log.error('Cannot read object "system.adapter.' + adapter.namespace + '": ' + err);
                             adapter.stop();
                         }
-                    });
-                }, 2000);
+                    }), 2000);
             }
         });
     } catch (ex) {
@@ -492,12 +466,12 @@ function _userQuery(msg, callback) {
     try {
         adapter.log.debug(msg.message);
 
-        clientPool.borrow(function (err, client) {
+        clientPool.borrow((err, client) => {
             if (err) {
                 adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
                 if (callback) callback();
             } else {
-                client.execute(msg.message, function (err, rows /* , fields */) {
+                client.execute(msg.message, (err, rows /* , fields */) => {
                     if (rows && rows.rows) rows = rows.rows;
                     clientPool.return(client);
                     adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null, result: rows}, msg.callback);
@@ -528,7 +502,7 @@ function query(msg) {
 // one script
 function oneScript(script, cb) {
     try {
-        clientPool.borrow(function (err, client) {
+        clientPool.borrow((err, client) => {
             if (err || !client) {
                 clientPool.close();
                 clientPool = null;
@@ -537,7 +511,7 @@ function oneScript(script, cb) {
                 return;
             }
             adapter.log.debug(script);
-            client.execute(script, function(err /* , rows, fields */) {
+            client.execute(script, (err /* , rows, fields */) => {
                 adapter.log.debug('Response: ' + JSON.stringify(err));
                 if (err) {
                     // Database 'iobroker' already exists. Choose a different database name.
@@ -560,7 +534,7 @@ function oneScript(script, cb) {
                         err = null;
                     }
                     else if (err.code === '42P07') {
-                        var match = script.match(/CREATE\s+TABLE\s+(\w*)\s+\(/);
+                        const match = script.match(/CREATE\s+TABLE\s+(\w*)\s+\(/);
                         if (match) {
                             adapter.log.debug('OK. Table "' + match[1] + '" yet exists');
                             err = null;
@@ -593,7 +567,7 @@ function allScripts(scripts, index, cb) {
     index = index || 0;
 
     if (scripts && index < scripts.length) {
-        oneScript(scripts[index], function (err) {
+        oneScript(scripts[index], err => {
             if (err) {
                 if (cb) cb(err);
             } else {
@@ -616,26 +590,26 @@ function finish(callback) {
             clearTimeout(sqlDPs[id].timeout);
             sqlDPs[id].timeout  = null;
         }
-        var tmpState;
+        let tmpState;
         if (Object.assign) {
             tmpState = Object.assign({}, sqlDPs[id].state);
         }
         else {
             tmpState = JSON.parse(JSON.stringify(sqlDPs[id].state));
         }
-        var state = sqlDPs[id].state ? tmpState : null;
+        const state = sqlDPs[id].state ? tmpState : null;
 
         if (sqlDPs[id].skipped) {
             count++;
-            pushValueIntoDB(id, sqlDPs[id].skipped, function () {
+            pushValueIntoDB(id, sqlDPs[id].skipped, () => {
                 if (!--count) {
                     if (clientPool) {
                         clientPool.close();
                         clientPool = null;
                     }
                     if (typeof finished === 'object') {
-                        setTimeout(function (cb) {
-                            for (var f = 0; f < cb.length; f++) {
+                        setTimeout(cb => {
+                            for (let f = 0; f < cb.length; f++) {
                                 cb[f]();
                             }
                         }, 500, finished);
@@ -646,7 +620,7 @@ function finish(callback) {
             sqlDPs[id].skipped = null;
         }
 
-        var nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
+        const nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
         if (sqlDPs[id][adapter.namespace] && adapter.config.writeNulls) {
             if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
                 count++;
@@ -656,18 +630,18 @@ function finish(callback) {
                     nullValue.ts += 4;
                     nullValue.lc += 4; // because of MS SQL
                     adapter.log.debug('Write 1/2 "' + _state.val + '" _id: ' + _id);
-                    pushValueIntoDB(_id, _state, function () {
+                    pushValueIntoDB(_id, _state, () => {
                         // terminate values with null to indicate adapter stop. timestamp + 1#
                         adapter.log.debug('Write 2/2 "null" _id: ' + _id);
-                        pushValueIntoDB(_id, _nullValue, function () {
+                        pushValueIntoDB(_id, _nullValue, () => {
                             if (!--count) {
                                 if (clientPool) {
                                     clientPool.close();
                                     clientPool = null;
                                 }
                                 if (typeof finished === 'object') {
-                                    setTimeout(function (cb) {
-                                        for (var f = 0; f < cb.length; f++) {
+                                    setTimeout(cb => {
+                                        for (let f = 0; f < cb.length; f++) {
                                             cb[f]();
                                         }
                                     }, 500, finished);
@@ -681,16 +655,16 @@ function finish(callback) {
                 // terminate values with null to indicate adapter stop. timestamp + 1
                 count++;
                 adapter.log.debug('Write 0 NULL _id: ' + id);
-                pushValueIntoDB(id, nullValue, function () {
+                pushValueIntoDB(id, nullValue, () => {
                     if (!--count) {
-                        setTimeout(function() {
+                        setTimeout(() => {
                             if (clientPool) {
                                 clientPool.close();
                                 clientPool = null;
                             }
                             if (typeof finished === 'object') {
-                                setTimeout(function (cb) {
-                                    for (var f = 0; f < cb.length; f++) {
+                                setTimeout(cb => {
+                                    for (let f = 0; f < cb.length; f++) {
                                         cb[f]();
                                     }
                                 }, 500, finished);
@@ -704,7 +678,7 @@ function finish(callback) {
     }
 
     adapter.unsubscribeForeignStates('*');
-    var count = 0;
+    let count = 0;
     if (finished) {
         if (callback) {
             if (finished === true) {
@@ -716,10 +690,10 @@ function finish(callback) {
         return;
     }
     finished = [callback];
-    var now = new Date().getTime();
-    var dpcount = 0;
-    var delay = 0;
-    for (var id in sqlDPs) {
+    const now = new Date().getTime();
+    let dpcount = 0;
+    let delay = 0;
+    for (const id in sqlDPs) {
         if (!sqlDPs.hasOwnProperty(id)) continue;
         dpcount++;
         delay += (dpcount%50 === 0) ? 1000: 0;
@@ -763,12 +737,10 @@ function processMessage(msg) {
     else if (msg.command === 'getEnabledDPs') {
         getEnabledDPs(msg);
     } else if (msg.command === 'stopInstance') {
-        finish(function () {
+        finish(() => {
             if (msg.callback) {
                 adapter.sendTo(msg.from, msg.command, 'stopped', msg.callback);
-                setTimeout(function () {
-                    process.exit(0);
-                }, 200);
+                setTimeout(() => process.exit(0), 200);
             }
         });
     }
@@ -776,7 +748,7 @@ function processMessage(msg) {
 
 function fixSelector(callback) {
     // fix _design/custom object
-    adapter.getForeignObject('_design/custom', function (err, obj) {
+    adapter.getForeignObject('_design/custom', (err, obj) => {
         if (!obj || obj.views.state.map.indexOf('common.history') === -1 || obj.views.state.map.indexOf('common.custom') === -1) {
             obj = {
                 _id: '_design/custom',
@@ -787,21 +759,20 @@ function fixSelector(callback) {
                     }
                 }
             };
-            adapter.setForeignObject('_design/custom', obj, function (err) {
-                if (callback) callback(err);
-            });
+            adapter.setForeignObject('_design/custom', obj, err =>
+                callback && callback(err));
         } else {
-            if (callback) callback(err);
+            callback && callback(err);
         }
     });
 }
 
 function processStartValues(callback) {
     if (tasksStart && tasksStart.length) {
-        var task = tasksStart.shift();
+        const task = tasksStart.shift();
         if (sqlDPs[task.id][adapter.namespace].changesOnly) {
-            adapter.getForeignState(sqlDPs[task.id].realId, function (err, state) {
-                var now = task.now || new Date().getTime();
+            adapter.getForeignState(sqlDPs[task.id].realId, (err, state) => {
+                const now = task.now || new Date().getTime();
                 pushHistory(task.id, {
                     val:  null,
                     ts:   state ? now - 4 : now, // 4 is because of MS SQL
@@ -843,7 +814,7 @@ function processStartValues(callback) {
 function writeNulls(id, now) {
     if (!id) {
         now = new Date().getTime();
-        for (var _id in sqlDPs) {
+        for (const _id in sqlDPs) {
             if (sqlDPs.hasOwnProperty(_id) && sqlDPs[_id] && sqlDPs[_id][adapter.namespace]) {
                 writeNulls(_id, now);
             }
@@ -898,16 +869,16 @@ function main() {
         adapter.config.round = null;
     }
     if (adapter.config.dbtype === 'postgresql' && !SQL.PostgreSQLClient) {
-        var postgres = require(__dirname + '/lib/postgresql-client');
-        for (var attr in postgres) {
+        const postgres = require(__dirname + '/lib/postgresql-client');
+        for (const attr in postgres) {
             if (postgres.hasOwnProperty(attr) && !SQL[attr]) {
                 SQL[attr] = postgres[attr];
             }
         }
     } else
     if (adapter.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
-        var mssql = require(__dirname + '/lib/mssql-client');
-        for (var attr_ in mssql) {
+        const mssql = require(__dirname + '/lib/mssql-client');
+        for (const attr_ in mssql) {
             if (mssql.hasOwnProperty(attr_) && !SQL[attr_]) {
                 SQL[attr_] = mssql[attr_];
             }
@@ -916,24 +887,24 @@ function main() {
     SQLFuncs = require(__dirname + '/lib/' + adapter.config.dbtype);
 
     if (adapter.config.dbtype === 'sqlite' || adapter.config.host) {
-        connect(function() {
-            fixSelector(function () {
+        connect(() => {
+            fixSelector(() => {
                 // read all custom settings
-                adapter.objects.getObjectView('custom', 'state', {}, function (err, doc) {
-                    var count = 0;
+                adapter.objects.getObjectView('custom', 'state', {}, (err, doc) => {
+                    let count = 0;
                     if (doc && doc.rows) {
-                        for (var i = 0, l = doc.rows.length; i < l; i++) {
+                        for (let i = 0, l = doc.rows.length; i < l; i++) {
                             if (doc.rows[i].value) {
-                                var id = doc.rows[i].id;
-                                var realId = id;
+                                let id = doc.rows[i].id;
+                                const realId = id;
                                 if (doc.rows[i].value[adapter.namespace] && doc.rows[i].value[adapter.namespace].aliasId) {
                                     aliasMap[id] = doc.rows[i].value[adapter.namespace].aliasId;
                                     adapter.log.debug('Found Alias: ' + id + ' --> ' + aliasMap[id]);
                                     id = aliasMap[id];
                                 }
 
-                                var storedIndex = null;
-                                var storedType = null;
+                                let storedIndex = null;
+                                let storedType = null;
                                 if (sqlDPs[id] && sqlDPs[id].index !== undefined) storedIndex = sqlDPs[id].index;
                                 if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) storedType = sqlDPs[id].dbtype;
                                 // todo remove history sometime (2016.08)
@@ -992,7 +963,7 @@ function main() {
                     if (adapter.config.writeNulls) writeNulls();
 
                     if (count < 20) {
-                        for (var _id in sqlDPs) {
+                        for (const _id in sqlDPs) {
                             if (sqlDPs.hasOwnProperty(_id)) {
                                 adapter.subscribeForeignStates(sqlDPs[_id].realId);
                             }
@@ -1015,13 +986,13 @@ function pushHistory(id, state, timerRelog) {
     if (timerRelog === undefined) timerRelog = false;
     // Push into DB
     if (sqlDPs[id]) {
-        var settings = sqlDPs[id][adapter.namespace];
+        const settings = sqlDPs[id][adapter.namespace];
 
         if (!settings || !state) return;
 
         adapter.log.debug('new value received for ' + id + ', new-value=' + state.val + ', ts=' + state.ts + ', relog=' + timerRelog);
         if (state.val !== null && typeof state.val === 'string' && settings.storageType !== 'String') {
-            var f = parseFloat(state.val);
+            const f = parseFloat(state.val);
             if (f == state.val) {
                 state.val = f;
             }
@@ -1066,7 +1037,7 @@ function pushHistory(id, state, timerRelog) {
             sqlDPs[id].relogTimeout = setTimeout(reLogHelper, settings.changesRelogInterval * 1000, id);
         }
 
-        var ignoreDebonce = false;
+        let ignoreDebonce = false;
         if (timerRelog) {
             state.ts = new Date().getTime();
             adapter.log.debug('timed-relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
@@ -1110,16 +1081,13 @@ function reLogHelper(_id) {
         sqlDPs[_id].state.from = 'system.adapter.' + adapter.namespace;
         sqlDPs[_id].skipped = null;
         pushHistory(_id, sqlDPs[_id].state, true);
-    }
-    else {
-        adapter.getForeignState(sqlDPs[_id].realId, function (err, state) {
+    } else {
+        adapter.getForeignState(sqlDPs[_id].realId, (err, state) => {
             if (err) {
                 adapter.log.info('init timed Relog: can not get State for ' + _id + ' : ' + err);
-            }
-            else if (!state) {
+            } else if (!state) {
                 adapter.log.info('init timed Relog: disable relog because state not set so far for ' + _id + ': ' + JSON.stringify(state));
-            }
-            else {
+            } else {
                 adapter.log.debug('init timed Relog: getState ' + _id + ':  Value=' + state.val + ', ack=' + state.ack + ', ts=' + state.ts  + ', lc=' + state.lc);
                 sqlDPs[_id].state = state;
                 pushHistory(_id, sqlDPs[_id].state, true);
@@ -1130,7 +1098,7 @@ function reLogHelper(_id) {
 
 function pushHelper(_id, timeoutTriggered) {
     if (!sqlDPs[_id] || !sqlDPs[_id].state) return;
-    var _settings = sqlDPs[_id][adapter.namespace];
+    const _settings = sqlDPs[_id][adapter.namespace];
     // if it was not deleted in this time
     if (_settings) {
         if (timeoutTriggered) sqlDPs[_id].timeout = null;
@@ -1144,7 +1112,7 @@ function pushHelper(_id, timeoutTriggered) {
             adapter.log.debug('Datatype ' + _id + ': Currently: ' + typeof sqlDPs[_id].state.val + ', StorageType: ' + _settings.storageType);
             if (typeof sqlDPs[_id].state.val === 'string' && _settings.storageType !== 'String') {
                 adapter.log.debug('Do Automatic Datatype conversion for ' + _id);
-                var f = parseFloat(sqlDPs[_id].state.val);
+                const f = parseFloat(sqlDPs[_id].state.val);
                 if (f == sqlDPs[_id].state.val) {
                     sqlDPs[_id].state.val = f;
                 } else if (sqlDPs[_id].state.val === 'true') {
@@ -1177,14 +1145,14 @@ function pushHelper(_id, timeoutTriggered) {
 }
 
 function getAllIds(cb) {
-    var query = SQLFuncs.getIdSelect(adapter.config.dbname);
+    const query = SQLFuncs.getIdSelect(adapter.config.dbname);
     adapter.log.debug(query);
-    clientPool.borrow(function (err, client) {
+    clientPool.borrow((err, client) => {
         if (err) {
             if (cb) cb(err);
             return;
         }
-        client.execute(query, function (err, rows /* , fields */) {
+        client.execute(query, (err, rows /* , fields */) => {
             clientPool.return(client);
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
@@ -1193,8 +1161,8 @@ function getAllIds(cb) {
                 return;
             }
             if (rows.length) {
-                var id;
-                for (var r = 0; r < rows.length; r++) {
+                let id;
+                for (let r = 0; r < rows.length; r++) {
                     id = rows[r].name;
                     sqlDPs[id] = sqlDPs[id] || {};
                     sqlDPs[id].index = rows[r].id;
@@ -1207,14 +1175,14 @@ function getAllIds(cb) {
 }
 
 function getAllFroms(cb) {
-    var query = SQLFuncs.getFromSelect(adapter.config.dbname);
+    const query = SQLFuncs.getFromSelect(adapter.config.dbname);
     adapter.log.debug(query);
-    clientPool.borrow(function (err, client) {
+    clientPool.borrow((err, client) => {
         if (err) {
             if (cb) cb(err);
             return;
         }
-        client.execute(query, function (err, rows /* , fields */) {
+        client.execute(query, (err, rows /* , fields */) => {
             clientPool.return(client);
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
@@ -1223,7 +1191,7 @@ function getAllFroms(cb) {
                 return;
             }
             if (rows.length) {
-                for (var r = 0; r < rows.length; r++) {
+                for (let r = 0; r < rows.length; r++) {
                     from[rows[r].name] = rows[r].id;
                 }
             }
@@ -1235,13 +1203,13 @@ function getAllFroms(cb) {
 function _checkRetention(query, cb) {
     adapter.log.debug(query);
 
-    clientPool.borrow(function (err, client) {
+    clientPool.borrow((err, client) => {
         if (err) {
             adapter.log.error(err);
             if (cb) cb();
             return;
         }
-        client.execute(query, function (err /* , rows, fields */ ) {
+        client.execute(query, (err /* , rows, fields */ ) => {
             if (err) adapter.log.error('Cannot delete ' + query + ': ' + err);
             clientPool.return(client);
             if (cb) cb();
@@ -1251,12 +1219,12 @@ function _checkRetention(query, cb) {
 
 function checkRetention(id) {
     if (sqlDPs[id] && sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].retention) {
-        var d = new Date();
-        var dt = d.getTime();
+        const d = new Date();
+        const dt = d.getTime();
         // check every 6 hours
         if (!sqlDPs[id].lastCheck || dt - sqlDPs[id].lastCheck >= 21600000/* 6 hours */) {
             sqlDPs[id].lastCheck = dt;
-            var query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, dbNames[sqlDPs[id].type], sqlDPs[id][adapter.namespace].retention);
+            const query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, dbNames[sqlDPs[id].type], sqlDPs[id][adapter.namespace].retention);
 
             if (!multiRequests) {
                 if (tasks.length > 100) {
@@ -1292,7 +1260,7 @@ function _insertValueIntoDB(query, id, cb) {
 
 function processReadTypes() {
     if (tasksReadType && tasksReadType.length) {
-        var task = tasksReadType.shift();
+        const task = tasksReadType.shift();
         adapter.log.debug('Type set in Def for ' + task.id + ': ' + sqlDPs[task.id][adapter.namespace].storageType);
         if (sqlDPs[task.id][adapter.namespace].storageType) {
             sqlDPs[task.id].type = types[sqlDPs[task.id][adapter.namespace].storageType.toLowerCase()];
@@ -1306,7 +1274,7 @@ function processReadTypes() {
             processVerifyTypes(task);
         }
         else {
-            adapter.getForeignObject(sqlDPs[task.id].realId, function (err, obj) {
+            adapter.getForeignObject(sqlDPs[task.id].realId, (err, obj) => {
                 if (err) {
                     adapter.log.warn('Error while get Object for Def: ' + err);
                 }
@@ -1318,7 +1286,7 @@ function processReadTypes() {
                     processVerifyTypes(task);
                 }
                 if (sqlDPs[task.id].type === undefined) {
-                    adapter.getForeignState(sqlDPs[task.id].realId, function (err, state) {
+                    adapter.getForeignState(sqlDPs[task.id].realId, (err, state) => {
                         if (err) {
                             adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + obj.common.type.toLowerCase() + ' and no state)');
                             sqlDPs[task.id].type = 1; // string
@@ -1344,14 +1312,14 @@ function processVerifyTypes(task) {
     if (sqlDPs[task.id].index !== undefined && sqlDPs[task.id].type !== undefined && sqlDPs[task.id].type !== sqlDPs[task.id].dbtype) {
         sqlDPs[task.id].dbtype = sqlDPs[task.id].type;
 
-        var query = SQLFuncs.getIdUpdate(adapter.config.dbname, sqlDPs[task.id].index, sqlDPs[task.id].type);
+        const query = SQLFuncs.getIdUpdate(adapter.config.dbname, sqlDPs[task.id].index, sqlDPs[task.id].type);
         adapter.log.debug(query);
-        clientPool.borrow(function (err, client) {
+        clientPool.borrow((err, client) => {
             if (err) {
                 processVerifyTypes(task);
                 return;
             }
-            client.execute(query, function (err, rows /* , fields */) {
+            client.execute(query, (err, rows /* , fields */) => {
                 if (err) {
                     adapter.log.error('error updating history config for ' + task.id + ' to pin datatype: ' + query + ': ' + err);
                 }
@@ -1378,7 +1346,8 @@ function pushValueIntoDB(id, state, cb) {
         if (cb) cb('No connection to SQL-DB');
         return;
     }
-    var type;
+
+    let type;
 
     if (sqlDPs[id].type !== undefined) {
         type = sqlDPs[id].type;
@@ -1403,7 +1372,7 @@ function pushValueIntoDB(id, state, cb) {
         if (cb) cb('Cannot store values of type "' + typeof state.val + '" ' + id);
         return;
     }
-    var tmpState;
+    let tmpState;
     // get id if state
     if (sqlDPs[id].index === undefined) {
         sqlDPs[id].isRunning = sqlDPs[id].isRunning || [];
@@ -1417,17 +1386,17 @@ function pushValueIntoDB(id, state, cb) {
 
         if (sqlDPs[id].isRunning.length === 1) {
             // read or create in DB
-            return getId(id, type, function (err, _id) {
+            return getId(id, type, (err, _id) => {
                 if (err) {
                     adapter.log.warn('Cannot get index of "' + _id + '": ' + err);
                     if (sqlDPs[_id].isRunning) {
-                        for (var t = 0; t < sqlDPs[_id].isRunning.length; t++) {
+                        for (let t = 0; t < sqlDPs[_id].isRunning.length; t++) {
                             if (sqlDPs[_id].isRunning[t].cb) sqlDPs[_id].isRunning[t].cb('Cannot get index of "' + sqlDPs[_id].isRunning[t].id + '": ' + err);
                         }
                     }
                 } else {
                     if (sqlDPs[_id].isRunning) {
-                        for (var k = 0; k < sqlDPs[_id].isRunning.length; k++) {
+                        for (let k = 0; k < sqlDPs[_id].isRunning.length; k++) {
                             pushValueIntoDB(sqlDPs[_id].isRunning[k].id, sqlDPs[_id].isRunning[k].state, sqlDPs[_id].isRunning[k].cb);
                         }
                     }
@@ -1451,17 +1420,17 @@ function pushValueIntoDB(id, state, cb) {
 
         if (isFromRunning[state.from].length === 1) {
             // read or create in DB
-            return getFrom(state.from, function (err, from) {
+            return getFrom(state.from, (err, from) => {
                 if (err) {
                     adapter.log.warn('Cannot get "from" for "' + from + '": ' + err);
                     if (isFromRunning[from]) {
-                        for (var t = 0; t < isFromRunning[from].length; t++) {
+                        for (let t = 0; t < isFromRunning[from].length; t++) {
                             if (isFromRunning[from][t].cb) isFromRunning[from][t].cb('Cannot get "from" for "' + from + '": ' + err);
                         }
                     }
                 } else {
                     if (isFromRunning[from]) {
-                        for (var k = 0; k < isFromRunning[from].length; k++) {
+                        for (let k = 0; k < isFromRunning[from].length; k++) {
                             pushValueIntoDB(isFromRunning[from][k].id, isFromRunning[from][k].state, isFromRunning[from][k].cb);
                         }
                     }
@@ -1495,7 +1464,7 @@ function pushValueIntoDB(id, state, cb) {
     // remember last timestamp
     sqlDPs[id].ts = state.ts;
 
-    var query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
+    const query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
     if (!multiRequests) {
         if (tasks.length > 100) {
             adapter.log.error('Cannot queue new requests, because more than 100');
@@ -1512,7 +1481,7 @@ function pushValueIntoDB(id, state, cb) {
     }
 }
 
-var lockTasks = false;
+let lockTasks = false;
 function processTasks() {
     if (lockTasks) {
         adapter.log.debug('Tries to execute task, but last one not finished!');
@@ -1521,7 +1490,7 @@ function processTasks() {
     lockTasks = true;
     if (tasks.length) {
         if (tasks[0].operation === 'insert') {
-            _insertValueIntoDB(tasks[0].query, tasks[0].id, function () {
+            _insertValueIntoDB(tasks[0].query, tasks[0].id, () => {
                 if (tasks[0].callback) tasks[0].callback();
                 tasks.shift();
                 lockTasks = false;
@@ -1529,7 +1498,7 @@ function processTasks() {
             });
         }
         else if (tasks[0].operation === 'select') {
-            _getDataFromDB(tasks[0].query, tasks[0].options, function (err, rows) {
+            _getDataFromDB(tasks[0].query, tasks[0].options, (err, rows) => {
                 if (tasks[0].callback) tasks[0].callback(err, rows);
                 tasks.shift();
                 lockTasks = false;
@@ -1537,7 +1506,7 @@ function processTasks() {
             });
         }
         else if (tasks[0].operation === 'userQuery') {
-            _userQuery(tasks[0].msg, function () {
+            _userQuery(tasks[0].msg, () => {
                 if (tasks[0].callback) tasks[0].callback();
                 tasks.shift();
                 lockTasks = false;
@@ -1545,7 +1514,7 @@ function processTasks() {
             });
         }
         else if (tasks[0].operation === 'delete') {
-            _checkRetention(tasks[0].query, function () {
+            _checkRetention(tasks[0].query, () => {
                 if (tasks[0].callback) tasks[0].callback();
                 tasks.shift();
                 lockTasks = false;
@@ -1562,7 +1531,7 @@ function processTasks() {
 }
 // my be it is required to cache all the data in memory
 function getId(id, type, cb) {
-    var query = SQLFuncs.getIdSelect(adapter.config.dbname, id);
+    let query = SQLFuncs.getIdSelect(adapter.config.dbname, id);
     adapter.log.debug(query);
 
     if (!clientPool) {
@@ -1570,12 +1539,12 @@ function getId(id, type, cb) {
         return;
     }
 
-    clientPool.borrow(function (err, client) {
+    clientPool.borrow((err, client) => {
         if (err) {
             if (cb) cb(err, id);
             return;
         }
-        client.execute(query, function (err, rows /* , fields */) {
+        client.execute(query, (err, rows /* , fields */) => {
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1588,7 +1557,7 @@ function getId(id, type, cb) {
                     // insert
                     query = SQLFuncs.getIdInsert(adapter.config.dbname, id, type);
                     adapter.log.debug(query);
-                    client.execute(query, function (err /* , rows, fields */) {
+                    client.execute(query, (err /* , rows, fields */) => {
                         if (err) {
                             adapter.log.error('Cannot insert ' + query + ': ' + err);
                             if (cb) cb(err, id);
@@ -1597,7 +1566,7 @@ function getId(id, type, cb) {
                         }
                         query = SQLFuncs.getIdSelect(adapter.config.dbname,id);
                         adapter.log.debug(query);
-                        client.execute(query, function (err, rows /* , fields */) {
+                        client.execute(query, (err, rows /* , fields */) => {
                             if (rows && rows.rows) {
                                 rows = rows.rows;
                             }
@@ -1630,8 +1599,8 @@ function getId(id, type, cb) {
 }
 // my be it is required to cache all the data in memory
 function getFrom(_from, cb) {
-    // var sources    = (adapter.config.dbtype !== 'postgresql' ? (adapter.config.dbname + '.') : '') + 'sources';
-    var query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
+    // const sources    = (adapter.config.dbtype !== 'postgresql' ? (adapter.config.dbname + '.') : '') + 'sources';
+    let query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
     adapter.log.debug(query);
 
     if (!clientPool) {
@@ -1639,12 +1608,12 @@ function getFrom(_from, cb) {
         return;
     }
 
-    clientPool.borrow(function (err, client) {
+    clientPool.borrow((err, client) => {
         if (err) {
             if (cb) cb(err, _from);
             return;
         }
-        client.execute(query, function (err, rows /* , fields */) {
+        client.execute(query, (err, rows /* , fields */) => {
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1656,7 +1625,7 @@ function getFrom(_from, cb) {
                 // insert
                 query = SQLFuncs.getFromInsert(adapter.config.dbname, _from);
                 adapter.log.debug(query);
-                client.execute(query, function (err /* , rows, fields */) {
+                client.execute(query, (err /* , rows, fields */) => {
                     if (err) {
                         adapter.log.error('Cannot insert ' + query + ': ' + err);
                         if (cb) cb(err, _from);
@@ -1666,7 +1635,7 @@ function getFrom(_from, cb) {
 
                     query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
                     adapter.log.debug(query);
-                    client.execute(query, function (err, rows /* , fields */) {
+                    client.execute(query, (err, rows /* , fields */) => {
                         if (rows && rows.rows) rows = rows.rows;
                         if (err) {
                             adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1691,20 +1660,20 @@ function getFrom(_from, cb) {
 }
 
 function sortByTs(a, b) {
-    var aTs = a.ts;
-    var bTs = b.ts;
+    const aTs = a.ts;
+    const bTs = b.ts;
     return ((aTs < bTs) ? -1 : ((aTs > bTs) ? 1 : 0));
 }
 
 function _getDataFromDB(query, options, callback) {
     adapter.log.debug(query);
 
-    clientPool.borrow(function (err, client) {
+    clientPool.borrow((err, client) => {
         if (err) {
             if (callback) callback(err);
             return;
         }
-        client.execute(query, function (err, rows /* , fields */) {
+        client.execute(query, (err, rows /* , fields */) => {
             if (rows && rows.rows) rows = rows.rows;
             // because descending
             if (!err && rows && !options.start && options.count) {
@@ -1712,8 +1681,8 @@ function _getDataFromDB(query, options, callback) {
             }
 
             if (rows) {
-                var isNumber = null;
-                for (var c = 0; c < rows.length; c++) {
+                let isNumber = null;
+                for (let c = 0; c < rows.length; c++) {
                     if (isNumber === null && rows[c].val !== null) {
                         isNumber = (parseFloat(rows[c].val) == rows[c].val);
                     }
@@ -1748,7 +1717,7 @@ function _getDataFromDB(query, options, callback) {
 }
 
 function getDataFromDB(db, options, callback) {
-    var query = SQLFuncs.getHistory(adapter.config.dbname, db, options);
+    const query = SQLFuncs.getHistory(adapter.config.dbname, db, options);
     adapter.log.debug(query);
     if (!multiRequests) {
         if (tasks.length > 100) {
@@ -1764,9 +1733,9 @@ function getDataFromDB(db, options, callback) {
 }
 
 function getHistory(msg) {
-    var startTime = new Date().getTime();
+    const startTime = new Date().getTime();
 
-    var options = {
+    const options = {
         id:         msg.message.id === '*' ? null : msg.message.id,
         start:      msg.message.options.start,
         end:        msg.message.options.end || ((new Date()).getTime() + 5000000),
@@ -1797,7 +1766,7 @@ function getHistory(msg) {
     }
 
     if (options.start > options.end) {
-        var _end = options.end;
+        const _end = options.end;
         options.end   = options.start;
         options.start =_end;
     }
@@ -1820,7 +1789,7 @@ function getHistory(msg) {
     }
     if (options.id && sqlDPs[options.id].index === undefined) {
         // read or create in DB
-        return getId(options.id, null, function (err) {
+        return getId(options.id, null, err => {
             if (err) {
                 adapter.log.warn('Cannot get index of "' + options.id + '": ' + err);
                 commons.sendResponse(adapter, msg, options, [], startTime);
@@ -1834,7 +1803,7 @@ function getHistory(msg) {
         commons.sendResponse(adapter, msg, options, 'Please wait till next data record is logged and reload.', startTime);
         return;
     }
-    var type = sqlDPs[options.id].type;
+    const type = sqlDPs[options.id].type;
     if (options.id) {
         options.index = options.id;
         options.id = sqlDPs[options.id].index;
@@ -1842,16 +1811,16 @@ function getHistory(msg) {
 
     // if specific id requested
     if (options.id || options.id === 0) {
-        getDataFromDB(dbNames[type], options, function (err, data) {
+        getDataFromDB(dbNames[type], options, (err, data) => {
             commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || data, startTime);
         });
     } else {
         // if all IDs requested
-        var rows = [];
-        var count = 0;
-        for (var db = 0; db < dbNames.length; db++) {
+        let rows = [];
+        let count = 0;
+        for (let db = 0; db < dbNames.length; db++) {
             count++;
-            getDataFromDB(dbNames[db], options, function (err, data) {
+            getDataFromDB(dbNames[db], options, (err, data) => {
                 if (data) rows = rows.concat(data);
                 if (!--count) {
                     rows.sort(sortByTs);
@@ -1871,14 +1840,14 @@ function storeState(msg) {
         return;
     }
 
-    var id;
+    let id;
     if (Array.isArray(msg.message)) {
-        for (var i = 0; i < msg.message.length; i++) {
+        for (let i = 0; i < msg.message.length; i++) {
             id = aliasMap[msg.message[i].id] ? aliasMap[msg.message[i].id] : msg.message[i].id;
             pushValueIntoDB(id, msg.message[i].state);
         }
     } else if (Array.isArray(msg.message.state)) {
-        for (var j = 0; j < msg.message.state.length; j++) {
+        for (let j = 0; j < msg.message.state.length; j++) {
             id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
             pushValueIntoDB(id, msg.message.state[j]);
         }
@@ -1894,17 +1863,17 @@ function storeState(msg) {
 }
 
 function getDpOverview(msg) {
-    var result = {};
-    var query = SQLFuncs.getIdSelect(adapter.config.dbname);
+    const result = {};
+    const query = SQLFuncs.getIdSelect(adapter.config.dbname);
     adapter.log.info(query);
-    clientPool.borrow(function (err, client) {
+    clientPool.borrow((err, client) => {
         if (err) {
             adapter.sendTo(msg.from, msg.command, {
                 error:  'Cannot select ' + query + ': ' + err
             }, msg.callback);
             return;
         }
-        client.execute(query, function (err, rows /* , fields */) {
+        client.execute(query, (err, rows /* , fields */) => {
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1916,7 +1885,7 @@ function getDpOverview(msg) {
             }
             adapter.log.info('Query result ' + JSON.stringify(rows));
             if (rows.length) {
-                for (var r = 0; r < rows.length; r++) {
+                for (let r = 0; r < rows.length; r++) {
                     if (!result[rows[r].type]) result[rows[r].type] = {};
                     result[rows[r].type][rows[r].id] = {};
                     result[rows[r].type][rows[r].id].name = rows[r].name;
@@ -1943,9 +1912,9 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
         if (!resultData[typeId]) {
             getFirstTsForIds(dbClient, typeId + 1, resultData, msg);
         } else {
-            var query = SQLFuncs.getFirstTs(adapter.config.dbname, dbNames[typeId]);
+            const query = SQLFuncs.getFirstTs(adapter.config.dbname, dbNames[typeId]);
             adapter.log.info(query);
-            dbClient.execute(query, function (err, rows /* , fields */) {
+            dbClient.execute(query, (err, rows /* , fields */) => {
                 if (rows && rows.rows) rows = rows.rows;
                 if (err) {
                     adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1957,7 +1926,7 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
                 }
                 adapter.log.info('Query result ' + JSON.stringify(rows));
                 if (rows.length) {
-                    for (var r = 0; r < rows.length; r++) {
+                    for (let r = 0; r < rows.length; r++) {
                         if (resultData[typeId][rows[r].id]) {
                             resultData[typeId][rows[r].id].ts = rows[r].ts;
                         }
@@ -1970,13 +1939,13 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
     } else {
         clientPool.return(dbClient);
         adapter.log.info('consolidate data ...');
-        var result = {};
-        for (var ti = 0; ti < dbNames.length; ti++ ) {
+        const result = {};
+        for (let ti = 0; ti < dbNames.length; ti++ ) {
             if (resultData[ti]) {
-                for (var index in resultData[ti]) {
+                for (let index in resultData[ti]) {
                     if (!resultData[ti].hasOwnProperty(index)) continue;
 
-                    var id = resultData[ti][index].name;
+                    const id = resultData[ti][index].name;
                     if (!result[id]) {
                         result[id] = {};
                         result[id].type = resultData[ti][index].type;
@@ -2006,7 +1975,7 @@ function enableHistory(msg) {
         }, msg.callback);
         return;
     }
-    var obj = {};
+    const obj = {};
     obj.common = {};
     obj.common.custom = {};
     if (msg.message.options) {
@@ -2016,7 +1985,7 @@ function enableHistory(msg) {
         obj.common.custom[adapter.namespace] = {};
     }
     obj.common.custom[adapter.namespace].enabled = true;
-    adapter.extendForeignObject(msg.message.id, obj, function (err) {
+    adapter.extendForeignObject(msg.message.id, obj, err => {
         if (err) {
             adapter.log.error('enableHistory: ' + err);
             adapter.sendTo(msg.from, msg.command, {
@@ -2039,12 +2008,12 @@ function disableHistory(msg) {
         }, msg.callback);
         return;
     }
-    var obj = {};
+    const obj = {};
     obj.common = {};
     obj.common.custom = {};
     obj.common.custom[adapter.namespace] = {};
     obj.common.custom[adapter.namespace].enabled = false;
-    adapter.extendForeignObject(msg.message.id, obj, function (err) {
+    adapter.extendForeignObject(msg.message.id, obj, err => {
         if (err) {
             adapter.log.error('disableHistory: ' + err);
             adapter.sendTo(msg.from, msg.command, {
@@ -2060,8 +2029,8 @@ function disableHistory(msg) {
 }
 
 function getEnabledDPs(msg) {
-    var data = {};
-    for (var id in sqlDPs) {
+    const data = {};
+    for (const id in sqlDPs) {
         if (sqlDPs.hasOwnProperty(id) && sqlDPs[id] && sqlDPs[id][adapter.namespace]) {
             data[sqlDPs[id].realId] = sqlDPs[id][adapter.namespace];
         }
@@ -2070,6 +2039,5 @@ function getEnabledDPs(msg) {
     adapter.sendTo(msg.from, msg.command, data, msg.callback);
 }
 
-process.on('uncaughtException', function(err) {
-    adapter.log.warn('Exception: ' + err);
-});
+process.on('uncaughtException', (err) =>
+    adapter.log.warn('Exception: ' + err));
