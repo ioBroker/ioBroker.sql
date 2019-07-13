@@ -50,7 +50,7 @@ const aliasMap   = {};
 
 const adapter = utils.Adapter('sql');
 
-function reInit(id, writeNull) {
+function reInit(id, writeNull, realId) {
     adapter.log.debug('remembered Index/Type ' + sqlDPs[id].index + ' / ' + sqlDPs[id].dbtype);
     sqlDPs[id].realId  = realId;
 
@@ -152,9 +152,9 @@ adapter.on('objectChange', (id, obj) => {
         if (storedType !== null) sqlDPs[id].dbtype = storedType;
 
         if (sqlDPs[id].index === undefined) {
-            getId(id, sqlDPs[id].dbtype, () => reInit(id, writeNull));
+            getId(id, sqlDPs[id].dbtype, () => reInit(id, writeNull, realId));
         } else {
-            reInit(id, writeNull);
+            reInit(id, writeNull, realId);
         }
     } else {
         if (aliasMap[id]) {
