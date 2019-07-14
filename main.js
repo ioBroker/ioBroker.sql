@@ -2050,3 +2050,11 @@ process.on('SIGINT', () => finish());
 process.on('SIGTERM', () => finish());
 
 process.on('uncaughtException', err => adapter.log.warn('Exception: ' + err));
+
+// If started as allInOne/compact mode => return function to create instance
+if (module.parent) {
+    module.exports = startAdapter;
+} else {
+    // or start the instance directly
+    startAdapter();
+}
