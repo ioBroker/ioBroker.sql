@@ -3,11 +3,12 @@
 /* jslint node: true */
 'use strict';
 
-const utils    = require('@iobroker/adapter-core'); // Get common adapter utils
-const SQL      = require('sql-client');
-const commons  = require(__dirname + '/lib/aggregate');
-let   SQLFuncs = null;
-const fs       = require('fs');
+const utils       = require('@iobroker/adapter-core'); // Get common adapter utils
+const adapterName = require('./package.json').name.split('.').pop();
+const SQL         = require('sql-client');
+const commons     = require('./lib/aggregate');
+const fs          = require('fs');
+let   SQLFuncs    = null;
 
 const clients = {
     postgresql: {name: 'PostgreSQLClient',  multiRequests: true},
@@ -47,8 +48,145 @@ let finished      = false;
 let connected     = null;
 const isFromRunning = {};
 const aliasMap   = {};
+let adapter;
 
-const adapter = utils.Adapter('sql');
+function startAdapter(options) {
+    options = options || {};
+
+    Object.assign(options, {name: adapterName});
+
+    adapter = new utils.Adapter(options);
+
+    adapter.on('objectChange', (id, obj) => {
+        let tmpState;
+        const now = new Date().getTime();
+        const formerAliasId = aliasMap[id] ? aliasMap[id] : id;
+        if (obj && obj.common &&
+            (
+                // todo remove history sometime (2016.08) - Do not forget object selector in io-package.json
+                (obj.common.history && obj.common.history[adapter.namespace] && obj.common.history[adapter.namespace].enabled) ||
+                (obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled)
+            )
+        ) {
+            const realId = id;
+            let checkForRemove = true;
+            if (obj.common.custom && obj.common.custom[adapter.namespace] && obj.common.custom[adapter.namespace].aliasId) {
+                if (obj.common.custom[adapter.namespace].aliasId !== id) {
+                    aliasMap[id] = obj.common.custom[adapter.namespace].aliasId;
+                    adapter.log.debug('Registered Alias: ' + id + ' --> ' + aliasMap[id]);
+                    id = aliasMap[id];
+                    checkForRemove = false;
+                }
+                else {
+                    adapter.log.warn('Ignoring Alias-ID because identical to ID for ' + id);
+                    obj.common.custom[adapter.namespace].aliasId = '';
+                }
+            }
+            if (checkForRemove && aliasMap[id]) {
+                adapter.log.debug('Removed Alias: ' + id + ' !-> ' + aliasMap[id]);
+                delete aliasMap[id];
+            }
+
+            if (!(sqlDPs[formerAliasId] && sqlDPs[formerAliasId][adapter.namespace]) && !subscribeAll) {
+                // un-subscribe
+                for (const _id in sqlDPs) {
+                    if (sqlDPs.hasOwnProperty(_id) && sqlDPs.hasOwnProperty(sqlDPs[_id].realId)) {
+                        adapter.unsubscribeForeignStates(sqlDPs[_id].realId);
+                    }
+                }
+                subscribeAll = true;
+                adapter.subscribeForeignStates('*');
+            }
+            const writeNull = !(sqlDPs[id] && sqlDPs[id][adapter.namespace]);
+            if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].relogTimeout) {
+                clearTimeout(sqlDPs[formerAliasId].relogTimeout);
+            }
+
+            let storedIndex = null;
+            let storedType = null;
+            if (sqlDPs[id] && sqlDPs[id].index !== undefined) {
+                storedIndex = sqlDPs[id].index;
+            }
+            if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) {
+                storedType = sqlDPs[id].dbtype;
+            } else if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].dbtype !== undefined) {
+                storedType = sqlDPs[formerAliasId].dbtype;
+            }
+
+            // todo remove history sometime (2016.08)
+            sqlDPs[id] = obj.common.custom;
+            if (storedIndex !== null) sqlDPs[id].index = storedIndex;
+            if (storedType !== null) sqlDPs[id].dbtype = storedType;
+
+            if (sqlDPs[id].index === undefined) {
+                getId(id, sqlDPs[id].dbtype, () => reInit(id, writeNull, realId));
+            } else {
+                reInit(id, writeNull, realId);
+            }
+        } else {
+            if (aliasMap[id]) {
+                adapter.log.debug('Removed Alias: ' + id + ' !-> ' + aliasMap[id]);
+                delete aliasMap[id];
+            }
+            id = formerAliasId;
+            if (sqlDPs[id]) {
+                adapter.log.info('disabled logging of ' + id);
+                sqlDPs[id].relogTimeout && clearTimeout(sqlDPs[id].relogTimeout);
+                sqlDPs[id].timeout && clearTimeout(sqlDPs[id].timeout);
+
+                if (Object.assign) {
+                    tmpState = Object.assign({}, sqlDPs[id].state);
+                } else {
+                    tmpState = JSON.parse(JSON.stringify(sqlDPs[id].state));
+                }
+                const state = sqlDPs[id].state ? tmpState : null;
+
+                if (sqlDPs[id].skipped) {
+                    pushValueIntoDB(id, sqlDPs[id].skipped);
+                    sqlDPs[id].skipped = null;
+                }
+
+                const nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
+                if (sqlDPs[id][adapter.namespace] && adapter.config.writeNulls) {
+                    if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
+                        (function (_id, _state, _nullValue) {
+                            _state.ts   = now;
+                            _state.from = 'system.adapter.' + adapter.namespace;
+                            nullValue.ts += 4;
+                            nullValue.lc += 4; // because of MS SQL
+                            adapter.log.debug('Write 1/2 "' + _state.val + '" _id: ' + _id);
+                            pushValueIntoDB(_id, _state, () => {
+                                // terminate values with null to indicate adapter stop. timestamp + 1#
+                                adapter.log.debug('Write 2/2 "null" _id: ' + _id);
+                                pushValueIntoDB(_id, _nullValue, () => delete sqlDPs[id][adapter.namespace]);
+                            });
+                        })(id, state, nullValue);
+                    }
+                    else {
+                        // terminate values with null to indicate adapter stop. timestamp + 1
+                        adapter.log.debug('Write 0 NULL _id: ' + id);
+                        pushValueIntoDB(id, nullValue, () => delete sqlDPs[id][adapter.namespace]);
+                    }
+                } else {
+                    delete sqlDPs[id][adapter.namespace];
+                }
+            }
+        }
+    });
+
+    adapter.on('stateChange', (id, state) => {
+        id = aliasMap[id] ? aliasMap[id] : id;
+        pushHistory(id, state);
+    });
+
+    adapter.on('unload', callback => finish(callback));
+
+    adapter.on('ready', () => main());
+
+    adapter.on('message', msg => processMessage(msg));
+
+    return adapter;
+}
 
 function reInit(id, writeNull, realId) {
     adapter.log.debug('remembered Index/Type ' + sqlDPs[id].index + ' / ' + sqlDPs[id].dbtype);
@@ -89,140 +227,6 @@ function reInit(id, writeNull, realId) {
     }
     adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId));
 }
-
-adapter.on('objectChange', (id, obj) => {
-    let tmpState;
-    const now = new Date().getTime();
-    const formerAliasId = aliasMap[id] ? aliasMap[id] : id;
-    if (obj && obj.common &&
-        (
-            // todo remove history sometime (2016.08) - Do not forget object selector in io-package.json
-            (obj.common.history && obj.common.history[adapter.namespace] && obj.common.history[adapter.namespace].enabled) ||
-            (obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled)
-        )
-    ) {
-        const realId = id;
-        let checkForRemove = true;
-        if (obj.common.custom && obj.common.custom[adapter.namespace] && obj.common.custom[adapter.namespace].aliasId) {
-            if (obj.common.custom[adapter.namespace].aliasId !== id) {
-                aliasMap[id] = obj.common.custom[adapter.namespace].aliasId;
-                adapter.log.debug('Registered Alias: ' + id + ' --> ' + aliasMap[id]);
-                id = aliasMap[id];
-                checkForRemove = false;
-            }
-            else {
-                adapter.log.warn('Ignoring Alias-ID because identical to ID for ' + id);
-                obj.common.custom[adapter.namespace].aliasId = '';
-            }
-        }
-        if (checkForRemove && aliasMap[id]) {
-            adapter.log.debug('Removed Alias: ' + id + ' !-> ' + aliasMap[id]);
-            delete aliasMap[id];
-        }
-
-        if (!(sqlDPs[formerAliasId] && sqlDPs[formerAliasId][adapter.namespace]) && !subscribeAll) {
-            // un-subscribe
-            for (const _id in sqlDPs) {
-                if (sqlDPs.hasOwnProperty(_id) && sqlDPs.hasOwnProperty(sqlDPs[_id].realId)) {
-                    adapter.unsubscribeForeignStates(sqlDPs[_id].realId);
-                }
-            }
-            subscribeAll = true;
-            adapter.subscribeForeignStates('*');
-        }
-        const writeNull = !(sqlDPs[id] && sqlDPs[id][adapter.namespace]);
-        if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].relogTimeout) {
-            clearTimeout(sqlDPs[formerAliasId].relogTimeout);
-        }
-
-        let storedIndex = null;
-        let storedType = null;
-        if (sqlDPs[id] && sqlDPs[id].index !== undefined) {
-            storedIndex = sqlDPs[id].index;
-        }
-        if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) {
-            storedType = sqlDPs[id].dbtype;
-        } else if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].dbtype !== undefined) {
-            storedType = sqlDPs[formerAliasId].dbtype;
-        }
-
-            // todo remove history sometime (2016.08)
-        sqlDPs[id] = obj.common.custom;
-        if (storedIndex !== null) sqlDPs[id].index = storedIndex;
-        if (storedType !== null) sqlDPs[id].dbtype = storedType;
-
-        if (sqlDPs[id].index === undefined) {
-            getId(id, sqlDPs[id].dbtype, () => reInit(id, writeNull, realId));
-        } else {
-            reInit(id, writeNull, realId);
-        }
-    } else {
-        if (aliasMap[id]) {
-            adapter.log.debug('Removed Alias: ' + id + ' !-> ' + aliasMap[id]);
-            delete aliasMap[id];
-        }
-        id = formerAliasId;
-        if (sqlDPs[id]) {
-            adapter.log.info('disabled logging of ' + id);
-            sqlDPs[id].relogTimeout && clearTimeout(sqlDPs[id].relogTimeout);
-            sqlDPs[id].timeout && clearTimeout(sqlDPs[id].timeout);
-
-            if (Object.assign) {
-                tmpState = Object.assign({}, sqlDPs[id].state);
-            } else {
-                tmpState = JSON.parse(JSON.stringify(sqlDPs[id].state));
-            }
-            const state = sqlDPs[id].state ? tmpState : null;
-
-            if (sqlDPs[id].skipped) {
-                pushValueIntoDB(id, sqlDPs[id].skipped);
-                sqlDPs[id].skipped = null;
-            }
-
-            const nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
-            if (sqlDPs[id][adapter.namespace] && adapter.config.writeNulls) {
-                if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
-                    (function (_id, _state, _nullValue) {
-                        _state.ts   = now;
-                        _state.from = 'system.adapter.' + adapter.namespace;
-                        nullValue.ts += 4;
-                        nullValue.lc += 4; // because of MS SQL
-                        adapter.log.debug('Write 1/2 "' + _state.val + '" _id: ' + _id);
-                        pushValueIntoDB(_id, _state, () => {
-                            // terminate values with null to indicate adapter stop. timestamp + 1#
-                            adapter.log.debug('Write 2/2 "null" _id: ' + _id);
-                            pushValueIntoDB(_id, _nullValue, () => delete sqlDPs[id][adapter.namespace]);
-                        });
-                    })(id, state, nullValue);
-                }
-                else {
-                    // terminate values with null to indicate adapter stop. timestamp + 1
-                    adapter.log.debug('Write 0 NULL _id: ' + id);
-                    pushValueIntoDB(id, nullValue, () => delete sqlDPs[id][adapter.namespace]);
-                }
-            } else {
-                delete sqlDPs[id][adapter.namespace];
-            }
-        }
-    }
-});
-
-adapter.on('stateChange', (id, state) => {
-    id = aliasMap[id] ? aliasMap[id] : id;
-    pushHistory(id, state);
-});
-
-adapter.on('unload', callback => finish(callback));
-
-adapter.on('ready', () => main());
-
-adapter.on('message', msg => processMessage(msg));
-
-// close connection to DB
-process.on('SIGINT', () => finish());
-
-// close connection to DB
-process.on('SIGTERM', () => finish());
 
 function setConnected(isConnected) {
     if (connected !== isConnected) {
@@ -825,160 +829,6 @@ function writeNulls(id, now) {
         if (tasksStart.length === 1 && connected) {
             processStartValues();
         }
-    }
-}
-
-function main() {
-    setConnected(false);
-
-    adapter.config.dbname = adapter.config.dbname || 'iobroker';
-
-    if (adapter.config.writeNulls === undefined) adapter.config.writeNulls = true;
-
-    adapter.config.retention = parseInt(adapter.config.retention, 10) || 0;
-    adapter.config.debounce  = parseInt(adapter.config.debounce,  10) || 0;
-    adapter.config.requestInterval = (adapter.config.requestInterval === undefined || adapter.config.requestInterval === null  || adapter.config.requestInterval === '') ? 0 : parseInt(adapter.config.requestInterval, 10) || 0;
-
-    if (adapter.config.changesRelogInterval !== null && adapter.config.changesRelogInterval !== undefined) {
-        adapter.config.changesRelogInterval = parseInt(adapter.config.changesRelogInterval, 10);
-    } else {
-        adapter.config.changesRelogInterval = 0;
-    }
-
-    if (!clients[adapter.config.dbtype]) {
-        adapter.log.error('Unknown DB type: ' + adapter.config.dbtype);
-        adapter.stop();
-    }
-    if (adapter.config.multiRequests !== undefined && adapter.config.dbtype !== 'SQLite3Client' && adapter.config.dbtype !== 'sqlite') {
-        clients[adapter.config.dbtype].multiRequests = adapter.config.multiRequests;
-    }
-
-    if (adapter.config.changesMinDelta !== null && adapter.config.changesMinDelta !== undefined) {
-        adapter.config.changesMinDelta = parseFloat(adapter.config.changesMinDelta.toString().replace(/,/g, '.'));
-    } else {
-        adapter.config.changesMinDelta = 0;
-    }
-
-    multiRequests = clients[adapter.config.dbtype].multiRequests;
-    if (!multiRequests) adapter.config.writeNulls = false;
-
-    adapter.config.port = parseInt(adapter.config.port, 10) || 0;
-    if (adapter.config.round !== null && adapter.config.round !== undefined) {
-        adapter.config.round = Math.pow(10, parseInt(adapter.config.round, 10));
-    } else {
-        adapter.config.round = null;
-    }
-    if (adapter.config.dbtype === 'postgresql' && !SQL.PostgreSQLClient) {
-        const postgres = require(__dirname + '/lib/postgresql-client');
-        for (const attr in postgres) {
-            if (postgres.hasOwnProperty(attr) && !SQL[attr]) {
-                SQL[attr] = postgres[attr];
-            }
-        }
-    } else
-    if (adapter.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
-        const mssql = require(__dirname + '/lib/mssql-client');
-        for (const attr_ in mssql) {
-            if (mssql.hasOwnProperty(attr_) && !SQL[attr_]) {
-                SQL[attr_] = mssql[attr_];
-            }
-        }
-    }
-    SQLFuncs = require(__dirname + '/lib/' + adapter.config.dbtype);
-
-    if (adapter.config.dbtype === 'sqlite' || adapter.config.host) {
-        connect(() => {
-            fixSelector(() => {
-                // read all custom settings
-                adapter.objects.getObjectView('custom', 'state', {}, (err, doc) => {
-                    let count = 0;
-                    if (doc && doc.rows) {
-                        for (let i = 0, l = doc.rows.length; i < l; i++) {
-                            if (doc.rows[i].value) {
-                                let id = doc.rows[i].id;
-                                const realId = id;
-                                if (doc.rows[i].value[adapter.namespace] && doc.rows[i].value[adapter.namespace].aliasId) {
-                                    aliasMap[id] = doc.rows[i].value[adapter.namespace].aliasId;
-                                    adapter.log.debug('Found Alias: ' + id + ' --> ' + aliasMap[id]);
-                                    id = aliasMap[id];
-                                }
-
-                                let storedIndex = null;
-                                let storedType = null;
-                                if (sqlDPs[id] && sqlDPs[id].index !== undefined) storedIndex = sqlDPs[id].index;
-                                if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) storedType = sqlDPs[id].dbtype;
-                                // todo remove history sometime (2016.08)
-                                sqlDPs[id] = doc.rows[i].value;
-                                if (storedIndex !== null) sqlDPs[id].index = storedIndex;
-                                if (storedType !== null) sqlDPs[id].dbtype = storedType;
-
-                                if (!sqlDPs[id][adapter.namespace]) {
-                                    delete sqlDPs[id];
-                                } else {
-                                    count++;
-                                    adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId) + ', ' + count + ' points now activated');
-                                    if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
-                                        sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
-                                    } else {
-                                        sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
-                                    }
-
-                                    if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
-                                        sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
-                                    } else {
-                                        sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
-                                    }
-                                    sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
-
-                                    if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
-                                        sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
-                                    } else {
-                                        sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
-                                    }
-                                    if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
-                                        sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
-                                    }
-                                    if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
-                                        sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta) || 0;
-                                    } else {
-                                        sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
-                                    }
-                                    if (!sqlDPs[id][adapter.namespace].storageType) sqlDPs[id][adapter.namespace].storageType = false;
-
-                                    // add one day if retention is too small
-                                    if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
-                                        sqlDPs[id][adapter.namespace].retention += 86400;
-                                    }
-                                    if (sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
-                                        if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
-                                        sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
-                                    }
-
-                                    sqlDPs[id].realId  = realId;
-                                }
-                            }
-                        }
-                    }
-
-                    if (adapter.config.writeNulls) writeNulls();
-
-                    if (count < 20) {
-                        for (const _id in sqlDPs) {
-                            if (sqlDPs.hasOwnProperty(_id)) {
-                                adapter.subscribeForeignStates(sqlDPs[_id].realId);
-                            }
-                        }
-                    } else {
-                        subscribeAll = true;
-                        adapter.subscribeForeignStates('*');
-                    }
-                    adapter.subscribeForeignObjects('*');
-                    adapter.log.debug('Initialization done');
-                    setConnected(true);
-                    processStartValues();
-                });
-            });
-        });
     }
 }
 
@@ -2039,5 +1889,164 @@ function getEnabledDPs(msg) {
     adapter.sendTo(msg.from, msg.command, data, msg.callback);
 }
 
-process.on('uncaughtException', (err) =>
-    adapter.log.warn('Exception: ' + err));
+function main() {
+    setConnected(false);
+
+    adapter.config.dbname = adapter.config.dbname || 'iobroker';
+
+    if (adapter.config.writeNulls === undefined) adapter.config.writeNulls = true;
+
+    adapter.config.retention = parseInt(adapter.config.retention, 10) || 0;
+    adapter.config.debounce  = parseInt(adapter.config.debounce,  10) || 0;
+    adapter.config.requestInterval = (adapter.config.requestInterval === undefined || adapter.config.requestInterval === null  || adapter.config.requestInterval === '') ? 0 : parseInt(adapter.config.requestInterval, 10) || 0;
+
+    if (adapter.config.changesRelogInterval !== null && adapter.config.changesRelogInterval !== undefined) {
+        adapter.config.changesRelogInterval = parseInt(adapter.config.changesRelogInterval, 10);
+    } else {
+        adapter.config.changesRelogInterval = 0;
+    }
+
+    if (!clients[adapter.config.dbtype]) {
+        adapter.log.error('Unknown DB type: ' + adapter.config.dbtype);
+        adapter.stop();
+    }
+    if (adapter.config.multiRequests !== undefined && adapter.config.dbtype !== 'SQLite3Client' && adapter.config.dbtype !== 'sqlite') {
+        clients[adapter.config.dbtype].multiRequests = adapter.config.multiRequests;
+    }
+
+    if (adapter.config.changesMinDelta !== null && adapter.config.changesMinDelta !== undefined) {
+        adapter.config.changesMinDelta = parseFloat(adapter.config.changesMinDelta.toString().replace(/,/g, '.'));
+    } else {
+        adapter.config.changesMinDelta = 0;
+    }
+
+    multiRequests = clients[adapter.config.dbtype].multiRequests;
+    if (!multiRequests) adapter.config.writeNulls = false;
+
+    adapter.config.port = parseInt(adapter.config.port, 10) || 0;
+    if (adapter.config.round !== null && adapter.config.round !== undefined) {
+        adapter.config.round = Math.pow(10, parseInt(adapter.config.round, 10));
+    } else {
+        adapter.config.round = null;
+    }
+    if (adapter.config.dbtype === 'postgresql' && !SQL.PostgreSQLClient) {
+        const postgres = require(__dirname + '/lib/postgresql-client');
+        for (const attr in postgres) {
+            if (postgres.hasOwnProperty(attr) && !SQL[attr]) {
+                SQL[attr] = postgres[attr];
+            }
+        }
+    } else
+    if (adapter.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
+        const mssql = require(__dirname + '/lib/mssql-client');
+        for (const attr_ in mssql) {
+            if (mssql.hasOwnProperty(attr_) && !SQL[attr_]) {
+                SQL[attr_] = mssql[attr_];
+            }
+        }
+    }
+    SQLFuncs = require(__dirname + '/lib/' + adapter.config.dbtype);
+
+    if (adapter.config.dbtype === 'sqlite' || adapter.config.host) {
+        connect(() => {
+            fixSelector(() => {
+                // read all custom settings
+                adapter.objects.getObjectView('custom', 'state', {}, (err, doc) => {
+                    let count = 0;
+                    if (doc && doc.rows) {
+                        for (let i = 0, l = doc.rows.length; i < l; i++) {
+                            if (doc.rows[i].value) {
+                                let id = doc.rows[i].id;
+                                const realId = id;
+                                if (doc.rows[i].value[adapter.namespace] && doc.rows[i].value[adapter.namespace].aliasId) {
+                                    aliasMap[id] = doc.rows[i].value[adapter.namespace].aliasId;
+                                    adapter.log.debug('Found Alias: ' + id + ' --> ' + aliasMap[id]);
+                                    id = aliasMap[id];
+                                }
+
+                                let storedIndex = null;
+                                let storedType = null;
+                                if (sqlDPs[id] && sqlDPs[id].index !== undefined) storedIndex = sqlDPs[id].index;
+                                if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) storedType = sqlDPs[id].dbtype;
+                                // todo remove history sometime (2016.08)
+                                sqlDPs[id] = doc.rows[i].value;
+                                if (storedIndex !== null) sqlDPs[id].index = storedIndex;
+                                if (storedType !== null) sqlDPs[id].dbtype = storedType;
+
+                                if (!sqlDPs[id][adapter.namespace]) {
+                                    delete sqlDPs[id];
+                                } else {
+                                    count++;
+                                    adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId) + ', ' + count + ' points now activated');
+                                    if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
+                                        sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
+                                    } else {
+                                        sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
+                                    }
+
+                                    if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
+                                        sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
+                                    } else {
+                                        sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
+                                    }
+                                    sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
+
+                                    if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
+                                        sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
+                                    } else {
+                                        sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
+                                    }
+                                    if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+                                        sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
+                                    }
+                                    if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
+                                        sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta) || 0;
+                                    } else {
+                                        sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
+                                    }
+                                    if (!sqlDPs[id][adapter.namespace].storageType) sqlDPs[id][adapter.namespace].storageType = false;
+
+                                    // add one day if retention is too small
+                                    if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
+                                        sqlDPs[id][adapter.namespace].retention += 86400;
+                                    }
+                                    if (sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+                                        if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
+                                        sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
+                                    }
+
+                                    sqlDPs[id].realId  = realId;
+                                }
+                            }
+                        }
+                    }
+
+                    if (adapter.config.writeNulls) writeNulls();
+
+                    if (count < 20) {
+                        for (const _id in sqlDPs) {
+                            if (sqlDPs.hasOwnProperty(_id)) {
+                                adapter.subscribeForeignStates(sqlDPs[_id].realId);
+                            }
+                        }
+                    } else {
+                        subscribeAll = true;
+                        adapter.subscribeForeignStates('*');
+                    }
+                    adapter.subscribeForeignObjects('*');
+                    adapter.log.debug('Initialization done');
+                    setConnected(true);
+                    processStartValues();
+                });
+            });
+        });
+    }
+}
+
+// close connection to DB
+process.on('SIGINT', () => finish());
+
+// close connection to DB
+process.on('SIGTERM', () => finish());
+
+process.on('uncaughtException', err => adapter.log.warn('Exception: ' + err));
