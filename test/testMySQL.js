@@ -91,6 +91,9 @@ describe('Test MySQL', function() {
             if (process.env.APPVEYOR && process.env.APPVEYOR==='True') {
                 config.native.password = 'Password12!';
             }
+            else {
+                //config.native.password = 'root';
+            }
 
             setup.setAdapterConfig(config.common, config.native);
 
