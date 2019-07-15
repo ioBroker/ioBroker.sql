@@ -20,7 +20,7 @@ before_script:
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install mariadb; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mkdir /usr/local/etc/my.cnf.d; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew services start mariadb; fi'
-  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then $(brew --prefix mariadb)/bin/mysqladmin -u root password ""; fi'
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then $(brew --prefix mariadb)/bin/mysqladmin -u root password "root"; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rm -rf /usr/local/var/postgres; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then initdb /usr/local/var/postgres; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pg_ctl -D /usr/local/var/postgres start; fi'
