@@ -173,6 +173,19 @@
                 "def":   false
             },
             "native": {}
+        },
+        {
+            "_id":  "refreshStatistic",
+            "type": "state",
+            "common": {
+                "role":  "button",
+                "name":  "start refresh of statistic",
+                "type":  "boolean",
+                "read":  true,
+                "write": true,
+                "def":   false
+            },
+            "native": {}
         }
     ],
     "objects": [

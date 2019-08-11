@@ -8,6 +8,7 @@ const adapterName = require('./package.json').name.split('.').pop();
 const SQL         = require('sql-client');
 const commons     = require('./lib/aggregate');
 const fs          = require('fs');
+const schedule    = require('node-schedule');
 let   SQLFuncs    = null;
 
 const clients = {
@@ -175,6 +176,11 @@ function startAdapter(options) {
     });
 
     adapter.on('stateChange', (id, state) => {
+        if(id === adapter.namespace + '.refreshStatistic' && state && state.val === true){
+            // listener for start refresh statistic manual -> per button
+            refreshStatistic();
+        }
+
         id = aliasMap[id] ? aliasMap[id] : id;
         pushHistory(id, state);
     });
@@ -1896,6 +1902,8 @@ function getEnabledDPs(msg) {
 function main() {
     setConnected(false);
 
+    
+
     adapter.config.dbname = adapter.config.dbname || 'iobroker';
 
     if (adapter.config.writeNulls === undefined) adapter.config.writeNulls = true;
@@ -2045,7 +2053,113 @@ function main() {
             });
         });
     }
+
+    prepareStatistic();
 }
+
+function prepareStatistic(){
+    try {
+
+        if(adapter.config.createStatistic){
+            // if configured refresh statistic periodically
+            schedule.scheduleJob('0 */'+ adapter.config.statisticRefreshInterval +' * * *', refreshStatistic);
+        }
+
+    } catch (err) {
+        console.error(`[createStatistic] error: ${err.message}`);
+        console.error(`[createStatistic] stack: ${err.stack}`);
+    }
+}
+
+function createStatisticObject(id, name, unit){
+    adapter.setObjectNotExists(id, {
+        type: 'state',
+        common: {
+            name: name,
+            desc: 'sql statistic',
+            type: 'number',
+            unit: unit,
+            read: true,
+            write: false
+        },
+        native: {}
+    }, function(err, obj) {
+        if (!err && obj) adapter.log.debug('statistic object '+ id +' created');
+    });
+}
+
+async function refreshStatistic(){
+    try {
+        adapter.log.info(`refresh statistics for '${adapter.config.dbtype}', database '${adapter.config.dbname}'`);
+
+        if(connected && adapter.config.dbtype === 'mysql'){
+            let sumEntries = 0;
+
+            // ioBroker Database size
+            let databaseSizeId = `databases.${adapter.config.dbname}.size`;
+            createStatisticObject(databaseSizeId, 'size of database', 'GB');
+
+            let databaseEntriesId = `databases.${adapter.config.dbname}.entries`;
+            createStatisticObject(databaseEntriesId, 'sum of entries of all tables', 'entries');
+
+            let databaseSizeQuery = `SELECT TABLE_SCHEMA AS 'database', SUM(data_length + index_length) / 1024 / 1024 / 1024 AS 'size' FROM information_schema.TABLES WHERE table_schema = '${adapter.config.dbname}'`;
+            let queryResult = await getQueryResult(databaseSizeQuery);
+            
+            if(queryResult && Object.keys(queryResult).length === 1){
+                let databaseSize = Math.round(queryResult[0].size * 1000) / 1000;
+                adapter.setState(databaseSizeId, databaseSize, true);
+            }
+
+            // Table sizes & entries
+            let tableSizeQuery = `SELECT table_name AS 'name', ((data_length + index_length) / 1024 / 1024) as 'size' FROM information_schema.TABLES WHERE table_schema = '${adapter.config.dbname}'`;
+            queryResult = await getQueryResult(tableSizeQuery);
+
+            if(queryResult && Object.keys(queryResult).length > 0){
+                let tableIdPrefix = `databases.${adapter.config.dbname}.tables.`;
+
+                for (const table of queryResult) {
+                    let tableId = tableIdPrefix + table.name + ".size";
+                    let entriesId = tableIdPrefix + table.name + ".entries";
+
+
+                    createStatisticObject(tableId, 'size of table', 'MB');
+
+                    let tableSize = Math.round(table.size * 100) / 100;
+                    adapter.setState(tableId, tableSize, true);
+
+                    // entries
+                    let entriesQuery = `SELECT COUNT(*) as 'count' FROM ${adapter.config.dbname}.${table.name}`;
+                    let result = await getQueryResult(entriesQuery);
+
+                    let entriesCount = result[0].count;
+                    createStatisticObject(entriesId, 'sum of entries', 'entries');
+
+                    adapter.setState(entriesId, entriesCount, true);
+                    sumEntries = sumEntries + entriesCount
+                }
+            }
+            adapter.setState(databaseEntriesId, sumEntries, true);
+
+            adapter.log.info(`refresh statistics successful!`);
+        }
+    } catch (err) {
+        console.error(`[refreshStatistic] error: ${err.message}`);
+        console.error(`[refreshStatistic] stack: ${err.stack}`);
+    }
+}
+
+async function getQueryResult(query) {
+    return new Promise((resolve, reject) => {
+        adapter.sendTo(adapter.namespace, 'query', query, function (result) {
+            if (!result.error) {
+                resolve(result.result);
+            } else {
+                resolve(null);
+            }
+        });
+    });
+}
+
 
 // close connection to DB
 process.on('SIGINT', () => finish());
