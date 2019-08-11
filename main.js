@@ -2071,7 +2071,7 @@ function prepareStatistic(){
     }
 }
 
-function createStatisticObject(id, name, unit){
+function createStatisticObjectNumber(id, name, unit){
     adapter.setObjectNotExists(id, {
         type: 'state',
         common: {
@@ -2088,19 +2088,39 @@ function createStatisticObject(id, name, unit){
     });
 }
 
+function createStatisticObjectString(id, name){
+    adapter.setObjectNotExists(id, {
+        type: 'state',
+        common: {
+            name: name,
+            desc: 'sql statistic',
+            type: 'string',
+            read: true,
+            write: false
+        },
+        native: {}
+    }, function(err, obj) {
+        if (!err && obj) adapter.log.debug('statistic object '+ id +' created');
+    });
+}
+
 async function refreshStatistic(){
     try {
         adapter.log.info(`refresh statistics for '${adapter.config.dbtype}', database '${adapter.config.dbname}'`);
 
         if(connected && adapter.config.dbtype === 'mysql'){
-            let sumEntries = 0;
+            let sumAllEntries = 0;
+            let sumAllDeadEntries = 0;
 
             // ioBroker Database size
             let databaseSizeId = `databases.${adapter.config.dbname}.size`;
-            createStatisticObject(databaseSizeId, 'size of database', 'GB');
+            createStatisticObjectNumber(databaseSizeId, 'size of database', 'GB');
 
             let databaseEntriesId = `databases.${adapter.config.dbname}.entries`;
-            createStatisticObject(databaseEntriesId, 'sum of entries of all tables', 'entries');
+            createStatisticObjectNumber(databaseEntriesId, 'sum of entries of all tables', 'entries');
+
+            let databaseDeadEntriesId = `databases.${adapter.config.dbname}.deadEntries`;
+            createStatisticObjectNumber(databaseDeadEntriesId, 'sum of dead entries of all tables', 'entries');
 
             let databaseSizeQuery = `SELECT TABLE_SCHEMA AS 'database', SUM(data_length + index_length) / 1024 / 1024 / 1024 AS 'size' FROM information_schema.TABLES WHERE table_schema = '${adapter.config.dbname}'`;
             let queryResult = await getQueryResult(databaseSizeQuery);
@@ -2119,26 +2139,54 @@ async function refreshStatistic(){
 
                 for (const table of queryResult) {
                     let tableId = tableIdPrefix + table.name + ".size";
-                    let entriesId = tableIdPrefix + table.name + ".entries";
-
-
-                    createStatisticObject(tableId, 'size of table', 'MB');
+                    createStatisticObjectNumber(tableId, 'size of table', 'MB');
 
                     let tableSize = Math.round(table.size * 100) / 100;
                     adapter.setState(tableId, tableSize, true);
 
-                    // entries
-                    let entriesQuery = `SELECT COUNT(*) as 'count' FROM ${adapter.config.dbname}.${table.name}`;
+                    // entries, deadEntries, deadEntriesIds
+                    let entriesId = tableIdPrefix + table.name + ".entries";
+                    createStatisticObjectNumber(entriesId, 'sum of entries', 'entries');
+
+                    let deadEntriesId = tableIdPrefix + table.name + ".deadEntries";
+                    let deadEntriesStringId = tableIdPrefix + table.name + ".deadEntriesIds";
+                    if(dbNames.includes(table.name)){
+                        createStatisticObjectNumber(deadEntriesId, 'sum of dead entries', 'entries');
+                        createStatisticObjectString(deadEntriesStringId, "dead entries ids");
+                    }
+                    
+                    let entriesQuery = `SELECT id, Count(id) as 'count', IF(id NOT IN (select id from ${adapter.config.dbname}.datapoints), 1, 0) as 'dead' FROM ${adapter.config.dbname}.${table.name} GROUP BY id;`
                     let result = await getQueryResult(entriesQuery);
 
-                    let entriesCount = result[0].count;
-                    createStatisticObject(entriesId, 'sum of entries', 'entries');
+                    let sumEntries = 0;
+                    let sumDeadEntries = 0;
+                    let deadEntriesList = [];
 
-                    adapter.setState(entriesId, entriesCount, true);
-                    sumEntries = sumEntries + entriesCount
+                    if(result && Object.keys(result).length > 0){
+                        for(const entry of result){
+                            sumEntries = sumEntries + entry.count;
+
+                            // deadEntries for table ts_bool, ts_number, ts_string
+                            if(dbNames.includes(table.name)){
+                                if(entry.dead === 1){
+                                    sumDeadEntries = sumDeadEntries + entry.count;
+                                    deadEntriesList.push(entry.id);
+                                }
+                            }
+                        }
+                    }
+
+                    sumAllEntries = sumAllEntries + sumEntries;
+                    sumAllDeadEntries = sumAllDeadEntries + sumDeadEntries;
+
+                    adapter.setState(entriesId, sumEntries, true);
+                    adapter.setState(deadEntriesId, sumDeadEntries, true);
+                    adapter.setState(deadEntriesStringId, deadEntriesList.join(', '), true);
                 }
             }
-            adapter.setState(databaseEntriesId, sumEntries, true);
+            
+            adapter.setState(databaseEntriesId, sumAllEntries, true);
+            adapter.setState(databaseDeadEntriesId, sumAllDeadEntries, true);
 
             adapter.log.info(`refresh statistics successful!`);
         }
