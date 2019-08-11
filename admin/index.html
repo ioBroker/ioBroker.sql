@@ -59,6 +59,8 @@
         }
 
         if (settings.writeNulls === undefined) settings.writeNulls = true;
+        if (settings.createStatistic === undefined) settings.createStatistic = true;
+        if (settings.statisticRefreshInterval === undefined) settings.statisticRefreshInterval = 24;
         for (var key in settings) {
             if (settings.hasOwnProperty(key)) {
                 setValue(key, settings[key], onChange);
@@ -228,6 +230,16 @@
                 <td><input id="writeNulls" type="checkbox" class="value"/></td>
                 <td></td>
             </tr>
+            <tr>
+                <td><label class="translate" for="createStatistic">Create Database statistics</label></td>
+                <td><input id="createStatistic" type="checkbox" class="value"/></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td><label class="translate" for="statisticRefreshInterval">Refresh statistics every x hours</label></td>
+                <td><input id="statisticRefreshInterval" class="value"/></td>
+                <td></td>
+            </tr>                        
             </table>
             <br>
             <button id="test" class="translate">Test connection</button>

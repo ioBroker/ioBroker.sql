@@ -55,6 +55,8 @@
         }
 
         if (settings.writeNulls === undefined) settings.writeNulls = true;
+        if (settings.createStatistic === undefined) settings.createStatistic = true;
+        if (settings.statisticRefreshInterval === undefined) settings.statisticRefreshInterval = 24;
         for (var key in settings) {
             if (settings.hasOwnProperty(key)) {
                 setValue(key, settings[key], onChange);
@@ -241,10 +243,18 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="input-field col s12 m4">
+                    <div class="input-field col s2 m4">
                         <input id="writeNulls" type="checkbox" class="value" />
                         <label class="translate" for="writeNulls">Write NULL values on start/stop boundaries:</label>
                     </div>
+                    <div class="input-field col s2 m4">
+                        <input id="createStatistic" type="checkbox" class="value" />
+                        <label class="translate" for="createStatistic">Create Database statistics</label>
+                    </div>
+                    <div class="input-field col s2 m4">
+                        <input id="statisticRefreshInterval" type="number" class="value" />
+                        <label class="translate" for="statisticRefreshInterval">Refresh statistics every x hours</label>
+                    </div>                    
                 </div>
                 <div class="row">
                     <div class="col s12">

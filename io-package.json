@@ -70,7 +70,7 @@
                 "fr": "Mettre à jour sqlite3, nodejs 10 compatible",
                 "it": "Aggiornamento sqlite3, nodejs 10 compatibile",
                 "es": "Actualizar sqlite3, nodejs 10 compatible",
-                "pl": "Zaktualizuj sqlite3, kompatybilny z nodej 10"
+                "pl": "Zaktualizuj , kompatybilny z nodej 10"
             },
             "1.7.4": {
                 "en": "Fix getHistory",
@@ -148,7 +148,9 @@
         "multiRequests": true,
         "changesRelogInterval":      0,
         "changesMinDelta": 0,
-        "writeNulls": true
+        "writeNulls": true,
+        "createStatistic": true,
+        "statisticRefreshInterval": 24
     },
     "instanceObjects": [
         {
