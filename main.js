@@ -2148,34 +2148,56 @@ async function refreshStatistic(){
                     let entriesId = tableIdPrefix + table.name + ".entries";
                     createStatisticObjectNumber(entriesId, 'sum of entries', 'entries');
 
+                    // not create for table sources
                     let deadEntriesId = tableIdPrefix + table.name + ".deadEntries";
                     let deadEntriesStringId = tableIdPrefix + table.name + ".deadEntriesIds";
-                    if(dbNames.includes(table.name)){
+                    if(dbNames.includes(table.name) || table.name === 'datapoints'){
                         createStatisticObjectNumber(deadEntriesId, 'sum of dead entries', 'entries');
                         createStatisticObjectString(deadEntriesStringId, "dead entries ids");
                     }
                     
-                    let entriesQuery = `SELECT id, Count(id) as 'count', IF(id NOT IN (select id from ${adapter.config.dbname}.datapoints), 1, 0) as 'dead' FROM ${adapter.config.dbname}.${table.name} GROUP BY id;`
-                    let result = await getQueryResult(entriesQuery);
-
                     let sumEntries = 0;
                     let sumDeadEntries = 0;
                     let deadEntriesList = [];
 
-                    if(result && Object.keys(result).length > 0){
-                        for(const entry of result){
-                            sumEntries = sumEntries + entry.count;
+                    // table 'datapoints'
+                    if(table.name === 'datapoints'){
+                        let datapointsQuery = `SELECT id, name FROM ${adapter.config.dbname}.datapoints`;
+                        let dpResult = await getQueryResult(datapointsQuery);
+                        
+                        if(dpResult && Object.keys(dpResult).length > 0){
+                            for(const datapoint of dpResult){
+                                sumEntries++;
 
-                            // deadEntries for table ts_bool, ts_number, ts_string
-                            if(dbNames.includes(table.name)){
-                                if(entry.dead === 1){
-                                    sumDeadEntries = sumDeadEntries + entry.count;
-                                    deadEntriesList.push(entry.id);
+                                // check if iobroker object for datapoint name exist
+                                let existingDpInIoBroker = await adapter.getForeignObjectAsync(datapoint.id);
+                                if(!existingDpInIoBroker){
+                                    sumDeadEntries++;
+                                    deadEntriesList.push(`${datapoint.id}:${datapoint.name}`);
+                                }
+                            }
+                        }
+                    } else {
+                        // other tables
+                        let entriesQuery = `SELECT id, Count(id) as 'count', IF(id NOT IN (select id from ${adapter.config.dbname}.datapoints), 1, 0) as 'dead' FROM ${adapter.config.dbname}.${table.name} GROUP BY id`
+                        let result = await getQueryResult(entriesQuery);
+
+                        if(result && Object.keys(result).length > 0){
+                            for(const entry of result){
+                                sumEntries = sumEntries + entry.count;
+
+                                // deadEntries for table ts_bool, ts_number, ts_string
+                                if(dbNames.includes(table.name)){
+                                    if(entry.dead === 1){
+                                        sumDeadEntries = sumDeadEntries + entry.count;
+                                        deadEntriesList.push(entry.id);
+                                    }
                                 }
                             }
                         }
                     }
 
+                    
                     sumAllEntries = sumAllEntries + sumEntries;
                     sumAllDeadEntries = sumAllDeadEntries + sumDeadEntries;
 
@@ -2184,7 +2206,7 @@ async function refreshStatistic(){
                     adapter.setState(deadEntriesStringId, deadEntriesList.join(', '), true);
                 }
             }
-            
+
             adapter.setState(databaseEntriesId, sumAllEntries, true);
             adapter.setState(databaseDeadEntriesId, sumAllDeadEntries, true);
 
