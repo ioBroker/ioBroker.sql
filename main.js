@@ -2105,8 +2105,9 @@ function createStatisticObjectString(id, name){
 }
 
 async function refreshStatistic(){
-    try {
+    try {        
         adapter.log.info(`refresh statistics for '${adapter.config.dbtype}', database '${adapter.config.dbname}'`);
+        let refreshStart = new Date().getTime();
 
         if(connected){
             let sumAllEntries = 0;
@@ -2257,6 +2258,12 @@ async function refreshStatistic(){
             }
             adapter.setState(databaseEntriesId, sumAllEntries, true);
             adapter.setState(databaseDeadEntriesId, sumAllDeadEntries, true);
+
+            let lastRefresh = new Date().getTime();
+            let duration = Math.round(((lastRefresh - refreshStart) / 1000) * 100) / 100;
+
+            adapter.setState(`${adapter.namespace}.lastRefreshStatistic`, lastRefresh, true);
+            adapter.setState(`${adapter.namespace}.lastRefreshStatisticDuration`, duration, true);
 
             adapter.log.info(`refresh statistics successful!`);
         }

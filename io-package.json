@@ -186,7 +186,35 @@
                 "def":   false
             },
             "native": {}
-        }
+        },
+        {
+            "_id":  "lastRefreshStatistic",
+            "type": "state",
+            "common": {
+                "role":  "",
+                "name":  "last refresh of statistic",
+                "type":  "number",
+                "read":  true,
+                "write": false,
+                "def":   0
+            },
+            "native": {}
+        },
+        {
+            "_id":  "lastRefreshStatisticDuration",
+            "type": "state",
+            "common": {
+                "role":  "",
+                "name":  "duration of last refresh of statistic",
+                "type":  "number",
+                "read":  true,
+                "write": false,
+                "def":   0,
+                "unit": "s"
+            },
+            "native": {}
+        }         
+
     ],
     "objects": [
         {
