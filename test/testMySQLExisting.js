@@ -2,7 +2,7 @@
 /*jslint node: true */
 /*jshint expr: true*/
 var expect = require('chai').expect;
-var setup  = require(__dirname + '/lib/setup');
+var setup  = require('./lib/setup');
 
 var objects = null;
 var states  = null;
@@ -90,7 +90,7 @@ describe('Test MySQL Existing', function() {
 
             config.native.dbtype   = 'mysql';
             config.native.user     = 'root';
-            if (process.env.APPVEYOR && process.env.APPVEYOR==='True') {
+            if (process.env.APPVEYOR && process.env.APPVEYOR === 'True') {
                 config.native.password = 'Password12!';
             }
 
