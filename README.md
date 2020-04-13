@@ -127,6 +127,23 @@ Structure:
 
 *Note:* MS-SQL uses BIT, and others use BOOLEAN. SQLite uses for ts INTEGER and all others BIGINT.
 
+The user can define additional to type `number` the functionality of "counters". For this purpose following table is created:
+| DB         | Name in the query       |
+|------------|-------------------------|
+| MS-SQL     | iobroker.dbo.ts_counter |
+| MySQL      | iobroker.ts_counter     |
+| PostgreSQL | ts_counter              |
+| SQLite     | ts_counter              |
+
+Structure:
+
+| Field  | Type                                       | Description                                     |
+|--------|--------------------------------------------|-------------------------------------------------|
+| id     | INTEGER                                    | ID of state from "Datapoints" table             |
+| ts     | BIGINT / INTEGER                           | Time in ms till epoch. Can be converted to time with "new Date(ts)" |
+| val    | REAL                                       | Value                                           |
+ 
+This table stores the values when the counter was exchanged and the value does not increased, but failed to zero or lower value. 
 
 ### Strings
 Values for states with type "string".
@@ -219,7 +236,7 @@ The Message can have one of the following three formats:
 ## Get history
 Additional to custom queries, you can use build in system function **getHistory**:
 ```
-var end = new Date().getTime();
+var end = Date.now();
 sendTo('sql.0', 'getHistory', {
     id: 'system.adapter.admin.0.memRss',
     options: {
@@ -233,6 +250,24 @@ sendTo('sql.0', 'getHistory', {
     }
 });
 ```
+
+## Get counter
+User can ask the value of some counter (type=number, counter=true) for specific period.
+
+```
+var now = Date.now();
+// get consumption value for last 30 days
+sendTo('sql.0', 'getCounter', {
+    id: 'system.adapter.admin.0.memRss',
+    options: {
+        start:      end - 3600000 * 24 * 30,
+        end:        now,
+    }
+}, result => {
+    console.log(`In last 30 days the consumption was ${result.result} kWh`);    
+});
+```
+If the counter will be replaced it will be calculated too.
 
 ## History Logging Management via Javascript
 The adapter supports enabling and disabling of history logging via JavaScript and also retrieving the list of enabled data points with their settings.
