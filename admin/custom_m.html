@@ -30,7 +30,7 @@
         <div class="col s4">
         </div>
         <div class="col s4">
-            <select data-field="storageType" data-default="">
+            <select data-field="storageType" data-default="" class="sql-storageType">
                 <option value=""          class="translate">Automatic</option>
                 <option value="String"    class="translate">String</option>
                 <option value="Number"    class="translate">Number</option>
@@ -53,6 +53,14 @@
                         <option value="86400"       class="translate">1 day</option>
                     </select>
             <label class="translate">Storage retention</label>
+        </div>
+    </div>
+    <div class="row sql-counter">
+        <div class="col s4">
+        </div>
+        <div class="col s4">
+            <input type="checkbox" data-field="counter" data-default="false"/>
+            <span class="translate">Counter</span>
         </div>
     </div>
     <div class="row">
@@ -199,7 +207,8 @@
             "fr": "Automatique",
             "it": "Automatico",
             "es": "Automatycznyy",
-            "pl": "Automatyczny"
+            "pl": "Automatyczny",
+            "zh-cn": "自动"
         },
         "String": {
             "en": "String",
@@ -255,7 +264,8 @@
             "fr": "Conservation du stockage",
             "it": "Conservazione di memoria",
             "es": "Retención de almacenamiento",
-            "pl": "Przechowywanie danych"
+            "pl": "Przechowywanie danych",
+            "zh-cn": "储存保留"
         },
         "enabled": {
             "en": "enabled",
@@ -266,7 +276,8 @@
             "fr": "activée",
             "it": "abilitato",
             "es": "habilitado",
-            "pl": "włączony"
+            "pl": "włączony",
+            "zh-cn": "已启用"
         },
         "keep forever": {
             "en": "keep forever",
@@ -277,7 +288,8 @@
             "fr": "garde pour toujours",
             "it": "tienilo per sempre",
             "es": "mantener para siempre",
-            "pl": "zachowaj na zawsze"
+            "pl": "zachowaj na zawsze",
+            "zh-cn": "永远保持"
         },
         "log changes interval(s) (0 = disable)": {
             "en": "still record the same values (seconds)<br>(0 = disable)",
@@ -324,7 +336,8 @@
             "fr": "nombre de points de données maximum en RAM",
             "it": "massimo conteggio dei punti di accesso nella RAM",
             "es": "recuento máximo de datos en RAM",
-            "pl": "maksymalna liczba punktów w pamięci RAM"
+            "pl": "maksymalna liczba punktów w pamięci RAM",
+            "zh-cn": "RAM中的最大数据点数"
         },
         "aliasId": {
             "en": "Alias-ID",
@@ -335,7 +348,8 @@
             "fr": "Alias-ID",
             "it": "Alias-ID",
             "es": "Alias-ID",
-            "pl": "Alias-ID"
+            "pl": "Alias-ID",
+            "zh-cn": "别名ID"
         },
         "Alias Info": {
             "en": "if Alias-ID is set, the data will be logged as this ID in database",
@@ -346,7 +360,20 @@
             "fr": "Si Alias-ID est défini, les données seront enregistrées comme cet ID dans la base de données",
             "it": "se Alias-ID è impostato, i dati verranno registrati come questo ID nel database",
             "es": "si se establece Alias-ID, los datos se registrarán como esta ID en la base de datos",
-            "pl": "jeśli ustawiony jest Alias-ID, dane będą rejestrowane jako identyfikator w bazie danych"
+            "pl": "jeśli ustawiony jest Alias-ID, dane będą rejestrowane jako identyfikator w bazie danych",
+            "zh-cn": "如果设置了Alias-ID，则数据将以此ID记录在数据库中"
+        },
+        "Counter": {
+            "en": "Counter",
+            "de": "Zähler",
+            "ru": "счетчик",
+            "pt": "Contador",
+            "nl": "Teller",
+            "fr": "Compteur",
+            "it": "contatore",
+            "es": "Mostrador",
+            "pl": "Licznik",
+            "zh-cn": "计数器"
         }
     });
     // There are two ways how to predefine default settings:
@@ -379,6 +406,23 @@
                     storageType:            '',
                     aliasId:                ''
                 };
+            }
+        }
+    }
+    if (typeof customPostInits !== 'undefined') {
+        customPostInits.sql = function ($tab, settings, instanceObj, type, role, obj) {
+            $tab.find('.sql-storageType').on('change', function () {
+                var val = $(this).val();
+                if (val === 'Number') {
+                    $tab.find('.sql-counter').show();
+                } else {
+                    $tab.find('.sql-counter').hide();
+                }
+            });
+            if (settings.type && settings.type !== 'Number') {
+                $tab.find('.sql-counter').hide();
+            } else {
+                $tab.find('.sql-counter').show();
             }
         }
     }

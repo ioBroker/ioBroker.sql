@@ -1,5 +1,5 @@
 /* jshint -W097 */
-/* jshint strict:false */
+/* jshint strict: false */
 /* jslint node: true */
 'use strict';
 
@@ -37,18 +37,19 @@ const storageTypes = [
     'Boolean'
 ];
 
-let clientPool;
 const sqlDPs        = {};
 const from          = {};
-let subscribeAll  = false;
 const tasks         = [];
 const tasksReadType = [];
-let multiRequests = true;
 const tasksStart    = [];
-let finished      = false;
-let connected     = null;
 const isFromRunning = {};
-const aliasMap   = {};
+const aliasMap      = {};
+
+let finished        = false;
+let connected       = null;
+let multiRequests   = true;
+let subscribeAll    = false;
+let clientPool;
 let adapter;
 
 function startAdapter(options) {
@@ -60,15 +61,9 @@ function startAdapter(options) {
 
     adapter.on('objectChange', (id, obj) => {
         let tmpState;
-        const now = new Date().getTime();
+        const now = Date.now();
         const formerAliasId = aliasMap[id] ? aliasMap[id] : id;
-        if (obj && obj.common &&
-            (
-                // todo remove history sometime (2016.08) - Do not forget object selector in io-package.json
-                (obj.common.history && obj.common.history[adapter.namespace] && obj.common.history[adapter.namespace].enabled) ||
-                (obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled)
-            )
-        ) {
+        if (obj && obj.common && obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled) {
             const realId = id;
             let checkForRemove = true;
             if (obj.common.custom && obj.common.custom[adapter.namespace] && obj.common.custom[adapter.namespace].aliasId) {
@@ -77,12 +72,12 @@ function startAdapter(options) {
                     adapter.log.debug('Registered Alias: ' + id + ' --> ' + aliasMap[id]);
                     id = aliasMap[id];
                     checkForRemove = false;
-                }
-                else {
+                } else {
                     adapter.log.warn('Ignoring Alias-ID because identical to ID for ' + id);
                     obj.common.custom[adapter.namespace].aliasId = '';
                 }
             }
+
             if (checkForRemove && aliasMap[id]) {
                 adapter.log.debug('Removed Alias: ' + id + ' !-> ' + aliasMap[id]);
                 delete aliasMap[id];
@@ -108,16 +103,20 @@ function startAdapter(options) {
             if (sqlDPs[id] && sqlDPs[id].index !== undefined) {
                 storedIndex = sqlDPs[id].index;
             }
+
             if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) {
                 storedType = sqlDPs[id].dbtype;
             } else if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].dbtype !== undefined) {
                 storedType = sqlDPs[formerAliasId].dbtype;
             }
 
-            // todo remove history sometime (2016.08)
             sqlDPs[id] = obj.common.custom;
-            if (storedIndex !== null) sqlDPs[id].index = storedIndex;
-            if (storedType !== null) sqlDPs[id].dbtype = storedType;
+            if (storedIndex !== null) {
+                sqlDPs[id].index = storedIndex;
+            }
+            if (storedType !== null) {
+                sqlDPs[id].dbtype = storedType;
+            }
 
             if (sqlDPs[id].index === undefined) {
                 getId(id, sqlDPs[id].dbtype, () => reInit(id, writeNull, realId));
@@ -135,11 +134,7 @@ function startAdapter(options) {
                 sqlDPs[id].relogTimeout && clearTimeout(sqlDPs[id].relogTimeout);
                 sqlDPs[id].timeout && clearTimeout(sqlDPs[id].timeout);
 
-                if (Object.assign) {
-                    tmpState = Object.assign({}, sqlDPs[id].state);
-                } else {
-                    tmpState = JSON.parse(JSON.stringify(sqlDPs[id].state));
-                }
+                tmpState = Object.assign({}, sqlDPs[id].state);
                 const state = sqlDPs[id].state ? tmpState : null;
 
                 if (sqlDPs[id].skipped) {
@@ -148,6 +143,7 @@ function startAdapter(options) {
                 }
 
                 const nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
+
                 if (sqlDPs[id][adapter.namespace] && adapter.config.writeNulls) {
                     if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
                         (function (_id, _state, _nullValue) {
@@ -195,42 +191,52 @@ function startAdapter(options) {
 }
 
 function reInit(id, writeNull, realId) {
-    adapter.log.debug('remembered Index/Type ' + sqlDPs[id].index + ' / ' + sqlDPs[id].dbtype);
+    adapter.log.debug(`remembered Index/Type ${sqlDPs[id].index} / ${sqlDPs[id].dbtype}`);
     sqlDPs[id].realId  = realId;
 
-    if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
+    if (sqlDPs[id][adapter.namespace].retention || sqlDPs[id][adapter.namespace].retention === 0) {
         sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
     } else {
         sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
     }
-    if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
+
+    if (sqlDPs[id][adapter.namespace].debounce || sqlDPs[id][adapter.namespace].debounce === 0) {
         sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
     } else {
         sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
     }
+
     sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
-    if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
+
+    if (sqlDPs[id][adapter.namespace].changesRelogInterval || sqlDPs[id][adapter.namespace].changesRelogInterval === 0) {
         sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
     } else {
         sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
     }
+
     if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
         sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
     }
-    if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
+
+    if (sqlDPs[id][adapter.namespace].changesMinDelta || sqlDPs[id][adapter.namespace].changesMinDelta === 0) {
         sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta.toString().replace(/,/g, '.')) || 0;
     } else {
         sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
     }
-    if (!sqlDPs[id][adapter.namespace].storageType) sqlDPs[id][adapter.namespace].storageType = false;
+
+    if (!sqlDPs[id][adapter.namespace].storageType) {
+        sqlDPs[id][adapter.namespace].storageType = false;
+    }
 
     // add one day if retention is too small
     if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
         sqlDPs[id][adapter.namespace].retention += 86400;
     }
+
     if (writeNull && adapter.config.writeNulls) {
         writeNulls(id);
     }
+
     adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId));
 }
 
@@ -361,8 +367,7 @@ function getSqlLiteDir(fileName) {
     fileName = fileName.replace(/\\/g, '/');
     if (fileName[0] === '/' || fileName.match(/^\w:\//)) {
         return fileName;
-    }
-    else {
+    } else {
         // normally /opt/iobroker/node_modules/iobroker.js-controller
         // but can be /example/ioBroker.js-controller
         const tools = require(utils.controllerDir + '/lib/tools');
@@ -392,16 +397,16 @@ function testConnection(msg) {
     }
 
     if (msg.message.config.dbtype === 'postgresql' && !SQL.PostgreSQLClient) {
-        const postgres = require(__dirname + '/lib/postgresql-client');
-        for (const attr in postgres) {
-            if (!SQL[attr]) SQL[attr] = postgres[attr];
-        }
+        const postgres = require('./lib/postgresql-client');
+        Object.keys(postgres)
+            .filter(attr => !SQL[attr])
+            .forEach(attr => SQL[attr] = postgres[attr]);
     } else
     if (msg.message.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
-        const mssql = require(__dirname + '/lib/mssql-client');
-        for (const _attr in mssql) {
-            if (!SQL[_attr]) SQL[_attr] = mssql[_attr];
-        }
+        const mssql = require('./lib/mssql-client');
+        Object.keys(mssql)
+            .filter(attr => !SQL[attr])
+            .forEach(attr => SQL[attr] = mssql[attr]);
     }
 
     if (msg.message.config.dbtype === 'postgresql') {
@@ -425,7 +430,7 @@ function testConnection(msg) {
                 }
                 return adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
             }
-            client.execute("SELECT 2 + 3 AS x", (err /* , rows, fields */) => {
+            client.execute('SELECT 2 + 3 AS x', (err /* , rows, fields */) => {
                 client.disconnect();
                 if (timeout) {
                     clearTimeout(timeout);
@@ -479,31 +484,32 @@ function _userQuery(msg, callback) {
         clientPool.borrow((err, client) => {
             if (err) {
                 adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
-                if (callback) callback();
+                callback && callback();
             } else {
                 client.execute(msg.message, (err, rows /* , fields */) => {
                     if (rows && rows.rows) rows = rows.rows;
                     clientPool.return(client);
                     adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null, result: rows}, msg.callback);
-                    if (callback) callback();
+                    callback && callback();
                 });
             }
         });
     } catch (err) {
         adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
-        if (callback) callback();
+        callback && callback();
     }
 }
 // execute custom query
 function query(msg) {
     if (!multiRequests) {
         if (tasks.length > 100) {
-            adapter.log.error('Cannot queue new requests, because more than 100');
-            adapter.sendTo(msg.from, msg.command, {error: 'Cannot queue new requests, because more than 100'}, msg.callback);
-            return;
+            const error = 'Cannot queue new requests, because more than 100';
+            adapter.log.error(error);
+            adapter.sendTo(msg.from, msg.command, {error}, msg.callback);
+        } else {
+            tasks.push({operation: 'userQuery', msg});
+            tasks.length === 1 && processTasks();
         }
-        tasks.push({operation: 'userQuery', msg: msg});
-        if (tasks.length === 1) processTasks();
     } else {
         _userQuery(msg);
     }
@@ -517,10 +523,11 @@ function oneScript(script, cb) {
                 clientPool.close();
                 clientPool = null;
                 adapter.log.error(err);
-                cb && cb(err);
-                return;
+                return cb && cb(err);
             }
+
             adapter.log.debug(script);
+
             client.execute(script, (err /* , rows, fields */) => {
                 adapter.log.debug('Response: ' + JSON.stringify(err));
                 if (err) {
@@ -561,7 +568,7 @@ function oneScript(script, cb) {
                 clientPool.return(client);
             });
         });
-    } catch(ex) {
+    } catch (ex) {
         adapter.log.error(ex);
         cb && cb(ex);
     }
@@ -600,13 +607,7 @@ function finish(callback) {
             clearTimeout(sqlDPs[id].timeout);
             sqlDPs[id].timeout  = null;
         }
-        let tmpState;
-        if (Object.assign) {
-            tmpState = Object.assign({}, sqlDPs[id].state);
-        }
-        else {
-            tmpState = JSON.parse(JSON.stringify(sqlDPs[id].state));
-        }
+        let tmpState = Object.assign({}, sqlDPs[id].state);
         const state = sqlDPs[id].state ? tmpState : null;
 
         if (sqlDPs[id].skipped) {
@@ -631,6 +632,7 @@ function finish(callback) {
         }
 
         const nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
+
         if (sqlDPs[id][adapter.namespace] && adapter.config.writeNulls) {
             if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
                 count++;
@@ -700,7 +702,7 @@ function finish(callback) {
         return;
     }
     finished = [callback];
-    const now = new Date().getTime();
+    const now = Date.now();
     let dpcount = 0;
     let delay = 0;
     for (const id in sqlDPs) {
@@ -722,6 +724,9 @@ function finish(callback) {
 function processMessage(msg) {
     if (msg.command === 'getHistory') {
         getHistory(msg);
+    }
+    else if (msg.command === 'getCounter') {
+        getCounterDiff(msg);
     }
     else if (msg.command === 'test') {
         testConnection(msg);
@@ -759,18 +764,17 @@ function processMessage(msg) {
 function fixSelector(callback) {
     // fix _design/custom object
     adapter.getForeignObject('_design/custom', (err, obj) => {
-        if (!obj || obj.views.state.map.indexOf('common.history') === -1 || obj.views.state.map.indexOf('common.custom') === -1) {
+        if (!obj || !obj.views.state.map.includes('common.custom')) {
             obj = {
                 _id: '_design/custom',
                 language: 'javascript',
                 views: {
                     state: {
-                        map: 'function(doc) { if (doc.type===\'state\' && (doc.common.custom || doc.common.history)) emit(doc._id, doc.common.custom || doc.common.history) }'
+                        map: 'function(doc) { doc.type === \'state\' && doc.common.custom && emit(doc._id, doc.common.custom) }'
                     }
                 }
             };
-            adapter.setForeignObject('_design/custom', obj, err =>
-                callback && callback(err));
+            adapter.setForeignObject('_design/custom', obj, err => callback && callback(err));
         } else {
             callback && callback(err);
         }
@@ -782,7 +786,7 @@ function processStartValues(callback) {
         const task = tasksStart.shift();
         if (sqlDPs[task.id][adapter.namespace].changesOnly) {
             adapter.getForeignState(sqlDPs[task.id].realId, (err, state) => {
-                const now = task.now || new Date().getTime();
+                const now = task.now || Date.now();
                 pushHistory(task.id, {
                     val:  null,
                     ts:   state ? now - 4 : now, // 4 is because of MS SQL
@@ -791,47 +795,50 @@ function processStartValues(callback) {
                     q:    0x40,
                     from: 'system.adapter.' + adapter.namespace
                 });
+
                 if (state) {
                     state.ts = now;
                     state.lc = now;
                     state.from = 'system.adapter.' + adapter.namespace;
                     pushHistory(task.id, state);
                 }
+
                 setTimeout(processStartValues, 0);
             });
         }
         else {
             pushHistory(task.id, {
                 val:  null,
-                ts:   task.now || new Date().getTime(),
-                lc:   task.now || new Date().getTime(),
+                ts:   task.now || Date.now(),
+                lc:   task.now || Date.now(),
                 ack:  true,
                 q:    0x40,
                 from: 'system.adapter.' + adapter.namespace
             });
+
             setTimeout(processStartValues, 0);
         }
         if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
-            if (sqlDPs[task.id].relogTimeout) clearTimeout(sqlDPs[task.id].relogTimeout);
+            sqlDPs[task.id].relogTimeout && clearTimeout(sqlDPs[task.id].relogTimeout);
             sqlDPs[task.id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500, task.id);
         }
-    }
-    else {
-        if (callback) callback();
+    } else {
+        callback && callback();
     }
 }
 
 function writeNulls(id, now) {
     if (!id) {
-        now = new Date().getTime();
-        for (const _id in sqlDPs) {
-            if (sqlDPs.hasOwnProperty(_id) && sqlDPs[_id] && sqlDPs[_id][adapter.namespace]) {
-                writeNulls(_id, now);
-            }
-        }
+        now = Date.now();
+
+        Object.keys(sqlDPs)
+            .filter(_id => sqlDPs[_id] && sqlDPs[_id][adapter.namespace])
+            .forEach(_id => writeNulls(_id, now));
     } else {
-        now = now || new Date().getTime();
-        tasksStart.push({id: id, now: now});
+        now = now || Date.now();
+
+        tasksStart.push({id, now});
+
         if (tasksStart.length === 1 && connected) {
             processStartValues();
         }
@@ -839,18 +846,37 @@ function writeNulls(id, now) {
 }
 
 function pushHistory(id, state, timerRelog) {
-    if (timerRelog === undefined) timerRelog = false;
+    if (timerRelog === undefined) {
+        timerRelog = false;
+    }
+
     // Push into DB
     if (sqlDPs[id]) {
         const settings = sqlDPs[id][adapter.namespace];
 
-        if (!settings || !state) return;
+        if (!settings || !state) {
+            return;
+        }
 
-        adapter.log.debug('new value received for ' + id + ', new-value=' + state.val + ', ts=' + state.ts + ', relog=' + timerRelog);
+        adapter.log.debug(`new value received for ${id}, new-value=${state.val}, ts=${state.ts}, relog=${timerRelog}`);
+
         if (state.val !== null && typeof state.val === 'string' && settings.storageType !== 'String') {
             const f = parseFloat(state.val);
+            // do not use here === or find a better way to validate if string is valid float
             if (f == state.val) {
                 state.val = f;
+            }
+        }
+
+        if (settings.counter && sqlDPs[id].state) {
+            if (sqlDPs[id].type !== 'number') {
+                adapter.log.error('Counter cannot have type not "number"!');
+            }
+            // if actual value is less then last seen counter
+            else if (state.val < sqlDPs[id].state.val) {
+                // store both values
+                pushValueIntoDB(id, sqlDPs[id].state, true);
+                pushValueIntoDB(id, state, true);
             }
         }
 
@@ -858,30 +884,26 @@ function pushHistory(id, state, timerRelog) {
             if (settings.changesRelogInterval === 0) {
                 if (state.ts !== state.lc) {
                     sqlDPs[id].skipped = state; // remember new timestamp
-                    adapter.log.debug('value not changed ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
-                    return;
+                    return adapter.log.debug(`value not changed ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
                 }
-            }
-            else if (sqlDPs[id].lastLogTime) {
+            } else if (sqlDPs[id].lastLogTime) {
                 if ((state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) {
                     sqlDPs[id].skipped = state; // remember new timestamp
-                    adapter.log.debug('value not changed relog' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
-                    return;
+                    return adapter.log.debug(`value not changed relog ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
                 }
                 if (state.ts !== state.lc) {
-                    adapter.log.debug('value-changed-relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
+                    adapter.log.debug(`value-changed-relog ${id}, value=${state.val}, lastLogTime=${sqlDPs[id].lastLogTime}, ts=${state.ts}`);
                 }
             }
-            if (sqlDPs[id].state.val !== null && (settings.changesMinDelta !== 0) && (typeof state.val === 'number') && (Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta)) {
-                adapter.log.debug('Min-Delta not reached ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
+
+            if (sqlDPs[id].state.val !== null && settings.changesMinDelta !== 0 && typeof state.val === 'number' && Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta) {
+                adapter.log.debug(`Min-Delta not reached ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
                 sqlDPs[id].skipped = state; // remember new timestamp
                 return;
-            }
-            else if (typeof state.val === 'number') {
-                adapter.log.debug('Min-Delta reached ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
-            }
-            else {
-                adapter.log.debug('Min-Delta ignored because no number ' + id + ', last-value=' + sqlDPs[id].state.val + ', new-value=' + state.val + ', ts=' + state.ts);
+            } else if (typeof state.val === 'number') {
+                adapter.log.debug(`Min-Delta reached ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
+            } else {
+                adapter.log.debug(`Min-Delta ignored because no number ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
             }
         }
 
@@ -895,14 +917,15 @@ function pushHistory(id, state, timerRelog) {
 
         let ignoreDebonce = false;
         if (timerRelog) {
-            state.ts = new Date().getTime();
-            adapter.log.debug('timed-relog ' + id + ', value=' + state.val + ', lastLogTime=' + sqlDPs[id].lastLogTime + ', ts=' + state.ts);
+            state.ts = Date.now();
+            adapter.log.debug(`timed-relog ${id}, value=${state.val}, lastLogTime=${sqlDPs[id].lastLogTime}, ts=${state.ts}`);
             ignoreDebonce = true;
         } else {
             if (settings.changesOnly && sqlDPs[id].skipped) {
                 sqlDPs[id].state = sqlDPs[id].skipped;
                 pushHelper(id);
             }
+
             if (sqlDPs[id].state && ((sqlDPs[id].state.val === null && state.val !== null) || (sqlDPs[id].state.val !== null && state.val === null))) {
                 ignoreDebonce = true;
             }
@@ -918,7 +941,7 @@ function pushHistory(id, state, timerRelog) {
 
         if (settings.debounce && !ignoreDebonce) {
             // Discard changes in debounce time to store last stable value
-            if (sqlDPs[id].timeout) clearTimeout(sqlDPs[id].timeout);
+            sqlDPs[id].timeout && clearTimeout(sqlDPs[id].timeout);
             sqlDPs[id].timeout = setTimeout(pushHelper, settings.debounce, id, true);
         } else {
             pushHelper(id);
@@ -929,46 +952,54 @@ function pushHistory(id, state, timerRelog) {
 function reLogHelper(_id) {
     if (!sqlDPs[_id]) {
         adapter.log.info('non-existing id ' + _id);
-        return;
-    }
-    sqlDPs[_id].relogTimeout = null;
-    if (sqlDPs[_id].skipped) {
-        sqlDPs[_id].state = sqlDPs[_id].skipped;
-        sqlDPs[_id].state.from = 'system.adapter.' + adapter.namespace;
-        sqlDPs[_id].skipped = null;
-        pushHistory(_id, sqlDPs[_id].state, true);
     } else {
-        adapter.getForeignState(sqlDPs[_id].realId, (err, state) => {
-            if (err) {
-                adapter.log.info('init timed Relog: can not get State for ' + _id + ' : ' + err);
-            } else if (!state) {
-                adapter.log.info('init timed Relog: disable relog because state not set so far for ' + _id + ': ' + JSON.stringify(state));
-            } else {
-                adapter.log.debug('init timed Relog: getState ' + _id + ':  Value=' + state.val + ', ack=' + state.ack + ', ts=' + state.ts  + ', lc=' + state.lc);
-                sqlDPs[_id].state = state;
-                pushHistory(_id, sqlDPs[_id].state, true);
-            }
-        });
+        sqlDPs[_id].relogTimeout = null;
+        if (sqlDPs[_id].skipped) {
+            sqlDPs[_id].state = sqlDPs[_id].skipped;
+            sqlDPs[_id].state.from = 'system.adapter.' + adapter.namespace;
+            sqlDPs[_id].skipped = null;
+            pushHistory(_id, sqlDPs[_id].state, true);
+        } else {
+            adapter.getForeignState(sqlDPs[_id].realId, (err, state) => {
+                if (err) {
+                    adapter.log.info(`init timed Relog: can not get State for ${_id} : ${err}`);
+                } else if (!state) {
+                    adapter.log.info(`init timed Relog: disable relog because state not set so far for ${_id}: ${JSON.stringify(state)}`);
+                } else {
+                    adapter.log.debug(`init timed Relog: getState ${_id}:  Value=${state.val}, ack=${state.ack}, ts=${state.ts}, lc=${state.lc}`);
+                    sqlDPs[_id].state = state;
+                    pushHistory(_id, sqlDPs[_id].state, true);
+                }
+            });
+        }
     }
 }
 
 function pushHelper(_id, timeoutTriggered) {
-    if (!sqlDPs[_id] || !sqlDPs[_id].state) return;
+    if (!sqlDPs[_id] || !sqlDPs[_id].state) {
+        return;
+    }
+
     const _settings = sqlDPs[_id][adapter.namespace];
+
     // if it was not deleted in this time
     if (_settings) {
-        if (timeoutTriggered) sqlDPs[_id].timeout = null;
-
-        if (sqlDPs[_id].state.val !== null) {
-            if (typeof sqlDPs[_id].state.val === 'object' || typeof sqlDPs[_id].state.val === 'undefined') {
-                sqlDPs[_id].state.val = JSON.stringify(sqlDPs[_id].state.val);
-            }
+        if (timeoutTriggered) {
+            sqlDPs[_id].timeout = null;
         }
+
+        if (sqlDPs[_id].state.val !== null && (typeof sqlDPs[_id].state.val === 'object' || typeof sqlDPs[_id].state.val === 'undefined')) {
+            sqlDPs[_id].state.val = JSON.stringify(sqlDPs[_id].state.val);
+        }
+
         if (sqlDPs[_id].state.val !== null && sqlDPs[_id].state.val !== undefined) {
             adapter.log.debug('Datatype ' + _id + ': Currently: ' + typeof sqlDPs[_id].state.val + ', StorageType: ' + _settings.storageType);
+
             if (typeof sqlDPs[_id].state.val === 'string' && _settings.storageType !== 'String') {
                 adapter.log.debug('Do Automatic Datatype conversion for ' + _id);
                 const f = parseFloat(sqlDPs[_id].state.val);
+
+                // do not use here === or find a better way to validate if string is valid float
                 if (f == sqlDPs[_id].state.val) {
                     sqlDPs[_id].state.val = f;
                 } else if (sqlDPs[_id].state.val === 'true') {
@@ -982,11 +1013,9 @@ function pushHelper(_id, timeoutTriggered) {
             }
             else if (_settings.storageType === 'Number' && typeof sqlDPs[_id].state.val !== 'number') {
                 if (typeof sqlDPs[_id].state.val === 'boolean') {
-                    sqlDPs[_id].state.val = sqlDPs[_id].state.val?1:0;
-                }
-                else {
-                    adapter.log.info('Do not store value "' + sqlDPs[_id].state.val + '" for ' + _id + ' because no number');
-                    return;
+                    sqlDPs[_id].state.val = sqlDPs[_id].state.val ? 1 : 0;
+                } else {
+                    return adapter.log.info('Do not store value "' + sqlDPs[_id].state.val + '" for ' + _id + ' because no number');
                 }
             }
             else if (_settings.storageType === 'Boolean' && typeof sqlDPs[_id].state.val !== 'boolean') {
@@ -996,6 +1025,7 @@ function pushHelper(_id, timeoutTriggered) {
         else {
             adapter.log.debug('Datatype ' + _id + ': Currently: null');
         }
+
         pushValueIntoDB(_id, sqlDPs[_id].state);
     }
 }
@@ -1005,17 +1035,17 @@ function getAllIds(cb) {
     adapter.log.debug(query);
     clientPool.borrow((err, client) => {
         if (err) {
-            cb && cb(err);
-            return;
+            return cb && cb(err);
         }
+
         client.execute(query, (err, rows /* , fields */) => {
             clientPool.return(client);
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
-                cb && cb(err);
-                return;
+                return cb && cb(err);
             }
+
             if (rows.length) {
                 let id;
                 for (let r = 0; r < rows.length; r++) {
@@ -1035,17 +1065,17 @@ function getAllFroms(cb) {
     adapter.log.debug(query);
     clientPool.borrow((err, client) => {
         if (err) {
-            cb && cb(err);
-            return;
+            return cb && cb(err);
         }
+
         client.execute(query, (err, rows /* , fields */) => {
             clientPool.return(client);
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
-                cb && cb(err);
-                return;
+                return cb && cb(err);
             }
+
             if (rows.length) {
                 for (let r = 0; r < rows.length; r++) {
                     from[rows[r].name] = rows[r].id;
@@ -1063,13 +1093,13 @@ function _checkRetention(query, cb) {
         if (err) {
             adapter.log.error(err);
             cb && cb();
-            return;
+        } else {
+            client.execute(query, (err /* , rows, fields */ ) => {
+                err && adapter.log.error('Cannot delete ' + query + ': ' + err);
+                clientPool.return(client);
+                cb && cb();
+            });
         }
-        client.execute(query, (err /* , rows, fields */ ) => {
-            if (err) adapter.log.error('Cannot delete ' + query + ': ' + err);
-            clientPool.return(client);
-            cb && cb();
-        });
     });
 }
 
@@ -1087,13 +1117,27 @@ function checkRetention(id) {
 
                 if (!multiRequests) {
                     if (tasks.length > 100) {
-                        adapter.log.error('Cannot queue new requests, because more than 100');
-                        return;
+                        return adapter.log.error('Cannot queue new requests, because more than 100');
                     }
-                    tasks.push({operation: 'delete', query: query});
-                    tasks.length === 1 && processTasks();
+
+                    let start = tasks.length === 1;
+                    tasks.push({operation: 'delete', query});
+
+                    // delete counters too
+                    if (sqlDPs[id].type === 'number') {
+                        const query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, 'ts_counter', sqlDPs[id][adapter.namespace].retention);
+                        tasks.push({operation: 'delete', query});
+                    }
+
+                    start && processTasks();
                 } else {
-                    _checkRetention(query);
+                    _checkRetention(query, () => {
+                        // delete counters too
+                        if (sqlDPs[id].type === 'number') {
+                            const query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, 'ts_counter', sqlDPs[id][adapter.namespace].retention);
+                            _checkRetention(query);
+                        }
+                    });
                 }
             }
         }
@@ -1107,14 +1151,14 @@ function _insertValueIntoDB(query, id, cb) {
         if (err) {
             adapter.log.error(err);
             cb && cb();
-            return;
+        } else {
+            client.execute(query, (err /* , rows, fields */) => {
+                err && adapter.log.error('Cannot insert ' + query + ': ' + err);
+                clientPool.return(client);
+                checkRetention(id);
+                cb && cb();
+            });
         }
-        client.execute(query, (err /* , rows, fields */) => {
-            if (err) adapter.log.error('Cannot insert ' + query + ': ' + err);
-            clientPool.return(client);
-            checkRetention(id);
-            cb && cb();
-        });
     });
 }
 
@@ -1173,17 +1217,18 @@ function processVerifyTypes(task) {
         sqlDPs[task.id].dbtype = sqlDPs[task.id].type;
 
         const query = SQLFuncs.getIdUpdate(adapter.config.dbname, sqlDPs[task.id].index, sqlDPs[task.id].type);
+
         adapter.log.debug(query);
+
         clientPool.borrow((err, client) => {
             if (err) {
-                processVerifyTypes(task);
-                return;
+                return processVerifyTypes(task);
             }
+
             client.execute(query, (err, rows /* , fields */) => {
                 if (err) {
-                    adapter.log.error('error updating history config for ' + task.id + ' to pin datatype: ' + query + ': ' + err);
-                }
-                else {
+                    adapter.log.error(`error updating history config for ${task.id} to pin datatype: ${query}: ${err}`);
+                } else {
                     adapter.log.info('changed history configuration to pin detected datatype for ' + task.id);
                 }
                 clientPool.return(client);
@@ -1199,50 +1244,54 @@ function processVerifyTypes(task) {
     setTimeout(processReadTypes, 50);
 }
 
-function pushValueIntoDB(id, state, cb) {
-    if (!sqlDPs[id]) return;
+function pushValueIntoDB(id, state, isCounter, cb) {
+    if (typeof isCounter === 'function') {
+        cb = isCounter;
+        isCounter = false;
+    }
+
+    // check if we know about this ID
+    if (!sqlDPs[id]) {
+        return;
+    }
+
+    // Check sql connection
     if (!clientPool) {
         adapter.log.warn('No connection to SQL-DB');
-        cb && cb('No connection to SQL-DB');
-        return;
+        return cb && cb('No connection to SQL-DB');
     }
 
     let type;
 
+    // read type of value
     if (sqlDPs[id].type !== undefined) {
         type = sqlDPs[id].type;
-    }
-    else {
+    } else {
         // read type from DB
-        tasksReadType.push({id: id, state: state});
-        if (tasksReadType.length === 1) {
-            processReadTypes();
-        }
-
-        return;
+        tasksReadType.push({id, state});
+        return tasksReadType.length === 1 && processReadTypes();
     }
 
     if (type === undefined) { // Can not happen anymore
+        let warn;
         if (state.val === null) {
-            adapter.log.warn('Ignore null value for ' + id + ' because no type defined till now.');
-            cb && cb('Ignore null value for ' + id + ' because no type defined till now.');
-            return;
+            warn = `Ignore null value for ${id} because no type defined till now.`;
+        } else {
+            warn = `Cannot store values of type "${typeof state.val}" for ${id}`;
         }
-        adapter.log.warn('Cannot store values of type "' + typeof state.val + '" for ' + id);
-        cb && cb('Cannot store values of type "' + typeof state.val + '" ' + id);
-        return;
+
+        adapter.log.warn(warn);
+        return cb && cb(warn);
     }
+
     let tmpState;
-    // get id if state
+    // get sql id of state
     if (sqlDPs[id].index === undefined) {
         sqlDPs[id].isRunning = sqlDPs[id].isRunning || [];
-        if (Object.assign) {
-            tmpState = Object.assign({}, state);
-        }
-        else {
-            tmpState = JSON.parse(JSON.stringify(state));
-        }
-        sqlDPs[id].isRunning.push({id: id, state: tmpState, cb: cb});
+
+        tmpState = Object.assign({}, state);
+
+        sqlDPs[id].isRunning.push({id, state: tmpState, cb, isCounter});
 
         if (sqlDPs[id].isRunning.length === 1) {
             // read or create in DB
@@ -1251,13 +1300,13 @@ function pushValueIntoDB(id, state, cb) {
                     adapter.log.warn('Cannot get index of "' + _id + '": ' + err);
                     if (sqlDPs[_id].isRunning) {
                         for (let t = 0; t < sqlDPs[_id].isRunning.length; t++) {
-                            if (sqlDPs[_id].isRunning[t].cb) sqlDPs[_id].isRunning[t].cb('Cannot get index of "' + sqlDPs[_id].isRunning[t].id + '": ' + err);
+                            sqlDPs[_id].isRunning[t].cb && sqlDPs[_id].isRunning[t].cb('Cannot get index of "' + sqlDPs[_id].isRunning[t].id + '": ' + err);
                         }
                     }
                 } else {
                     if (sqlDPs[_id].isRunning) {
                         for (let k = 0; k < sqlDPs[_id].isRunning.length; k++) {
-                            pushValueIntoDB(sqlDPs[_id].isRunning[k].id, sqlDPs[_id].isRunning[k].state, sqlDPs[_id].isRunning[k].cb);
+                            pushValueIntoDB(sqlDPs[_id].isRunning[k].id, sqlDPs[_id].isRunning[k].state, sqlDPs[_id].isRunning[k].isCounter, sqlDPs[_id].isRunning[k].cb);
                         }
                     }
                 }
@@ -1268,15 +1317,11 @@ function pushValueIntoDB(id, state, cb) {
     }
 
     // get from
-    if (state.from && !from[state.from]) {
+    if (!isCounter && state.from && !from[state.from]) {
         isFromRunning[state.from] = isFromRunning[state.from] || [];
-        if (Object.assign) {
-            tmpState = Object.assign({}, state);
-        }
-        else {
-            tmpState = JSON.parse(JSON.stringify(state));
-        }
-        isFromRunning[state.from].push({id: id, state: tmpState, cb: cb});
+        tmpState = Object.assign({}, state);
+
+        isFromRunning[state.from].push({id, state: tmpState, cb});
 
         if (isFromRunning[state.from].length === 1) {
             // read or create in DB
@@ -1285,13 +1330,13 @@ function pushValueIntoDB(id, state, cb) {
                     adapter.log.warn('Cannot get "from" for "' + from + '": ' + err);
                     if (isFromRunning[from]) {
                         for (let t = 0; t < isFromRunning[from].length; t++) {
-                            if (isFromRunning[from][t].cb) isFromRunning[from][t].cb('Cannot get "from" for "' + from + '": ' + err);
+                            isFromRunning[from][t].cb && isFromRunning[from][t].cb(`Cannot get "from" for "${from}": ${err}`);
                         }
                     }
                 } else {
                     if (isFromRunning[from]) {
                         for (let k = 0; k < isFromRunning[from].length; k++) {
-                            pushValueIntoDB(isFromRunning[from][k].id, isFromRunning[from][k].state, isFromRunning[from][k].cb);
+                            pushValueIntoDB(isFromRunning[from][k].id, isFromRunning[from][k].state, isFromRunning[from][k].isCounter, isFromRunning[from][k].cb);
                         }
                     }
                 }
@@ -1300,6 +1345,7 @@ function pushValueIntoDB(id, state, cb) {
         }
         return;
     }
+
     // if greater than 2000.01.01 00:00:00
     if (state.ts > 946681200000) {
         state.ts = parseInt(state.ts, 10);
@@ -1312,29 +1358,29 @@ function pushValueIntoDB(id, state, cb) {
             state.val = JSON.stringify(state.val);
         }
     } catch (err) {
-        adapter.log.error('Cannot convert the object value "' + id + '"');
-        cb && cb('Cannot convert the object value "' + id + '"');
-        return;
+        const error = `Cannot convert the object value "${id}"`;
+        adapter.log.error(error);
+        return cb && cb(error);
     }
 
     // increase timestamp if last is the same
-    if (sqlDPs[id].ts && state.ts === sqlDPs[id].ts) {
+    if (!isCounter && sqlDPs[id].ts && state.ts === sqlDPs[id].ts) {
         state.ts++;
     }
+
     // remember last timestamp
     sqlDPs[id].ts = state.ts;
 
-    const query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, dbNames[type]);
+    const query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, isCounter ? 'ts_counter' : dbNames[type]);
+
     if (!multiRequests) {
         if (tasks.length > 100) {
-            adapter.log.error('Cannot queue new requests, because more than 100');
-            cb && cb('Cannot queue new requests, because more than 100');
-            return;
-        }
-
-        tasks.push({operation: 'insert', query: query, id: id, callback: cb});
-        if (tasks.length === 1) {
-            processTasks();
+            const error = 'Cannot queue new requests, because more than 100';
+            adapter.log.error(error);
+            cb && cb(error);
+        } else {
+            tasks.push({operation: 'insert', query, id, callback: cb});
+            tasks.length === 1 && processTasks();
         }
     } else {
         _insertValueIntoDB(query, id, cb);
@@ -1344,104 +1390,112 @@ function pushValueIntoDB(id, state, cb) {
 let lockTasks = false;
 function processTasks() {
     if (lockTasks) {
-        adapter.log.debug('Tries to execute task, but last one not finished!');
-        return;
+        return adapter.log.debug('Tries to execute task, but last one not finished!');
     }
+
     lockTasks = true;
+
     if (tasks.length) {
         if (tasks[0].operation === 'insert') {
             _insertValueIntoDB(tasks[0].query, tasks[0].id, () => {
-                if (tasks[0].callback) tasks[0].callback();
+                tasks[0].callback && tasks[0].callback();
                 tasks.shift();
                 lockTasks = false;
-                if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
+                tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
             });
         }
         else if (tasks[0].operation === 'select') {
             _getDataFromDB(tasks[0].query, tasks[0].options, (err, rows) => {
-                if (tasks[0].callback) tasks[0].callback(err, rows);
+                tasks[0].callback && tasks[0].callback(err, rows);
                 tasks.shift();
                 lockTasks = false;
-                if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
+                tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
             });
         }
         else if (tasks[0].operation === 'userQuery') {
             _userQuery(tasks[0].msg, () => {
-                if (tasks[0].callback) tasks[0].callback();
+                tasks[0].callback && tasks[0].callback();
                 tasks.shift();
                 lockTasks = false;
-                if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
+                tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
             });
         }
         else if (tasks[0].operation === 'delete') {
             _checkRetention(tasks[0].query, () => {
-                if (tasks[0].callback) tasks[0].callback();
+                tasks[0].callback && tasks[0].callback();
                 tasks.shift();
                 lockTasks = false;
-                if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
+                tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
             });
-        } else {
+        }
+        else {
             adapter.log.error('unknown task: ' + tasks[0].operation);
-            if (tasks[0].callback) tasks[0].callback();
+            tasks[0].callback && tasks[0].callback();
             tasks.shift();
             lockTasks = false;
-            if (tasks.length) setTimeout(processTasks, adapter.config.requestInterval);
+            tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
         }
     }
 }
+
 // my be it is required to cache all the data in memory
 function getId(id, type, cb) {
     let query = SQLFuncs.getIdSelect(adapter.config.dbname, id);
     adapter.log.debug(query);
 
     if (!clientPool) {
-        cb && cb('No connection', id);
-        return;
+        return cb && cb('No connection', id);
     }
 
     clientPool.borrow((err, client) => {
         if (err) {
-            cb && cb(err, id);
-            return;
+            return cb && cb(err, id);
         }
+
         client.execute(query, (err, rows /* , fields */) => {
-            if (rows && rows.rows) rows = rows.rows;
+            if (rows && rows.rows) {
+                rows = rows.rows;
+            }
+
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
                 cb && cb(err, id);
-                clientPool.return(client);
-                return;
-            }
-            if (!rows.length) {
+                return clientPool.return(client);
+            } else if (!rows.length) {
                 if (type !== null && type !== undefined) {
                     // insert
                     query = SQLFuncs.getIdInsert(adapter.config.dbname, id, type);
+
                     adapter.log.debug(query);
+
                     client.execute(query, (err /* , rows, fields */) => {
                         if (err) {
                             adapter.log.error('Cannot insert ' + query + ': ' + err);
                             cb && cb(err, id);
                             clientPool.return(client);
-                            return;
-                        }
-                        query = SQLFuncs.getIdSelect(adapter.config.dbname,id);
-                        adapter.log.debug(query);
-                        client.execute(query, (err, rows /* , fields */) => {
-                            if (rows && rows.rows) {
-                                rows = rows.rows;
-                            }
-                            if (err) {
-                                adapter.log.error('Cannot select ' + query + ': ' + err);
-                                cb && cb(err, id);
-                                clientPool.return(client);
-                                return;
-                            }
-                            sqlDPs[id].index = rows[0].id;
-                            sqlDPs[id].type  = rows[0].type;
+                        } else {
+                            query = SQLFuncs.getIdSelect(adapter.config.dbname,id);
 
-                            cb && cb(null, id);
-                            clientPool.return(client);
-                        });
+                            adapter.log.debug(query);
+
+                            client.execute(query, (err, rows /* , fields */) => {
+                                if (rows && rows.rows) {
+                                    rows = rows.rows;
+                                }
+
+                                if (err) {
+                                    adapter.log.error('Cannot select ' + query + ': ' + err);
+                                    cb && cb(err, id);
+                                    clientPool.return(client);
+                                } else {
+                                    sqlDPs[id].index = rows[0].id;
+                                    sqlDPs[id].type  = rows[0].type;
+
+                                    cb && cb(null, id);
+                                    clientPool.return(client);
+                                }
+                            });
+                        }
                     });
                 } else {
                     cb && cb('id not found', id);
@@ -1457,6 +1511,7 @@ function getId(id, type, cb) {
         });
     });
 }
+
 // my be it is required to cache all the data in memory
 function getFrom(_from, cb) {
     // const sources    = (adapter.config.dbtype !== 'postgresql' ? (adapter.config.dbname + '.') : '') + 'sources';
@@ -1464,22 +1519,19 @@ function getFrom(_from, cb) {
     adapter.log.debug(query);
 
     if (!clientPool) {
-        cb && cb('No connection', _from);
-        return;
+        return cb && cb('No connection', _from);
     }
 
     clientPool.borrow((err, client) => {
         if (err) {
-            cb && cb(err, _from);
-            return;
+            return cb && cb(err, _from);
         }
         client.execute(query, (err, rows /* , fields */) => {
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
                 cb && cb(err, _from);
-                clientPool.return(client);
-                return;
+                return clientPool.return(client);
             }
             if (!rows.length) {
                 // insert
@@ -1489,8 +1541,7 @@ function getFrom(_from, cb) {
                     if (err) {
                         adapter.log.error('Cannot insert ' + query + ': ' + err);
                         cb && cb(err, _from);
-                        clientPool.return(client);
-                        return;
+                        return clientPool.return(client);
                     }
 
                     query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
@@ -1500,8 +1551,7 @@ function getFrom(_from, cb) {
                         if (err) {
                             adapter.log.error('Cannot select ' + query + ': ' + err);
                             cb && cb(err, _from);
-                            clientPool.return(client);
-                            return;
+                            return clientPool.return(client);
                         }
                         from[_from] = rows[0].id;
 
@@ -1522,7 +1572,7 @@ function getFrom(_from, cb) {
 function sortByTs(a, b) {
     const aTs = a.ts;
     const bTs = b.ts;
-    return ((aTs < bTs) ? -1 : ((aTs > bTs) ? 1 : 0));
+    return aTs < bTs ? -1 : (aTs > bTs ? 1 : 0);
 }
 
 function _getDataFromDB(query, options, callback) {
@@ -1530,8 +1580,7 @@ function _getDataFromDB(query, options, callback) {
 
     clientPool.borrow((err, client) => {
         if (err) {
-            if (callback) callback(err);
-            return;
+            return callback && callback(err);
         }
         client.execute(query, (err, rows /* , fields */) => {
             if (rows && rows.rows) rows = rows.rows;
@@ -1544,7 +1593,7 @@ function _getDataFromDB(query, options, callback) {
                 let isNumber = null;
                 for (let c = 0; c < rows.length; c++) {
                     if (isNumber === null && rows[c].val !== null) {
-                        isNumber = (parseFloat(rows[c].val) == rows[c].val);
+                        isNumber = parseFloat(rows[c].val) == rows[c].val;
                     }
                     if (typeof rows[c].ts === 'string') {
                         rows[c].ts = parseInt(rows[c].ts, 10);
@@ -1571,7 +1620,7 @@ function _getDataFromDB(query, options, callback) {
             }
 
             clientPool.return(client);
-            if (callback) callback(err, rows);
+            callback && callback(err, rows);
         });
     });
 }
@@ -1582,23 +1631,62 @@ function getDataFromDB(db, options, callback) {
     if (!multiRequests) {
         if (tasks.length > 100) {
             adapter.log.error('Cannot queue new requests, because more than 100');
-            if (callback) callback('Cannot queue new requests, because more than 100');
-            return;
+            callback && callback('Cannot queue new requests, because more than 100');
+        } else {
+            tasks.push({operation: 'select', query, options, callback});
+            tasks.length === 1 && processTasks();
         }
-        tasks.push({operation: 'select', query: query, options: options, callback: callback});
-        if (tasks.length === 1) processTasks();
     } else {
         _getDataFromDB(query, options, callback);
     }
 }
 
+function getCounterDataFromDB(db, options, callback) {
+    const query = SQLFuncs.getCounterDiff(adapter.config.dbname, options);
+
+    adapter.log.debug(query);
+
+    if (!multiRequests) {
+        if (tasks.length > 100) {
+            const error = 'Cannot queue new requests, because more than 100';
+            adapter.log.error(error);
+            callback && callback(error);
+        } else {
+            tasks.push({operation: 'select', query, options, callback});
+            tasks.length === 1 && processTasks();
+        }
+    } else {
+        _getDataFromDB(query, options, callback);
+    }
+}
+
+function getCounterDiff(msg) {
+    const startTime = Date.now();
+    const id    = msg.message.id;
+    const start = msg.message.options.start || 0;
+    const end   = msg.message.options.end   || (Date.now() + 5000000);
+
+    const options = {id, start, end};
+
+    if (!sqlDPs[id]) {
+        adapter.sendTo(msg.from, msg.command, {result: [], step: null, error: 'Not enabled'}, msg.callback);
+    } else {
+        if (!SQLFuncs.getCounterDiff) {
+            adapter.sendTo(msg.from, msg.command, {result: [], step: null, error: 'Counter option is not enabled for this type of SQL'}, msg.callback);
+        } else {
+            getCounterDataFromDB(db, options, (err, data) =>
+                commons.sendResponseCounter(adapter, msg, options, (err ? err.toString() : null) || data, startTime));
+        }
+    }
+}
+
 function getHistory(msg) {
-    const startTime = new Date().getTime();
+    const startTime = Date.now();
 
     const options = {
         id:         msg.message.id === '*' ? null : msg.message.id,
         start:      msg.message.options.start,
-        end:        msg.message.options.end || ((new Date()).getTime() + 5000000),
+        end:        msg.message.options.end || (Date.now() + 5000000),
         step:       parseInt(msg.message.options.step, 10)  || null,
         count:      parseInt(msg.message.options.count, 10) || 500,
         ignoreNull: msg.message.options.ignoreNull,
@@ -1618,21 +1706,22 @@ function getHistory(msg) {
     if (options.ignoreNull === 'true')  options.ignoreNull = true;  // include nulls and replace them with last value
     if (options.ignoreNull === 'false') options.ignoreNull = false; // include nulls
     if (options.ignoreNull === '0')     options.ignoreNull = 0;     // include nulls and replace them with 0
-    if (options.ignoreNull !== true && options.ignoreNull !== false && options.ignoreNull !== 0) options.ignoreNull = false;
+    if (options.ignoreNull !== true && options.ignoreNull !== false && options.ignoreNull !== 0) {
+        options.ignoreNull = false;
+    }
 
     if (!sqlDPs[options.id]) {
-        commons.sendResponse(adapter, msg, options, [], startTime);
-        return;
+        return commons.sendResponse(adapter, msg, options, [], startTime);
     }
 
     if (options.start > options.end) {
-        const _end = options.end;
+        const _end    = options.end;
         options.end   = options.start;
         options.start =_end;
     }
 
     if (!options.start && !options.count) {
-        options.start = (new Date()).getTime() - 5030000; // - 1 year
+        options.start = Date.now() - 5030000; // - 1 year
     }
 
     if (sqlDPs[options.id].type === undefined && sqlDPs[options.id].dbtype !== undefined) {
@@ -1671,9 +1760,8 @@ function getHistory(msg) {
 
     // if specific id requested
     if (options.id || options.id === 0) {
-        getDataFromDB(dbNames[type], options, (err, data) => {
-            commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || data, startTime);
-        });
+        getDataFromDB(dbNames[type], options, (err, data) =>
+            commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || data, startTime));
     } else {
         // if all IDs requested
         let rows = [];
@@ -1681,7 +1769,9 @@ function getHistory(msg) {
         for (let db = 0; db < dbNames.length; db++) {
             count++;
             getDataFromDB(dbNames[db], options, (err, data) => {
-                if (data) rows = rows.concat(data);
+                if (data) {
+                    rows = rows.concat(data);
+                }
                 if (!--count) {
                     rows.sort(sortByTs);
                     commons.sendResponse(adapter, msg, options, rows, startTime);
@@ -1694,10 +1784,9 @@ function getHistory(msg) {
 function storeState(msg) {
     if (!msg.message || !msg.message.id || !msg.message.state) {
         adapter.log.error('storeState called with invalid data');
-        adapter.sendTo(msg.from, msg.command, {
+        return adapter.sendTo(msg.from, msg.command, {
             error:  'Invalid call: ' + JSON.stringify(msg)
         }, msg.callback);
-        return;
     }
 
     let id;
@@ -1726,15 +1815,17 @@ function getDpOverview(msg) {
     const result = {};
     const query = SQLFuncs.getIdSelect(adapter.config.dbname);
     adapter.log.info(query);
+
     clientPool.borrow((err, client) => {
         if (err) {
-            adapter.sendTo(msg.from, msg.command, {
+            return adapter.sendTo(msg.from, msg.command, {
                 error:  'Cannot select ' + query + ': ' + err
             }, msg.callback);
-            return;
         }
         client.execute(query, (err, rows /* , fields */) => {
-            if (rows && rows.rows) rows = rows.rows;
+            if (rows && rows.rows) {
+                rows = rows.rows;
+            }
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
                 adapter.sendTo(msg.from, msg.command, {
@@ -1743,28 +1834,35 @@ function getDpOverview(msg) {
                 clientPool.return(client);
                 return;
             }
+
             adapter.log.info('Query result ' + JSON.stringify(rows));
+
             if (rows.length) {
                 for (let r = 0; r < rows.length; r++) {
                     if (!result[rows[r].type]) result[rows[r].type] = {};
                     result[rows[r].type][rows[r].id] = {};
+
                     result[rows[r].type][rows[r].id].name = rows[r].name;
                     switch(dbNames[rows[r].type]) {
-                        case 'ts_number':   result[rows[r].type][rows[r].id].type = 'number';
-                                            break;
-                        case 'ts_string':   result[rows[r].type][rows[r].id].type = 'string';
-                                            break;
-                        case 'ts_bool':     result[rows[r].type][rows[r].id].type = 'boolean';
-                                            break;
+                        case 'ts_number':
+                            result[rows[r].type][rows[r].id].type = 'number';
+                            break;
+
+                        case 'ts_string':
+                            result[rows[r].type][rows[r].id].type = 'string';
+                            break;
+
+                        case 'ts_bool':
+                            result[rows[r].type][rows[r].id].type = 'boolean';
+                            break;
                     }
                 }
 
-                adapter.log.info('inited result: ' + JSON.stringify(result));
+                adapter.log.info('initialisation result: ' + JSON.stringify(result));
                 getFirstTsForIds(client, 0, result, msg);
             }
         });
     });
-
 }
 
 function getFirstTsForIds(dbClient, typeId, resultData, msg) {
@@ -1774,8 +1872,12 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
         } else {
             const query = SQLFuncs.getFirstTs(adapter.config.dbname, dbNames[typeId]);
             adapter.log.info(query);
+
             dbClient.execute(query, (err, rows /* , fields */) => {
-                if (rows && rows.rows) rows = rows.rows;
+                if (rows && rows.rows) {
+                    rows = rows.rows;
+                }
+
                 if (err) {
                     adapter.log.error('Cannot select ' + query + ': ' + err);
                     adapter.sendTo(msg.from, msg.command, {
@@ -1784,7 +1886,9 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
                     clientPool.return(dbClient);
                     return;
                 }
+
                 adapter.log.info('Query result ' + JSON.stringify(rows));
+
                 if (rows.length) {
                     for (let r = 0; r < rows.length; r++) {
                         if (resultData[typeId][rows[r].id]) {
@@ -1792,6 +1896,7 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
                         }
                     }
                 }
+
                 adapter.log.info('enhanced result (' + typeId + '): ' + JSON.stringify(resultData));
                 setTimeout(getFirstTsForIds, 5000, dbClient, typeId + 1, resultData, msg);
             });
@@ -1821,7 +1926,7 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
         }
         adapter.log.info('Result: ' + JSON.stringify(result));
         adapter.sendTo(msg.from, msg.command, {
-            succes: true,
+            success: true,
             result: result
         }, msg.callback);
     }
@@ -1835,16 +1940,19 @@ function enableHistory(msg) {
         }, msg.callback);
         return;
     }
+
     const obj = {};
     obj.common = {};
     obj.common.custom = {};
+
     if (msg.message.options) {
         obj.common.custom[adapter.namespace] = msg.message.options;
-    }
-    else {
+    } else {
         obj.common.custom[adapter.namespace] = {};
     }
+
     obj.common.custom[adapter.namespace].enabled = true;
+
     adapter.extendForeignObject(msg.message.id, obj, err => {
         if (err) {
             adapter.log.error('enableHistory: ' + err);
@@ -1854,7 +1962,7 @@ function enableHistory(msg) {
         } else {
             adapter.log.info(JSON.stringify(obj));
             adapter.sendTo(msg.from, msg.command, {
-                success:                  true
+                success: true
             }, msg.callback);
         }
     });
@@ -1863,16 +1971,17 @@ function enableHistory(msg) {
 function disableHistory(msg) {
     if (!msg.message || !msg.message.id) {
         adapter.log.error('disableHistory called with invalid data');
-        adapter.sendTo(msg.from, msg.command, {
+        return adapter.sendTo(msg.from, msg.command, {
             error:  'Invalid call'
         }, msg.callback);
-        return;
     }
+
     const obj = {};
     obj.common = {};
     obj.common.custom = {};
     obj.common.custom[adapter.namespace] = {};
     obj.common.custom[adapter.namespace].enabled = false;
+
     adapter.extendForeignObject(msg.message.id, obj, err => {
         if (err) {
             adapter.log.error('disableHistory: ' + err);
@@ -1882,7 +1991,7 @@ function disableHistory(msg) {
         } else {
             adapter.log.info(JSON.stringify(obj));
             adapter.sendTo(msg.from, msg.command, {
-                success:                  true
+                success: true
             }, msg.callback);
         }
     });
@@ -1906,7 +2015,9 @@ function main() {
 
     adapter.config.dbname = adapter.config.dbname || 'iobroker';
 
-    if (adapter.config.writeNulls === undefined) adapter.config.writeNulls = true;
+    if (adapter.config.writeNulls === undefined) {
+        adapter.config.writeNulls = true;
+    }
 
     adapter.config.retention = parseInt(adapter.config.retention, 10) || 0;
     adapter.config.debounce  = parseInt(adapter.config.debounce,  10) || 0;
@@ -1933,14 +2044,18 @@ function main() {
     }
 
     multiRequests = clients[adapter.config.dbtype].multiRequests;
-    if (!multiRequests) adapter.config.writeNulls = false;
+    if (!multiRequests) {
+        adapter.config.writeNulls = false;
+    }
 
     adapter.config.port = parseInt(adapter.config.port, 10) || 0;
+
     if (adapter.config.round !== null && adapter.config.round !== undefined) {
         adapter.config.round = Math.pow(10, parseInt(adapter.config.round, 10));
     } else {
         adapter.config.round = null;
     }
+
     if (adapter.config.dbtype === 'postgresql' && !SQL.PostgreSQLClient) {
         const postgres = require(__dirname + '/lib/postgresql-client');
         for (const attr in postgres) {
@@ -1978,18 +2093,27 @@ function main() {
 
                                 let storedIndex = null;
                                 let storedType = null;
-                                if (sqlDPs[id] && sqlDPs[id].index !== undefined) storedIndex = sqlDPs[id].index;
-                                if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) storedType = sqlDPs[id].dbtype;
-                                // todo remove history sometime (2016.08)
+                                if (sqlDPs[id] && sqlDPs[id].index !== undefined) {
+                                    storedIndex = sqlDPs[id].index;
+                                }
+                                if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) {
+                                    storedType = sqlDPs[id].dbtype;
+                                }
+
                                 sqlDPs[id] = doc.rows[i].value;
-                                if (storedIndex !== null) sqlDPs[id].index = storedIndex;
-                                if (storedType !== null) sqlDPs[id].dbtype = storedType;
+                                if (storedIndex !== null) {
+                                    sqlDPs[id].index = storedIndex;
+                                }
+                                if (storedType !== null) {
+                                    sqlDPs[id].dbtype = storedType;
+                                }
 
                                 if (!sqlDPs[id][adapter.namespace]) {
                                     delete sqlDPs[id];
                                 } else {
                                     count++;
                                     adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId) + ', ' + count + ' points now activated');
+
                                     if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
                                         sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
                                     } else {
@@ -2033,7 +2157,7 @@ function main() {
                         }
                     }
 
-                    if (adapter.config.writeNulls) writeNulls();
+                    adapter.config.writeNulls && writeNulls();
 
                     if (count < 20) {
                         for (const _id in sqlDPs) {
