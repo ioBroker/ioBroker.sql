@@ -2228,140 +2228,148 @@ function createStatisticObjectString(id, name){
     });
 }
 
-async function refreshStatistic(){
-    try {        
+async function refreshStatistic() {
+    try {
         adapter.log.info(`refresh statistics for '${adapter.config.dbtype}', database '${adapter.config.dbname}'`);
         let refreshStart = new Date().getTime();
 
-        if(connected){
+        adapter.log.info(`${adapter.name}.${adapter.instance}`);
+
+        if (connected) {
             let sumAllEntries = 0;
             let sumAllDeadEntries = 0;
 
             // ioBroker Database size
             let databaseSizeId = `databases.${adapter.config.dbname}.size`;
-            createStatisticObjectNumber(databaseSizeId, 'size of database', 'GB');
+            await createStatisticObjectNumber(databaseSizeId, 'size of database', 'GB');
 
             let databaseEntriesId = `databases.${adapter.config.dbname}.entries`;
-            createStatisticObjectNumber(databaseEntriesId, 'sum of entries of all tables', 'entries');
+            await createStatisticObjectNumber(databaseEntriesId, 'sum of entries of all tables', 'entries');
 
             let databaseDeadEntriesId = `databases.${adapter.config.dbname}.deadEntries`;
-            createStatisticObjectNumber(databaseDeadEntriesId, 'sum of dead entries of all tables', 'entries');
+            await createStatisticObjectNumber(databaseDeadEntriesId, 'sum of dead entries of all tables', 'entries');
 
             let databaseSizeQuery = '';
-            if(adapter.config.dbtype === 'mysql'){
-                databaseSizeQuery = `SELECT TABLE_SCHEMA AS 'database', SUM(data_length + index_length) / 1024 / 1024 / 1024 AS 'size' FROM information_schema.TABLES WHERE table_schema = '${adapter.config.dbname}'`;
-            } else if (adapter.config.dbtype === 'mssql'){
-                databaseSizeQuery = `SELECT TABLE_SCHEMA AS 'database', SUM(data_length + index_length) / 1024 / 1024 / 1024 AS 'size' FROM information_schema.TABLES WHERE table_schema = '${adapter.config.dbname}'`;
-            } else if (adapter.config.dbtype === 'postgresql'){
-                databaseSizeQuery = `SELECT TABLE_SCHEMA AS 'database', SUM(data_length + index_length) / 1024 / 1024 / 1024 AS 'size' FROM information_schema.TABLES WHERE table_schema = '${adapter.config.dbname}'`;                
-            } else if (adapter.config.dbtype === 'sqlite'){
-                adapter.log.warn('sqlite3 not implemented yet!');
+            if (adapter.config.dbtype !== 'sqlite') {
+                databaseSizeQuery = SQLFuncs.getDatabaseSize(adapter.config.dbname);
+            } else {
+                adapter.log.info('statistic for sqlite database not implemented yet!');
             }
 
-            if(databaseSizeQuery){
+            if (databaseSizeQuery) {
                 let queryResultDbSize = await getQueryResult(databaseSizeQuery);
-            
-                if(queryResultDbSize && Object.keys(queryResultDbSize).length === 1){
+
+                if (queryResultDbSize && Object.keys(queryResultDbSize).length === 1) {
                     let databaseSize = Math.round(queryResultDbSize[0].size * 1000) / 1000;
                     adapter.setState(databaseSizeId, databaseSize, true);
                 }
             }
 
             // Table sizes & entries
-            let tableSizeQuery = "";
-            if(adapter.config.dbtype === 'mysql'){
-                tableSizeQuery = `SELECT table_name AS 'name', ((data_length + index_length) / 1024 / 1024) as 'size' FROM information_schema.TABLES WHERE table_schema = '${adapter.config.dbname}'`;
-            } else if (adapter.config.dbtype === 'mssql'){
-                tableSizeQuery = `SELECT table_name AS 'name', ((data_length + index_length) / 1024 / 1024) as 'size' FROM information_schema.TABLES WHERE table_schema = '${adapter.config.dbname}'`;
-            } else if (adapter.config.dbtype === 'postgresql'){
-                tableSizeQuery = `SELECT table_name AS 'name', ((data_length + index_length) / 1024 / 1024) as 'size' FROM information_schema.TABLES WHERE table_schema = '${adapter.config.dbname}'`;                
-            } else if (adapter.config.dbtype === 'sqlite'){
-                adapter.log.warn('sqlite3 not implemented yet!');
+            let tableSizeQuery = '';
+            if (adapter.config.dbtype !== 'sqlite') {
+                tableSizeQuery = SQLFuncs.getTablesSize(adapter.config.dbname);
+            } else {
+                adapter.log.info('statistic for sqlite database not implemented yet!');
             }
 
-            if(tableSizeQuery){
+            if (tableSizeQuery) {
                 let queryResultTableSize = await getQueryResult(tableSizeQuery);
 
-                if(queryResultTableSize && Object.keys(queryResultTableSize).length > 0){
+                adapter.log.info(JSON.stringify(queryResultTableSize));
+
+                if (queryResultTableSize && Object.keys(queryResultTableSize).length > 0) {
                     let tableIdPrefix = `databases.${adapter.config.dbname}.tables.`;
 
                     for (const table of queryResultTableSize) {
-                        let tableId = tableIdPrefix + table.name + ".size";
-                        createStatisticObjectNumber(tableId, 'size of table', 'MB');
+                        adapter.log.info(JSON.stringify(table));
 
-                        let tableSize = Math.round(table.size * 100) / 100;
+                        let tableId = tableIdPrefix + table.name + ".size";
+                        await createStatisticObjectNumber(tableId, 'size of table', 'GB');
+
+                        let tableSize = Math.round(table.size * 1000) / 1000;
                         adapter.setState(tableId, tableSize, true);
 
                         // entries, deadEntries, deadEntriesIds
                         let entriesId = tableIdPrefix + table.name + ".entries";
-                        createStatisticObjectNumber(entriesId, 'sum of entries', 'entries');
+                        await createStatisticObjectNumber(entriesId, 'sum of entries', 'entries');
 
                         // not create for table sources
                         let deadEntriesId = tableIdPrefix + table.name + ".deadEntries";
                         let deadEntriesStringId = tableIdPrefix + table.name + ".deadEntriesIds";
-                        if(dbNames.includes(table.name) || table.name === 'datapoints'){
-                            createStatisticObjectNumber(deadEntriesId, 'sum of dead entries', 'entries');
-                            createStatisticObjectString(deadEntriesStringId, "dead entries ids");
+                        if (dbNames.includes(table.name) || table.name === 'datapoints') {
+                            await createStatisticObjectNumber(deadEntriesId, 'sum of dead entries', 'entries');
+                            await createStatisticObjectString(deadEntriesStringId, "dead entries ids");
                         }
-                        
+
                         let sumEntries = 0;
                         let sumDeadEntries = 0;
                         let deadEntriesList = [];
 
                         // table 'datapoints'
-                        if(table.name === 'datapoints'){
+                        if (table.name === 'datapoints') {
 
                             let datapointsQuery = '';
-                            if(adapter.config.dbtype === 'mysql'){
+                            if (adapter.config.dbtype === 'mysql') {
                                 datapointsQuery = `SELECT id, name FROM ${adapter.config.dbname}.datapoints`;
-                            } else if (adapter.config.dbtype === 'mssql'){
+                            } else if (adapter.config.dbtype === 'mssql') {
                                 datapointsQuery = `SELECT id, name FROM ${adapter.config.dbname}.datapoints`;
-                            } else if (adapter.config.dbtype === 'postgresql'){
+                            } else if (adapter.config.dbtype === 'postgresql') {
                                 datapointsQuery = `SELECT id, name FROM ${adapter.config.dbname}.datapoints`;
-                            } else if (adapter.config.dbtype === 'sqlite'){
+                            } else if (adapter.config.dbtype === 'sqlite') {
                                 adapter.log.warn('sqlite3 not implemented yet!');
                             }
 
-                            if(datapointsQuery){
+                            if (datapointsQuery) {
                                 let dpResult = await getQueryResult(datapointsQuery);
-                                
-                                if(dpResult && Object.keys(dpResult).length > 0){
-                                    for(const datapoint of dpResult){
-                                        sumEntries++;
 
-                                        // check if iobroker object for datapoint name exist
-                                        let existingDpInIoBroker = await adapter.getForeignObjectAsync(datapoint.id);
-                                        if(!existingDpInIoBroker){
-                                            sumDeadEntries++;
-                                            deadEntriesList.push(`${datapoint.id}:${datapoint.name}`);
+                                if (dpResult && Object.keys(dpResult).length > 0) {
+                                    for (const datapoint of dpResult) {
+                                        try {
+                                            sumEntries++;
+
+                                            // check if iobroker object for datapoint name exist
+                                            let existingDpInIoBroker = await adapter.getForeignObjectAsync(datapoint.id);
+                                            if (!existingDpInIoBroker) {
+                                                sumDeadEntries++;
+                                                // deadEntriesList.push(`${datapoint.id}:${datapoint.name}`);
+                                            } else if (existingDpInIoBroker && existingDpInIoBroker.common) {
+                                                adapter.log.info(JSON.stringify(datapoint));
+                                                if (existingDpInIoBroker.common === null || (existingDpInIoBroker.common.custom && !existingDpInIoBroker.common.custom.hasOwnProperty(`${adapter.name}.${adapter.instance}`))) {
+                                                    sumDeadEntries++;
+                                                    deadEntriesList.push(`${datapoint.id}:${datapoint.name}`);
+                                                }
+                                            }
+                                        } catch (ex) {
+                                            adapter.log.error(`[refreshStatistic] error: ${ex.message}, stack: ${ex.stack}`);
                                         }
                                     }
                                 }
                             }
                         } else {
                             // other tables
-                            
+
                             let entriesQuery = '';
-                            if(adapter.config.dbtype === 'mysql'){
+                            if (adapter.config.dbtype === 'mysql') {
                                 entriesQuery = `SELECT id, Count(id) as 'count', IF(id NOT IN (select id from ${adapter.config.dbname}.datapoints), 1, 0) as 'dead' FROM ${adapter.config.dbname}.${table.name} GROUP BY id`
-                            } else if (adapter.config.dbtype === 'mssql'){
+                            } else if (adapter.config.dbtype === 'mssql') {
                                 entriesQuery = `SELECT id, Count(id) as 'count', IF(id NOT IN (select id from ${adapter.config.dbname}.datapoints), 1, 0) as 'dead' FROM ${adapter.config.dbname}.${table.name} GROUP BY id`;
-                            } else if (adapter.config.dbtype === 'postgresql'){
+                            } else if (adapter.config.dbtype === 'postgresql') {
                                 entriesQuery = `SELECT id, Count(id) as 'count', IF(id NOT IN (select id from ${adapter.config.dbname}.datapoints), 1, 0) as 'dead' FROM ${adapter.config.dbname}.${table.name} GROUP BY id`;
-                            } else if (adapter.config.dbtype === 'sqlite'){
+                            } else if (adapter.config.dbtype === 'sqlite') {
                                 adapter.log.warn('sqlite3 not implemented yet!');
                             }
-                            
-                            if(entriesQuery){
+
+                            if (entriesQuery) {
                                 let result = await getQueryResult(entriesQuery);
 
-                                if(result && Object.keys(result).length > 0){
-                                    for(const entry of result){
+                                if (result && Object.keys(result).length > 0) {
+                                    for (const entry of result) {
                                         sumEntries = sumEntries + entry.count;
 
                                         // deadEntries for table ts_bool, ts_number, ts_string
-                                        if(dbNames.includes(table.name)){
-                                            if(entry.dead === 1){
+                                        if (dbNames.includes(table.name)) {
+                                            if (entry.dead === 1) {
                                                 sumDeadEntries = sumDeadEntries + entry.count;
                                                 deadEntriesList.push(entry.id);
                                             }
@@ -2370,7 +2378,7 @@ async function refreshStatistic(){
                                 }
                             }
                         }
-                        
+
                         sumAllEntries = sumAllEntries + sumEntries;
                         sumAllDeadEntries = sumAllDeadEntries + sumDeadEntries;
 
@@ -2392,10 +2400,10 @@ async function refreshStatistic(){
             adapter.log.info(`refresh statistics successful!`);
         }
     } catch (err) {
-        console.error(`[refreshStatistic] error: ${err.message}`);
-        console.error(`[refreshStatistic] stack: ${err.stack}`);
+        adapter.log.error(`[refreshStatistic] error: ${err.message}, stack: ${err.stack}`);
     }
 }
+
 
 async function getQueryResult(query) {
     return new Promise((resolve, reject) => {
