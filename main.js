@@ -2181,17 +2181,16 @@ function main() {
     prepareStatistic();
 }
 
-function prepareStatistic(){
+function prepareStatistic() {
     try {
-
-        if(adapter.config.createStatistic){
+        adapter.log.debug(`statistic enabled: ${adapter.config.createStatistic}, update interval: ${adapter.config.statisticRefreshInterval}`);
+        if (adapter.config.createStatistic) {
             // if configured refresh statistic periodically
-            schedule.scheduleJob('0 */'+ adapter.config.statisticRefreshInterval +' * * *', refreshStatistic);
-        }
 
+            schedule.scheduleJob('0 */' + adapter.config.statisticRefreshInterval + ' * * *', refreshStatistic);
+        }
     } catch (err) {
-        console.error(`[createStatistic] error: ${err.message}`);
-        console.error(`[createStatistic] stack: ${err.stack}`);
+        adapter.log.error(`[refreshStatistic] error: ${err.message}, stack: ${err.stack}`);
     }
 }
 
