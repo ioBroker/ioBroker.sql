@@ -2241,7 +2241,7 @@ async function refreshStatistic() {
 
             // ioBroker Database size
             let databaseSizeId = `${idPrefix}.${adapter.config.dbname}.size`;
-            await createStatisticObjectNumber(databaseSizeId, "size of database", 'GB');
+            await createStatisticObjectNumber(databaseSizeId, "size of database", 'MB');
 
             let databaseEntriesId = `${idPrefix}.${adapter.config.dbname}.dataSets`;
             await createStatisticObjectNumber(databaseEntriesId, "number of all data sets in the database", '');
@@ -2253,7 +2253,7 @@ async function refreshStatistic() {
             if (adapter.config.dbtype !== 'sqlite') {
                 databaseSizeQuery = SQLFuncs.getDatabaseSize(adapter.config.dbname);
             } else {
-                adapter.log.info('statistic for sqlite database not implemented yet!');
+                adapter.log.info('statistic for sqlite database not implemented!');
             }
 
             if (databaseSizeQuery) {
@@ -2270,7 +2270,7 @@ async function refreshStatistic() {
             if (adapter.config.dbtype !== 'sqlite') {
                 tableSizeQuery = SQLFuncs.getTablesSize(adapter.config.dbname);
             } else {
-                adapter.log.info('statistic for sqlite database not implemented yet!');
+                adapter.log.info('statistic for sqlite database not implemented!');
             }
 
             if (tableSizeQuery) {
@@ -2285,7 +2285,7 @@ async function refreshStatistic() {
                         adapter.log.info(JSON.stringify(table));
 
                         let tableId = tableIdPrefix + table.name + ".size";
-                        await createStatisticObjectNumber(tableId, 'size of table', 'GB');
+                        await createStatisticObjectNumber(tableId, 'size of table', 'MB');
 
                         let tableSize = Math.round(table.size * 1000) / 1000;
                         adapter.setState(tableId, tableSize, true);
