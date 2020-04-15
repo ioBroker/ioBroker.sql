@@ -149,7 +149,7 @@
         "changesRelogInterval":      0,
         "changesMinDelta": 0,
         "writeNulls": true,
-        "createStatistic": true,
+        "createStatistic": false,
         "statisticRefreshInterval": 24
     },
     "instanceObjects": [

@@ -489,5 +489,41 @@ systemDictionary = {
         "it": "Scrivi valori NULL sui limiti di avvio / arresto:",
         "es": "Escribe valores NULL en los límites de inicio / finalización:",
         "pl": "Napisz wartości NULL na granicach start / stop:"
+    },
+    "Statistic settings": {
+        "en": "Statistic settings",
+        "de": "Statistische Einstellungen",
+        "ru": "Настройки статистики",
+        "pt": "Configurações estatísticas",
+        "nl": "Statistische instellingen",
+        "fr": "Paramètres statistiques",
+        "it": "Impostazioni statistiche",
+        "es": "Configuraciones estadísticas",
+        "pl": "Ustawienia statystyczne",
+        "zh-cn": "统计设置"
+    },
+    "enable statistic": {
+        "en": "enable statistic",
+        "de": "Statistik aktivieren",
+        "ru": "включить статистику",
+        "pt": "ativar estatística",
+        "nl": "statistiek inschakelen",
+        "fr": "activer la statistique",
+        "it": "abilita statistica",
+        "es": "habilitar estadística",
+        "pl": "włączyć statystyki",
+        "zh-cn": "启用统计"
+    },
+    "Update interval": {
+        "en": "Update interval",
+        "de": "Aktualisierungsinterval",
+        "ru": "Интервал обновления",
+        "pt": "Intervalo de atualização",
+        "nl": "Bijwerkingsonderbreking",
+        "fr": "Intervalle de mise à jour",
+        "it": "Intervallo di aggiornamento",
+        "es": "Intervalo de actualización",
+        "pl": "Interwał aktualizacji",
+        "zh-cn": "更新间隔"
     }
 };

@@ -170,6 +170,7 @@
                 <ul class="tabs">
                     <li class="tab col s3"><a href="#tab-main" class="translate active">DB settings</a></li>
                     <li class="tab col s3"><a href="#tab-default" class="translate">Default settings</a></li>
+                    <li class="tab col s3"><a href="#tab-statistic" class="translate">Statistic settings</a></li>
                 </ul>
             </div>
             <div id="tab-main" class="col s12 page">
@@ -296,6 +297,20 @@
                             <option value="86400"       class="translate">1 day</option>
                         </select>
                         <label class="translate" for="retention">retention</label>
+                    </div>
+                </div>
+            </div>
+            <div id="tab-statistic" class="col s12 page">
+                <div class="row">
+                    <div class="input-field col s12 m4">
+                        <input id="createStatistic" type="checkbox" class="value" />
+                        <label class="translate" for="createStatistic">enable statistic</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field real-sql col s12 m3 l4 ">
+                        <input id="statisticRefreshInterval" type="number" min="1" max="999" class="value" />
+                        <label class="translate" for="statisticRefreshInterval">Update interval</label>
                     </div>
                 </div>
             </div>
