@@ -2314,17 +2314,12 @@ async function updateStatistic() {
                         if (table.name === 'datapoints') {
 
                             let datapointsQuery = '';
-                            if (adapter.config.dbtype === 'mysql') {
-                                datapointsQuery = `SELECT id, name FROM ${adapter.config.dbname}.datapoints`;
-                            } else if (adapter.config.dbtype === 'mssql') {
-                                datapointsQuery = `SELECT id, name FROM ${adapter.config.dbname}.datapoints`;
-                            } else if (adapter.config.dbtype === 'postgresql') {
-                                datapointsQuery = `SELECT id, name FROM ${adapter.config.dbname}.datapoints`;
-                            } else if (adapter.config.dbtype === 'sqlite') {
+                            if (adapter.config.dbtype !== 'sqlite') {
+                                datapointsQuery = SQLFuncs.getDataSetsFromTableDatapoints(adapter.config.dbname);
+                                adapter.log.debug(`[updateStatistic] table '${table.name}' query: '${datapointsQuery}'`);
+                            } else {
                                 adapter.log.info('statistic for sqlite database not implemented!');
                             }
-
-                            adapter.log.debug(`[updateStatistic] table 'datapoints' query: '${datapointsQuery}'`);
 
                             if (datapointsQuery) {
                                 let dpResult = await getQueryResult(datapointsQuery);
@@ -2356,17 +2351,12 @@ async function updateStatistic() {
                             // other tables
 
                             let entriesQuery = '';
-                            if (adapter.config.dbtype === 'mysql') {
-                                entriesQuery = `SELECT id, Count(id) as 'count', IF(id NOT IN (select id from ${adapter.config.dbname}.datapoints), 1, 0) as 'dead' FROM ${adapter.config.dbname}.${table.name} GROUP BY id`
-                            } else if (adapter.config.dbtype === 'mssql') {
-                                entriesQuery = `SELECT id, Count(id) as 'count', IF(id NOT IN (select id from ${adapter.config.dbname}.datapoints), 1, 0) as 'dead' FROM ${adapter.config.dbname}.${table.name} GROUP BY id`;
-                            } else if (adapter.config.dbtype === 'postgresql') {
-                                entriesQuery = `SELECT id, Count(id) as 'count', IF(id NOT IN (select id from ${adapter.config.dbname}.datapoints), 1, 0) as 'dead' FROM ${adapter.config.dbname}.${table.name} GROUP BY id`;
-                            } else if (adapter.config.dbtype === 'sqlite') {
+                            if (adapter.config.dbtype !== 'sqlite') {
+                                entriesQuery = SQLFuncs.getDataSetsFromTable(adapter.config.dbname, table.name);
+                                adapter.log.debug(`[updateStatistic] table '${table.name}' query: '${entriesQuery}'`);
+                            } else {
                                 adapter.log.info('statistic for sqlite database not implemented!');
                             }
-
-                            adapter.log.debug(`[updateStatistic] table '${table.name}' query: '${entriesQuery}'`);
 
                             if (entriesQuery) {
                                 let result = await getQueryResult(entriesQuery);
