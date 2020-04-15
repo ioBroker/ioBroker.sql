@@ -172,7 +172,7 @@ function startAdapter(options) {
     });
 
     adapter.on('stateChange', (id, state) => {
-        if(id === adapter.namespace + '.refreshStatistic' && state && state.val === true){
+        if(id === adapter.namespace + '.statistic.update' && state && state.val === true){
             // listener for start refresh statistic manual -> per button
             refreshStatistic();
         }
@@ -2232,6 +2232,7 @@ async function refreshStatistic() {
     try {
         adapter.log.info(`refresh statistics for '${adapter.config.dbtype}', database '${adapter.config.dbname}'`);
         let refreshStart = new Date().getTime();
+        let idPrefix = `statistic.databases`
 
         adapter.log.info(`${adapter.name}.${adapter.instance}`);
 
@@ -2240,14 +2241,14 @@ async function refreshStatistic() {
             let sumAllDeadEntries = 0;
 
             // ioBroker Database size
-            let databaseSizeId = `databases.${adapter.config.dbname}.size`;
-            await createStatisticObjectNumber(databaseSizeId, 'size of database', 'GB');
+            let databaseSizeId = `${idPrefix}.${adapter.config.dbname}.size`;
+            await createStatisticObjectNumber(databaseSizeId, "size of database", 'GB');
 
-            let databaseEntriesId = `databases.${adapter.config.dbname}.entries`;
-            await createStatisticObjectNumber(databaseEntriesId, 'sum of entries of all tables', 'entries');
+            let databaseEntriesId = `${idPrefix}.${adapter.config.dbname}.dataSets`;
+            await createStatisticObjectNumber(databaseEntriesId, "number of all data sets in the database", '');
 
-            let databaseDeadEntriesId = `databases.${adapter.config.dbname}.deadEntries`;
-            await createStatisticObjectNumber(databaseDeadEntriesId, 'sum of dead entries of all tables', 'entries');
+            let databaseDeadEntriesId = `${idPrefix}.${adapter.config.dbname}.brokenDataSets`;
+            await createStatisticObjectNumber(databaseDeadEntriesId, "number of all broken data sets in the database", '');
 
             let databaseSizeQuery = '';
             if (adapter.config.dbtype !== 'sqlite') {
@@ -2279,7 +2280,7 @@ async function refreshStatistic() {
                 adapter.log.info(JSON.stringify(queryResultTableSize));
 
                 if (queryResultTableSize && Object.keys(queryResultTableSize).length > 0) {
-                    let tableIdPrefix = `databases.${adapter.config.dbname}.tables.`;
+                    let tableIdPrefix = `${idPrefix}.${adapter.config.dbname}.tables.`;
 
                     for (const table of queryResultTableSize) {
                         adapter.log.info(JSON.stringify(table));
@@ -2291,15 +2292,15 @@ async function refreshStatistic() {
                         adapter.setState(tableId, tableSize, true);
 
                         // entries, deadEntries, deadEntriesIds
-                        let entriesId = tableIdPrefix + table.name + ".entries";
-                        await createStatisticObjectNumber(entriesId, 'sum of entries', 'entries');
+                        let entriesId = tableIdPrefix + table.name + ".dataSets";
+                        await createStatisticObjectNumber(entriesId, 'number of all data sets in the table', '');
 
                         // not create for table sources
-                        let deadEntriesId = tableIdPrefix + table.name + ".deadEntries";
-                        let deadEntriesStringId = tableIdPrefix + table.name + ".deadEntriesIds";
+                        let deadEntriesId = tableIdPrefix + table.name + ".brokenDataSets";
+                        let deadEntriesStringId = tableIdPrefix + table.name + ".brokenDataSetsIDs";
                         if (dbNames.includes(table.name) || table.name === 'datapoints') {
-                            await createStatisticObjectNumber(deadEntriesId, 'sum of dead entries', 'entries');
-                            await createStatisticObjectString(deadEntriesStringId, "dead entries ids");
+                            await createStatisticObjectNumber(deadEntriesId, 'number of all broken data sets in the table', '');
+                            await createStatisticObjectString(deadEntriesStringId, "id list of broken data sets in the table");
                         }
 
                         let sumEntries = 0;
@@ -2329,10 +2330,10 @@ async function refreshStatistic() {
                                             sumEntries++;
 
                                             // check if iobroker object for datapoint name exist
-                                            let existingDpInIoBroker = await adapter.getForeignObjectAsync(datapoint.id);
+                                            let existingDpInIoBroker = await adapter.getForeignObjectAsync(datapoint.name);
                                             if (!existingDpInIoBroker) {
                                                 sumDeadEntries++;
-                                                // deadEntriesList.push(`${datapoint.id}:${datapoint.name}`);
+                                                deadEntriesList.push({ id: datapoint.id, name: datapoint.name });
                                             } else if (existingDpInIoBroker && existingDpInIoBroker.common) {
                                                 adapter.log.info(JSON.stringify(datapoint));
                                                 if (existingDpInIoBroker.common === null || (existingDpInIoBroker.common.custom && !existingDpInIoBroker.common.custom.hasOwnProperty(`${adapter.name}.${adapter.instance}`))) {
@@ -2371,7 +2372,7 @@ async function refreshStatistic() {
                                         if (dbNames.includes(table.name)) {
                                             if (entry.dead === 1) {
                                                 sumDeadEntries = sumDeadEntries + entry.count;
-                                                deadEntriesList.push(entry.id);
+                                                deadEntriesList.push({ id: entry.id });
                                             }
                                         }
                                     }
@@ -2384,7 +2385,11 @@ async function refreshStatistic() {
 
                         adapter.setState(entriesId, sumEntries, true);
                         adapter.setState(deadEntriesId, sumDeadEntries, true);
-                        adapter.setState(deadEntriesStringId, deadEntriesList.join(', '), true);
+                        if (deadEntriesList.length > 0) {
+                            adapter.setState(deadEntriesStringId, JSON.stringify(deadEntriesList), true);
+                        } else {
+                            adapter.setState(deadEntriesStringId, 'none', true);
+                        }
                     }
                 }
             }
@@ -2403,7 +2408,6 @@ async function refreshStatistic() {
         adapter.log.error(`[refreshStatistic] error: ${err.message}, stack: ${err.stack}`);
     }
 }
-
 
 async function getQueryResult(query) {
     return new Promise((resolve, reject) => {

@@ -175,11 +175,11 @@
             "native": {}
         },
         {
-            "_id":  "refreshStatistic",
+            "_id":  "statistic.update",
             "type": "state",
             "common": {
                 "role":  "button",
-                "name":  "start refresh of statistic",
+                "name":  "start update now",
                 "type":  "boolean",
                 "read":  true,
                 "write": true,
@@ -188,11 +188,11 @@
             "native": {}
         },
         {
-            "_id":  "lastRefreshStatistic",
+            "_id":  "statistic.lastUpdate",
             "type": "state",
             "common": {
                 "role":  "",
-                "name":  "last refresh of statistic",
+                "name":  "timestamp of last update",
                 "type":  "number",
                 "read":  true,
                 "write": false,
@@ -201,11 +201,11 @@
             "native": {}
         },
         {
-            "_id":  "lastRefreshStatisticDuration",
+            "_id":  "statistic.durationLastUpdate",
             "type": "state",
             "common": {
                 "role":  "",
-                "name":  "duration of last refresh of statistic",
+                "name":  "duration of last update",
                 "type":  "number",
                 "read":  true,
                 "write": false,
