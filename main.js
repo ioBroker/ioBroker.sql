@@ -174,7 +174,7 @@ function startAdapter(options) {
     adapter.on('stateChange', (id, state) => {
         if(id === adapter.namespace + '.statistic.update' && state && state.val === true){
             // listener for start refresh statistic manual -> per button
-            refreshStatistic();
+            updateStatistic();
         }
 
         id = aliasMap[id] ? aliasMap[id] : id;
@@ -2183,19 +2183,19 @@ function main() {
 
 function prepareStatistic() {
     try {
-        adapter.log.debug(`statistic enabled: ${adapter.config.createStatistic}, update interval: ${adapter.config.statisticRefreshInterval}`);
+        adapter.log.debug(`[updateStatistic] statistic enabled: ${adapter.config.createStatistic}, update interval: ${adapter.config.statisticRefreshInterval}`);
         if (adapter.config.createStatistic) {
             // if configured refresh statistic periodically
 
-            schedule.scheduleJob('0 */' + adapter.config.statisticRefreshInterval + ' * * *', refreshStatistic);
+            schedule.scheduleJob('0 */' + adapter.config.statisticRefreshInterval + ' * * *', updateStatistic);
 
             // 30s after startup, delay for connection to db
             setTimeout(function () {
-                refreshStatistic()
-            }, 30000);
+                updateStatistic()
+            }, 3000);
         }
     } catch (err) {
-        adapter.log.error(`[refreshStatistic] error: ${err.message}, stack: ${err.stack}`);
+        adapter.log.error(`[updateStatistic] error: ${err.message}, stack: ${err.stack}`);
     }
 }
 
@@ -2212,7 +2212,7 @@ function createStatisticObjectNumber(id, name, unit) {
         },
         native: {}
     }, function (err, obj) {
-        if (!err && obj) adapter.log.debug('statistic object ' + id + ' created');
+        if (!err && obj) adapter.log.debug('[updateStatistic] statistic object ' + id + ' created');
     });
 }
 
@@ -2228,42 +2228,45 @@ function createStatisticObjectString(id, name) {
         },
         native: {}
     }, function (err, obj) {
-        if (!err && obj) adapter.log.debug('statistic object ' + id + ' created');
+        if (!err && obj) adapter.log.debug('[updateStatistic] statistic object ' + id + ' created');
     });
 }
 
-async function refreshStatistic() {
+async function updateStatistic() {
     try {
-        adapter.log.info(`refresh statistics for '${adapter.config.dbtype}', database '${adapter.config.dbname}'`);
+        adapter.log.info(`update statistics for '${adapter.config.dbtype}', database '${adapter.config.dbname}'`);
         let refreshStart = new Date().getTime();
-        let idPrefix = `statistic.databases`
+        let idPrefix = `statistic`
 
         if (connected) {
+            adapter.log.debug(`[updateStatistic] database '${adapter.config.dbname}' is connected`)
             let sumAllEntries = 0;
             let sumAllDeadEntries = 0;
 
             // ioBroker Database size
-            let databaseSizeId = `${idPrefix}.${adapter.config.dbname}.size`;
+            let databaseSizeId = `${idPrefix}.databases.${adapter.config.dbname}.size`;
             await createStatisticObjectNumber(databaseSizeId, "size of database", 'MB');
 
-            let databaseEntriesId = `${idPrefix}.${adapter.config.dbname}.dataSets`;
+            let databaseEntriesId = `${idPrefix}.databases.${adapter.config.dbname}.dataSets`;
             await createStatisticObjectNumber(databaseEntriesId, "number of all data sets in the database", '');
 
-            let databaseDeadEntriesId = `${idPrefix}.${adapter.config.dbname}.brokenDataSets`;
+            let databaseDeadEntriesId = `${idPrefix}.databases.${adapter.config.dbname}.brokenDataSets`;
             await createStatisticObjectNumber(databaseDeadEntriesId, "number of all broken data sets in the database", '');
 
             let databaseSizeQuery = '';
             if (adapter.config.dbtype !== 'sqlite') {
                 databaseSizeQuery = SQLFuncs.getDatabaseSize(adapter.config.dbname);
+                adapter.log.debug(`[updateStatistic] database size query: '${databaseSizeQuery}'`);
             } else {
                 adapter.log.info('statistic for sqlite database not implemented!');
             }
 
             if (databaseSizeQuery) {
                 let queryResultDbSize = await getQueryResult(databaseSizeQuery);
+                adapter.log.debug(`[updateStatistic] database size query result: '${Object.keys(queryResultDbSize).length}'`);
 
                 if (queryResultDbSize && Object.keys(queryResultDbSize).length === 1) {
-                    let databaseSize = Math.round(queryResultDbSize[0].size * 1000) / 1000;
+                    let databaseSize = Math.round(queryResultDbSize[0].size * 100) / 100;
                     adapter.setState(databaseSizeId, databaseSize, true);
                 }
             }
@@ -2272,17 +2275,17 @@ async function refreshStatistic() {
             let tableSizeQuery = '';
             if (adapter.config.dbtype !== 'sqlite') {
                 tableSizeQuery = SQLFuncs.getTablesSize(adapter.config.dbname);
+                adapter.log.debug(`[updateStatistic] table size query: '${tableSizeQuery}'`);
             } else {
                 adapter.log.info('statistic for sqlite database not implemented!');
             }
 
             if (tableSizeQuery) {
                 let queryResultTableSize = await getQueryResult(tableSizeQuery);
-
-                adapter.log.info(JSON.stringify(queryResultTableSize));
+                adapter.log.debug(`[updateStatistic] table size query result: '${Object.keys(tableSizeQuery).length}'`);
 
                 if (queryResultTableSize && Object.keys(queryResultTableSize).length > 0) {
-                    let tableIdPrefix = `${idPrefix}.${adapter.config.dbname}.tables.`;
+                    let tableIdPrefix = `${idPrefix}.databases.${adapter.config.dbname}.tables.`;
 
                     for (const table of queryResultTableSize) {
                         adapter.log.info(JSON.stringify(table));
@@ -2290,7 +2293,7 @@ async function refreshStatistic() {
                         let tableId = tableIdPrefix + table.name + ".size";
                         await createStatisticObjectNumber(tableId, 'size of table', 'MB');
 
-                        let tableSize = Math.round(table.size * 1000) / 1000;
+                        let tableSize = Math.round(table.size * 100) / 100;
                         adapter.setState(tableId, tableSize, true);
 
                         // entries, deadEntries, deadEntriesIds
@@ -2320,11 +2323,14 @@ async function refreshStatistic() {
                             } else if (adapter.config.dbtype === 'postgresql') {
                                 datapointsQuery = `SELECT id, name FROM ${adapter.config.dbname}.datapoints`;
                             } else if (adapter.config.dbtype === 'sqlite') {
-                                adapter.log.warn('sqlite3 not implemented yet!');
+                                adapter.log.info('statistic for sqlite database not implemented!');
                             }
+
+                            adapter.log.debug(`[updateStatistic] table 'datapoints' query: '${datapointsQuery}'`);
 
                             if (datapointsQuery) {
                                 let dpResult = await getQueryResult(datapointsQuery);
+                                adapter.log.debug(`[updateStatistic] table 'datapoints query result: '${Object.keys(dpResult).length}'`);
 
                                 if (dpResult && Object.keys(dpResult).length > 0) {
                                     for (const datapoint of dpResult) {
@@ -2344,7 +2350,7 @@ async function refreshStatistic() {
                                                 }
                                             }
                                         } catch (ex) {
-                                            adapter.log.error(`[refreshStatistic] error: ${ex.message}, stack: ${ex.stack}`);
+                                            adapter.log.error(`[updateStatistic] error: ${ex.message}, stack: ${ex.stack}`);
                                         }
                                     }
                                 }
@@ -2360,11 +2366,14 @@ async function refreshStatistic() {
                             } else if (adapter.config.dbtype === 'postgresql') {
                                 entriesQuery = `SELECT id, Count(id) as 'count', IF(id NOT IN (select id from ${adapter.config.dbname}.datapoints), 1, 0) as 'dead' FROM ${adapter.config.dbname}.${table.name} GROUP BY id`;
                             } else if (adapter.config.dbtype === 'sqlite') {
-                                adapter.log.warn('sqlite3 not implemented yet!');
+                                adapter.log.info('statistic for sqlite database not implemented!');
                             }
+
+                            adapter.log.debug(`[updateStatistic] table '${table.name}' query: '${entriesQuery}'`);
 
                             if (entriesQuery) {
                                 let result = await getQueryResult(entriesQuery);
+                                adapter.log.debug(`[updateStatistic] table '${table.name}' query result: '${Object.keys(result).length}'`);
 
                                 if (result && Object.keys(result).length > 0) {
                                     for (const entry of result) {
@@ -2401,13 +2410,13 @@ async function refreshStatistic() {
             let lastRefresh = new Date().getTime();
             let duration = Math.round(((lastRefresh - refreshStart) / 1000) * 100) / 100;
 
-            adapter.setState(`${adapter.namespace}.lastRefreshStatistic`, lastRefresh, true);
-            adapter.setState(`${adapter.namespace}.lastRefreshStatisticDuration`, duration, true);
+            adapter.setState(`${idPrefix}.lastUpdate`, lastRefresh, true);
+            adapter.setState(`${idPrefix}.durationLastUpdate`, duration, true);
 
-            adapter.log.info(`refresh statistics successful!`);
+            adapter.log.info(`update statistics successful!`);
         }
     } catch (err) {
-        adapter.log.error(`[refreshStatistic] error: ${err.message}, stack: ${err.stack}`);
+        adapter.log.error(`[updateStatistic] error: ${err.message}, stack: ${err.stack}`);
     }
 }
 
