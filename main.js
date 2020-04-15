@@ -2288,8 +2288,6 @@ async function updateStatistic() {
                     let tableIdPrefix = `${idPrefix}.databases.${adapter.config.dbname}.tables.`;
 
                     for (const table of queryResultTableSize) {
-                        adapter.log.info(JSON.stringify(table));
-
                         let tableId = tableIdPrefix + table.name + ".size";
                         await createStatisticObjectNumber(tableId, 'size of table', 'MB');
 
@@ -2341,12 +2339,11 @@ async function updateStatistic() {
                                             let existingDpInIoBroker = await adapter.getForeignObjectAsync(datapoint.name);
                                             if (!existingDpInIoBroker) {
                                                 sumDeadEntries++;
-                                                deadEntriesList.push({ id: datapoint.id, name: datapoint.name });
+                                                deadEntriesList.push({ id: datapoint.id, name: datapoint.name, existInIoBroker: false });
                                             } else if (existingDpInIoBroker && existingDpInIoBroker.common) {
-                                                adapter.log.info(JSON.stringify(datapoint));
-                                                if (existingDpInIoBroker.common === null || (existingDpInIoBroker.common.custom && !existingDpInIoBroker.common.custom.hasOwnProperty(`${adapter.name}.${adapter.instance}`))) {
+                                                if (!existingDpInIoBroker.common.custom || (existingDpInIoBroker.common.custom && !existingDpInIoBroker.common.custom[`${adapter.name}.${adapter.instance}`])) {
                                                     sumDeadEntries++;
-                                                    deadEntriesList.push(`${datapoint.id}:${datapoint.name}`);
+                                                    deadEntriesList.push({ id: datapoint.id, name: datapoint.name, existInIoBroker: true });
                                                 }
                                             }
                                         } catch (ex) {
