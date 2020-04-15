@@ -2192,7 +2192,7 @@ function prepareStatistic() {
             // 30s after startup, delay for connection to db
             setTimeout(function () {
                 updateStatistic()
-            }, 3000);
+            }, 30000);
         }
     } catch (err) {
         adapter.log.error(`[updateStatistic] error: ${err.message}, stack: ${err.stack}`);
