@@ -150,7 +150,7 @@
         "changesMinDelta": 0,
         "writeNulls": true,
         "createStatistic": false,
-        "statisticRefreshInterval": 24
+        "statisticRefreshInterval": 6
     },
     "instanceObjects": [
         {

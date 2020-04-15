@@ -2188,13 +2188,18 @@ function prepareStatistic() {
             // if configured refresh statistic periodically
 
             schedule.scheduleJob('0 */' + adapter.config.statisticRefreshInterval + ' * * *', refreshStatistic);
+
+            // 30s after startup, delay for connection to db
+            setTimeout(function () {
+                refreshStatistic()
+            }, 30000);
         }
     } catch (err) {
         adapter.log.error(`[refreshStatistic] error: ${err.message}, stack: ${err.stack}`);
     }
 }
 
-function createStatisticObjectNumber(id, name, unit){
+function createStatisticObjectNumber(id, name, unit) {
     adapter.setObjectNotExists(id, {
         type: 'state',
         common: {
@@ -2206,12 +2211,12 @@ function createStatisticObjectNumber(id, name, unit){
             write: false
         },
         native: {}
-    }, function(err, obj) {
-        if (!err && obj) adapter.log.debug('statistic object '+ id +' created');
+    }, function (err, obj) {
+        if (!err && obj) adapter.log.debug('statistic object ' + id + ' created');
     });
 }
 
-function createStatisticObjectString(id, name){
+function createStatisticObjectString(id, name) {
     adapter.setObjectNotExists(id, {
         type: 'state',
         common: {
@@ -2222,8 +2227,8 @@ function createStatisticObjectString(id, name){
             write: false
         },
         native: {}
-    }, function(err, obj) {
-        if (!err && obj) adapter.log.debug('statistic object '+ id +' created');
+    }, function (err, obj) {
+        if (!err && obj) adapter.log.debug('statistic object ' + id + ' created');
     });
 }
 
@@ -2232,8 +2237,6 @@ async function refreshStatistic() {
         adapter.log.info(`refresh statistics for '${adapter.config.dbtype}', database '${adapter.config.dbname}'`);
         let refreshStart = new Date().getTime();
         let idPrefix = `statistic.databases`
-
-        adapter.log.info(`${adapter.name}.${adapter.instance}`);
 
         if (connected) {
             let sumAllEntries = 0;
