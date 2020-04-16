@@ -355,7 +355,8 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ## Changelog
 
 ## 1.10.1 (2020-04-12)
-* (bluefox) Convert to ES6
+* (bluefox) Converted to ES6
+* (bluefox) The counter functionality was implemented.
 
 ## 1.9.5 (2019-05-15)
 * (Apollon77) Add support for nodejs 12

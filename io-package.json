@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.10.0",
+        "version": "1.10.1",
         "news": {
+            "1.10.1": {
+                "en": "Converted to ES6\nThe counter functionality was implemented.",
+                "de": "Auf ES6 umgestellt\nDie Zählerfunktionalität wurde implementiert.",
+                "ru": "Преобразован в ES6\nФункциональность счетчика была реализована.",
+                "pt": "Convertido para ES6\nA funcionalidade do contador foi implementada.",
+                "nl": "Omgerekend naar ES6\nDe tellerfunctionaliteit is geïmplementeerd.",
+                "fr": "Converti en ES6\nLa fonctionnalité de compteur a été implémentée.",
+                "it": "Convertito in ES6\nLa funzionalità contatore è stata implementata.",
+                "es": "Convertido a ES6\nSe implementó la funcionalidad del contador.",
+                "pl": "Konwersja do ES6\nWdrożono funkcjonalność licznika.",
+                "zh-cn": "转换为ES6\n计数器功能已实现。"
+            },
             "1.9.5": {
                 "en": "Support for nodejs 12 added",
                 "de": "Unterstützung für NodeJS 12 hinzugefügt",
@@ -129,6 +141,11 @@
             "width ":       435,
             "minHeight":    200,
             "height":       540
+        },
+        "plugins": {
+            "sentry": {
+                "dsn": "https://c30462d3e0834993b0aa29824346701e@sentry.iobroker.net/45"
+            }
         }
     },
     "native": {
