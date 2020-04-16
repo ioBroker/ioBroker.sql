@@ -2192,7 +2192,7 @@ function prepareStatistic() {
             // 30s after startup, delay for connection to db
             setTimeout(function () {
                 updateStatistic()
-            }, 30000);
+            }, 1000);
         }
     } catch (err) {
         adapter.log.error(`[updateStatistic] error: ${err.message}, stack: ${err.stack}`);
@@ -2243,33 +2243,14 @@ async function updateStatistic() {
             let sumAllEntries = 0;
             let sumAllDeadEntries = 0;
 
-            // ioBroker Database size
-            let databaseSizeId = `${idPrefix}.databases.${adapter.config.dbname}.size`;
-            await createStatisticObjectNumber(databaseSizeId, "size of database", 'MB');
-
             let databaseEntriesId = `${idPrefix}.databases.${adapter.config.dbname}.dataSets`;
             await createStatisticObjectNumber(databaseEntriesId, "number of all data sets in the database", '');
 
             let databaseDeadEntriesId = `${idPrefix}.databases.${adapter.config.dbname}.brokenDataSets`;
             await createStatisticObjectNumber(databaseDeadEntriesId, "number of all broken data sets in the database", '');
 
-            let databaseSizeQuery = '';
-            if (adapter.config.dbtype !== 'sqlite') {
-                databaseSizeQuery = SQLFuncs.getDatabaseSize(adapter.config.dbname);
-                adapter.log.debug(`[updateStatistic] database size query: '${databaseSizeQuery}'`);
-            } else {
-                adapter.log.info('statistic for sqlite database not implemented!');
-            }
-
-            if (databaseSizeQuery) {
-                let queryResultDbSize = await getQueryResult(databaseSizeQuery);
-                adapter.log.debug(`[updateStatistic] database size query result: '${Object.keys(queryResultDbSize).length}'`);
-
-                if (queryResultDbSize && Object.keys(queryResultDbSize).length === 1) {
-                    let databaseSize = Math.round(queryResultDbSize[0].size * 100) / 100;
-                    adapter.setState(databaseSizeId, databaseSize, true);
-                }
-            }
+            // ioBroker Database size
+            await createDatabaseSizeStatistic(idPrefix, adapter.config.dbname);
 
             // Table sizes & entries
             let tableSizeQuery = '';
@@ -2327,22 +2308,18 @@ async function updateStatistic() {
 
                                 if (dpResult && Object.keys(dpResult).length > 0) {
                                     for (const datapoint of dpResult) {
-                                        try {
-                                            sumEntries++;
+                                        sumEntries++;
 
-                                            // check if iobroker object for datapoint name exist
-                                            let existingDpInIoBroker = await adapter.getForeignObjectAsync(datapoint.name);
-                                            if (!existingDpInIoBroker) {
+                                        // check if iobroker object for datapoint name exist
+                                        let existingDpInIoBroker = await adapter.getForeignObjectAsync(datapoint.name);
+                                        if (!existingDpInIoBroker) {
+                                            sumDeadEntries++;
+                                            deadEntriesList.push({ id: datapoint.id, name: datapoint.name, existInIoBroker: false });
+                                        } else if (existingDpInIoBroker && existingDpInIoBroker.common) {
+                                            if (!existingDpInIoBroker.common.custom || (existingDpInIoBroker.common.custom && !existingDpInIoBroker.common.custom[`${adapter.name}.${adapter.instance}`])) {
                                                 sumDeadEntries++;
-                                                deadEntriesList.push({ id: datapoint.id, name: datapoint.name, existInIoBroker: false });
-                                            } else if (existingDpInIoBroker && existingDpInIoBroker.common) {
-                                                if (!existingDpInIoBroker.common.custom || (existingDpInIoBroker.common.custom && !existingDpInIoBroker.common.custom[`${adapter.name}.${adapter.instance}`])) {
-                                                    sumDeadEntries++;
-                                                    deadEntriesList.push({ id: datapoint.id, name: datapoint.name, existInIoBroker: true });
-                                                }
+                                                deadEntriesList.push({ id: datapoint.id, name: datapoint.name, existInIoBroker: true });
                                             }
-                                        } catch (ex) {
-                                            adapter.log.error(`[updateStatistic] error: ${ex.message}, stack: ${ex.stack}`);
                                         }
                                     }
                                 }
@@ -2404,6 +2381,40 @@ async function updateStatistic() {
         }
     } catch (err) {
         adapter.log.error(`[updateStatistic] error: ${err.message}, stack: ${err.stack}`);
+    }
+}
+
+async function createDatabaseSizeStatistic(idPrefix, dbname) {
+    try {
+        let databaseSizeId = `${idPrefix}.databases.${dbname}.size`;
+        await createStatisticObjectNumber(databaseSizeId, "size of database", 'MB');
+
+        let databaseSizeQuery = '';
+        if (adapter.config.dbtype !== 'sqlite') {
+            databaseSizeQuery = SQLFuncs.getDatabaseSize(dbname);
+            adapter.log.debug(`[createDatabaseSizeStatistic] database size query: '${databaseSizeQuery}'`);
+        } else {
+            adapter.log.info('statistic for sqlite database not implemented!');
+        }
+
+        if (databaseSizeQuery) {
+            let queryResultDbSize = await getQueryResult(databaseSizeQuery);
+
+            if (queryResultDbSize) {
+                adapter.log.debug(`[createDatabaseSizeStatistic] database size query result: '${Object.keys(queryResultDbSize).length}'`);
+
+                if (Object.keys(queryResultDbSize).length === 1) {
+                    let databaseSize = Math.round(queryResultDbSize[0].size * 100) / 100;
+                    adapter.setState(databaseSizeId, databaseSize, true);
+                } else {
+                    adapter.log.warn(`[createDatabaseSizeStatistic] lenght of query result for database '${dbname}' = 0`);
+                }
+            } else {
+                adapter.log.error(`[createDatabaseSizeStatistic] query result for database '${dbname}' is undefined! Query: '${databaseSizeQuery}'`);
+            }
+        }
+    } catch (err) {
+        adapter.log.error(`[createDatabaseSizeStatistic] error: ${err.message}, stack: ${err.stack}`);
     }
 }
 
