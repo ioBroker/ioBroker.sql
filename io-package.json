@@ -24,7 +24,7 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.11",
+        "version": "1.11.0",
         "news": {
             "1.10.1": {
                 "en": "Converted to ES6\nThe counter functionality was implemented.",
