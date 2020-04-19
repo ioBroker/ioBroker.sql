@@ -49,8 +49,52 @@ let connected       = null;
 let multiRequests   = true;
 let subscribeAll    = false;
 let clientPool;
-let adapter;
 
+function isEqual(a, b) {
+    //console.log('Compare ' + JSON.stringify(a) + ' with ' +  JSON.stringify(b));
+    // Create arrays of property names
+    if (a === null || a === undefined || b === null || b === undefined) {
+        return (a === b);
+    }
+
+    const aProps = Object.getOwnPropertyNames(a);
+    const bProps = Object.getOwnPropertyNames(b);
+
+    // If number of properties is different,
+    // objects are not equivalent
+    if (aProps.length !== bProps.length) {
+        //console.log('num props different: ' + JSON.stringify(aProps) + ' / ' + JSON.stringify(bProps));
+        return false;
+    }
+
+    for (var i = 0; i < aProps.length; i++) {
+        const propName = aProps[i];
+
+        if (typeof a[propName] !== typeof b[propName]) {
+            //console.log('type props ' + propName + ' different');
+            return false;
+        }
+        if (typeof a[propName] === 'object') {
+            if (!isEqual(a[propName], b[propName])) {
+                return false;
+            }
+        }
+        else {
+            // If values of same property are not equal,
+            // objects are not equivalent
+            if (a[propName] !== b[propName]) {
+                //console.log('props ' + propName + ' different');
+                return false;
+            }
+        }
+    }
+
+    // If we made it this far, objects
+    // are considered equivalent
+    return true;
+}
+
+let adapter;
 function startAdapter(options) {
     options = options || {};
 
@@ -63,6 +107,12 @@ function startAdapter(options) {
         const now = Date.now();
         const formerAliasId = aliasMap[id] ? aliasMap[id] : id;
         if (obj && obj.common && obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled) {
+
+            if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId][adapter.namespace] && isEqual(obj.common.custom[adapter.namespace], sqlDPs[formerAliasId][adapter.namespace])) {
+                adapter.log.debug('Object ' + id + ' unchanged. Ignore');
+                return;
+            }
+
             const realId = id;
             let checkForRemove = true;
             if (obj.common.custom && obj.common.custom[adapter.namespace] && obj.common.custom[adapter.namespace].aliasId) {
@@ -797,7 +847,7 @@ function processStartValues(callback) {
                     pushHistory(task.id, state);
                 }
 
-                setTimeout(processStartValues, 0);
+                setImmediate(processStartValues);
             });
         }
         else {
@@ -810,7 +860,7 @@ function processStartValues(callback) {
                 from: 'system.adapter.' + adapter.namespace
             });
 
-            setTimeout(processStartValues, 0);
+            setImmediate(processStartValues);
         }
         if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
             sqlDPs[task.id].relogTimeout && clearTimeout(sqlDPs[task.id].relogTimeout);
@@ -849,6 +899,11 @@ function pushHistory(id, state, timerRelog) {
         const settings = sqlDPs[id][adapter.namespace];
 
         if (!settings || !state) {
+            return;
+        }
+
+        if (state && state.val === undefined) {
+            adapter.log.warn(`state value undefined received for ${id} which is not allowed. Ignoring.`);
             return;
         }
 
@@ -2070,7 +2125,7 @@ function main() {
         connect(() => {
             fixSelector(() => {
                 // read all custom settings
-                adapter.objects.getObjectView('custom', 'state', {}, (err, doc) => {
+                adapter.getObjectView('custom', 'state', {}, (err, doc) => {
                     let count = 0;
                     if (doc && doc.rows) {
                         for (let i = 0, l = doc.rows.length; i < l; i++) {

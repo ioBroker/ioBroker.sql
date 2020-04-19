@@ -12,6 +12,8 @@ This adapter saves state history into SQL DB.
 Supports PostgreSQL, mysql, Microsoft SQL Server and sqlite.
 You can leave port 0 if default port is desired.
 
+**This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.** For more details and for information how to disable the error reporting see [Sentry-Plugin Documentation](https://github.com/ioBroker/plugin-sentry#plugin-sentry)! Sentry reporting is used starting with js-controller 3.0.
+
 ### MS-SQL:
 Use ```localhost\instance``` for the host and check TCP/IP connections enabled.
 https://msdn.microsoft.com/en-us/library/bb909712(v=vs.90).aspx
@@ -353,6 +355,13 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 - **Storage retention**: How long the values will be stored in the DB.
 
 ## Changelog
+
+## 1.11.0 (2020-04-19)
+* __Requires js-controller >= 2.0.0__
+* (Apollon77) removed usage of adapter.objects
+* (Apollon77) check if objects have changed and ignore unchanged
+* (Apollon77) Add Sentry for Error Reporting with js-controller 3.0
+* (Apollon77) Make sure value undefined is ignored
 
 ## 1.10.1 (2020-04-12)
 * (bluefox) Converted to ES6
