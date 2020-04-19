@@ -962,6 +962,7 @@ function pushHistory(id, state, timerRelog) {
         let ignoreDebonce = false;
         if (timerRelog) {
             state.ts = Date.now();
+            state.from = 'system.adapter.' + adapter.namespace;
             adapter.log.debug(`timed-relog ${id}, value=${state.val}, lastLogTime=${sqlDPs[id].lastLogTime}, ts=${state.ts}`);
             ignoreDebonce = true;
         } else {
