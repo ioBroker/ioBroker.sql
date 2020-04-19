@@ -18,10 +18,10 @@ const clients = {
 };
 
 const types   = {
-    'number':  0,
-    'string':  1,
-    'boolean': 2,
-    'object':  1
+    number:  0,
+    string:  1,
+    boolean: 2,
+    object:  1
 };
 
 const dbNames = [
@@ -863,7 +863,7 @@ function pushHistory(id, state, timerRelog) {
         }
 
         if (settings.counter && sqlDPs[id].state) {
-            if (sqlDPs[id].type !== 'number') {
+            if (sqlDPs[id].type !== types.number) {
                 adapter.log.error('Counter cannot have type not "number"!');
             }
             // if actual value is less then last seen counter
@@ -1147,7 +1147,9 @@ function _insertValueIntoDB(query, id, cb) {
             cb && cb();
         } else {
             client.execute(query, (err /* , rows, fields */) => {
-                err && adapter.log.error('Cannot insert ' + query + ': ' + err);
+                if (err) {
+                    adapter.log.error('Cannot insert ' + query + ': ' + err);
+                }
                 clientPool.return(client);
                 checkRetention(id);
                 cb && cb();
@@ -1635,7 +1637,7 @@ function getDataFromDB(db, options, callback) {
     }
 }
 
-function getCounterDataFromDB(db, options, callback) {
+function getCounterDataFromDB(options, callback) {
     const query = SQLFuncs.getCounterDiff(adapter.config.dbname, options);
 
     adapter.log.debug(query);
@@ -1660,7 +1662,6 @@ function getCounterDiff(msg) {
     const start = msg.message.options.start || 0;
     const end   = msg.message.options.end   || (Date.now() + 5000000);
 
-    const options = {id, start, end};
 
     if (!sqlDPs[id]) {
         adapter.sendTo(msg.from, msg.command, {result: [], step: null, error: 'Not enabled'}, msg.callback);
@@ -1668,7 +1669,8 @@ function getCounterDiff(msg) {
         if (!SQLFuncs.getCounterDiff) {
             adapter.sendTo(msg.from, msg.command, {result: [], step: null, error: 'Counter option is not enabled for this type of SQL'}, msg.callback);
         } else {
-            getCounterDataFromDB(db, options, (err, data) =>
+            const options = {id: sqlDPs[id].index, start, end, index: id};
+            getCounterDataFromDB(options, (err, data) =>
                 commons.sendResponseCounter(adapter, msg, options, (err ? err.toString() : null) || data, startTime));
         }
     }
@@ -1776,27 +1778,48 @@ function getHistory(msg) {
 }
 
 function storeState(msg) {
-    if (!msg.message || !msg.message.id || !msg.message.state) {
+    if (!msg.message) {
         adapter.log.error('storeState called with invalid data');
         return adapter.sendTo(msg.from, msg.command, {
             error:  'Invalid call: ' + JSON.stringify(msg)
         }, msg.callback);
     }
 
+    let pushFunc = pushValueIntoDB;
+    if (msg.message.rules) {
+        pushFunc = pushHistory;
+    }
+
     let id;
     if (Array.isArray(msg.message)) {
+        adapter.log.debug('storeState ' + msg.message.length + ' items');
         for (let i = 0; i < msg.message.length; i++) {
             id = aliasMap[msg.message[i].id] ? aliasMap[msg.message[i].id] : msg.message[i].id;
-            pushValueIntoDB(id, msg.message[i].state);
+            if (msg.message[i].state && typeof msg.message[i].state === 'object') {
+                pushFunc(id, msg.message[i].state);
+            } else {
+                adapter.log.warn('Invalid state for ' + JSON.stringify(msg.message[i]));
+            }
         }
-    } else if (Array.isArray(msg.message.state)) {
-        for (let j = 0; j < msg.message.state.length; j++) {
-            id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
-            pushValueIntoDB(id, msg.message.state[j]);
-        }
-    } else {
+    } else if (msg.message.state && Array.isArray(msg.message.state)) {
+        adapter.log.debug('storeState ' + msg.message.state.length + ' items');
         id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
-        pushValueIntoDB(id, msg.message.state);
+        for (let j = 0; j < msg.message.state.length; j++) {
+            if (msg.message.state[j] && typeof msg.message.state[j] === 'object') {
+                pushFunc(id, msg.message.state[j]);
+            } else {
+                adapter.log.warn('Invalid state for ' + JSON.stringify(msg.message.state[j]));
+            }
+        }
+    } else if (msg.message.id && msg.message.state && typeof msg.message.state === 'object') {
+        adapter.log.debug('storeState 1 item');
+        id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
+        pushFunc(id, msg.message.state);
+    } else {
+        adapter.log.error('storeState called with invalid data');
+        return adapter.sendTo(msg.from, msg.command, {
+            error:  'Invalid call: ' + JSON.stringify(msg)
+        }, msg.callback);
     }
 
     adapter.sendTo(msg.from, msg.command, {

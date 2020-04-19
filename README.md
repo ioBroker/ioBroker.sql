@@ -223,15 +223,17 @@ sendTo('sql.0', 'query', 'SELECT id FROM datapoints WHERE name="system.adapter.a
 ```
 
 ## storeState
-If you want to write other data into the InfluxDB you can use the build in system function **storeState**.
+If you want to write other data into the InfluxDB/SQL you can use the build in system function **storeState**.
 This function can also be used to convert data from other History adapters like History or SQL.
 
 The given IDs are not checked against the ioBroker database and do not need to be set up there, but can only be accessed directly.
 
 The Message can have one of the following three formats:
-* one ID and one state object
-* one ID and array of state objects
-* array of multiple IDs with state objects
+* one ID and one state object: `{id: 'adapter.0.device.counter', state: {val: 1, ts: 10239499}}`
+* one ID and array of state objects: `{id: 'adapter.0.device.counter', state: [{val: 1, ts: 10239499}, {val: 2, ts: 10239599}, {val: 3, ts: 10239699}]}`
+* array of multiple IDs with state objects `[{id: 'adapter.0.device.counter1', state: {val: 1, ts: 10239499}, {id: 'adapter.0.device.counter2', state: {val: 2, ts: 10239599}]`
+
+Additionally, you can add attribute `rules: true` to activate all rules, like `counter`, `changesOnly`, `de-bounce` and so on: `{id: 'adapter.0.device.counter', rules: true, state: [{val: 1, ts: 10239499}, {val: 2, ts: 10239599}, {val: 3, ts: 10239699}]}` 
 
 ## Get history
 Additional to custom queries, you can use build in system function **getHistory**:
@@ -260,7 +262,7 @@ var now = Date.now();
 sendTo('sql.0', 'getCounter', {
     id: 'system.adapter.admin.0.memRss',
     options: {
-        start:      end - 3600000 * 24 * 30,
+        start:      now - 3600000 * 24 * 30,
         end:        now,
     }
 }, result => {
@@ -284,7 +286,7 @@ sendTo('sql.0', 'enableHistory', {
         retention:    31536000,
         maxLength:    3,
         changesMinDelta: 0.5,
-        aliasId: ""
+        aliasId: ''
     }
 }, function (result) {
     if (result.error) {
