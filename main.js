@@ -108,11 +108,6 @@ function startAdapter(options) {
         const formerAliasId = aliasMap[id] ? aliasMap[id] : id;
         if (obj && obj.common && obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled) {
 
-            if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId][adapter.namespace] && isEqual(obj.common.custom[adapter.namespace], sqlDPs[formerAliasId][adapter.namespace])) {
-                adapter.log.debug('Object ' + id + ' unchanged. Ignore');
-                return;
-            }
-
             const realId = id;
             let checkForRemove = true;
             if (obj.common.custom && obj.common.custom[adapter.namespace] && obj.common.custom[adapter.namespace].aliasId) {
@@ -142,10 +137,6 @@ function startAdapter(options) {
                 subscribeAll = true;
                 adapter.subscribeForeignStates('*');
             }
-            const writeNull = !(sqlDPs[id] && sqlDPs[id][adapter.namespace]);
-            if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].relogTimeout) {
-                clearTimeout(sqlDPs[formerAliasId].relogTimeout);
-            }
 
             let storedIndex = null;
             let storedType = null;
@@ -159,18 +150,10 @@ function startAdapter(options) {
                 storedType = sqlDPs[formerAliasId].dbtype;
             }
 
-            sqlDPs[id] = obj.common.custom;
-            if (storedIndex !== null) {
-                sqlDPs[id].index = storedIndex;
-            }
-            if (storedType !== null) {
-                sqlDPs[id].dbtype = storedType;
-            }
-
-            if (sqlDPs[id].index === undefined) {
-                getId(id, sqlDPs[id].dbtype, () => reInit(id, writeNull, realId));
+            if (storedIndex === undefined) {
+                getId(id, sqlDPs[id].dbtype, () => reInit(id, realId, formerAliasId, storedIndex, storedType, obj));
             } else {
-                reInit(id, writeNull, realId);
+                reInit(id, realId, formerAliasId, storedIndex, storedType, obj);
             }
         } else {
             if (aliasMap[id]) {
@@ -234,49 +217,61 @@ function startAdapter(options) {
     return adapter;
 }
 
-function reInit(id, writeNull, realId) {
-    adapter.log.debug(`remembered Index/Type ${sqlDPs[id].index} / ${sqlDPs[id].dbtype}`);
+function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
+    adapter.log.debug(`remembered Index/Type ${storedIndex} / ${storedType}`);
+
+    if (obj.common.custom[adapter.namespace].retention || obj.common.custom[adapter.namespace].retention === 0) {
+        obj.common.custom[adapter.namespace].retention = parseInt(obj.common.custom[adapter.namespace].retention, 10) || 0;
+    } else {
+        obj.common.custom[adapter.namespace].retention = adapter.config.retention;
+    }
+
+    if (obj.common.custom[adapter.namespace].debounce || obj.common.custom[adapter.namespace].debounce === 0) {
+        obj.common.custom[adapter.namespace].debounce = parseInt(obj.common.custom[adapter.namespace].debounce, 10) || 0;
+    } else {
+        obj.common.custom[adapter.namespace].debounce = adapter.config.debounce;
+    }
+
+    obj.common.custom[adapter.namespace].changesOnly = obj.common.custom[adapter.namespace].changesOnly === 'true' || obj.common.custom[adapter.namespace].changesOnly === true;
+
+    if (obj.common.custom[adapter.namespace].changesRelogInterval || obj.common.custom[adapter.namespace].changesRelogInterval === 0) {
+        obj.common.custom[adapter.namespace].changesRelogInterval = parseInt(obj.common.custom[adapter.namespace].changesRelogInterval, 10) || 0;
+    } else {
+        obj.common.custom[adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
+    }
+
+    if (obj.common.custom[adapter.namespace].changesMinDelta || obj.common.custom[adapter.namespace].changesMinDelta === 0) {
+        obj.common.custom[adapter.namespace].changesMinDelta = parseFloat(obj.common.custom[adapter.namespace].changesMinDelta.toString().replace(/,/g, '.')) || 0;
+    } else {
+        obj.common.custom[adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
+    }
+
+    if (!obj.common.custom[adapter.namespace].storageType) {
+        obj.common.custom[adapter.namespace].storageType = false;
+    }
+
+    // add one day if retention is too small
+    if (obj.common.custom[adapter.namespace].retention && obj.common.custom[adapter.namespace].retention <= 604800) {
+        obj.common.custom[adapter.namespace].retention += 86400;
+    }
+
+    if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId][adapter.namespace] && isEqual(obj.common.custom[adapter.namespace], sqlDPs[formerAliasId][adapter.namespace])) {
+        adapter.log.debug('Object ' + id + ' unchanged. Ignore');
+        return;
+    }
+
+    if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].relogTimeout) {
+        clearTimeout(sqlDPs[formerAliasId].relogTimeout);
+    }
+
+    sqlDPs[id] = obj.common.custom;
     sqlDPs[id].realId  = realId;
-
-    if (sqlDPs[id][adapter.namespace].retention || sqlDPs[id][adapter.namespace].retention === 0) {
-        sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
-    } else {
-        sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
-    }
-
-    if (sqlDPs[id][adapter.namespace].debounce || sqlDPs[id][adapter.namespace].debounce === 0) {
-        sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
-    } else {
-        sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
-    }
-
-    sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
-
-    if (sqlDPs[id][adapter.namespace].changesRelogInterval || sqlDPs[id][adapter.namespace].changesRelogInterval === 0) {
-        sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
-    } else {
-        sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
-    }
 
     if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
         sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
     }
 
-    if (sqlDPs[id][adapter.namespace].changesMinDelta || sqlDPs[id][adapter.namespace].changesMinDelta === 0) {
-        sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta.toString().replace(/,/g, '.')) || 0;
-    } else {
-        sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
-    }
-
-    if (!sqlDPs[id][adapter.namespace].storageType) {
-        sqlDPs[id][adapter.namespace].storageType = false;
-    }
-
-    // add one day if retention is too small
-    if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
-        sqlDPs[id][adapter.namespace].retention += 86400;
-    }
-
+    const writeNull = !(sqlDPs[id] && sqlDPs[id][adapter.namespace]);
     if (writeNull && adapter.config.writeNulls) {
         writeNulls(id);
     }
