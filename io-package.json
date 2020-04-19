@@ -24,7 +24,7 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.10.1",
+        "version": "1.11.0",
         "news": {
             "1.10.1": {
                 "en": "Converted to ES6\nThe counter functionality was implemented.",
@@ -112,35 +112,48 @@
                 "ru": "fix relog value feature"
             }
         },
-        "mode":                     "daemon",
-        "platform":                 "Javascript/Node.js",
-        "loglevel":                 "info",
-        "messagebox":               true,
-        "subscribe":                "messagebox",
-        "keywords":                 ["charts", "sql", "logging", "graphs", "archive"],
-        "preserveSettings":         "custom",
-        "supportCustoms":           true,
-        "getHistory":           	true,
-        "enabled":                  true,
-        "stopBeforeUpdate":         true,
-        "materialize":              true,
-        "compact":                  true,
+        "mode": "daemon",
+        "platform": "Javascript/Node.js",
+        "loglevel": "info",
+        "messagebox": true,
+        "subscribe": "messagebox",
+        "keywords": [
+            "charts",
+            "sql",
+            "logging",
+            "graphs",
+            "archive"
+        ],
+        "preserveSettings": "custom",
+        "supportCustoms": true,
+        "getHistory": true,
+        "enabled": true,
+        "stopBeforeUpdate": true,
+        "materialize": true,
+        "compact": true,
         "authors": [
             "bluefox <dogafox@gmail.com>",
             "Apollon77 <ingo@fischer-ka.de>"
         ],
-        "license":                  "MIT",
-        "readme":                   "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
-        "icon":                     "sql.png",
-        "extIcon":                  "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
-        "type":                     "storage",
-        "dependencies":             [{"js-controller": ">=0.12.0","admin": ">=1.6.10"}],
-        "supportStopInstance":      2000,
-        "config":{
-            "minWidth":     570,
-            "width ":       435,
-            "minHeight":    200,
-            "height":       540
+        "license": "MIT",
+        "readme": "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
+        "icon": "sql.png",
+        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
+        "type": "storage",
+        "dependencies": [
+            {
+                "js-controller": ">=2.0.0"
+            },
+            {
+                "admin": ">=1.6.10"
+            }
+        ],
+        "supportStopInstance": 2000,
+        "config": {
+            "minWidth": 570,
+            "width ": 435,
+            "minHeight": 200,
+            "height": 540
         },
         "plugins": {
             "sentry": {
@@ -149,27 +162,27 @@
         }
     },
     "native": {
-        "connLink":  "",
-        "debounce":  1000,
+        "connLink": "",
+        "debounce": 1000,
         "retention": 31536000,
-        "host":      "localhost",
-        "port":      0,
-        "user":      "",
-        "password":  "",
-        "dbtype":    "sqlite",
-        "fileName":  "sqlite.db",
+        "host": "localhost",
+        "port": 0,
+        "user": "",
+        "password": "",
+        "dbtype": "sqlite",
+        "fileName": "sqlite.db",
         "requestInterval": 0,
-        "encrypt":   false,
-        "round":     4,
-        "dbname":    "iobroker",
+        "encrypt": false,
+        "round": 4,
+        "dbname": "iobroker",
         "multiRequests": true,
-        "changesRelogInterval":      0,
+        "changesRelogInterval": 0,
         "changesMinDelta": 0,
         "writeNulls": true
     },
     "instanceObjects": [
         {
-            "_id":  "info",
+            "_id": "info",
             "type": "channel",
             "common": {
                 "name": "Information"
@@ -177,15 +190,15 @@
             "native": {}
         },
         {
-            "_id":  "info.connection",
+            "_id": "info.connection",
             "type": "state",
             "common": {
-                "role":  "indicator.connected",
-                "name":  "If connected to DB",
-                "type":  "boolean",
-                "read":  true,
+                "role": "indicator.connected",
+                "name": "If connected to DB",
+                "type": "boolean",
+                "read": true,
                 "write": false,
-                "def":   false
+                "def": false
             },
             "native": {}
         }

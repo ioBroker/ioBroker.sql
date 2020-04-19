@@ -49,8 +49,52 @@ let connected       = null;
 let multiRequests   = true;
 let subscribeAll    = false;
 let clientPool;
-let adapter;
 
+function isEqual(a, b) {
+    //console.log('Compare ' + JSON.stringify(a) + ' with ' +  JSON.stringify(b));
+    // Create arrays of property names
+    if (a === null || a === undefined || b === null || b === undefined) {
+        return (a === b);
+    }
+
+    const aProps = Object.getOwnPropertyNames(a);
+    const bProps = Object.getOwnPropertyNames(b);
+
+    // If number of properties is different,
+    // objects are not equivalent
+    if (aProps.length !== bProps.length) {
+        //console.log('num props different: ' + JSON.stringify(aProps) + ' / ' + JSON.stringify(bProps));
+        return false;
+    }
+
+    for (var i = 0; i < aProps.length; i++) {
+        const propName = aProps[i];
+
+        if (typeof a[propName] !== typeof b[propName]) {
+            //console.log('type props ' + propName + ' different');
+            return false;
+        }
+        if (typeof a[propName] === 'object') {
+            if (!isEqual(a[propName], b[propName])) {
+                return false;
+            }
+        }
+        else {
+            // If values of same property are not equal,
+            // objects are not equivalent
+            if (a[propName] !== b[propName]) {
+                //console.log('props ' + propName + ' different');
+                return false;
+            }
+        }
+    }
+
+    // If we made it this far, objects
+    // are considered equivalent
+    return true;
+}
+
+let adapter;
 function startAdapter(options) {
     options = options || {};
 
@@ -63,6 +107,7 @@ function startAdapter(options) {
         const now = Date.now();
         const formerAliasId = aliasMap[id] ? aliasMap[id] : id;
         if (obj && obj.common && obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled) {
+
             const realId = id;
             let checkForRemove = true;
             if (obj.common.custom && obj.common.custom[adapter.namespace] && obj.common.custom[adapter.namespace].aliasId) {
@@ -92,10 +137,6 @@ function startAdapter(options) {
                 subscribeAll = true;
                 adapter.subscribeForeignStates('*');
             }
-            const writeNull = !(sqlDPs[id] && sqlDPs[id][adapter.namespace]);
-            if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].relogTimeout) {
-                clearTimeout(sqlDPs[formerAliasId].relogTimeout);
-            }
 
             let storedIndex = null;
             let storedType = null;
@@ -109,18 +150,10 @@ function startAdapter(options) {
                 storedType = sqlDPs[formerAliasId].dbtype;
             }
 
-            sqlDPs[id] = obj.common.custom;
-            if (storedIndex !== null) {
-                sqlDPs[id].index = storedIndex;
-            }
-            if (storedType !== null) {
-                sqlDPs[id].dbtype = storedType;
-            }
-
-            if (sqlDPs[id].index === undefined) {
-                getId(id, sqlDPs[id].dbtype, () => reInit(id, writeNull, realId));
+            if (storedIndex === undefined) {
+                getId(id, sqlDPs[id].dbtype, () => reInit(id, realId, formerAliasId, storedIndex, storedType, obj));
             } else {
-                reInit(id, writeNull, realId);
+                reInit(id, realId, formerAliasId, storedIndex, storedType, obj);
             }
         } else {
             if (aliasMap[id]) {
@@ -184,49 +217,61 @@ function startAdapter(options) {
     return adapter;
 }
 
-function reInit(id, writeNull, realId) {
-    adapter.log.debug(`remembered Index/Type ${sqlDPs[id].index} / ${sqlDPs[id].dbtype}`);
+function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
+    adapter.log.debug(`remembered Index/Type ${storedIndex} / ${storedType}`);
+
+    if (obj.common.custom[adapter.namespace].retention || obj.common.custom[adapter.namespace].retention === 0) {
+        obj.common.custom[adapter.namespace].retention = parseInt(obj.common.custom[adapter.namespace].retention, 10) || 0;
+    } else {
+        obj.common.custom[adapter.namespace].retention = adapter.config.retention;
+    }
+
+    if (obj.common.custom[adapter.namespace].debounce || obj.common.custom[adapter.namespace].debounce === 0) {
+        obj.common.custom[adapter.namespace].debounce = parseInt(obj.common.custom[adapter.namespace].debounce, 10) || 0;
+    } else {
+        obj.common.custom[adapter.namespace].debounce = adapter.config.debounce;
+    }
+
+    obj.common.custom[adapter.namespace].changesOnly = obj.common.custom[adapter.namespace].changesOnly === 'true' || obj.common.custom[adapter.namespace].changesOnly === true;
+
+    if (obj.common.custom[adapter.namespace].changesRelogInterval || obj.common.custom[adapter.namespace].changesRelogInterval === 0) {
+        obj.common.custom[adapter.namespace].changesRelogInterval = parseInt(obj.common.custom[adapter.namespace].changesRelogInterval, 10) || 0;
+    } else {
+        obj.common.custom[adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
+    }
+
+    if (obj.common.custom[adapter.namespace].changesMinDelta || obj.common.custom[adapter.namespace].changesMinDelta === 0) {
+        obj.common.custom[adapter.namespace].changesMinDelta = parseFloat(obj.common.custom[adapter.namespace].changesMinDelta.toString().replace(/,/g, '.')) || 0;
+    } else {
+        obj.common.custom[adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
+    }
+
+    if (!obj.common.custom[adapter.namespace].storageType) {
+        obj.common.custom[adapter.namespace].storageType = false;
+    }
+
+    // add one day if retention is too small
+    if (obj.common.custom[adapter.namespace].retention && obj.common.custom[adapter.namespace].retention <= 604800) {
+        obj.common.custom[adapter.namespace].retention += 86400;
+    }
+
+    if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId][adapter.namespace] && isEqual(obj.common.custom[adapter.namespace], sqlDPs[formerAliasId][adapter.namespace])) {
+        adapter.log.debug('Object ' + id + ' unchanged. Ignore');
+        return;
+    }
+
+    if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].relogTimeout) {
+        clearTimeout(sqlDPs[formerAliasId].relogTimeout);
+    }
+
+    sqlDPs[id] = obj.common.custom;
     sqlDPs[id].realId  = realId;
-
-    if (sqlDPs[id][adapter.namespace].retention || sqlDPs[id][adapter.namespace].retention === 0) {
-        sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
-    } else {
-        sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
-    }
-
-    if (sqlDPs[id][adapter.namespace].debounce || sqlDPs[id][adapter.namespace].debounce === 0) {
-        sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
-    } else {
-        sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
-    }
-
-    sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
-
-    if (sqlDPs[id][adapter.namespace].changesRelogInterval || sqlDPs[id][adapter.namespace].changesRelogInterval === 0) {
-        sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
-    } else {
-        sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
-    }
 
     if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
         sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
     }
 
-    if (sqlDPs[id][adapter.namespace].changesMinDelta || sqlDPs[id][adapter.namespace].changesMinDelta === 0) {
-        sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta.toString().replace(/,/g, '.')) || 0;
-    } else {
-        sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
-    }
-
-    if (!sqlDPs[id][adapter.namespace].storageType) {
-        sqlDPs[id][adapter.namespace].storageType = false;
-    }
-
-    // add one day if retention is too small
-    if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
-        sqlDPs[id][adapter.namespace].retention += 86400;
-    }
-
+    const writeNull = !(sqlDPs[id] && sqlDPs[id][adapter.namespace]);
     if (writeNull && adapter.config.writeNulls) {
         writeNulls(id);
     }
@@ -797,7 +842,7 @@ function processStartValues(callback) {
                     pushHistory(task.id, state);
                 }
 
-                setTimeout(processStartValues, 0);
+                setImmediate(processStartValues);
             });
         }
         else {
@@ -810,7 +855,7 @@ function processStartValues(callback) {
                 from: 'system.adapter.' + adapter.namespace
             });
 
-            setTimeout(processStartValues, 0);
+            setImmediate(processStartValues);
         }
         if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
             sqlDPs[task.id].relogTimeout && clearTimeout(sqlDPs[task.id].relogTimeout);
@@ -849,6 +894,11 @@ function pushHistory(id, state, timerRelog) {
         const settings = sqlDPs[id][adapter.namespace];
 
         if (!settings || !state) {
+            return;
+        }
+
+        if (state && state.val === undefined) {
+            adapter.log.warn(`state value undefined received for ${id} which is not allowed. Ignoring.`);
             return;
         }
 
@@ -2093,7 +2143,7 @@ function main() {
         connect(() => {
             fixSelector(() => {
                 // read all custom settings
-                adapter.objects.getObjectView('custom', 'state', {}, (err, doc) => {
+                adapter.getObjectView('custom', 'state', {}, (err, doc) => {
                     let count = 0;
                     if (doc && doc.rows) {
                         for (let i = 0, l = doc.rows.length; i < l; i++) {
