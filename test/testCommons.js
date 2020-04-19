@@ -1,7 +1,7 @@
 const expect = require('chai').expect;
 const commons = require('../lib/aggregate');
 
-describe.only('Test Common functions', function () {
+describe('Test Common functions', function () {
     const log = {
         info:  t => console.log(t),
         debug: t => console.log(t),
