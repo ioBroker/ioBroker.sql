@@ -1235,8 +1235,7 @@ function processReadTypes() {
                     sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
                     adapter.log.debug('Type (from Obj) for ' + task.id + ': ' + sqlDPs[task.id].type);
                     processVerifyTypes(task);
-                }
-                if (sqlDPs[task.id].type === undefined) {
+                } else if (sqlDPs[task.id].type === undefined) {
                     adapter.getForeignState(sqlDPs[task.id].realId, (err, state) => {
                         if (err) {
                             adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + obj.common.type.toLowerCase() + ' and no state)');
@@ -1550,7 +1549,7 @@ function getId(id, type, cb) {
                 }
             } else {
                 sqlDPs[id].index = rows[0].id;
-                sqlDPs[id].type  = rows[0].type;
+                sqlDPs[id].type  = rows[0].type !== null ? rows[0].type : type;
 
                 cb && cb(null, id);
                 clientPool.return(client);
