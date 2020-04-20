@@ -23,7 +23,6 @@ before_script:
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew services start mariadb; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sleep 5; fi'
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mariadb -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('mysql');"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mariadb -uroot -e "SET PASSWORD = PASSWORD('mysql')"; fi
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rm -rf /usr/local/var/postgres; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then initdb /usr/local/var/postgres; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pg_ctl -D /usr/local/var/postgres start; fi'
