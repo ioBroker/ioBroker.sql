@@ -18,12 +18,12 @@ before_script:
   - npm -v
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rm -rf /etc/my.cnf; fi'
-  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install mariadb@10.3; fi'
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install mariadb; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mkdir /usr/local/etc/my.cnf.d || true; fi'
-  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew services start mariadb@10.3; fi'
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew services start mariadb; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sleep 5; fi'
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('');"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mysql -uroot -e "SET PASSWORD = PASSWORD('')"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mariadb -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('mysql');"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mariadb -uroot -e "SET PASSWORD = PASSWORD('mysql')"; fi
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rm -rf /usr/local/var/postgres; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then initdb /usr/local/var/postgres; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pg_ctl -D /usr/local/var/postgres start; fi'

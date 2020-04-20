@@ -92,6 +92,8 @@ describe('Test MySQL Existing', function() {
             config.native.user     = 'root';
             if (process.env.APPVEYOR && process.env.APPVEYOR === 'True') {
                 config.native.password = 'Password12!';
+            } else if (process.env.TRAVIS_OS_NAME && process.env.TRAVIS_OS_NAME === 'osx'){
+                config.native.password = 'mysql';
             }
 
             setup.setAdapterConfig(config.common, config.native);
