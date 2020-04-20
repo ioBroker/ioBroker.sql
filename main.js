@@ -1549,10 +1549,28 @@ function getId(id, type, cb) {
                 }
             } else {
                 sqlDPs[id].index = rows[0].id;
-                sqlDPs[id].type  = rows[0].type !== null ? rows[0].type : type;
+                if (rows[0].type === null || typeof rows[0].type !== 'number') {
+                    sqlDPs[id].type = type;
 
-                cb && cb(null, id);
-                clientPool.return(client);
+                    const query = SQLFuncs.getIdUpdate(adapter.config.dbname, sqlDPs[task.id].index, sqlDPs[task.id].type);
+
+                    adapter.log.debug(query);
+
+                    client.execute(query, (err, rows /* , fields */) => {
+                        if (err) {
+                            adapter.log.error(`error updating history config for ${task.id} to pin datatype: ${query}: ${err}`);
+                        } else {
+                            adapter.log.info('changed history configuration to pin detected datatype for ' + task.id);
+                        }
+                        clientPool.return(client);
+                        cb && cb(null, id);
+                    });
+                } else {
+                    sqlDPs[id].type  = rows[0].type;
+
+                    clientPool.return(client);
+                    cb && cb(null, id);
+                }
             }
         });
     });
