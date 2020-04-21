@@ -42,5 +42,6 @@
   "Reset DB": "Сбросить DB",
   "Ok": "Ok",
   "Allow parallel requests:": "Разрешить параллельные запросы к базе",
+  "Maximum concurrent connections:": "Максимальное количество одновременных подключений:",
   "Write NULL values on start/stop boundaries:": "Запись значений NULL на границах начала / остановки:"
 }

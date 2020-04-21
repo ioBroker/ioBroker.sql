@@ -42,5 +42,6 @@
   "Reset DB": "Reset DB",
   "Ok": "D'accord",
   "Allow parallel requests:": "Autoriser les demandes parallèles",
+  "Maximum concurrent connections:": "Nombre maximal de connexions simultanées:",
   "Write NULL values on start/stop boundaries:": "Écrire des valeurs NULL sur les limites de démarrage / arrêt:"
 }

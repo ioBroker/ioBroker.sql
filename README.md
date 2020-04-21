@@ -358,6 +358,12 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
+## 1.12.0 (2020-04-21)
+* (Apollon77) Implement max Connections setting and respect it
+* (Apollon77) Change dependencies to admin to a global dependency
+* (Apollon77) Update connection status also in between
+* (Apollon77) fix some potential crash cases (Sentry reported)
+
 ## 1.11.1 (2020-04-19)
 * __Requires js-controller >= 2.0.0__
 * (Apollon77) removed usage of adapter.objects

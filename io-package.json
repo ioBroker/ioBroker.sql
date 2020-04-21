@@ -24,7 +24,7 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.11.1",
+        "version": "1.12.0",
         "news": {
             "1.11.1": {
                 "en": "REQUIRES at least js-controller 2.0, fixes and optimizations, ready for js-controller 3.0, Sentry added for Error reporting",
@@ -155,7 +155,9 @@
         "dependencies": [
             {
                 "js-controller": ">=2.0.0"
-            },
+            }
+        ],
+        "globalDependencies": [
             {
                 "admin": ">=1.6.10"
             }
@@ -188,6 +190,7 @@
         "round": 4,
         "dbname": "iobroker",
         "multiRequests": true,
+        "maxConnections": 100,
         "changesRelogInterval": 0,
         "changesMinDelta": 0,
         "writeNulls": true

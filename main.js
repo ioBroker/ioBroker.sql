@@ -286,6 +286,15 @@ function setConnected(isConnected) {
     }
 }
 
+function checkConnection() {
+    if (clientPool) {
+        setConnected(true);
+        return;
+    }
+    setConnected(false);
+    throw new Error('No database connection');
+}
+
 let _client = false;
 function connect(callback) {
     if (!clientPool) {
@@ -298,6 +307,12 @@ function connect(callback) {
             password:   adapter.config.password,
             max_idle:   (adapter.config.dbtype === 'sqlite') ? 1 : 2
         };
+        if (adapter.config.maxConnections) {
+            params.max_active = adapter.config.maxConnections;
+            params.max_wait = 10000; // hard code for now
+            params.when_exhausted = 'block';
+        }
+
         if (adapter.config.port) {
             params.port = adapter.config.port;
         }
@@ -369,10 +384,12 @@ function connect(callback) {
                 clientPool = new SQL[clients[adapter.config.dbtype].name + 'Pool'](params);
                 return clientPool.open(err => {
                     if (err) {
+                        clientPool = null;
+                        setConnected(false);
                         adapter.log.error(err);
                         setTimeout(() => connect(callback), 30000);
                     } else {
-                        setTimeout(() => connect(callback), 0);
+                        setImmediate(() => connect(callback));
                     }
                 });
             }
@@ -382,6 +399,7 @@ function connect(callback) {
             } else {
                 adapter.log.error(ex.toString());
             }
+            clientPool = null;
             setConnected(false);
             return setTimeout(() => connect(callback), 30000);
         }
@@ -520,6 +538,8 @@ function _userQuery(msg, callback) {
     try {
         adapter.log.debug(msg.message);
 
+        checkConnection();
+
         clientPool.borrow((err, client) => {
             if (err) {
                 adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
@@ -527,7 +547,7 @@ function _userQuery(msg, callback) {
             } else {
                 client.execute(msg.message, (err, rows /* , fields */) => {
                     if (rows && rows.rows) rows = rows.rows;
-                    clientPool.return(client);
+                    clientPool && clientPool.return(client);
                     adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null, result: rows}, msg.callback);
                     callback && callback();
                 });
@@ -561,6 +581,7 @@ function oneScript(script, cb) {
             if (err || !client) {
                 clientPool.close();
                 clientPool = null;
+                setConnected(false);
                 adapter.log.error(err);
                 return cb && cb(err);
             }
@@ -603,8 +624,8 @@ function oneScript(script, cb) {
                         adapter.log.error(err);
                     }
                 }
+                clientPool && clientPool.return(client);
                 cb && cb(err);
-                clientPool.return(client);
             });
         });
     } catch (ex) {
@@ -656,11 +677,12 @@ function finish(callback) {
                     if (clientPool) {
                         clientPool.close();
                         clientPool = null;
+                        setConnected(false);
                     }
                     if (typeof finished === 'object') {
                         setTimeout(cb => {
                             for (let f = 0; f < cb.length; f++) {
-                                cb[f]();
+                                typeof cb[f] === 'function' && cb[f]();
                             }
                         }, 500, finished);
                         finished = true;
@@ -689,11 +711,12 @@ function finish(callback) {
                                 if (clientPool) {
                                     clientPool.close();
                                     clientPool = null;
+                                    setConnected(false);
                                 }
                                 if (typeof finished === 'object') {
                                     setTimeout(cb => {
                                         for (let f = 0; f < cb.length; f++) {
-                                            cb[f]();
+                                            typeof cb[f] === 'function' && cb[f]();
                                         }
                                     }, 500, finished);
                                     finished = true;
@@ -712,11 +735,12 @@ function finish(callback) {
                             if (clientPool) {
                                 clientPool.close();
                                 clientPool = null;
+                                setConnected(false);
                             }
                             if (typeof finished === 'object') {
                                 setTimeout(cb => {
                                     for (let f = 0; f < cb.length; f++) {
-                                        cb[f]();
+                                        typeof cb[f] === 'function' && cb[f]();
                                     }
                                 }, 500, finished);
                                 finished = true;
@@ -755,6 +779,7 @@ function finish(callback) {
         if (clientPool) {
             clientPool.close();
             clientPool = null;
+            setConnected(false);
         }
         callback();
     }
@@ -1078,13 +1103,21 @@ function pushHelper(_id, timeoutTriggered) {
 function getAllIds(cb) {
     const query = SQLFuncs.getIdSelect(adapter.config.dbname);
     adapter.log.debug(query);
+
+    try {
+        checkConnection();
+    } catch (err) {
+        adapter.log.error(err);
+        return cb && cb(err);
+    }
+
     clientPool.borrow((err, client) => {
         if (err) {
             return cb && cb(err);
         }
 
         client.execute(query, (err, rows /* , fields */) => {
-            clientPool.return(client);
+            clientPool && clientPool.return(client);
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1108,13 +1141,21 @@ function getAllIds(cb) {
 function getAllFroms(cb) {
     const query = SQLFuncs.getFromSelect(adapter.config.dbname);
     adapter.log.debug(query);
+
+    try {
+        checkConnection();
+    } catch (err) {
+        adapter.log.error(err);
+        return cb && cb(err);
+    }
+
     clientPool.borrow((err, client) => {
         if (err) {
             return cb && cb(err);
         }
 
         client.execute(query, (err, rows /* , fields */) => {
-            clientPool.return(client);
+            clientPool && clientPool.return(client);
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1134,14 +1175,21 @@ function getAllFroms(cb) {
 function _checkRetention(query, cb) {
     adapter.log.debug(query);
 
+    try {
+        checkConnection();
+    } catch (err) {
+        adapter.log.error(err);
+        return cb && cb();
+    }
+
     clientPool.borrow((err, client) => {
         if (err) {
             adapter.log.error(err);
             cb && cb();
         } else {
             client.execute(query, (err /* , rows, fields */ ) => {
+                clientPool && clientPool.return(client);
                 err && adapter.log.error('Cannot delete ' + query + ': ' + err);
-                clientPool.return(client);
                 cb && cb();
             });
         }
@@ -1156,7 +1204,7 @@ function checkRetention(id) {
         if (!sqlDPs[id].lastCheck || dt - sqlDPs[id].lastCheck >= 21600000/* 6 hours */) {
             sqlDPs[id].lastCheck = dt;
             if (!dbNames[sqlDPs[id].type]) {
-                adapter.log.error(`No type found for ${id}. Retention is not possible. Debug info: ${JSON.stringify(sqlDPs[id])}`);
+                adapter.log.error(`No type ${sqlDPs[id].type} found for ${id}. Retention is not possible.`);
             } else {
                 const query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, dbNames[sqlDPs[id].type], sqlDPs[id][adapter.namespace].retention);
 
@@ -1192,17 +1240,25 @@ function checkRetention(id) {
 function _insertValueIntoDB(query, id, cb) {
     adapter.log.debug(query);
 
+    try {
+        checkConnection();
+    } catch (err) {
+        adapter.log.error(err);
+        return cb && cb();
+    }
+
     clientPool.borrow((err, client) => {
         if (err) {
             adapter.log.error(err);
             cb && cb();
         } else {
             client.execute(query, (err /* , rows, fields */) => {
+                clientPool && clientPool.return(client);
                 if (err) {
                     adapter.log.error('Cannot insert ' + query + ': ' + err);
+                } else {
+                    checkRetention(id);
                 }
-                clientPool.return(client);
-                checkRetention(id);
                 cb && cb();
             });
         }
@@ -1266,18 +1322,25 @@ function processVerifyTypes(task) {
 
         adapter.log.debug(query);
 
+        try {
+            checkConnection();
+        } catch (err) {
+            adapter.log.error(err);
+            return processVerifyTypes(task);
+        }
+
         clientPool.borrow((err, client) => {
             if (err) {
                 return processVerifyTypes(task);
             }
 
             client.execute(query, (err, rows /* , fields */) => {
+                clientPool && clientPool.return(client);
                 if (err) {
                     adapter.log.error(`error updating history config for ${task.id} to pin datatype: ${query}: ${err}`);
                 } else {
                     adapter.log.info('changed history configuration to pin detected datatype for ' + task.id);
                 }
-                clientPool.return(client);
                 processVerifyTypes(task);
             });
         });
@@ -1302,9 +1365,11 @@ function pushValueIntoDB(id, state, isCounter, cb) {
     }
 
     // Check sql connection
-    if (!clientPool) {
-        adapter.log.warn('No connection to SQL-DB');
-        return cb && cb('No connection to SQL-DB');
+    try {
+        checkConnection();
+    } catch (err) {
+        adapter.log.warn(err);
+        return cb && cb(err);
     }
 
     let type;
@@ -1489,8 +1554,10 @@ function getId(id, type, cb) {
     let query = SQLFuncs.getIdSelect(adapter.config.dbname, id);
     adapter.log.debug(query);
 
-    if (!clientPool) {
-        return cb && cb('No connection', id);
+    try {
+        checkConnection();
+    } catch (err) {
+        return cb && cb(err, id);
     }
 
     clientPool.borrow((err, client) => {
@@ -1504,9 +1571,9 @@ function getId(id, type, cb) {
             }
 
             if (err) {
+                clientPool && clientPool.return(client);
                 adapter.log.error('Cannot select ' + query + ': ' + err);
-                cb && cb(err, id);
-                return clientPool.return(client);
+                return cb && cb(err, id);
             } else if (!rows.length) {
                 if (type !== null && type !== undefined) {
                     // insert
@@ -1516,15 +1583,16 @@ function getId(id, type, cb) {
 
                     client.execute(query, (err /* , rows, fields */) => {
                         if (err) {
+                            clientPool && clientPool.return(client);
                             adapter.log.error('Cannot insert ' + query + ': ' + err);
                             cb && cb(err, id);
-                            clientPool.return(client);
                         } else {
                             query = SQLFuncs.getIdSelect(adapter.config.dbname,id);
 
                             adapter.log.debug(query);
 
                             client.execute(query, (err, rows /* , fields */) => {
+                                clientPool && clientPool.return(client);
                                 if (rows && rows.rows) {
                                     rows = rows.rows;
                                 }
@@ -1532,20 +1600,18 @@ function getId(id, type, cb) {
                                 if (err) {
                                     adapter.log.error('Cannot select ' + query + ': ' + err);
                                     cb && cb(err, id);
-                                    clientPool.return(client);
                                 } else {
                                     sqlDPs[id].index = rows[0].id;
                                     sqlDPs[id].type  = rows[0].type;
 
                                     cb && cb(null, id);
-                                    clientPool.return(client);
                                 }
                             });
                         }
                     });
                 } else {
+                    clientPool && clientPool.return(client);
                     cb && cb('id not found', id);
-                    clientPool.return(client);
                 }
             } else {
                 sqlDPs[id].index = rows[0].id;
@@ -1557,18 +1623,19 @@ function getId(id, type, cb) {
                     adapter.log.debug(query);
 
                     client.execute(query, (err, rows /* , fields */) => {
+                        clientPool && clientPool.return(client);
                         if (err) {
                             adapter.log.error(`error updating history config for ${id} to pin datatype: ${query}: ${err}`);
                         } else {
                             adapter.log.info('changed history configuration to pin detected datatype for ' + id);
                         }
-                        clientPool.return(client);
                         cb && cb(null, id);
                     });
                 } else {
+                    clientPool && clientPool.return(client);
+
                     sqlDPs[id].type  = rows[0].type;
 
-                    clientPool.return(client);
                     cb && cb(null, id);
                 }
             }
@@ -1582,8 +1649,10 @@ function getFrom(_from, cb) {
     let query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
     adapter.log.debug(query);
 
-    if (!clientPool) {
-        return cb && cb('No connection', _from);
+    try {
+        checkConnection();
+    } catch (err) {
+        return cb && cb(err, _from);
     }
 
     clientPool.borrow((err, client) => {
@@ -1593,9 +1662,9 @@ function getFrom(_from, cb) {
         client.execute(query, (err, rows /* , fields */) => {
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
+                clientPool && clientPool.return(client);
                 adapter.log.error('Cannot select ' + query + ': ' + err);
-                cb && cb(err, _from);
-                return clientPool.return(client);
+                return cb && cb(err, _from);
             }
             if (!rows.length) {
                 // insert
@@ -1603,31 +1672,32 @@ function getFrom(_from, cb) {
                 adapter.log.debug(query);
                 client.execute(query, (err /* , rows, fields */) => {
                     if (err) {
+                        clientPool && clientPool.return(client);
                         adapter.log.error('Cannot insert ' + query + ': ' + err);
-                        cb && cb(err, _from);
-                        return clientPool.return(client);
+                        return cb && cb(err, _from);
                     }
 
                     query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
                     adapter.log.debug(query);
                     client.execute(query, (err, rows /* , fields */) => {
+                        clientPool && clientPool.return(client);
+
                         if (rows && rows.rows) rows = rows.rows;
                         if (err) {
                             adapter.log.error('Cannot select ' + query + ': ' + err);
-                            cb && cb(err, _from);
-                            return clientPool.return(client);
+                            return cb && cb(err, _from);
                         }
                         from[_from] = rows[0].id;
 
                         cb && cb(null, _from);
-                        clientPool.return(client);
                     });
                 });
             } else {
+                clientPool && clientPool.return(client);
+
                 from[_from] = rows[0].id;
 
                 cb && cb(null, _from);
-                clientPool.return(client);
             }
         });
     });
@@ -1642,11 +1712,20 @@ function sortByTs(a, b) {
 function _getDataFromDB(query, options, callback) {
     adapter.log.debug(query);
 
+    try {
+        checkConnection();
+    } catch (err) {
+        adapter.log.warn(err);
+        return callback && callback(err);
+    }
+
     clientPool.borrow((err, client) => {
         if (err) {
             return callback && callback(err);
         }
         client.execute(query, (err, rows /* , fields */) => {
+            clientPool && clientPool.return(client);
+
             if (rows && rows.rows) rows = rows.rows;
             // because descending
             if (!err && rows && !options.start && options.count) {
@@ -1683,7 +1762,6 @@ function _getDataFromDB(query, options, callback) {
                 }
             }
 
-            clientPool.return(client);
             callback && callback(err, rows);
         });
     });
@@ -1901,6 +1979,14 @@ function getDpOverview(msg) {
     const query = SQLFuncs.getIdSelect(adapter.config.dbname);
     adapter.log.info(query);
 
+    try {
+        checkConnection();
+    } catch (err) {
+        return adapter.sendTo(msg.from, msg.command, {
+            error:  'Cannot select ' + query + ': ' + err
+        }, msg.callback);
+    }
+
     clientPool.borrow((err, client) => {
         if (err) {
             return adapter.sendTo(msg.from, msg.command, {
@@ -1912,11 +1998,12 @@ function getDpOverview(msg) {
                 rows = rows.rows;
             }
             if (err) {
+                clientPool && clientPool.return(client);
+
                 adapter.log.error('Cannot select ' + query + ': ' + err);
                 adapter.sendTo(msg.from, msg.command, {
                     error:  'Cannot select ' + query + ': ' + err
                 }, msg.callback);
-                clientPool.return(client);
                 return;
             }
 
@@ -1964,11 +2051,12 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
                 }
 
                 if (err) {
+                    clientPool && clientPool.return(dbClient);
+
                     adapter.log.error('Cannot select ' + query + ': ' + err);
                     adapter.sendTo(msg.from, msg.command, {
                         error:  'Cannot select ' + query + ': ' + err
                     }, msg.callback);
-                    clientPool.return(dbClient);
                     return;
                 }
 
@@ -1987,7 +2075,8 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
             });
         }
     } else {
-        clientPool.return(dbClient);
+        clientPool && clientPool.return(client);
+
         adapter.log.info('consolidate data ...');
         const result = {};
         for (let ti = 0; ti < dbNames.length; ti++ ) {
@@ -2118,6 +2207,14 @@ function main() {
     }
     if (adapter.config.multiRequests !== undefined && adapter.config.dbtype !== 'SQLite3Client' && adapter.config.dbtype !== 'sqlite') {
         clients[adapter.config.dbtype].multiRequests = adapter.config.multiRequests;
+    }
+    if (adapter.config.maxConnections !== undefined && adapter.config.dbtype !== 'SQLite3Client' && adapter.config.dbtype !== 'sqlite') {
+        adapter.config.maxConnections = parseInt(adapter.config.maxConnections, 10);
+        if (adapter.config.maxConnections !== 0 && !adapter.config.maxConnections) {
+            adapter.config.maxConnections = 100;
+        }
+    } else {
+        adapter.config.maxConnections = null;
     }
 
     if (adapter.config.changesMinDelta !== null && adapter.config.changesMinDelta !== undefined) {

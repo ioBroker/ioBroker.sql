@@ -55,6 +55,7 @@
         }
 
         if (settings.writeNulls === undefined) settings.writeNulls = true;
+        if (settings.maxConnections === undefined) settings.maxConnections = 100;
         for (var key in settings) {
             if (settings.hasOwnProperty(key)) {
                 setValue(key, settings[key], onChange);
@@ -227,17 +228,23 @@
                     </div>
                 </div>
                 <div class="row ms-sql real-sql">
-                    <div class="input-field col s12 m4">
+                    <div class="input-field col s12 m6 l4">
                         <input id="encrypt" type="checkbox" class="value" />
                         <label class="translate" for="encrypt">Encrypt:</label>
                     </div>
-                    <div class="input-field col s12 m4">
+                    <div class="input-field col s12 m6 l4">
                         <input id="round" type="text" class="value" />
                         <label class="translate" for="round">Round real to:</label>
                     </div>
-                    <div class="input-field col s12 m4">
+                </div>
+                <div class="row ms-sql real-sql">
+                    <div class="input-field col s12 m6 l4">
                         <input id="multiRequests" type="checkbox" class="value" />
                         <label class="translate" for="multiRequests">Allow parallel requests:</label>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input id="maxConnections" type="text" class="value" />
+                        <label class="translate" for="maxConnections">Maximum concurrent connections:</label>
                     </div>
                 </div>
                 <div class="row">

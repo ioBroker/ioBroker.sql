@@ -479,6 +479,18 @@ systemDictionary = {
         "es": "Permitir solicitudes paralelas",
         "pl": "Pozwól na równoległe żądania"
     },
+    "Maximum concurrent connections:": {
+        "en": "Maximum concurrent connections:",
+        "de": "Maximale gleichzeitige Verbindungen:",
+        "ru": "Максимальное количество одновременных подключений:",
+        "pt": "Máximo de conexões simultâneas:",
+        "nl": "Maximum aantal gelijktijdige verbindingen:",
+        "fr": "Nombre maximal de connexions simultanées:",
+        "it": "Numero massimo di connessioni simultanee:",
+        "es": "Máximas conexiones concurrentes:",
+        "pl": "Maksymalna liczba jednoczesnych połączeń:",
+        "zh-cn": "最大并发连接数："
+    },
     "Write NULL values on start/stop boundaries:": {
         "en": "Write NULL values on start/stop boundaries:",
         "de": "Schreibe NULL-Werte an Start- / Stop-Grenzen:",

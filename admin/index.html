@@ -59,6 +59,7 @@
         }
 
         if (settings.writeNulls === undefined) settings.writeNulls = true;
+        if (settings.maxConnections === undefined) settings.maxConnections = 100;
         for (var key in settings) {
             if (settings.hasOwnProperty(key)) {
                 setValue(key, settings[key], onChange);
@@ -221,6 +222,11 @@
             <tr class="ms-sql real-sql">
                 <td><label class="translate" for="multiRequests">Allow parallel requests:</label></td>
                 <td><input id="multiRequests" type="checkbox" class="value"/></td>
+                <td></td>
+            </tr>
+            <tr class="ms-sql real-sql">
+                <td><label class="translate" for="maxConnections">Maximum concurrent connections:</label></td>
+                <td><input id="maxConnections" class="value"/></td>
                 <td></td>
             </tr>
             <tr>

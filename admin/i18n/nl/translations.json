@@ -42,5 +42,6 @@
   "Reset DB": "Stel DB opnieuw in",
   "Ok": "OK",
   "Allow parallel requests:": "Sta parallelle verzoeken toe",
+  "Maximum concurrent connections:": "Maximum aantal gelijktijdige verbindingen:",
   "Write NULL values on start/stop boundaries:": "Schrijf NULL-waarden op start / stop-grenzen:"
 }
