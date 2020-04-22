@@ -1267,7 +1267,7 @@ function _insertValueIntoDB(query, id, cb) {
             client.execute(query, (err /* , rows, fields */) => {
                 returnClientToPool(client);
                 if (err) {
-                    adapter.log.error('Cannot insert ' + query + ': ' + err);
+                    adapter.log.error(`Cannot insert ${query}: ${err} (id: ${id})`);
                 } else {
                     checkRetention(id);
                 }
