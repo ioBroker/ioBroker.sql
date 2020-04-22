@@ -49,6 +49,8 @@ let connected       = null;
 let multiRequests   = true;
 let subscribeAll    = false;
 let clientPool;
+let reconnectTimeout = null;
+let testConnectTimeout = null;
 
 function isEqual(a, b) {
     //console.log('Compare ' + JSON.stringify(a) + ' with ' +  JSON.stringify(b));
@@ -217,6 +219,34 @@ function startAdapter(options) {
     return adapter;
 }
 
+function borrowClientFromPool(callback) {
+    if (typeof callback !== 'function') return;
+
+    if (!clientPool) {
+        setConnected(false);
+        callback('No database connection');
+        return;
+    }
+    setConnected(true);
+
+    clientPool.borrow((err, client) => {
+        if (!err && client) {
+            // make sure we always have at least one error listener to prevent crashes
+            if (client.on && client.listenerCount && client.listenerCount('error') === 0) {
+                client.on('error', (err) => {
+                    adapter.log.warn('SQL client error: ' + err);
+                });
+            }
+        }
+        callback(err, client);
+    });
+}
+
+function returnClientToPool(client) {
+    return clientPool && clientPool.return(client);
+}
+
+
 function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
     adapter.log.debug(`remembered Index/Type ${storedIndex} / ${storedType}`);
 
@@ -286,17 +316,13 @@ function setConnected(isConnected) {
     }
 }
 
-function checkConnection() {
-    if (clientPool) {
-        setConnected(true);
-        return;
-    }
-    setConnected(false);
-    throw new Error('No database connection');
-}
-
 let _client = false;
 function connect(callback) {
+    if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+    }
+
     if (!clientPool) {
         setConnected(false);
 
@@ -354,7 +380,8 @@ function connect(callback) {
             return _client.connect(err => {
                 if (err) {
                     adapter.log.error(err);
-                    setTimeout(() => connect(callback), 30000);
+                    reconnectTimeout && clearTimeout(reconnectTimeout);
+                    reconnectTimeout = setTimeout(() => connect(callback), 30000);
                     return;
                 }
                 _client.execute('CREATE DATABASE ' + adapter.config.dbname + ';', (err /* , rows, fields */) => {
@@ -362,10 +389,12 @@ function connect(callback) {
                     if (err && err.code !== '42P04') { // if error not about yet exists
                         _client = false;
                         adapter.log.error(err);
-                        setTimeout(() => connect(callback), 30000);
+                        reconnectTimeout && clearTimeout(reconnectTimeout);
+                        reconnectTimeout = setTimeout(() => connect(callback), 30000);
                     } else {
                         _client = true;
-                        setTimeout(() => connect(callback), 100);
+                        reconnectTimeout && clearTimeout(reconnectTimeout);
+                        reconnectTimeout = setTimeout(() => connect(callback), 100);
                     }
                 });
             });
@@ -387,9 +416,11 @@ function connect(callback) {
                         clientPool = null;
                         setConnected(false);
                         adapter.log.error(err);
-                        setTimeout(() => connect(callback), 30000);
+                        reconnectTimeout && clearTimeout(reconnectTimeout);
+                        reconnectTimeout = setTimeout(() => connect(callback), 30000);
                     } else {
-                        setImmediate(() => connect(callback));
+                        reconnectTimeout && clearTimeout(reconnectTimeout);
+                        reconnectTimeout = setImmediate(() => connect(callback));
                     }
                 });
             }
@@ -401,14 +432,17 @@ function connect(callback) {
             }
             clientPool = null;
             setConnected(false);
-            return setTimeout(() => connect(callback), 30000);
+            reconnectTimeout && clearTimeout(reconnectTimeout);
+            reconnectTimeout = setTimeout(() => connect(callback), 30000);
+            return;
         }
     }
 
     allScripts(SQLFuncs.init(adapter.config.dbname), err => {
         if (err) {
             //adapter.log.error(err);
-            return setTimeout(() => connect(callback), 30000);
+            reconnectTimeout && clearTimeout(reconnectTimeout);
+            reconnectTimeout = setTimeout(() => connect(callback), 30000);
         } else {
             adapter.log.info('Connected to ' + adapter.config.dbtype);
             // read all DB IDs and all FROM ids
@@ -471,35 +505,34 @@ function testConnection(msg) {
     } else if (msg.message.config.dbtype === 'sqlite') {
         params = getSqlLiteDir(msg.message.config.fileName);
     }
-    let timeout;
     try {
         const client = new SQL[clients[msg.message.config.dbtype].name](params);
-        timeout = setTimeout(() => {
-            timeout = null;
+        testConnectTimeout = setTimeout(() => {
+            testConnectTimeout = null;
             adapter.sendTo(msg.from, msg.command, {error: 'connect timeout'}, msg.callback);
         }, 5000);
 
         client.connect(err => {
             if (err) {
-                if (timeout) {
-                    clearTimeout(timeout);
-                    timeout = null;
+                if (testConnectTimeout) {
+                    clearTimeout(testConnectTimeout);
+                    testConnectTimeout = null;
                 }
                 return adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
             }
             client.execute('SELECT 2 + 3 AS x', (err /* , rows, fields */) => {
                 client.disconnect();
-                if (timeout) {
-                    clearTimeout(timeout);
-                    timeout = null;
+                if (testConnectTimeout) {
+                    clearTimeout(testConnectTimeout);
+                    testConnectTimeout = null;
                     return adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null}, msg.callback);
                 }
             });
         });
     } catch (ex) {
-        if (timeout) {
-            clearTimeout(timeout);
-            timeout = null;
+        if (testConnectTimeout) {
+            clearTimeout(testConnectTimeout);
+            testConnectTimeout = null;
         }
         if (ex.toString() === 'TypeError: undefined is not a function') {
             return adapter.sendTo(msg.from, msg.command, {error: 'Node.js DB driver could not be installed.'}, msg.callback);
@@ -538,16 +571,14 @@ function _userQuery(msg, callback) {
     try {
         adapter.log.debug(msg.message);
 
-        checkConnection();
-
-        clientPool.borrow((err, client) => {
+        borrowClientFromPool((err, client) => {
             if (err) {
                 adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
                 callback && callback();
             } else {
                 client.execute(msg.message, (err, rows /* , fields */) => {
                     if (rows && rows.rows) rows = rows.rows;
-                    clientPool && clientPool.return(client);
+                    returnClientToPool(client);
                     adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null, result: rows}, msg.callback);
                     callback && callback();
                 });
@@ -577,7 +608,7 @@ function query(msg) {
 // one script
 function oneScript(script, cb) {
     try {
-        clientPool.borrow((err, client) => {
+        borrowClientFromPool((err, client) => {
             if (err || !client) {
                 clientPool.close();
                 clientPool = null;
@@ -624,7 +655,7 @@ function oneScript(script, cb) {
                         adapter.log.error(err);
                     }
                 }
-                clientPool && clientPool.return(client);
+                returnClientToPool(client);
                 cb && cb(err);
             });
         });
@@ -750,6 +781,15 @@ function finish(callback) {
                 });
             }
         }
+    }
+
+    if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+    }
+    if (testConnectTimeout) {
+        clearTimeout(testConnectTimeout);
+        testConnectTimeout = null;
     }
 
     adapter.unsubscribeForeignStates('*');
@@ -1104,20 +1144,13 @@ function getAllIds(cb) {
     const query = SQLFuncs.getIdSelect(adapter.config.dbname);
     adapter.log.debug(query);
 
-    try {
-        checkConnection();
-    } catch (err) {
-        adapter.log.error(err);
-        return cb && cb(err);
-    }
-
-    clientPool.borrow((err, client) => {
+    borrowClientFromPool((err, client) => {
         if (err) {
             return cb && cb(err);
         }
 
         client.execute(query, (err, rows /* , fields */) => {
-            clientPool && clientPool.return(client);
+            returnClientToPool(client);
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1142,20 +1175,13 @@ function getAllFroms(cb) {
     const query = SQLFuncs.getFromSelect(adapter.config.dbname);
     adapter.log.debug(query);
 
-    try {
-        checkConnection();
-    } catch (err) {
-        adapter.log.error(err);
-        return cb && cb(err);
-    }
-
-    clientPool.borrow((err, client) => {
+    borrowClientFromPool((err, client) => {
         if (err) {
             return cb && cb(err);
         }
 
         client.execute(query, (err, rows /* , fields */) => {
-            clientPool && clientPool.return(client);
+            returnClientToPool(client);
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
                 adapter.log.error('Cannot select ' + query + ': ' + err);
@@ -1175,20 +1201,13 @@ function getAllFroms(cb) {
 function _checkRetention(query, cb) {
     adapter.log.debug(query);
 
-    try {
-        checkConnection();
-    } catch (err) {
-        adapter.log.error(err);
-        return cb && cb();
-    }
-
-    clientPool.borrow((err, client) => {
+    borrowClientFromPool((err, client) => {
         if (err) {
             adapter.log.error(err);
             cb && cb();
         } else {
             client.execute(query, (err /* , rows, fields */ ) => {
-                clientPool && clientPool.return(client);
+                returnClientToPool(client);
                 err && adapter.log.error('Cannot delete ' + query + ': ' + err);
                 cb && cb();
             });
@@ -1240,20 +1259,13 @@ function checkRetention(id) {
 function _insertValueIntoDB(query, id, cb) {
     adapter.log.debug(query);
 
-    try {
-        checkConnection();
-    } catch (err) {
-        adapter.log.error(err);
-        return cb && cb();
-    }
-
-    clientPool.borrow((err, client) => {
+    borrowClientFromPool((err, client) => {
         if (err) {
             adapter.log.error(err);
             cb && cb();
         } else {
             client.execute(query, (err /* , rows, fields */) => {
-                clientPool && clientPool.return(client);
+                returnClientToPool(client);
                 if (err) {
                     adapter.log.error('Cannot insert ' + query + ': ' + err);
                 } else {
@@ -1322,20 +1334,13 @@ function processVerifyTypes(task) {
 
         adapter.log.debug(query);
 
-        try {
-            checkConnection();
-        } catch (err) {
-            adapter.log.error(err);
-            return processVerifyTypes(task);
-        }
-
-        clientPool.borrow((err, client) => {
+        borrowClientFromPool((err, client) => {
             if (err) {
                 return processVerifyTypes(task);
             }
 
             client.execute(query, (err, rows /* , fields */) => {
-                clientPool && clientPool.return(client);
+                returnClientToPool(client);
                 if (err) {
                     adapter.log.error(`error updating history config for ${task.id} to pin datatype: ${query}: ${err}`);
                 } else {
@@ -1365,11 +1370,9 @@ function pushValueIntoDB(id, state, isCounter, cb) {
     }
 
     // Check sql connection
-    try {
-        checkConnection();
-    } catch (err) {
-        adapter.log.warn(err);
-        return cb && cb(err);
+    if (!clientPool) {
+        adapter.log.warn('No Connection to database');
+        return cb && cb('No Connection to database');
     }
 
     let type;
@@ -1554,13 +1557,7 @@ function getId(id, type, cb) {
     let query = SQLFuncs.getIdSelect(adapter.config.dbname, id);
     adapter.log.debug(query);
 
-    try {
-        checkConnection();
-    } catch (err) {
-        return cb && cb(err, id);
-    }
-
-    clientPool.borrow((err, client) => {
+    borrowClientFromPool((err, client) => {
         if (err) {
             return cb && cb(err, id);
         }
@@ -1571,7 +1568,7 @@ function getId(id, type, cb) {
             }
 
             if (err) {
-                clientPool && clientPool.return(client);
+                returnClientToPool(client);
                 adapter.log.error('Cannot select ' + query + ': ' + err);
                 return cb && cb(err, id);
             } else if (!rows.length) {
@@ -1583,7 +1580,7 @@ function getId(id, type, cb) {
 
                     client.execute(query, (err /* , rows, fields */) => {
                         if (err) {
-                            clientPool && clientPool.return(client);
+                            returnClientToPool(client);
                             adapter.log.error('Cannot insert ' + query + ': ' + err);
                             cb && cb(err, id);
                         } else {
@@ -1592,7 +1589,7 @@ function getId(id, type, cb) {
                             adapter.log.debug(query);
 
                             client.execute(query, (err, rows /* , fields */) => {
-                                clientPool && clientPool.return(client);
+                                returnClientToPool(client);
                                 if (rows && rows.rows) {
                                     rows = rows.rows;
                                 }
@@ -1610,7 +1607,7 @@ function getId(id, type, cb) {
                         }
                     });
                 } else {
-                    clientPool && clientPool.return(client);
+                    returnClientToPool(client);
                     cb && cb('id not found', id);
                 }
             } else {
@@ -1623,7 +1620,7 @@ function getId(id, type, cb) {
                     adapter.log.debug(query);
 
                     client.execute(query, (err, rows /* , fields */) => {
-                        clientPool && clientPool.return(client);
+                        returnClientToPool(client);
                         if (err) {
                             adapter.log.error(`error updating history config for ${id} to pin datatype: ${query}: ${err}`);
                         } else {
@@ -1632,7 +1629,7 @@ function getId(id, type, cb) {
                         cb && cb(null, id);
                     });
                 } else {
-                    clientPool && clientPool.return(client);
+                    returnClientToPool(client);
 
                     sqlDPs[id].type  = rows[0].type;
 
@@ -1649,20 +1646,14 @@ function getFrom(_from, cb) {
     let query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
     adapter.log.debug(query);
 
-    try {
-        checkConnection();
-    } catch (err) {
-        return cb && cb(err, _from);
-    }
-
-    clientPool.borrow((err, client) => {
+    borrowClientFromPool((err, client) => {
         if (err) {
             return cb && cb(err, _from);
         }
         client.execute(query, (err, rows /* , fields */) => {
             if (rows && rows.rows) rows = rows.rows;
             if (err) {
-                clientPool && clientPool.return(client);
+                returnClientToPool(client);
                 adapter.log.error('Cannot select ' + query + ': ' + err);
                 return cb && cb(err, _from);
             }
@@ -1672,7 +1663,7 @@ function getFrom(_from, cb) {
                 adapter.log.debug(query);
                 client.execute(query, (err /* , rows, fields */) => {
                     if (err) {
-                        clientPool && clientPool.return(client);
+                        returnClientToPool(client);
                         adapter.log.error('Cannot insert ' + query + ': ' + err);
                         return cb && cb(err, _from);
                     }
@@ -1680,7 +1671,7 @@ function getFrom(_from, cb) {
                     query = SQLFuncs.getFromSelect(adapter.config.dbname, _from);
                     adapter.log.debug(query);
                     client.execute(query, (err, rows /* , fields */) => {
-                        clientPool && clientPool.return(client);
+                        returnClientToPool(client);
 
                         if (rows && rows.rows) rows = rows.rows;
                         if (err) {
@@ -1693,7 +1684,7 @@ function getFrom(_from, cb) {
                     });
                 });
             } else {
-                clientPool && clientPool.return(client);
+                returnClientToPool(client);
 
                 from[_from] = rows[0].id;
 
@@ -1712,19 +1703,12 @@ function sortByTs(a, b) {
 function _getDataFromDB(query, options, callback) {
     adapter.log.debug(query);
 
-    try {
-        checkConnection();
-    } catch (err) {
-        adapter.log.warn(err);
-        return callback && callback(err);
-    }
-
-    clientPool.borrow((err, client) => {
+    borrowClientFromPool((err, client) => {
         if (err) {
             return callback && callback(err);
         }
         client.execute(query, (err, rows /* , fields */) => {
-            clientPool && clientPool.return(client);
+            returnClientToPool(client);
 
             if (rows && rows.rows) rows = rows.rows;
             // because descending
@@ -1979,15 +1963,7 @@ function getDpOverview(msg) {
     const query = SQLFuncs.getIdSelect(adapter.config.dbname);
     adapter.log.info(query);
 
-    try {
-        checkConnection();
-    } catch (err) {
-        return adapter.sendTo(msg.from, msg.command, {
-            error:  'Cannot select ' + query + ': ' + err
-        }, msg.callback);
-    }
-
-    clientPool.borrow((err, client) => {
+    borrowClientFromPool((err, client) => {
         if (err) {
             return adapter.sendTo(msg.from, msg.command, {
                 error:  'Cannot select ' + query + ': ' + err
@@ -1998,7 +1974,7 @@ function getDpOverview(msg) {
                 rows = rows.rows;
             }
             if (err) {
-                clientPool && clientPool.return(client);
+                returnClientToPool(client);
 
                 adapter.log.error('Cannot select ' + query + ': ' + err);
                 adapter.sendTo(msg.from, msg.command, {
@@ -2051,7 +2027,7 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
                 }
 
                 if (err) {
-                    clientPool && clientPool.return(dbClient);
+                    returnClientToPool(dbClient);
 
                     adapter.log.error('Cannot select ' + query + ': ' + err);
                     adapter.sendTo(msg.from, msg.command, {
@@ -2075,7 +2051,7 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
             });
         }
     } else {
-        clientPool && clientPool.return(client);
+        returnClientToPool(client);
 
         adapter.log.info('consolidate data ...');
         const result = {};
