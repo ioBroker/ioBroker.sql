@@ -232,11 +232,11 @@ function borrowClientFromPool(callback) {
     clientPool.borrow((err, client) => {
         if (!err && client) {
             // make sure we always have at least one error listener to prevent crashes
-            if (client.on && client.listenerCount && client.listenerCount('error') === 0) {
+            /*if (client.on && client.listenerCount && client.listenerCount('error') === 0) {
                 client.on('error', (err) => {
                     adapter.log.warn('SQL client error: ' + err);
                 });
-            }
+            }*/
         }
         callback(err, client);
     });
