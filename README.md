@@ -358,11 +358,14 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
-## 1.12.0 (2020-04-21)
-* (Apollon77) Implement max Connections setting and respect it
+## 1.12.0 (2020-04-23)
+* (Apollon77) Implement max Connections setting and respect it, now allows to control how many concurrent connections to database are used (default 100) and others wait up to 10s for a free connection before failing)
 * (Apollon77) Change dependencies to admin to a global dependency
 * (Apollon77) Update connection status also in between
 * (Apollon77) fix some potential crash cases (Sentry reported)
+* (Omega236) Add id to error message for queries
+* (Apollon77) update pg to stay compatible with nodejs 14
+* (Apollon77) Start clearly ending timeouts on unload ... still some cases left!
 
 ## 1.11.1 (2020-04-19)
 * __Requires js-controller >= 2.0.0__
