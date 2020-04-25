@@ -1280,6 +1280,13 @@ function _insertValueIntoDB(query, id, cb) {
 function processReadTypes() {
     if (tasksReadType && tasksReadType.length) {
         const task = tasksReadType.shift();
+
+        if (!sqlDPs[task.id][adapter.namespace]) {
+            adapter.log.warn('Ignore type lookup for ' + task.id + ' becuse not enabled anymore');
+            setImmediate(processReadTypes);
+            return;
+        }
+
         adapter.log.debug('Type set in Def for ' + task.id + ': ' + sqlDPs[task.id][adapter.namespace].storageType);
         if (sqlDPs[task.id][adapter.namespace].storageType) {
             sqlDPs[task.id].type = types[sqlDPs[task.id][adapter.namespace].storageType.toLowerCase()];
@@ -2051,7 +2058,7 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
             });
         }
     } else {
-        returnClientToPool(client);
+        returnClientToPool(dbClient);
 
         adapter.log.info('consolidate data ...');
         const result = {};

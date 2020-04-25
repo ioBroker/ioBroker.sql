@@ -358,6 +358,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
+## 1.12.1 (2020-04-26)
+* (Apollon77) Fix potential crash (Sentry) 
+
 ## 1.12.0 (2020-04-23)
 * (Apollon77) Implement max Connections setting and respect it, now allows to control how many concurrent connections to database are used (default 100) and others wait up to 10s for a free connection before failing)
 * (Apollon77) Change dependencies to admin to a global dependency
