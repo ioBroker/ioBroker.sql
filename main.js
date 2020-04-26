@@ -429,6 +429,7 @@ function connect(callback) {
                 adapter.log.error('Node.js DB driver for "' + adapter.config.dbtype + '" could not be installed.');
             } else {
                 adapter.log.error(ex.toString());
+                adapter.log.error(ex.stack);
             }
             clientPool = null;
             setConnected(false);
