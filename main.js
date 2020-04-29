@@ -377,6 +377,9 @@ function connect(callback) {
 
             // connect first to DB postgres and create iobroker DB
             _client = new SQL[clients[adapter.config.dbtype].name](params);
+            _client.on && _client.on('error', (err) => {
+                adapter.log.warn('SQL client error: ' + err);
+            });
             return _client.connect(err => {
                 if (err) {
                     adapter.log.error(err);
@@ -508,6 +511,9 @@ function testConnection(msg) {
     }
     try {
         const client = new SQL[clients[msg.message.config.dbtype].name](params);
+        client.on && client.on('error', (err) => {
+            adapter.log.warn('SQL client error: ' + err);
+        });
         testConnectTimeout = setTimeout(() => {
             testConnectTimeout = null;
             adapter.sendTo(msg.from, msg.command, {error: 'connect timeout'}, msg.callback);
