@@ -1566,7 +1566,7 @@ function processTasks() {
     }
 }
 
-// my be it is required to cache all the data in memory
+// may be it is required to cache all the data in memory
 function getId(id, type, cb) {
     let query = SQLFuncs.getIdSelect(adapter.config.dbname, id);
     adapter.log.debug(query);
@@ -1611,11 +1611,14 @@ function getId(id, type, cb) {
                                 if (err) {
                                     adapter.log.error('Cannot select ' + query + ': ' + err);
                                     cb && cb(err, id);
-                                } else {
+                                } else if (rows[0]) {
                                     sqlDPs[id].index = rows[0].id;
                                     sqlDPs[id].type  = rows[0].type;
 
                                     cb && cb(null, id);
+                                } else {
+                                    adapter.log.error('No result for select ' + query + ': after insert');
+                                    cb && cb(new Error('No result for select ' + query + ': after insert'), id);
                                 }
                             });
                         }
