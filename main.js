@@ -657,6 +657,10 @@ function oneScript(script, cb) {
                             adapter.log.error(script);
                             adapter.log.error(err);
                         }
+                    } if (script.startsWith('CREATE INDEX')) {
+                        adapter.log.warn('Ignore Error on Create index. You might want to create the index yourself!');
+                        adapter.log.warn(err.code + ': ' + err);
+                        err = null;
                     } else {
                         adapter.log.error(script);
                         adapter.log.error(err);
