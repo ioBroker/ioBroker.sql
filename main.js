@@ -1215,7 +1215,7 @@ function _checkRetention(query, cb) {
         } else {
             client.execute(query, (err /* , rows, fields */ ) => {
                 returnClientToPool(client);
-                err && adapter.log.error('Cannot delete ' + query + ': ' + err);
+                err && adapter.log.warn('Retention: Cannot delete ' + query + ': ' + err);
                 cb && cb();
             });
         }
