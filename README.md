@@ -358,6 +358,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
+## 1.12.2 (2020-04-30)
+* (Apollon77) MSSQL works again
+
 ## 1.12.1 (2020-04-26)
 * (Apollon77) Fix potential crash (Sentry) 
 

@@ -24,10 +24,10 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.12.1",
+        "version": "1.12.2",
         "news": {
-            "1.12.1": {
-                "en": "maximum concurrent databasse connection handling added, connection status is updated in certain error cases, Node.js 14 compatibility, other fixes and optimizations",
+            "1.12.2": {
+                "en": "maximum concurrent database connection handling added, connection status is updated in certain error cases, Node.js 14 compatibility, other fixes and optimizations",
                 "de": "Maximale gleichzeitige Behandlung der Datenbankverbindung hinzugefügt, Verbindungsstatus in bestimmten Fehlerfällen aktualisiert, Node.js 14-Kompatibilität, andere Korrekturen und Optimierungen",
                 "ru": "добавлена максимальная одновременная обработка соединения с базой данных, состояние соединения обновляется в некоторых случаях ошибок, совместимость с Node.js 14, другие исправления и оптимизации",
                 "pt": "manipulação de conexão de banco de dados simultânea máxima adicionada, o status da conexão é atualizado em certos casos de erro, compatibilidade com Node.j 14, outras correções e otimizações",

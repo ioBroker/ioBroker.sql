@@ -10,7 +10,7 @@ platform:
   - x64
 clone_folder: 'c:\projects\%APPVEYOR_PROJECT_NAME%'
 services:
-  - mssql2014
+  - mssql2016
   - mysql
   - postgresql
 install:
@@ -25,6 +25,6 @@ test_script:
   - echo %cd%
   - node --version
   - npm --version
-  - ps: Start-Sleep -s 15
+  - ps: Start-Sleep -s 25
   - npm test
 build: 'off'
