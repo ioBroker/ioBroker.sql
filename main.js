@@ -1294,7 +1294,7 @@ function processReadTypes() {
         const task = tasksReadType.shift();
 
         if (!sqlDPs[task.id][adapter.namespace]) {
-            adapter.log.warn('Ignore type lookup for ' + task.id + ' becuse not enabled anymore');
+            adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
             setImmediate(processReadTypes);
             return;
         }
