@@ -358,6 +358,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
+## 1.12.3 (2020-04-30)
+* (Apollon77) Try to create Indizes on MSSQL to speed up things. Infos are shown if not possible to be able for the user to do it themself. Timeout is 15s
+
 ## 1.12.2 (2020-04-30)
 * (Apollon77) MSSQL works again
 

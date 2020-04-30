@@ -24,19 +24,19 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.12.2",
+        "version": "1.12.3",
         "news": {
-            "1.12.2": {
-                "en": "maximum concurrent database connection handling added, connection status is updated in certain error cases, Node.js 14 compatibility, other fixes and optimizations",
-                "de": "Maximale gleichzeitige Behandlung der Datenbankverbindung hinzugefügt, Verbindungsstatus in bestimmten Fehlerfällen aktualisiert, Node.js 14-Kompatibilität, andere Korrekturen und Optimierungen",
-                "ru": "добавлена максимальная одновременная обработка соединения с базой данных, состояние соединения обновляется в некоторых случаях ошибок, совместимость с Node.js 14, другие исправления и оптимизации",
-                "pt": "manipulação de conexão de banco de dados simultânea máxima adicionada, o status da conexão é atualizado em certos casos de erro, compatibilidade com Node.j 14, outras correções e otimizações",
-                "nl": "maximale gelijktijdige verwerking van databaseverbindingen toegevoegd, verbindingsstatus wordt bijgewerkt in bepaalde foutgevallen, compatibiliteit met Node.js 14, andere fixes en optimalisaties",
-                "fr": "gestion maximale des connexions simultanées dans la base de données ajoutée, l'état de la connexion est mis à jour dans certains cas d'erreur, compatibilité avec Node.js 14, autres correctifs et optimisations",
-                "it": "aggiunta la massima gestione della connessione alla banca dati simultanea, lo stato della connessione viene aggiornato in alcuni casi di errore, compatibilità Node.js 14, altre correzioni e ottimizzazioni",
-                "es": "Se agregó el máximo manejo de conexión de base de datos simultánea, el estado de la conexión se actualiza en ciertos casos de error, compatibilidad con Node.js 14, otras correcciones y optimizaciones",
-                "pl": "dodano maksymalną obsługę równoczesnych połączeń z bazą danych, status połączenia jest aktualizowany w niektórych przypadkach błędów, kompatybilność z Node.js 14, inne poprawki i optymalizacje",
-                "zh-cn": "添加了最大并发数据仓库连接处理，在某些错误情况下更新了连接状态，Node.js 14兼容性，其他修复和优化"
+            "1.12.3": {
+                "en": "maximum concurrent database connection handling added, MSSQL now got indizes, connection status is updated in certain error cases, Node.js 14 compatibility, other fixes and optimizations",
+                "de": "Maximale gleichzeitige Behandlung von Datenbankverbindungen hinzugefügt, MSSQL hat jetzt Indizes erhalten, der Verbindungsstatus wird in bestimmten Fehlerfällen aktualisiert, Node.js 14-Kompatibilität, andere Korrekturen und Optimierungen",
+                "ru": "добавлена максимальная одновременная обработка соединения с базой данных, теперь MSSQL получил индизы, состояние соединения обновляется в некоторых случаях ошибок, совместимость с Node.js 14, другие исправления и оптимизации",
+                "pt": "máximo de manipulação simultânea de conexões com o banco de dados adicionada, o MSSQL agora obtém indizes, o status da conexão é atualizado em certos casos de erro, compatibilidade com o Node.j 14, outras correções e otimizações",
+                "nl": "maximale gelijktijdige verwerking van databaseverbindingen toegevoegd, MSSQL heeft nu indices, verbindingsstatus wordt bijgewerkt in bepaalde foutgevallen, compatibiliteit met Node.js 14, andere fixes en optimalisaties",
+                "fr": "ajout de la gestion maximale des connexions de bases de données simultanées, MSSQL est désormais affiché, l'état de la connexion est mis à jour dans certains cas d'erreur, la compatibilité avec Node.js 14, d'autres correctifs et optimisations",
+                "it": "aggiunta la massima gestione simultanea della connessione al database, MSSQL ora è stato identificato, lo stato della connessione viene aggiornato in alcuni casi di errore, compatibilità Node.js 14, altre correzioni e ottimizzazioni",
+                "es": "se agregó el máximo manejo simultáneo de la conexión de la base de datos, MSSQL ahora obtuvo índices, el estado de la conexión se actualiza en ciertos casos de error, compatibilidad con Node.js 14, otras correcciones y optimizaciones",
+                "pl": "dodano maksymalną obsługę jednoczesnych połączeń z bazą danych, MSSQL został teraz indeksowany, status połączenia jest aktualizowany w niektórych przypadkach błędów, kompatybilność z Node.js 14, inne poprawki i optymalizacje",
+                "zh-cn": "添加了最大的并发数据库连接处理功能，MSSQL现在已初始化，在某些错误情况下连接状态已更新，Node.js 14兼容性，其他修复和优化"
             },
             "1.11.1": {
                 "en": "REQUIRES at least js-controller 2.0, fixes and optimizations, ready for js-controller 3.0, Sentry added for Error reporting",
