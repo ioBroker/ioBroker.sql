@@ -342,11 +342,9 @@ function connect(callback) {
         if (adapter.config.port) {
             params.port = adapter.config.port;
         }
-        if (adapter.config.encrypt) {
-            params.options = {
-                encrypt: true // Use this if you're on Windows Azure
-            };
-        }
+        params.options = {
+            encrypt: !!adapter.config.encrypt
+        };
 
         if (adapter.config.dbtype === 'postgres') {
             params.database = 'postgres';
@@ -1293,7 +1291,7 @@ function processReadTypes() {
     if (tasksReadType && tasksReadType.length) {
         const task = tasksReadType.shift();
 
-        if (!sqlDPs[task.id][adapter.namespace]) {
+        if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
             adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
             setImmediate(processReadTypes);
             return;
@@ -1316,6 +1314,13 @@ function processReadTypes() {
                 if (err) {
                     adapter.log.warn('Error while get Object for Def: ' + err);
                 }
+
+                if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
+                    adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
+                    setImmediate(processReadTypes);
+                    return;
+                }
+
                 if (obj && obj.common && obj.common.type) {
                     adapter.log.debug(obj.common.type.toLowerCase() + ' / ' + types[obj.common.type.toLowerCase()] + ' / ' + JSON.stringify(obj.common));
                     sqlDPs[task.id].type = types[obj.common.type.toLowerCase()];
@@ -1324,6 +1329,12 @@ function processReadTypes() {
                     processVerifyTypes(task);
                 } else if (sqlDPs[task.id].type === undefined) {
                     adapter.getForeignState(sqlDPs[task.id].realId, (err, state) => {
+                        if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
+                            adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
+                            setImmediate(processReadTypes);
+                            return;
+                        }
+
                         if (err) {
                             adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + obj.common.type.toLowerCase() + ' and no state)');
                             sqlDPs[task.id].type = 1; // string
