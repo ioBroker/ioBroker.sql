@@ -1336,7 +1336,7 @@ function processReadTypes() {
                         }
 
                         if (err) {
-                            adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + obj.common.type.toLowerCase() + ' and no state)');
+                            adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found');
                             sqlDPs[task.id].type = 1; // string
                         }
                         else if (state && state.val !== null && state.val !== undefined && types[typeof state.val] !== undefined) {

@@ -358,6 +358,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
+### 1.12.5 (2020-05-05)
+* (Apollon77) Crash prevented for invalid objects (Sentry IOBROKER-SQL-X) 
+
 ### 1.12.4 (2020-05-04)
 * (Apollon77) Potential crash fixed when disabling datapoints too fast (Sentry IOBROKER-SQL-W) 
 * (Apollon77) Always set "encrypt" flag, even if false because else might en in default true (see https://github.com/tediousjs/tedious/issues/931)

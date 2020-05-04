@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.12.4",
+        "version": "1.12.5",
         "news": {
+            "1.12.5": {
+                "en": "Crash prevented for invalid objects (Sentry IOBROKER-SQL-X)",
+                "de": "Absturz für ungültige Objekte verhindert (Sentry IOBROKER-SQL-X)",
+                "ru": "Предотвращен сбой для недопустимых объектов (Sentry IOBROKER-SQL-X)",
+                "pt": "Falha impedida por objetos inválidos (Sentry IOBROKER-SQL-X)",
+                "nl": "Crash voorkomen voor ongeldige objecten (Sentry IOBROKER-SQL-X)",
+                "fr": "Blocage évité pour les objets invalides (Sentry IOBROKER-SQL-X)",
+                "it": "Blocco impedito per oggetti non validi (Sentry IOBROKER-SQL-X)",
+                "es": "Se evitó el bloqueo de objetos no válidos (Sentry IOBROKER-SQL-X)",
+                "pl": "Zapobieganie awariom dla nieprawidłowych obiektów (Sentry IOBROKER-SQL-X)",
+                "zh-cn": "防止无效对象崩溃（Sentry IOBROKER-SQL-X）"
+            },
             "1.12.4": {
                 "en": "Potential crash fixed when disabling datapoints too fast (Sentry IOBROKER-SQL-W) \nAlways set \"encrypt\" flag, even if false because else might en in default true (see https://github.com/tediousjs/tedious/issues/931)",
                 "de": "Möglicher Absturz behoben, wenn Datenpunkte zu schnell deaktiviert wurden (Sentry IOBROKER-SQL-W)\nSetzen Sie immer das \"Verschlüsselungs\" -Flag, auch wenn es falsch ist, da sonst möglicherweise standardmäßig true aktiviert ist (siehe https://github.com/tediousjs/tedious/issues/931).",
