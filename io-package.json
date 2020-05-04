@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.12.3",
+        "version": "1.12.4",
         "news": {
+            "1.12.4": {
+                "en": "Potential crash fixed when disabling datapoints too fast (Sentry IOBROKER-SQL-W) \nAlways set \"encrypt\" flag, even if false because else might en in default true (see https://github.com/tediousjs/tedious/issues/931)",
+                "de": "Möglicher Absturz behoben, wenn Datenpunkte zu schnell deaktiviert wurden (Sentry IOBROKER-SQL-W)\nSetzen Sie immer das \"Verschlüsselungs\" -Flag, auch wenn es falsch ist, da sonst möglicherweise standardmäßig true aktiviert ist (siehe https://github.com/tediousjs/tedious/issues/931).",
+                "ru": "Исправлено потенциальное падение при слишком быстром отключении точек данных (Sentry IOBROKER-SQL-W)\nВсегда устанавливайте флаг «шифровать», даже если он равен false, поскольку в противном случае по умолчанию может быть задано значение true (см. Https://github.com/tediousjs/tedious/issues/931).",
+                "pt": "Possível falha corrigida ao desativar os pontos de dados muito rápido (Sentry IOBROKER-SQL-W)\nSempre defina o sinalizador \"criptografar\", mesmo se falso, pois o valor poderá estar no padrão true (consulte https://github.com/tediousjs/tedious/issues/931)",
+                "nl": "Potentiële crash opgelost bij het te snel uitschakelen van datapunten (Sentry IOBROKER-SQL-W)\nStel altijd de vlag \"encrypt\" in, ook al is deze false omdat anders anders standaard in true zou kunnen staan (zie https://github.com/tediousjs/tedious/issues/931)",
+                "fr": "Crash potentiel corrigé lors de la désactivation trop rapide des points de données (Sentry IOBROKER-SQL-W)\nDéfinissez toujours l'indicateur \"encrypt\", même s'il est faux car sinon, il pourrait en être vrai par défaut (voir https://github.com/tediousjs/tedious/issues/931)",
+                "it": "Potenziale crash risolto quando la disabilitazione dei punti dati era troppo rapida (Sentry IOBROKER-SQL-W)\nImposta sempre il flag \"encrypt\", anche se false perché else potrebbe essere impostato su true true (vedi https://github.com/tediousjs/tedious/issues/931)",
+                "es": "Posible bloqueo solucionado al deshabilitar los puntos de datos demasiado rápido (Sentry IOBROKER-SQL-W)\nEstablezca siempre el indicador \"cifrar\", incluso si es falso, ya que de lo contrario podría estar en predeterminado verdadero (consulte https://github.com/tediousjs/tedious/issues/931)",
+                "pl": "Naprawiono potencjalną awarię podczas zbyt szybkiego wyłączania punktów danych (Sentry IOBROKER-SQL-W)\nZawsze ustawiaj flagę „szyfruj”, nawet jeśli ma wartość false, ponieważ w przeciwnym razie domyślnie może mieć wartość true (patrz https://github.com/tediousjs/tedious/issues/931)",
+                "zh-cn": "禁用数据点时过快修复了潜在的崩溃问题（Sentry IOBROKER-SQL-W）\n始终设置“ encrypt”标志，即使为false，因为其他情况默认情况下也为true（请参阅https://github.com/tediousjs/tedious/issues/931）"
+            },
             "1.12.3": {
                 "en": "maximum concurrent database connection handling added, MSSQL now got indizes, connection status is updated in certain error cases, Node.js 14 compatibility, other fixes and optimizations",
                 "de": "Maximale gleichzeitige Behandlung von Datenbankverbindungen hinzugefügt, MSSQL hat jetzt Indizes erhalten, der Verbindungsstatus wird in bestimmten Fehlerfällen aktualisiert, Node.js 14-Kompatibilität, andere Korrekturen und Optimierungen",
