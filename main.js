@@ -246,7 +246,6 @@ function returnClientToPool(client) {
     return clientPool && clientPool.return(client);
 }
 
-
 function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
     adapter.log.debug(`remembered Index/Type ${storedIndex} / ${storedType}`);
 
@@ -594,6 +593,7 @@ function _userQuery(msg, callback) {
         callback && callback();
     }
 }
+
 // execute custom query
 function query(msg) {
     if (!multiRequests) {
@@ -836,6 +836,9 @@ function finish(callback) {
 }
 
 function processMessage(msg) {
+    if (msg.command === 'features') {
+        adapter.sendTo(msg.from, msg.command, {supportedFeatures: ['update', 'delete']}, msg.callback);
+    } else
     if (msg.command === 'getHistory') {
         getHistory(msg);
     }
@@ -850,6 +853,12 @@ function processMessage(msg) {
     }
     else if (msg.command === 'query') {
         query(msg);
+    }
+    else if (msg.command === 'update') {
+        updateState(msg);
+    }
+    else if (msg.command === 'delete') {
+        deleteState(msg);
     }
     else if (msg.command === 'storeState') {
         storeState(msg);
@@ -1128,21 +1137,19 @@ function pushHelper(_id, timeoutTriggered) {
                     sqlDPs[_id].state.val = false;
                 }
             }
+
             if (_settings.storageType === 'String' && typeof sqlDPs[_id].state.val !== 'string') {
                 sqlDPs[_id].state.val = sqlDPs[_id].state.val.toString();
-            }
-            else if (_settings.storageType === 'Number' && typeof sqlDPs[_id].state.val !== 'number') {
+            } else if (_settings.storageType === 'Number' && typeof sqlDPs[_id].state.val !== 'number') {
                 if (typeof sqlDPs[_id].state.val === 'boolean') {
                     sqlDPs[_id].state.val = sqlDPs[_id].state.val ? 1 : 0;
                 } else {
                     return adapter.log.info('Do not store value "' + sqlDPs[_id].state.val + '" for ' + _id + ' because no number');
                 }
-            }
-            else if (_settings.storageType === 'Boolean' && typeof sqlDPs[_id].state.val !== 'boolean') {
+            } else if (_settings.storageType === 'Boolean' && typeof sqlDPs[_id].state.val !== 'boolean') {
                 sqlDPs[_id].state.val = !!sqlDPs[_id].state.val;
             }
-        }
-        else {
+        } else {
             adapter.log.debug('Datatype ' + _id + ': Currently: null');
         }
 
@@ -1287,40 +1294,51 @@ function _insertValueIntoDB(query, id, cb) {
     });
 }
 
+function _executeQuery(query, id, cb) {
+    adapter.log.debug(query);
+
+    borrowClientFromPool((err, client) => {
+        if (err) {
+            adapter.log.error(err);
+            cb && cb();
+        } else {
+            client.execute(query, (err /* , rows, fields */) => {
+                returnClientToPool(client);
+                err && adapter.log.error(`Cannot query ${query}: ${err} (id: ${id})`);
+                cb && cb();
+            });
+        }
+    });
+}
+
 function processReadTypes() {
     if (tasksReadType && tasksReadType.length) {
         const task = tasksReadType.shift();
 
         if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
             adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
-            setImmediate(processReadTypes);
-            return;
+            return setImmediate(processReadTypes);
         }
 
         adapter.log.debug('Type set in Def for ' + task.id + ': ' + sqlDPs[task.id][adapter.namespace].storageType);
+
         if (sqlDPs[task.id][adapter.namespace].storageType) {
             sqlDPs[task.id].type = types[sqlDPs[task.id][adapter.namespace].storageType.toLowerCase()];
             adapter.log.debug('Type (from Def) for ' + task.id + ': ' + sqlDPs[task.id].type);
             processVerifyTypes(task);
-        }
-        else if (sqlDPs[task.id].dbtype !== undefined) {
+        } else if (sqlDPs[task.id].dbtype !== undefined) {
             sqlDPs[task.id].type = sqlDPs[task.id].dbtype;
             sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
             adapter.log.debug('Type (from DB-Type) for ' + task.id + ': ' + sqlDPs[task.id].type);
             processVerifyTypes(task);
-        }
-        else {
+        } else {
             adapter.getForeignObject(sqlDPs[task.id].realId, (err, obj) => {
-                if (err) {
-                    adapter.log.warn('Error while get Object for Def: ' + err);
-                }
+                err && adapter.log.warn('Error while get Object for Def: ' + err);
 
                 if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
                     adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
-                    setImmediate(processReadTypes);
-                    return;
-                }
-
+                    return setImmediate(processReadTypes);
+                } else
                 if (obj && obj.common && obj.common.type) {
                     adapter.log.debug(obj.common.type.toLowerCase() + ' / ' + types[obj.common.type.toLowerCase()] + ' / ' + JSON.stringify(obj.common));
                     sqlDPs[task.id].type = types[obj.common.type.toLowerCase()];
@@ -1331,19 +1349,15 @@ function processReadTypes() {
                     adapter.getForeignState(sqlDPs[task.id].realId, (err, state) => {
                         if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
                             adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
-                            setImmediate(processReadTypes);
-                            return;
-                        }
-
+                            return setImmediate(processReadTypes);
+                        } else
                         if (err) {
                             adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found');
                             sqlDPs[task.id].type = 1; // string
-                        }
-                        else if (state && state.val !== null && state.val !== undefined && types[typeof state.val] !== undefined) {
+                        } else if (state && state.val !== null && state.val !== undefined && types[typeof state.val] !== undefined) {
                             sqlDPs[task.id].type = types[typeof state.val];
                             sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
-                        }
-                        else {
+                        } else {
                             adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + (state?(typeof state.val):'state not existing') + ')');
                             sqlDPs[task.id].type = 1; // string
                         }
@@ -1364,7 +1378,7 @@ function processVerifyTypes(task) {
 
         adapter.log.debug(query);
 
-        borrowClientFromPool((err, client) => {
+        return borrowClientFromPool((err, client) => {
             if (err) {
                 return processVerifyTypes(task);
             }
@@ -1379,21 +1393,14 @@ function processVerifyTypes(task) {
                 processVerifyTypes(task);
             });
         });
-
-        return;
     }
 
-    pushValueIntoDB(task.id, task.state);
+    task.func(task.id, task.state);
 
     setTimeout(processReadTypes, 50);
 }
 
-function pushValueIntoDB(id, state, isCounter, cb) {
-    if (typeof isCounter === 'function') {
-        cb = isCounter;
-        isCounter = false;
-    }
-
+function prepareTask(id, state, isCounter, func, cb) {
     // check if we know about this ID
     if (!sqlDPs[id]) {
         return;
@@ -1412,7 +1419,7 @@ function pushValueIntoDB(id, state, isCounter, cb) {
         type = sqlDPs[id].type;
     } else {
         // read type from DB
-        tasksReadType.push({id, state});
+        tasksReadType.push({id, state, func});
         return tasksReadType.length === 1 && processReadTypes();
     }
 
@@ -1435,29 +1442,33 @@ function pushValueIntoDB(id, state, isCounter, cb) {
 
         tmpState = Object.assign({}, state);
 
-        sqlDPs[id].isRunning.push({id, state: tmpState, cb, isCounter});
+        sqlDPs[id].isRunning.push({id, state: tmpState, func, cb, isCounter});
 
         if (sqlDPs[id].isRunning.length === 1) {
             // read or create in DB
             return getId(id, type, (err, _id) => {
                 if (err) {
                     adapter.log.warn('Cannot get index of "' + _id + '": ' + err);
-                    if (sqlDPs[_id].isRunning) {
-                        for (let t = 0; t < sqlDPs[_id].isRunning.length; t++) {
-                            sqlDPs[_id].isRunning[t].cb && sqlDPs[_id].isRunning[t].cb('Cannot get index of "' + sqlDPs[_id].isRunning[t].id + '": ' + err);
-                        }
-                    }
+                    sqlDPs[_id].isRunning &&
+                        sqlDPs[_id].isRunning
+                            .filter(r => r.cb)
+                            .forEach(r => r.cb('Cannot get index of "' + r.id + '": ' + err));
                 } else {
-                    if (sqlDPs[_id].isRunning) {
-                        for (let k = 0; k < sqlDPs[_id].isRunning.length; k++) {
-                            pushValueIntoDB(sqlDPs[_id].isRunning[k].id, sqlDPs[_id].isRunning[k].state, sqlDPs[_id].isRunning[k].isCounter, sqlDPs[_id].isRunning[k].cb);
-                        }
-                    }
+                    sqlDPs[_id].isRunning &&
+                        sqlDPs[_id].isRunning
+                            .forEach(r => r.func(
+                                r.id,
+                                r.state,
+                                r.isCounter,
+                                r.cb
+                            ));
                 }
+
                 sqlDPs[_id].isRunning = null;
             });
+        } else {
+            return;
         }
-        return;
     }
 
     // get from
@@ -1465,29 +1476,31 @@ function pushValueIntoDB(id, state, isCounter, cb) {
         isFromRunning[state.from] = isFromRunning[state.from] || [];
         tmpState = Object.assign({}, state);
 
-        isFromRunning[state.from].push({id, state: tmpState, cb});
+        isFromRunning[state.from].push({id, state: tmpState, func, cb});
 
         if (isFromRunning[state.from].length === 1) {
             // read or create in DB
             return getFrom(state.from, (err, from) => {
                 if (err) {
                     adapter.log.warn('Cannot get "from" for "' + from + '": ' + err);
-                    if (isFromRunning[from]) {
-                        for (let t = 0; t < isFromRunning[from].length; t++) {
-                            isFromRunning[from][t].cb && isFromRunning[from][t].cb(`Cannot get "from" for "${from}": ${err}`);
-                        }
-                    }
+                    isFromRunning[from] &&
+                    isFromRunning[from]
+                        .filter(f => f.cb)
+                        .forEach(f => f.cb(`Cannot get "from" for "${from}": ${err}`));
                 } else {
-                    if (isFromRunning[from]) {
-                        for (let k = 0; k < isFromRunning[from].length; k++) {
-                            pushValueIntoDB(isFromRunning[from][k].id, isFromRunning[from][k].state, isFromRunning[from][k].isCounter, isFromRunning[from][k].cb);
-                        }
-                    }
+                    isFromRunning[from] &&
+                    isFromRunning[from].forEach(f => f.func(
+                        f.id,
+                        f.state,
+                        f.isCounter,
+                        f.cb
+                    ));
                 }
                 isFromRunning[from] = null;
             });
+        } else {
+            return;
         }
-        return;
     }
 
     // if greater than 2000.01.01 00:00:00
@@ -1507,28 +1520,45 @@ function pushValueIntoDB(id, state, isCounter, cb) {
         return cb && cb(error);
     }
 
-    // increase timestamp if last is the same
-    if (!isCounter && sqlDPs[id].ts && state.ts === sqlDPs[id].ts) {
-        state.ts++;
+    cb && cb();
+}
+
+function pushValueIntoDB(id, state, isCounter, cb) {
+    if (typeof isCounter === 'function') {
+        cb = isCounter;
+        isCounter = false;
     }
 
-    // remember last timestamp
-    sqlDPs[id].ts = state.ts;
-
-    const query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, isCounter ? 'ts_counter' : dbNames[type]);
-
-    if (!multiRequests) {
-        if (tasks.length > 100) {
-            const error = 'Cannot queue new requests, because more than 100';
-            adapter.log.error(error);
-            cb && cb(error);
-        } else {
-            tasks.push({operation: 'insert', query, id, callback: cb});
-            tasks.length === 1 && processTasks();
+    prepareTask(id, state, isCounter, pushValueIntoDB, err => {
+        if (err) {
+            return cb && cb(err);
         }
-    } else {
-        _insertValueIntoDB(query, id, cb);
-    }
+
+        const type = sqlDPs[id].type;
+
+        // increase timestamp if last is the same
+        if (!isCounter && sqlDPs[id].ts && state.ts === sqlDPs[id].ts) {
+            state.ts++;
+        }
+
+        // remember last timestamp
+        sqlDPs[id].ts = state.ts;
+
+        const query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, isCounter ? 'ts_counter' : dbNames[type]);
+
+        if (!multiRequests) {
+            if (tasks.length > 100) {
+                const error = 'Cannot queue new requests, because more than 100';
+                adapter.log.error(error);
+                cb && cb(error);
+            } else {
+                tasks.push({operation: 'insert', query, id, callback: cb});
+                tasks.length === 1 && processTasks();
+            }
+        } else {
+            _insertValueIntoDB(query, id, cb);
+        }
+    });
 }
 
 let lockTasks = false;
@@ -1540,6 +1570,14 @@ function processTasks() {
     lockTasks = true;
 
     if (tasks.length) {
+        if (tasks[0].operation === 'query') {
+            _executeQuery(tasks[0].query, tasks[0].id, () => {
+                tasks[0].callback && tasks[0].callback();
+                tasks.shift();
+                lockTasks = false;
+                tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
+            });
+        } else
         if (tasks[0].operation === 'insert') {
             _insertValueIntoDB(tasks[0].query, tasks[0].id, () => {
                 tasks[0].callback && tasks[0].callback();
@@ -1547,32 +1585,28 @@ function processTasks() {
                 lockTasks = false;
                 tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
             });
-        }
-        else if (tasks[0].operation === 'select') {
+        } else if (tasks[0].operation === 'select') {
             _getDataFromDB(tasks[0].query, tasks[0].options, (err, rows) => {
                 tasks[0].callback && tasks[0].callback(err, rows);
                 tasks.shift();
                 lockTasks = false;
                 tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
             });
-        }
-        else if (tasks[0].operation === 'userQuery') {
+        } else if (tasks[0].operation === 'userQuery') {
             _userQuery(tasks[0].msg, () => {
                 tasks[0].callback && tasks[0].callback();
                 tasks.shift();
                 lockTasks = false;
                 tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
             });
-        }
-        else if (tasks[0].operation === 'delete') {
+        } else if (tasks[0].operation === 'delete') {
             _checkRetention(tasks[0].query, () => {
                 tasks[0].callback && tasks[0].callback();
                 tasks.shift();
                 lockTasks = false;
                 tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
             });
-        }
-        else {
+        } else {
             adapter.log.error('unknown task: ' + tasks[0].operation);
             tasks[0].callback && tasks[0].callback();
             tasks.shift();
@@ -1938,6 +1972,162 @@ function getHistory(msg) {
             });
         }
     }
+}
+
+function update(id, state, cb) {
+    prepareTask(id, state, false, update, err => {
+        if (err) {
+            return cb && cb(err);
+        }
+
+        const type = sqlDPs[id].type;
+
+        const query = SQLFuncs.update(adapter.config.dbname, sqlDPs[id].index, state, from[state.from], dbNames[type]);
+
+        if (!multiRequests) {
+            if (tasks.length > 100) {
+                const error = 'Cannot queue new requests, because more than 100';
+                adapter.log.error(error);
+                cb && cb(error);
+            } else {
+                tasks.push({operation: 'query', query, id, callback: cb});
+                tasks.length === 1 && processTasks();
+            }
+        } else {
+            _executeQuery(query, id, cb);
+        }
+    });
+}
+
+function _delete(id, state, cb) {
+    prepareTask(id, state, false, _delete, err => {
+        if (err) {
+            return cb && cb(err);
+        }
+
+        const type = sqlDPs[id].type;
+
+        const query = SQLFuncs.delete(adapter.config.dbname, dbNames[type], sqlDPs[id].index, state.ts);
+
+        if (!multiRequests) {
+            if (tasks.length > 100) {
+                const error = 'Cannot queue new requests, because more than 100';
+                adapter.log.error(error);
+                cb && cb(error);
+            } else {
+                tasks.push({operation: 'query', query, id, callback: cb});
+                tasks.length === 1 && processTasks();
+            }
+        } else {
+            _executeQuery(query, id, cb);
+        }
+    });
+}
+
+function updateState(msg) {
+    if (!msg.message) {
+        adapter.log.error('updateState called with invalid data');
+        return adapter.sendTo(msg.from, msg.command, {
+            error: 'Invalid call: ' + JSON.stringify(msg)
+        }, msg.callback);
+    }
+    let id;
+    if (Array.isArray(msg.message)) {
+        adapter.log.debug('updateState ' + msg.message.length + ' items');
+        for (let i = 0; i < msg.message.length; i++) {
+            id = aliasMap[msg.message[i].id] ? aliasMap[msg.message[i].id] : msg.message[i].id;
+
+            if (msg.message[i].state && typeof msg.message[i].state === 'object') {
+                update(id, msg.message[i].state);
+            } else {
+                adapter.log.warn('Invalid state for ' + JSON.stringify(msg.message[i]));
+            }
+        }
+    } else if (msg.message.state && Array.isArray(msg.message.state)) {
+        adapter.log.debug('updateState ' + msg.message.state.length + ' items');
+        id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
+        for (let j = 0; j < msg.message.state.length; j++) {
+            if (msg.message.state[j] && typeof msg.message.state[j] === 'object') {
+                update(id, msg.message.state[j]);
+            } else {
+                adapter.log.warn('Invalid state for ' + JSON.stringify(msg.message.state[j]));
+            }
+        }
+    } else if (msg.message.id && msg.message.state && typeof msg.message.state === 'object') {
+        adapter.log.debug('updateState 1 item');
+        id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
+        update(id, msg.message.state);
+    } else {
+        adapter.log.error('updateState called with invalid data');
+        return adapter.sendTo(msg.from, msg.command, {
+            error: 'Invalid call: ' + JSON.stringify(msg)
+        }, msg.callback);
+    }
+
+    adapter.sendTo(msg.from, msg.command, {
+        success: true,
+        connected: !!clientPool
+    }, msg.callback);
+}
+
+function deleteState(msg) {
+    if (!msg.message) {
+        adapter.log.error('deleteState called with invalid data');
+        return adapter.sendTo(msg.from, msg.command, {
+            error: 'Invalid call: ' + JSON.stringify(msg)
+        }, msg.callback);
+    }
+    let id;
+    if (Array.isArray(msg.message)) {
+        adapter.log.debug('deleteState ' + msg.message.length + ' items');
+        for (let i = 0; i < msg.message.length; i++) {
+            id = aliasMap[msg.message[i].id] ? aliasMap[msg.message[i].id] : msg.message[i].id;
+
+            if (msg.message[i].state && (typeof msg.message[i].state === 'object' || msg.message[i].ts !== undefined)) {
+                _delete(id, {ts: msg.message[i].state ? msg.message[i].state.ts : msg.message[i].ts});
+            } else {
+                adapter.log.warn('Invalid state for ' + JSON.stringify(msg.message[i]));
+            }
+        }
+    } else if (msg.message.state && Array.isArray(msg.message.state)) {
+        adapter.log.debug('deleteState ' + msg.message.state.length + ' items');
+        id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
+        for (let j = 0; j < msg.message.state.length; j++) {
+            if (msg.message.state[j] && typeof msg.message.state[j] === 'object') {
+                _delete(id, {ts: msg.message.state[j].ts});
+            } else if (msg.message.state[j] && typeof msg.message.state[j] === 'number') {
+                _delete(id, {ts: msg.message.state[j]});
+            } else {
+                adapter.log.warn('Invalid state for ' + JSON.stringify(msg.message.state[j]));
+            }
+        }
+    } else if (msg.message.ts && Array.isArray(msg.message.ts)) {
+        adapter.log.debug('deleteState ' + msg.message.ts.length + ' items');
+        id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
+        for (let j = 0; j < msg.message.ts.length; j++) {
+            if (msg.message.ts[j] && typeof msg.message.ts[j] === 'number') {
+                _delete(id, {ts: msg.message.ts[j]});
+            } else {
+                adapter.log.warn('Invalid state for ' + JSON.stringify(msg.message.ts[j]));
+            }
+        }
+    } else if (msg.message.id && msg.message.state && typeof msg.message.state === 'object') {
+        adapter.log.debug('deleteState 1 item');
+        id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
+        update(id, {ts: msg.message.state.ts});
+    } else if (msg.message.id && msg.message.ts && typeof msg.message.ts === 'number') {
+        adapter.log.debug('deleteState 1 item');
+        id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
+        _delete(id, {ts: msg.message.ts});
+    } else {
+        adapter.log.error('deleteState called with invalid data');
+        return adapter.sendTo(msg.from, msg.command, {error: 'Invalid call: ' + JSON.stringify(msg)}, msg.callback);
+    }
+
+    adapter.sendTo(msg.from, msg.command, {
+        success: true,
+        connected: !!clientPool
+    }, msg.callback);
 }
 
 function storeState(msg) {
@@ -2363,12 +2553,8 @@ function main() {
 
                     adapter.config.writeNulls && writeNulls();
 
-                    if (count < 20) {
-                        for (const _id in sqlDPs) {
-                            if (sqlDPs.hasOwnProperty(_id)) {
-                                adapter.subscribeForeignStates(sqlDPs[_id].realId);
-                            }
-                        }
+                    if (count < 200) {
+                        adapter.subscribeForeignStates(Object.keys(sqlDPs).map(id => sqlDPs[id].realId));
                     } else {
                         subscribeAll = true;
                         adapter.subscribeForeignStates('*');

@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.12.6",
+        "version": "1.13.0",
         "news": {
+            "1.13.0": {
+                "en": "added changed and delete operations",
+                "de": "geänderte und gelöschte Operationen hinzugefügt",
+                "ru": "добавлены операции изменения и удаления",
+                "pt": "adicionou operações alteradas e excluídas",
+                "nl": "toegevoegde bewerkingen en verwijderbewerkingen",
+                "fr": "opérations modifiées et supprimées ajoutées",
+                "it": "aggiunte operazioni modificate ed eliminate",
+                "es": "agregado cambiado y eliminar operaciones",
+                "pl": "dodano zmienione i usuń operacje",
+                "zh-cn": "添加了更改和删除操作"
+            },
             "1.12.6": {
                 "en": "set default history if not yet set",
                 "de": "Standardverlauf festlegen, falls noch nicht festgelegt",
