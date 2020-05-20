@@ -120,7 +120,7 @@ Structure:
 
 | Field  | Type                                       | Description                                     |
 |--------|--------------------------------------------|-------------------------------------------------|
-| id     | INTEGER                                    | ID of state from "Datapoints" table             |
+| id     | INTEGER                                    | ID of state from "Data points" table             |
 | ts     | BIGINT / INTEGER                           | Time in ms till epoch. Can be converted to time with "new Date(ts)" |
 | val    | REAL                                       | Value                                           |
 | ack    | BIT/BOOLEAN                                | Is acknowledged: 0 - not ack, 1 - ack           |
@@ -141,7 +141,7 @@ Structure:
 
 | Field  | Type                                       | Description                                     |
 |--------|--------------------------------------------|-------------------------------------------------|
-| id     | INTEGER                                    | ID of state from "Datapoints" table             |
+| id     | INTEGER                                    | ID of state from "Data points" table             |
 | ts     | BIGINT / INTEGER                           | Time in ms till epoch. Can be converted to time with "new Date(ts)" |
 | val    | REAL                                       | Value                                           |
  
@@ -161,7 +161,7 @@ Structure:
 
 | Field  | Type                                       | Description                                     |
 |--------|--------------------------------------------|-------------------------------------------------|
-| id     | INTEGER                                    | ID of state from "Datapoints" table             |
+| id     | INTEGER                                    | ID of state from "Data points" table             |
 | ts     | BIGINT                                     | Time in ms till epoch. Can be converted to time with "new Date(ts)" |
 | val    | TEXT                                       | Value                                           |
 | ack    | BIT/BOOLEAN                                | Is acknowledged: 0 - not ack, 1 - ack           |
@@ -184,7 +184,7 @@ Structure:
 
 | Field  | Type                                       | Description                                     |
 |--------|--------------------------------------------|-------------------------------------------------|
-| id     | INTEGER                                    | ID of state from "Datapoints" table             |
+| id     | INTEGER                                    | ID of state from "Data points" table             |
 | ts     | BIGINT                                     | Time in ms till epoch. Can be converted to time with "new Date(ts)" |
 | val    | BIT/BOOLEAN                                | Value                                           |
 | ack    | BIT/BOOLEAN                                | Is acknowledged: 0 - not ack, 1 - ack           |
@@ -301,7 +301,7 @@ If the counter will be replaced it will be calculated too.
 The adapter supports enabling and disabling of history logging via JavaScript and also retrieving the list of enabled data points with their settings.
 
 ### enable
-The message requires to have the "id" of the datapoint.Additionally optional "options" to define the data point specific settings:
+The message requires to have the "id" of the data point. Additionally optional "options" to define the data point specific settings:
 
 ```
 sendTo('sql.0', 'enableHistory', {
@@ -325,7 +325,7 @@ sendTo('sql.0', 'enableHistory', {
 ```
 
 ### disable
-The message requires to have the "id" of the datapoint.
+The message requires to have the "id" of the data point.
 
 ```
 sendTo('sql.0', 'disableHistory', {
@@ -391,11 +391,11 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (Apollon77) Crash prevented for invalid objects (Sentry IOBROKER-SQL-X) 
 
 ### 1.12.4 (2020-05-04)
-* (Apollon77) Potential crash fixed when disabling datapoints too fast (Sentry IOBROKER-SQL-W) 
+* (Apollon77) Potential crash fixed when disabling data points too fast (Sentry IOBROKER-SQL-W) 
 * (Apollon77) Always set "encrypt" flag, even if false because else might en in default true (see https://github.com/tediousjs/tedious/issues/931)
 
 ### 1.12.3 (2020-04-30)
-* (Apollon77) Try to create Indizes on MSSQL to speed up things. Infos are shown if not possible to be able for the user to do it themself. Timeout is 15s
+* (Apollon77) Try to create indexes on MSSQL to speed up things. Infos are shown if not possible to be able for the user to do it themself. Timeout is 15s
 
 ### 1.12.2 (2020-04-30)
 * (Apollon77) MSSQL works again
