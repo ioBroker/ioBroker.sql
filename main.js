@@ -56,7 +56,7 @@ function isEqual(a, b) {
     //console.log('Compare ' + JSON.stringify(a) + ' with ' +  JSON.stringify(b));
     // Create arrays of property names
     if (a === null || a === undefined || b === null || b === undefined) {
-        return (a === b);
+        return a === b;
     }
 
     const aProps = Object.getOwnPropertyNames(a);
@@ -69,19 +69,18 @@ function isEqual(a, b) {
         return false;
     }
 
-    for (var i = 0; i < aProps.length; i++) {
+    for (let i = 0; i < aProps.length; i++) {
         const propName = aProps[i];
 
         if (typeof a[propName] !== typeof b[propName]) {
             //console.log('type props ' + propName + ' different');
             return false;
-        }
+        } else
         if (typeof a[propName] === 'object') {
             if (!isEqual(a[propName], b[propName])) {
                 return false;
             }
-        }
-        else {
+        } else {
             // If values of same property are not equal,
             // objects are not equivalent
             if (a[propName] !== b[propName]) {
@@ -108,10 +107,11 @@ function startAdapter(options) {
         let tmpState;
         const now = Date.now();
         const formerAliasId = aliasMap[id] ? aliasMap[id] : id;
-        if (obj && obj.common && obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled) {
 
+        if (obj && obj.common && obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled) {
             const realId = id;
             let checkForRemove = true;
+
             if (obj.common.custom && obj.common.custom[adapter.namespace] && obj.common.custom[adapter.namespace].aliasId) {
                 if (obj.common.custom[adapter.namespace].aliasId !== id) {
                     aliasMap[id] = obj.common.custom[adapter.namespace].aliasId;
@@ -162,7 +162,9 @@ function startAdapter(options) {
                 adapter.log.debug('Removed Alias: ' + id + ' !-> ' + aliasMap[id]);
                 delete aliasMap[id];
             }
+
             id = formerAliasId;
+
             if (sqlDPs[id]) {
                 adapter.log.info('disabled logging of ' + id);
                 sqlDPs[id].relogTimeout && clearTimeout(sqlDPs[id].relogTimeout);
@@ -192,8 +194,7 @@ function startAdapter(options) {
                                 pushValueIntoDB(_id, _nullValue, () => delete sqlDPs[id][adapter.namespace]);
                             });
                         })(id, state, nullValue);
-                    }
-                    else {
+                    } else {
                         // terminate values with null to indicate adapter stop. timestamp + 1
                         adapter.log.debug('Write 0 NULL _id: ' + id);
                         pushValueIntoDB(id, nullValue, () => delete sqlDPs[id][adapter.namespace]);
@@ -220,12 +221,13 @@ function startAdapter(options) {
 }
 
 function borrowClientFromPool(callback) {
-    if (typeof callback !== 'function') return;
+    if (typeof callback !== 'function') {
+        return;
+    }
 
     if (!clientPool) {
         setConnected(false);
-        callback('No database connection');
-        return;
+        return callback('No database connection');
     }
     setConnected(true);
 
@@ -233,11 +235,11 @@ function borrowClientFromPool(callback) {
         if (!err && client) {
             // make sure we always have at least one error listener to prevent crashes
             if (client.on && client.listenerCount && client.listenerCount('error') === 0) {
-                client.on('error', (err) => {
-                    adapter.log.warn('SQL client error: ' + err);
-                });
+                client.on('error', err =>
+                    adapter.log.warn('SQL client error: ' + err));
             }
         }
+
         callback(err, client);
     });
 }
@@ -249,18 +251,21 @@ function returnClientToPool(client) {
 function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
     adapter.log.debug(`remembered Index/Type ${storedIndex} / ${storedType}`);
 
+    // retention
     if (obj.common.custom[adapter.namespace].retention || obj.common.custom[adapter.namespace].retention === 0) {
         obj.common.custom[adapter.namespace].retention = parseInt(obj.common.custom[adapter.namespace].retention, 10) || 0;
     } else {
         obj.common.custom[adapter.namespace].retention = adapter.config.retention;
     }
 
+    // debounce
     if (obj.common.custom[adapter.namespace].debounce || obj.common.custom[adapter.namespace].debounce === 0) {
         obj.common.custom[adapter.namespace].debounce = parseInt(obj.common.custom[adapter.namespace].debounce, 10) || 0;
     } else {
         obj.common.custom[adapter.namespace].debounce = adapter.config.debounce;
     }
 
+    // changesOnly
     obj.common.custom[adapter.namespace].changesOnly = obj.common.custom[adapter.namespace].changesOnly === 'true' || obj.common.custom[adapter.namespace].changesOnly === true;
 
     if (obj.common.custom[adapter.namespace].changesRelogInterval || obj.common.custom[adapter.namespace].changesRelogInterval === 0) {
@@ -269,12 +274,14 @@ function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
         obj.common.custom[adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
     }
 
+    // changesMinDelta
     if (obj.common.custom[adapter.namespace].changesMinDelta || obj.common.custom[adapter.namespace].changesMinDelta === 0) {
         obj.common.custom[adapter.namespace].changesMinDelta = parseFloat(obj.common.custom[adapter.namespace].changesMinDelta.toString().replace(/,/g, '.')) || 0;
     } else {
         obj.common.custom[adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
     }
 
+    // storageType
     if (!obj.common.custom[adapter.namespace].storageType) {
         obj.common.custom[adapter.namespace].storageType = false;
     }
@@ -284,11 +291,13 @@ function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
         obj.common.custom[adapter.namespace].retention += 86400;
     }
 
-    if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId][adapter.namespace] && isEqual(obj.common.custom[adapter.namespace], sqlDPs[formerAliasId][adapter.namespace])) {
-        adapter.log.debug('Object ' + id + ' unchanged. Ignore');
-        return;
+    if (sqlDPs[formerAliasId] &&
+        sqlDPs[formerAliasId][adapter.namespace] &&
+        isEqual(obj.common.custom[adapter.namespace], sqlDPs[formerAliasId][adapter.namespace])) {
+        return adapter.log.debug('Object ' + id + ' unchanged. Ignore');
     }
 
+    // relogTimeout
     if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].relogTimeout) {
         clearTimeout(sqlDPs[formerAliasId].relogTimeout);
     }
@@ -296,7 +305,9 @@ function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
     sqlDPs[id] = obj.common.custom;
     sqlDPs[id].realId  = realId;
 
+    // changesRelogInterval
     if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+        sqlDPs[id].relogTimeout && clearTimeout(sqlDPs[id].relogTimeout);
         sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
     }
 
@@ -332,6 +343,7 @@ function connect(callback) {
             password:   adapter.config.password,
             max_idle:   (adapter.config.dbtype === 'sqlite') ? 1 : 2
         };
+
         if (adapter.config.maxConnections) {
             params.max_active = adapter.config.maxConnections;
             params.max_wait = 10000; // hard code for now
@@ -351,8 +363,7 @@ function connect(callback) {
 
         if (adapter.config.dbtype === 'sqlite') {
             params = getSqlLiteDir(adapter.config.fileName);
-        }
-        else
+        } else
         // special solution for postgres. Connect first to Db "postgres", create new DB "iobroker" and then connect to "iobroker" DB.
         if (_client !== true && adapter.config.dbtype === 'postgresql') {
             if (adapter.config.dbtype === 'postgresql') {
@@ -360,23 +371,20 @@ function connect(callback) {
             }
 
             if (!adapter.config.dbtype) {
-                adapter.log.error('DB Type is not defined!');
-                return;
-            }
+                return adapter.log.error('DB Type is not defined!');
+            } else
             if (!clients[adapter.config.dbtype] || !clients[adapter.config.dbtype].name) {
-                adapter.log.error('Unknown type "' + adapter.config.dbtype + '"');
-                return;
-            }
+                return adapter.log.error('Unknown type "' + adapter.config.dbtype + '"');
+            } else
             if (!SQL[clients[adapter.config.dbtype].name]) {
-                adapter.log.error('SQL package "' + clients[adapter.config.dbtype].name + '" is not installed.');
-                return;
+                return adapter.log.error('SQL package "' + clients[adapter.config.dbtype].name + '" is not installed.');
             }
 
             // connect first to DB postgres and create iobroker DB
             _client = new SQL[clients[adapter.config.dbtype].name](params);
-            _client.on && _client.on('error', (err) => {
-                adapter.log.warn('SQL client error: ' + err);
-            });
+            _client.on && _client.on('error', err =>
+                adapter.log.warn('SQL client error: ' + err));
+
             return _client.connect(err => {
                 if (err) {
                     adapter.log.error(err);
@@ -384,6 +392,7 @@ function connect(callback) {
                     reconnectTimeout = setTimeout(() => connect(callback), 30000);
                     return;
                 }
+
                 _client.execute('CREATE DATABASE ' + adapter.config.dbname + ';', (err /* , rows, fields */) => {
                     _client.disconnect();
                     if (err && err.code !== '42P04') { // if error not about yet exists
@@ -411,6 +420,7 @@ function connect(callback) {
                 adapter.log.error('Selected SQL DB was not installed properly:  "' + adapter.config.dbtype + '". SQLite requires build tools on system. See README.md');
             } else {
                 clientPool = new SQL[clients[adapter.config.dbtype].name + 'Pool'](params);
+
                 return clientPool.open(err => {
                     if (err) {
                         clientPool = null;
@@ -467,6 +477,7 @@ function getSqlLiteDir(fileName) {
         const parts = config.split('/');
         parts.pop();
         config = parts.join('/') + '/sqlite';
+
         // create sqlite directory
         if (!fs.existsSync(config)) {
             fs.mkdirSync(config);
@@ -484,6 +495,7 @@ function testConnection(msg) {
         user:       msg.message.config.user,
         password:   msg.message.config.password
     };
+
     if (msg.message.config.port) {
         params.port = msg.message.config.port;
     }
@@ -506,11 +518,12 @@ function testConnection(msg) {
     } else if (msg.message.config.dbtype === 'sqlite') {
         params = getSqlLiteDir(msg.message.config.fileName);
     }
+
     try {
         const client = new SQL[clients[msg.message.config.dbtype].name](params);
-        client.on && client.on('error', (err) => {
-            adapter.log.warn('SQL client error: ' + err);
-        });
+        client.on && client.on('error', err =>
+            adapter.log.warn('SQL client error: ' + err));
+
         testConnectTimeout = setTimeout(() => {
             testConnectTimeout = null;
             adapter.sendTo(msg.from, msg.command, {error: 'connect timeout'}, msg.callback);
@@ -524,8 +537,10 @@ function testConnection(msg) {
                 }
                 return adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
             }
+
             client.execute('SELECT 2 + 3 AS x', (err /* , rows, fields */) => {
                 client.disconnect();
+
                 if (testConnectTimeout) {
                     clearTimeout(testConnectTimeout);
                     testConnectTimeout = null;
@@ -982,15 +997,14 @@ function pushHistory(id, state, timerRelog) {
         }
 
         if (state && state.val === undefined) {
-            adapter.log.warn(`state value undefined received for ${id} which is not allowed. Ignoring.`);
-            return;
+            return adapter.log.warn(`state value undefined received for ${id} which is not allowed. Ignoring.`);
         }
 
         adapter.log.debug(`new value received for ${id}, new-value=${state.val}, ts=${state.ts}, relog=${timerRelog}`);
 
         if (state.val !== null && typeof state.val === 'string' && settings.storageType !== 'String') {
             const f = parseFloat(state.val);
-            // do not use here === or find a better way to validate if string is valid float
+            // do not use here === or find a better way to validate if string is a valid float
             if (f == state.val) {
                 state.val = f;
             }
@@ -999,9 +1013,9 @@ function pushHistory(id, state, timerRelog) {
         if (settings.counter && sqlDPs[id].state) {
             if (sqlDPs[id].type !== types.number) {
                 adapter.log.error('Counter cannot have type not "number"!');
-            }
+            } else
             // if actual value is less then last seen counter
-            else if (state.val < sqlDPs[id].state.val) {
+            if (state.val < sqlDPs[id].state.val) {
                 // store both values
                 pushValueIntoDB(id, sqlDPs[id].state, true);
                 pushValueIntoDB(id, state, true);
@@ -1039,6 +1053,7 @@ function pushHistory(id, state, timerRelog) {
             clearTimeout(sqlDPs[id].relogTimeout);
             sqlDPs[id].relogTimeout = null;
         }
+
         if (settings.changesRelogInterval > 0) {
             sqlDPs[id].relogTimeout = setTimeout(reLogHelper, settings.changesRelogInterval * 1000, id);
         }
@@ -1057,14 +1072,14 @@ function pushHistory(id, state, timerRelog) {
 
             if (sqlDPs[id].state && ((sqlDPs[id].state.val === null && state.val !== null) || (sqlDPs[id].state.val !== null && state.val === null))) {
                 ignoreDebonce = true;
-            }
-            else if (!sqlDPs[id].state && state.val === null) {
+            } else if (!sqlDPs[id].state && state.val === null) {
                 ignoreDebonce = true;
             }
 
             // only store state if really changed
             sqlDPs[id].state = state;
         }
+
         sqlDPs[id].lastLogTime = state.ts;
         sqlDPs[id].skipped = null;
 
@@ -1210,6 +1225,7 @@ function getAllFroms(cb) {
                     from[rows[r].name] = rows[r].id;
                 }
             }
+
             cb && cb();
         });
     });
@@ -1239,6 +1255,7 @@ function checkRetention(id) {
         // check every 6 hours
         if (!sqlDPs[id].lastCheck || dt - sqlDPs[id].lastCheck >= 21600000/* 6 hours */) {
             sqlDPs[id].lastCheck = dt;
+
             if (!dbNames[sqlDPs[id].type]) {
                 adapter.log.error(`No type ${sqlDPs[id].type} found for ${id}. Retention is not possible.`);
             } else {
@@ -1361,6 +1378,7 @@ function processReadTypes() {
                             adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found (' + (state?(typeof state.val):'state not existing') + ')');
                             sqlDPs[task.id].type = 1; // string
                         }
+
                         adapter.log.debug('Type (from State) for ' + task.id + ': ' + sqlDPs[task.id].type);
                         processVerifyTypes(task);
                     });
@@ -1945,6 +1963,7 @@ function getHistory(msg) {
         commons.sendResponse(adapter, msg, options, 'Please wait till next data record is logged and reload.', startTime);
         return;
     }
+    
     const type = sqlDPs[options.id].type;
     if (options.id) {
         options.index = options.id;
@@ -2508,44 +2527,54 @@ function main() {
                                     count++;
                                     adapter.log.info('enabled logging of ' + id + ', Alias=' + (id !== realId) + ', ' + count + ' points now activated');
 
+                                    // retention
                                     if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
                                         sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
                                     } else {
                                         sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
                                     }
 
+                                    // debounce
                                     if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
                                         sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
                                     } else {
                                         sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
                                     }
+
+                                    // changesOnly
                                     sqlDPs[id][adapter.namespace].changesOnly = sqlDPs[id][adapter.namespace].changesOnly === 'true' || sqlDPs[id][adapter.namespace].changesOnly === true;
 
+                                    // changesRelogInterval
                                     if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
                                         sqlDPs[id][adapter.namespace].changesRelogInterval = parseInt(sqlDPs[id][adapter.namespace].changesRelogInterval, 10) || 0;
                                     } else {
                                         sqlDPs[id][adapter.namespace].changesRelogInterval = adapter.config.changesRelogInterval;
                                     }
-                                    if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
-                                        sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
-                                    }
+
+                                    // changesMinDelta
                                     if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
                                         sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta) || 0;
                                     } else {
                                         sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
                                     }
-                                    if (!sqlDPs[id][adapter.namespace].storageType) sqlDPs[id][adapter.namespace].storageType = false;
+
+                                    // storageType
+                                    if (!sqlDPs[id][adapter.namespace].storageType) {
+                                        sqlDPs[id][adapter.namespace].storageType = false;
+                                    }
 
                                     // add one day if retention is too small
                                     if (sqlDPs[id][adapter.namespace].retention && sqlDPs[id][adapter.namespace].retention <= 604800) {
                                         sqlDPs[id][adapter.namespace].retention += 86400;
                                     }
+
+                                    // relogTimeout
                                     if (sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
-                                        if (sqlDPs[id].relogTimeout) clearTimeout(sqlDPs[id].relogTimeout);
+                                        sqlDPs[id].relogTimeout && clearTimeout(sqlDPs[id].relogTimeout);
                                         sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
                                     }
 
-                                    sqlDPs[id].realId  = realId;
+                                    sqlDPs[id].realId = realId;
                                 }
                             }
                         }
