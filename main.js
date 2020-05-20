@@ -2554,7 +2554,8 @@ function main() {
                     adapter.config.writeNulls && writeNulls();
 
                     if (count < 200) {
-                        adapter.subscribeForeignStates(Object.keys(sqlDPs).map(id => sqlDPs[id].realId));
+                        Object.keys(sqlDPs).forEach(id =>
+                            sqlDPs[id] && sqlDPs[id].realId && adapter.subscribeForeignStates(sqlDPs[id].realId));
                     } else {
                         subscribeAll = true;
                         adapter.subscribeForeignStates('*');
