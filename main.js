@@ -303,7 +303,7 @@ function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
     }
 
     sqlDPs[id] = obj.common.custom;
-    sqlDPs[id].realId  = realId;
+    sqlDPs[id].realId = realId;
 
     // changesRelogInterval
     if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
@@ -1963,7 +1963,7 @@ function getHistory(msg) {
         commons.sendResponse(adapter, msg, options, 'Please wait till next data record is logged and reload.', startTime);
         return;
     }
-    
+
     const type = sqlDPs[options.id].type;
     if (options.id) {
         options.index = options.id;
@@ -2583,6 +2583,9 @@ function main() {
                     adapter.config.writeNulls && writeNulls();
 
                     if (count < 200) {
+                        Object.keys(sqlDPs).forEach(id =>
+                            sqlDPs[id] && !sqlDPs[id].realId && adapter.log.warn(`No realID found for ${id}`));
+
                         Object.keys(sqlDPs).forEach(id =>
                             sqlDPs[id] && sqlDPs[id].realId && adapter.subscribeForeignStates(sqlDPs[id].realId));
                     } else {
