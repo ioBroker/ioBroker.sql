@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.13.1",
+        "version": "1.14.0",
         "news": {
+            "1.14.0": {
+                "en": "added the range deletion and the delete all operations",
+                "de": "Das Löschen des Bereichs und das Löschen aller Vorgänge wurden hinzugefügt",
+                "ru": "добавлено удаление диапазона и удаление всех операций",
+                "pt": "adicionada a exclusão do intervalo e a exclusão de todas as operações",
+                "nl": "het verwijderen van het bereik en het verwijderen van alle bewerkingen toegevoegd",
+                "fr": "ajouté la suppression de plage et la suppression de toutes les opérations",
+                "it": "aggiunta la cancellazione dell'intervallo e l'eliminazione di tutte le operazioni",
+                "es": "agregó la eliminación de rango y eliminar todas las operaciones",
+                "pl": "dodano usuwanie zakresu i usuwanie wszystkich operacji",
+                "zh-cn": "添加了范围删除和删除所有操作"
+            },
             "1.13.1": {
                 "en": "added changed and delete operations",
                 "de": "geänderte und gelöschte Operationen hinzugefügt",
