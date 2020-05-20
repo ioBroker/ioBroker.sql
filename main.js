@@ -2586,6 +2586,9 @@ function main() {
                         Object.keys(sqlDPs).forEach(id =>
                             sqlDPs[id] && !sqlDPs[id].realId && adapter.log.warn(`No realID found for ${id}`));
 
+                        // BF (2020.05.20) change it later to
+                        // adapter.subscribeForeignStates(Object.keys(sqlDPs).forEach(id => sqlDPs[id] && sqlDPs[id].realId).filter(id => id));
+
                         Object.keys(sqlDPs).forEach(id =>
                             sqlDPs[id] && sqlDPs[id].realId && adapter.subscribeForeignStates(sqlDPs[id].realId));
                     } else {
