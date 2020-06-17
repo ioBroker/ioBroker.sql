@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.14.0",
+        "version": "1.14.1",
         "news": {
+            "1.14.1": {
+                "en": "Corrected error for objects with mixed type",
+                "de": "Fehler für Objekte mit gemischtem Typ behoben",
+                "ru": "Исправлена ошибка для объектов со смешанным типом",
+                "pt": "Erro corrigido para objetos com tipo misto",
+                "nl": "Fout gecorrigeerd voor objecten met gemengd type",
+                "fr": "Erreur corrigée pour les objets de type mixte",
+                "it": "Errore corretto per oggetti con tipo misto",
+                "es": "Error corregido para objetos con tipo mixto",
+                "pl": "Poprawiony błąd dla obiektów typu mieszanego",
+                "zh-cn": "纠正了混合类型对象的错误"
+            },
             "1.14.0": {
                 "en": "added the range deletion and the delete all operations",
                 "de": "Das Löschen des Bereichs und das Löschen aller Vorgänge wurden hinzugefügt",
@@ -133,29 +145,6 @@
                 "es": "Soporte para nodejs 12 agregado",
                 "pl": "Dodano wsparcie dla nodejs 12",
                 "zh-cn": "增加了对nodejs 12的支持"
-            },
-            "1.9.4": {
-                "en": "Fix several smaller issues and timing on initialization/Start optimized",
-                "de": "Behebung mehrerer kleinerer Probleme und Timing bei der Initialisierung / Start optimiert",
-                "ru": "Исправлено несколько мелких проблем и времени при инициализации / Запуск оптимизирован",
-                "pt": "Corrigir vários problemas menores e tempo na inicialização / Iniciar otimizado",
-                "nl": "Los enkele kleinere problemen en timing op bij initialisatie / Start geoptimaliseerd",
-                "fr": "Résoudre plusieurs problèmes mineurs et le calendrier d'initialisation / démarrage optimisé",
-                "it": "Risolti diversi problemi minori e tempistiche sull'inizializzazione / Avvio ottimizzato",
-                "es": "Solucionar varios problemas más pequeños y el tiempo de inicio / inicio optimizado",
-                "pl": "Napraw kilka mniejszych problemów i czas podczas inicjalizacji / Uruchom zoptymalizowany",
-                "zh-cn": "修复几个较小的问题和初始化/开始优化的时间"
-            },
-            "1.9.2": {
-                "en": "Add option to write data to a different ID to make device changes easier. Retrieving data works for both IDs",
-                "de": "Option zum Schreiben von Daten in eine andere ID hinzufügen, um Geräteänderungen zu vereinfachen. Das Abrufen von Daten funktioniert für beide IDs",
-                "ru": "Добавьте параметр для записи данных на другой идентификатор, чтобы упростить внесение изменений. Получение данных для обоих ID",
-                "pt": "Adicione a opção de gravar dados em um ID diferente para facilitar as alterações no dispositivo. Recuperar dados funciona para os dois IDs",
-                "nl": "Optie toevoegen om gegevens naar een andere ID te schrijven om apparaatwijzigingen gemakkelijker te maken. Het ophalen van gegevens werkt voor beide ID's",
-                "fr": "Ajoutez une option pour écrire des données sur un ID différent afin de faciliter les changements de périphérique. Récupération des données fonctionne pour les deux ID",
-                "it": "Aggiungi l'opzione per scrivere i dati su un ID diverso per facilitare le modifiche ai dispositivi. Il recupero dei dati funziona per entrambi gli ID",
-                "es": "Agregue la opción para escribir datos en una ID diferente para facilitar los cambios en el dispositivo. La recuperación de datos funciona para ambos ID",
-                "pl": "Dodaj opcję zapisywania danych do innego identyfikatora, aby ułatwić zmianę urządzenia. Pobieranie danych działa dla obu identyfikatorów"
             }
         },
         "mode": "daemon",

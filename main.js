@@ -1362,7 +1362,7 @@ function processReadTypes() {
                     adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
                     return setImmediate(processReadTypes);
                 } else
-                if (obj && obj.common && obj.common.type) {
+                if (obj && obj.common && obj.common.type && types[obj.common.type.toLowerCase()] !== undefined) {
                     adapter.log.debug(obj.common.type.toLowerCase() + ' / ' + types[obj.common.type.toLowerCase()] + ' / ' + JSON.stringify(obj.common));
                     sqlDPs[task.id].type = types[obj.common.type.toLowerCase()];
                     sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
