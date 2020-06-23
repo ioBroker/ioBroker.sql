@@ -24,19 +24,19 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.14.1",
+        "version": "1.14.2",
         "news": {
-            "1.14.1": {
-                "en": "Corrected error for objects with mixed type",
-                "de": "Fehler für Objekte mit gemischtem Typ behoben",
-                "ru": "Исправлена ошибка для объектов со смешанным типом",
-                "pt": "Erro corrigido para objetos com tipo misto",
-                "nl": "Fout gecorrigeerd voor objecten met gemengd type",
-                "fr": "Erreur corrigée pour les objets de type mixte",
-                "it": "Errore corretto per oggetti con tipo misto",
-                "es": "Error corregido para objetos con tipo mixto",
-                "pl": "Poprawiony błąd dla obiektów typu mieszanego",
-                "zh-cn": "纠正了混合类型对象的错误"
+            "1.14.2": {
+                "en": "Fixed error for data storage",
+                "de": "Fehler beim Speichern der Daten behoben",
+                "ru": "Исправлена ошибка хранения данных",
+                "pt": "Corrigido erro no armazenamento de dados",
+                "nl": "Vaste fout voor gegevensopslag",
+                "fr": "Correction d'une erreur pour le stockage des données",
+                "it": "Risolto errore per la memorizzazione dei dati",
+                "es": "Error corregido para el almacenamiento de datos",
+                "pl": "Naprawiono błąd przechowywania danych",
+                "zh-cn": "修复了数据存储错误"
             },
             "1.14.0": {
                 "en": "added the range deletion and the delete all operations",
