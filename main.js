@@ -1475,14 +1475,10 @@ function prepareTaskReadDbId(id, state, isCounter, cb) {
                 if (err) {
                     adapter.log.warn(`Cannot get index of "${_id}": ${err}`);
                     sqlDPs[_id].isRunning &&
-                    sqlDPs[_id].isRunning
-                        .filter(r => r.cb)
-                        .forEach(r => r.cb(`Cannot get index of "${r.id}": ${err}`));
+                        sqlDPs[_id].isRunning.forEach(r => r.cb && r.cb(`Cannot get index of "${r.id}": ${err}`));
                 } else {
                     sqlDPs[_id].isRunning &&
-                    sqlDPs[_id].isRunning
-                        .filter(r => r.cb)
-                        .forEach(r => r.cb());
+                        sqlDPs[_id].isRunning.forEach(r => r.cb && r.cb());
                 }
 
                 sqlDPs[_id].isRunning = null;
@@ -1497,7 +1493,7 @@ function prepareTaskReadDbId(id, state, isCounter, cb) {
         isFromRunning[state.from] = isFromRunning[state.from] || [];
         tmpState = Object.assign({}, state);
 
-        isFromRunning[state.from].push({id, state: tmpState, func, cb});
+        isFromRunning[state.from].push({id, state: tmpState, cb});
 
         if (isFromRunning[state.from].length === 1) {
             // read or create in DB
@@ -1506,17 +1502,10 @@ function prepareTaskReadDbId(id, state, isCounter, cb) {
                 if (err) {
                     adapter.log.warn('Cannot get "from" for "' + from + '": ' + err);
                     isFromRunning[from] &&
-                    isFromRunning[from]
-                        .filter(f => f.cb)
-                        .forEach(f => f.cb(`Cannot get "from" for "${from}": ${err}`));
+                        isFromRunning[from].forEach(f => f.cb && f.cb(`Cannot get "from" for "${from}": ${err}`));
                 } else {
                     isFromRunning[from] &&
-                    isFromRunning[from].forEach(f => f.func(
-                        f.id,
-                        f.state,
-                        f.isCounter,
-                        f.cb
-                    ));
+                        isFromRunning[from].forEach(f => f.cb && f.cb());
                 }
                 isFromRunning[from] = null;
             });
