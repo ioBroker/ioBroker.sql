@@ -21,14 +21,14 @@ function checkConnectionOfAdapter(cb, counter) {
         return;
     }
 
-    states.getState('system.adapter.' + adapterShortName + '.0.alive', function (err, state) {
-        if (err) console.error('MySQL-with-dash: ' + err);
+    states.getState('system.adapter.' + adapterShortName + '.0.alive', (err, state) => {
+        err && console.error('MySQL-with-dash: ' + err);
         if (state && state.val) {
             cb && cb();
         } else {
-            setTimeout(function () {
-                checkConnectionOfAdapter(cb, counter + 1);
-            }, 1000);
+            setTimeout(() =>
+                checkConnectionOfAdapter(cb, counter + 1)
+                , 1000);
         }
     });
 }
@@ -89,10 +89,12 @@ describe('Test MySQL-with-dash', function() {
             config.native.dbtype   = 'mysql';
             config.native.user     = 'root';
             config.native.dbname   = 'io-broker';
-            if (process.env.APPVEYOR && process.env.APPVEYOR==='True') {
+            if (process.env.APPVEYOR && process.env.APPVEYOR === 'True') {
                 config.native.password = 'Password12!';
-            } else if (process.env.TRAVIS_OS_NAME && process.env.TRAVIS_OS_NAME === 'osx'){
+            } else if (process.env.TRAVIS_OS_NAME && process.env.TRAVIS_OS_NAME === 'osx') {
                 config.native.password = 'mysql';
+            } else {
+                config.native.password = process.env.SQL_PASS || '';
             }
 
             setup.setAdapterConfig(config.common, config.native);
@@ -192,9 +194,7 @@ describe('Test MySQL-with-dash', function() {
                                         expect(result.error).to.be.undefined;
                                         expect(result.success).to.be.true;
                                         // wait till adapter receives the new settings
-                                        setTimeout(function () {
-                                            done();
-                                        }, 2000);
+                                        setTimeout(() => done(), 2000);
                                     });
                                 });
                             });
@@ -211,58 +211,42 @@ describe('Test MySQL-with-dash', function() {
             console.log(JSON.stringify(result));
             expect(Object.keys(result).length).to.be.equal(5);
             expect(result['sql.0.memRss'].enabled).to.be.true;
-            setTimeout(function () {
-                done();
-            }, 15000);
+            setTimeout(() => done(), 15000);
         });
     });
     it('Test MySQL-with-dash: Write values into DB', function (done) {
         this.timeout(10000);
 
-        states.setState('sql.0.memRss', {val: 2, ts: now - 20000}, function (err) {
-            if (err) {
-                console.log(err);
-            }
+        states.setState('sql.0.memRss', {val: 2, ts: now - 20000}, err => {
+            err && console.log(err);
             setTimeout(function () {
-                states.setState('sql.0.memRss', {val: true, ts: now - 10000}, function (err) {
-                    if (err) {
-                        console.log(err);
-                    }
+                states.setState('sql.0.memRss', {val: true, ts: now - 10000}, err => {
+                    err && console.log(err);
                     setTimeout(function () {
-                        states.setState('sql.0.memRss', {val: 2, ts: now - 5000}, function (err) {
-                            if (err) {
-                                console.log(err);
-                            }
+                        states.setState('sql.0.memRss', {val: 2, ts: now - 5000}, err => {
+                            err && console.log(err);
                             setTimeout(function () {
-                                states.setState('sql.0.memRss', {val: 2.2, ts: now - 4000}, function (err) {
-                                    if (err) {
-                                        console.log(err);
-                                    }
+                                states.setState('sql.0.memRss', {val: 2.2, ts: now - 4000}, err => {
+                                    err && console.log(err);
+
                                     setTimeout(function () {
-                                        states.setState('sql.0.memRss', {val: '2.5', ts: now - 3000}, function (err) {
-                                            if (err) {
-                                                console.log(err);
-                                            }
+                                        states.setState('sql.0.memRss', {val: '2.5', ts: now - 3000}, err => {
+                                            err && console.log(err);
+
                                             setTimeout(function () {
-                                                states.setState('sql.0.memRss', {val: 3, ts: now - 1000}, function (err) {
-                                                    if (err) {
-                                                        console.log(err);
-                                                    }
+                                                states.setState('sql.0.memRss', {val: 3, ts: now - 1000}, err => {
+                                                    err && console.log(err);
+
                                                     setTimeout(function () {
-                                                        states.setState('sql.0.memRss', {val: 'Test', ts: now - 500}, function (err) {
-                                                            if (err) {
-                                                                console.log(err);
-                                                            }
+                                                        states.setState('sql.0.memRss', {val: 'Test', ts: now - 500}, err => {
+                                                            err && console.log(err);
                                                             setTimeout(function () {
-                                                                states.setState('sql.0.testValue2', {val: 1, ts: now - 2000}, function (err) {
-                                                                    if (err) {
-                                                                        console.log(err);
-                                                                    }
+                                                                states.setState('sql.0.testValue2', {val: 1, ts: now - 2000}, err => {
+                                                                    err && console.log(err);
+                                                                    setTimeout(done, 5000);
                                                                     setTimeout(function () {
-                                                                        states.setState('sql.0.testValue2', {val: 3, ts: now - 1000}, function (err) {
-                                                                            if (err) {
-                                                                                console.log(err);
-                                                                            }
+                                                                        states.setState('sql.0.testValue2', {val: 3, ts: now - 1000}, err => {
+                                                                            err && console.log(err);
                                                                             setTimeout(done, 5000);
                                                                         });
                                                                     }, 100);
@@ -290,15 +274,13 @@ describe('Test MySQL-with-dash', function() {
             sendTo('sql.0', 'query', 'SELECT * FROM `io-broker`.ts_number WHERE id=' + result.result[0].id, function (result) {
                 console.log('MySQL-with-dash: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(5);
-                var found = 0;
-                for (var i = 0; i < result.result.length; i++) {
+                let found = 0;
+                for (let i = 0; i < result.result.length; i++) {
                     if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
                 }
                 expect(found).to.be.equal(6);
 
-                setTimeout(function () {
-                    done();
-                }, 3000);
+                setTimeout(() => done(), 3000);
             });
         });
     });
@@ -338,7 +320,7 @@ describe('Test MySQL-with-dash', function() {
             });
         });
     });
-    it('Test ' + adapterShortName + ': Check Datapoint Types', function (done) {
+    it('Test MySQL-with-dash: Check Datapoint Types', function (done) {
         this.timeout(5000);
 
         sendTo('sql.0', 'query', "SELECT name, type FROM `io-broker`.datapoints", function (result) {
@@ -359,13 +341,11 @@ describe('Test MySQL-with-dash', function() {
                 }
             }
 
-            setTimeout(function () {
-                done();
-            }, 3000);
+            setTimeout(() => done(), 3000);
         });
     });
 
-    it('Test ' + adapterShortName + ': Read values from DB using GetHistory for aliased testValue2', function (done) {
+    it('Test MySQL-with-dash: Read values from DB using GetHistory for aliased testValue2', function (done) {
         this.timeout(25000);
 
         sendTo('sql.0', 'getHistory', {
@@ -400,7 +380,7 @@ describe('Test MySQL-with-dash', function() {
         });
     });
 
-    it('Test ' + adapterShortName + ': Remove Alias-ID', function (done) {
+    it('Test MySQL-with-dash: Remove Alias-ID', function (done) {
         this.timeout(5000);
 
         sendTo('sql.0', 'enableHistory', {
@@ -412,12 +392,10 @@ describe('Test MySQL-with-dash', function() {
             expect(result.error).to.be.undefined;
             expect(result.success).to.be.true;
             // wait till adapter receives the new settings
-            setTimeout(function () {
-                done();
-            }, 2000);
+            setTimeout(() => done(), 2000);
         });
     });
-    it('Test ' + adapterShortName + ': Add Alias-ID again', function (done) {
+    it('Test MySQL-with-dash: Add Alias-ID again', function (done) {
         this.timeout(5000);
 
         sendTo('sql.0', 'enableHistory', {
@@ -429,12 +407,10 @@ describe('Test MySQL-with-dash', function() {
             expect(result.error).to.be.undefined;
             expect(result.success).to.be.true;
             // wait till adapter receives the new settings
-            setTimeout(function () {
-                done();
-            }, 2000);
+            setTimeout(() => done(), 2000);
         });
     });
-    it('Test ' + adapterShortName + ': Change Alias-ID', function (done) {
+    it('Test MySQL-with-dash: Change Alias-ID', function (done) {
         this.timeout(5000);
 
         sendTo('sql.0', 'enableHistory', {
@@ -446,13 +422,11 @@ describe('Test MySQL-with-dash', function() {
             expect(result.error).to.be.undefined;
             expect(result.success).to.be.true;
             // wait till adapter receives the new settings
-            setTimeout(function () {
-                done();
-            }, 2000);
+            setTimeout(() => done(), 2000);
         });
     });
 
-    it('Test ' + adapterShortName + ': Disable Datapoint again', function (done) {
+    it('Test MySQL-with-dash: Disable Datapoint again', function (done) {
         this.timeout(5000);
 
         sendTo('sql.0', 'disableHistory', {
@@ -463,7 +437,7 @@ describe('Test MySQL-with-dash', function() {
             setTimeout(done, 2000);
         });
     });
-    it('Test ' + adapterShortName + ': Check Enabled Points after Disable', function (done) {
+    it('Test MySQL-with-dash: Check Enabled Points after Disable', function (done) {
         this.timeout(5000);
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {

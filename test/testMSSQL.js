@@ -80,10 +80,10 @@ describe('Test MSSQL', function() {
         this.timeout(600000); // because of first install from npm
         setup.adapterStarted = false;
 
-        console.log('Started in TRAVIS: ' + (process.env.TRAVIS && process.env.TRAVIS==='true'));
-        console.log('Started in APPVEYOR: ' + (process.env.APPVEYOR && process.env.APPVEYOR==='True'));
+        console.log('Started in TRAVIS: ' + (process.env.TRAVIS && process.env.TRAVIS === 'true'));
+        console.log('Started in APPVEYOR: ' + (process.env.APPVEYOR && process.env.APPVEYOR === 'True'));
 
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
+        if (!(process.env.APPVEYOR && process.env.APPVEYOR === 'True')) {
             console.log('MSSQL testing only available in Appveyor on Windows, ignore test run (APPVEYOR:' + JSON.stringify(process.env.APPVEYOR) + ', TRAVIS:' + JSON.stringify(process.env.TRAVIS) + ')');
             _done();
             return;

@@ -88,18 +88,18 @@ describe('Test MySQL', function() {
 
             config.native.dbtype   = 'mysql';
             config.native.user     = 'root';
-            if (process.env.APPVEYOR && process.env.APPVEYOR==='True') {
+            if (process.env.APPVEYOR && process.env.APPVEYOR === 'True') {
                 config.native.password = 'Password12!';
             } else if (process.env.TRAVIS_OS_NAME && process.env.TRAVIS_OS_NAME === 'osx'){
                 config.native.password = 'mysql';
+            } else {
+                config.native.password = process.env.SQL_PASS || '';
             }
 
             setup.setAdapterConfig(config.common, config.native);
 
-            setup.startController(true, function(id, obj) {}, function (id, state) {
-                    if (onStateChanged) onStateChanged(id, state);
-                },
-                function (_objects, _states) {
+            setup.startController(true, (id, obj) => {}, (id, state) => onStateChanged && onStateChanged(id, state),
+                (_objects, _states) => {
                     objects = _objects;
                     states  = _states;
                     objects.setObject('sql.0.memRss', {
@@ -107,7 +107,7 @@ describe('Test MySQL', function() {
                             type: 'number',
                             role: 'state',
                             custom: {
-                                "sql.0": {
+                                'sql.0': {
                                     enabled: true,
                                     changesOnly:  true,
                                     debounce:     0,
@@ -125,7 +125,7 @@ describe('Test MySQL', function() {
 
     it('Test MySQL: Check if adapter started', function (done) {
         this.timeout(90000);
-        checkConnectionOfAdapter(function () {
+        checkConnectionOfAdapter(() => {
             now = new Date().getTime();
             objects.setObject('system.adapter.test.0', {
                 common: {

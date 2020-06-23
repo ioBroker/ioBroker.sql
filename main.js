@@ -1339,10 +1339,13 @@ function _executeQuery(query, id, cb) {
 
 function processReadTypes() {
     if (tasksReadType && tasksReadType.length) {
-        const task = tasksReadType.shift();
+        const task = tasksReadType[0];
 
         if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
             adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
+            task.cb && task.cb('Ignore type lookup for ' + task.id + ' because not enabled anymore')
+            task.cb = null;
+            tasksReadType.shift();
             return setImmediate(processReadTypes);
         }
 
@@ -1363,9 +1366,12 @@ function processReadTypes() {
 
                 if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
                     adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
+                    task.cb && task.cb('Ignore type lookup for ' + task.id + ' because not enabled anymore')
+                    task.cb = null;
+                    tasksReadType.shift();
                     return setImmediate(processReadTypes);
-                }
-
+                } else
+                // read type from object
                 if (obj && obj.common && obj.common.type && types[obj.common.type.toLowerCase()] !== undefined) {
                     adapter.log.debug(obj.common.type.toLowerCase() + ' / ' + types[obj.common.type.toLowerCase()] + ' / ' + JSON.stringify(obj.common));
                     sqlDPs[task.id].type = types[obj.common.type.toLowerCase()];
@@ -1376,6 +1382,9 @@ function processReadTypes() {
                     adapter.getForeignState(sqlDPs[task.id].realId, (err, state) => {
                         if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
                             adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
+                            task.cb && task.cb('Ignore type lookup for ' + task.id + ' because not enabled anymore')
+                            task.cb = null;
+                            tasksReadType.shift();
                             return setImmediate(processReadTypes);
                         }
 
@@ -1393,6 +1402,11 @@ function processReadTypes() {
                         adapter.log.debug('Type (from State) for ' + task.id + ': ' + sqlDPs[task.id].type);
                         processVerifyTypes(task);
                     });
+                } else {
+                    // all OK
+                    task.cb && task.cb();
+                    task.cb = null;
+                    tasksReadType.shift();
                 }
             });
         }
@@ -1424,34 +1438,14 @@ function processVerifyTypes(task) {
         });
     }
 
-    task.func(task.id, task.state);
+    task.cb && task.cb();
 
+    tasksReadType.shift();
     setTimeout(processReadTypes, 50);
 }
 
-function prepareTask(id, state, isCounter, func, cb) {
-    // check if we know about this ID
-    if (!sqlDPs[id]) {
-        return;
-    }
-
-    // Check sql connection
-    if (!clientPool) {
-        adapter.log.warn('No Connection to database');
-        return cb && cb('No Connection to database');
-    }
-    adapter.log.debug('prepareTask CALLED for ' + id);
-
-    let type;
-
-    // read type of value
-    if (sqlDPs[id].type !== undefined) {
-        type = sqlDPs[id].type;
-    } else {
-        // read type from DB
-        tasksReadType.push({id, state, func});
-        return tasksReadType.length === 1 && processReadTypes();
-    }
+function prepareTaskReadDbId(id, state, isCounter, cb) {
+    const type = sqlDPs[id].type;
 
     if (type === undefined) { // Can not happen anymore
         let warn;
@@ -1472,27 +1466,23 @@ function prepareTask(id, state, isCounter, func, cb) {
 
         tmpState = Object.assign({}, state);
 
-        sqlDPs[id].isRunning.push({id, state: tmpState, func, cb, isCounter});
+        sqlDPs[id].isRunning.push({id, state: tmpState, cb, isCounter});
 
         if (sqlDPs[id].isRunning.length === 1) {
             // read or create in DB
             return getId(id, type, (err, _id) => {
-                adapter.log.debug('prepareTask getId Result - isRunning length = ' + (sqlDPs[_id].isRunning ? sqlDPs[_id].isRunning.length : 'none'))
+                adapter.log.debug('prepareTaskCheckTypeAndDbId getId Result - isRunning length = ' + (sqlDPs[_id].isRunning ? sqlDPs[_id].isRunning.length : 'none'));
                 if (err) {
-                    adapter.log.warn('Cannot get index of "' + _id + '": ' + err);
+                    adapter.log.warn(`Cannot get index of "${_id}": ${err}`);
                     sqlDPs[_id].isRunning &&
-                        sqlDPs[_id].isRunning
-                            .filter(r => r.cb)
-                            .forEach(r => r.cb('Cannot get index of "' + r.id + '": ' + err));
+                    sqlDPs[_id].isRunning
+                        .filter(r => r.cb)
+                        .forEach(r => r.cb(`Cannot get index of "${r.id}": ${err}`));
                 } else {
                     sqlDPs[_id].isRunning &&
-                        sqlDPs[_id].isRunning
-                            .forEach(r => r.func(
-                                r.id,
-                                r.state,
-                                r.isCounter,
-                                r.cb
-                            ));
+                    sqlDPs[_id].isRunning
+                        .filter(r => r.cb)
+                        .forEach(r => r.cb());
                 }
 
                 sqlDPs[_id].isRunning = null;
@@ -1512,7 +1502,7 @@ function prepareTask(id, state, isCounter, func, cb) {
         if (isFromRunning[state.from].length === 1) {
             // read or create in DB
             return getFrom(state.from, (err, from) => {
-                adapter.log.debug('prepareTask getFrom ' + from + ' Result - isRunning length = ' + (isFromRunning[from] ? isFromRunning[from].length : 'none'))
+                adapter.log.debug('prepareTaskCheckTypeAndDbId getFrom ' + from + ' Result - isRunning length = ' + (isFromRunning[from] ? isFromRunning[from].length : 'none'))
                 if (err) {
                     adapter.log.warn('Cannot get "from" for "' + from + '": ' + err);
                     isFromRunning[from] &&
@@ -1555,15 +1545,40 @@ function prepareTask(id, state, isCounter, func, cb) {
     cb && cb();
 }
 
+function prepareTaskCheckTypeAndDbId(id, state, isCounter, cb) {
+    // check if we know about this ID
+    if (!sqlDPs[id]) {
+        return cb && cb('Unknown ID: ' + id);
+    }
+
+    // Check sql connection
+    if (!clientPool) {
+        adapter.log.warn('No Connection to database');
+        return cb && cb('No Connection to database');
+    }
+    adapter.log.debug('prepareTaskCheckTypeAndDbId CALLED for ' + id);
+
+    // read type of value
+    if (sqlDPs[id].type !== undefined) {
+        prepareTaskReadDbId(id, state, isCounter, cb)
+    } else {
+        // read type from DB
+        tasksReadType.push({id, state, cb: () => prepareTaskReadDbId(id, state, isCounter, cb)});
+
+        tasksReadType.length === 1 && processReadTypes();
+    }
+}
+
 function pushValueIntoDB(id, state, isCounter, cb) {
     if (typeof isCounter === 'function') {
         cb = isCounter;
         isCounter = false;
     }
 
-    adapter.log.debug('pushValueIntoDB called for ' + id);
-    prepareTask(id, state, isCounter, pushValueIntoDB, err => {
-        adapter.log.debug('pushValueIntoDB-prepareTask RESULT for ' + id);
+    adapter.log.debug(`pushValueIntoDB called for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)}`);
+
+    prepareTaskCheckTypeAndDbId(id, state, isCounter, err => {
+        adapter.log.debug(`pushValueIntoDB-prepareTaskCheckTypeAndDbId RESULT for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)}`);
         if (err) {
             return cb && cb(err);
         }
@@ -1611,8 +1626,7 @@ function processTasks() {
                 lockTasks = false;
                 tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
             });
-        } else
-        if (tasks[0].operation === 'insert') {
+        } else if (tasks[0].operation === 'insert') {
             _insertValueIntoDB(tasks[0].query, tasks[0].id, () => {
                 tasks[0].callback && tasks[0].callback();
                 tasks.shift();
@@ -2010,7 +2024,7 @@ function getHistory(msg) {
 }
 
 function update(id, state, cb) {
-    prepareTask(id, state, false, update, err => {
+    prepareTaskCheckTypeAndDbId(id, state, false, err => {
         if (err) {
             return cb && cb(err);
         }
@@ -2035,7 +2049,7 @@ function update(id, state, cb) {
 }
 
 function _delete(id, state, cb) {
-    prepareTask(id, state, false, _delete, err => {
+    prepareTaskCheckTypeAndDbId(id, state, false, err => {
         if (err) {
             return cb && cb(err);
         }
@@ -2501,7 +2515,6 @@ function main() {
             });
         }
     });
-
 
     adapter.config.dbname = adapter.config.dbname || 'iobroker';
 
