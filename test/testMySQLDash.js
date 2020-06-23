@@ -243,7 +243,6 @@ describe('Test MySQL-with-dash', function() {
                                                             setTimeout(function () {
                                                                 states.setState('sql.0.testValue2', {val: 1, ts: now - 2000}, err => {
                                                                     err && console.log(err);
-                                                                    setTimeout(done, 5000);
                                                                     setTimeout(function () {
                                                                         states.setState('sql.0.testValue2', {val: 3, ts: now - 1000}, err => {
                                                                             err && console.log(err);
