@@ -630,7 +630,7 @@ function oneScript(script, cb) {
     try {
         borrowClientFromPool((err, client) => {
             if (err || !client) {
-                clientPool.close();
+                clientPool && clientPool.close();
                 clientPool = null;
                 setConnected(false);
                 adapter.log.error(err);
@@ -715,6 +715,9 @@ function allScripts(scripts, index, cb) {
 function finish(callback) {
 
     function finishId(id) {
+        if (!sqlDPs[id]) {
+            return;
+        }
         if (sqlDPs[id].relogTimeout) {
             clearTimeout(sqlDPs[id].relogTimeout);
             sqlDPs[id].relogTimeout = null;
@@ -1361,7 +1364,8 @@ function processReadTypes() {
                 if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
                     adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
                     return setImmediate(processReadTypes);
-                } else
+                }
+
                 if (obj && obj.common && obj.common.type && types[obj.common.type.toLowerCase()] !== undefined) {
                     adapter.log.debug(obj.common.type.toLowerCase() + ' / ' + types[obj.common.type.toLowerCase()] + ' / ' + JSON.stringify(obj.common));
                     sqlDPs[task.id].type = types[obj.common.type.toLowerCase()];
@@ -1373,7 +1377,8 @@ function processReadTypes() {
                         if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
                             adapter.log.warn('Ignore type lookup for ' + task.id + ' because not enabled anymore');
                             return setImmediate(processReadTypes);
-                        } else
+                        }
+
                         if (err) {
                             adapter.log.warn('Store data for ' + task.id + ' as string because no other valid type found');
                             sqlDPs[task.id].type = 1; // string
@@ -1435,6 +1440,7 @@ function prepareTask(id, state, isCounter, func, cb) {
         adapter.log.warn('No Connection to database');
         return cb && cb('No Connection to database');
     }
+    adapter.log.debug('prepareTask CALLED for ' + id);
 
     let type;
 
@@ -1471,6 +1477,7 @@ function prepareTask(id, state, isCounter, func, cb) {
         if (sqlDPs[id].isRunning.length === 1) {
             // read or create in DB
             return getId(id, type, (err, _id) => {
+                adapter.log.debug('prepareTask getId Result - isRunning length = ' + (sqlDPs[_id].isRunning ? sqlDPs[_id].isRunning.length : 'none'))
                 if (err) {
                     adapter.log.warn('Cannot get index of "' + _id + '": ' + err);
                     sqlDPs[_id].isRunning &&
@@ -1505,6 +1512,7 @@ function prepareTask(id, state, isCounter, func, cb) {
         if (isFromRunning[state.from].length === 1) {
             // read or create in DB
             return getFrom(state.from, (err, from) => {
+                adapter.log.debug('prepareTask getFrom ' + from + ' Result - isRunning length = ' + (isFromRunning[from] ? isFromRunning[from].length : 'none'))
                 if (err) {
                     adapter.log.warn('Cannot get "from" for "' + from + '": ' + err);
                     isFromRunning[from] &&
@@ -1553,7 +1561,9 @@ function pushValueIntoDB(id, state, isCounter, cb) {
         isCounter = false;
     }
 
+    adapter.log.debug('pushValueIntoDB called for ' + id);
     prepareTask(id, state, isCounter, pushValueIntoDB, err => {
+        adapter.log.debug('pushValueIntoDB-prepareTask RESULT for ' + id);
         if (err) {
             return cb && cb(err);
         }
