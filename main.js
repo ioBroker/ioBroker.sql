@@ -108,7 +108,7 @@ function startAdapter(options) {
         const now = Date.now();
         const formerAliasId = aliasMap[id] ? aliasMap[id] : id;
 
-        if (obj && obj.common && obj.common.custom  && obj.common.custom[adapter.namespace]  && obj.common.custom[adapter.namespace].enabled) {
+        if (obj && obj.common && obj.common.custom  && obj.common.custom[adapter.namespace] && typeof obj.common.custom[adapter.namespace] === 'object' && obj.common.custom[adapter.namespace].enabled) {
             const realId = id;
             let checkForRemove = true;
 
@@ -339,8 +339,8 @@ function connect(callback) {
         let params = {
             server:     adapter.config.host, // needed for MSSQL
             host:       adapter.config.host, // needed for PostgeSQL , MySQL
-            user:       adapter.config.user,
-            password:   adapter.config.password,
+            user:       adapter.config.user || '',
+            password:   adapter.config.password || '',
             max_idle:   (adapter.config.dbtype === 'sqlite') ? 1 : 2
         };
 
@@ -366,10 +366,6 @@ function connect(callback) {
         } else
         // special solution for postgres. Connect first to Db "postgres", create new DB "iobroker" and then connect to "iobroker" DB.
         if (_client !== true && adapter.config.dbtype === 'postgresql') {
-            if (adapter.config.dbtype === 'postgresql') {
-                params.database = 'postgres';
-            }
-
             if (!adapter.config.dbtype) {
                 return adapter.log.error('DB Type is not defined!');
             } else
@@ -2608,7 +2604,7 @@ function main() {
                                     sqlDPs[id].dbtype = storedType;
                                 }
 
-                                if (!sqlDPs[id][adapter.namespace]) {
+                                if (!sqlDPs[id][adapter.namespace] || typeof sqlDPs[id][adapter.namespace] !== 'object' || sqlDPs[id][adapter.namespace].enabled === false) {
                                     delete sqlDPs[id];
                                 } else {
                                     count++;
