@@ -377,6 +377,7 @@ function connect(callback) {
             }
 
             // connect first to DB postgres and create iobroker DB
+            adapter.log.info('Postgres connection options: ' + JSON.stringify(params));
             _client = new SQL[clients[adapter.config.dbtype].name](params);
             _client.on && _client.on('error', err =>
                 adapter.log.warn('SQL client error: ' + err));
