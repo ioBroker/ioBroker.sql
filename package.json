@@ -12,6 +12,9 @@
     "type": "git",
     "url": "https://github.com/ioBroker/ioBroker.sql"
   },
+  "engines": {
+    "node": ">=10.0.0"
+  },
   "keywords": [
     "ioBroker",
     "log data",
@@ -19,8 +22,8 @@
   ],
   "optionalDependencies": {
     "mysql": "^2.18.1",
-    "pg": "^8.0.3",
-    "sqlite3": "^4.2.0",
+    "pg": "8.0.3",
+    "sqlite3": "^5.0.0",
     "mssql": "^6.2.0"
   },
   "dependencies": {
