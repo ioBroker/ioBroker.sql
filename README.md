@@ -404,7 +404,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
-### __WORK IN PROGRESS__
+### 1.15.0 (2020-07-19)
 *BREAKING* This version only accepts Node.js 10.x+ (because sqlite3 was upgraded)
 * (Apollon77) Prevent crash case (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)
 

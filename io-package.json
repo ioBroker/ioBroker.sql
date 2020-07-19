@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.14.2",
+        "version": "1.15.0",
         "news": {
+            "1.15.0": {
+                "en": "BREAKING* This version only accepts Node.js 10.x+ (because sqlite3 was upgraded)\nPrevent crash case (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
+                "de": "BREAKING * Diese Version akzeptiert nur Node.js 10.x + (da sqlite3 aktualisiert wurde)\nAbsturzfall verhindern (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
+                "ru": "BREAKING * Эта версия поддерживает только Node.js 10.x + (потому что sqlite3 был обновлен)\nПредотвращение сбоя (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
+                "pt": "BREAKING * Esta versão aceita apenas o Node.js 10.x + (porque o sqlite3 foi atualizado)\nEvitar caso de falha (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
+                "nl": "BREAKING * Deze versie accepteert alleen Node.js 10.x + (omdat sqlite3 is geüpgraded)\nVoorkom crashgeval (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
+                "fr": "BREAKING * Cette version accepte uniquement Node.js 10.x + (car sqlite3 a été mis à niveau)\nPrévenir les cas de crash (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
+                "it": "BREAKING * Questa versione accetta solo Node.js 10.x + (poiché sqlite3 è stato aggiornato)\nPrevenire il caso di crash (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
+                "es": "BREAKING * Esta versión solo acepta Node.js 10.x + (porque se actualizó sqlite3)\nPrevenir caso de bloqueo (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
+                "pl": "BREAKING * Ta wersja akceptuje tylko Node.js 10.x + (ponieważ sqlite3 został zaktualizowany)\nZapobiegaj przypadkom awarii (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
+                "zh-cn": "BREAKING *此版本仅接受Node.js 10.x +（因为sqlite3已升级）\n防止发生崩溃情况（哨兵IOBROKER-SQL-16，IOBROKER-SQL-15，IOBROKER-SQL-1K）"
+            },
             "1.14.2": {
                 "en": "Fixed error for data storage",
                 "de": "Fehler beim Speichern der Daten behoben",
