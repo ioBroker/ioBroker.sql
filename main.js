@@ -354,13 +354,13 @@ function connect(callback) {
             params.port = adapter.config.port;
         }
 
-        if (adapter.config.dbtype !== 'postgres') {
+        if (adapter.config.dbtype !== 'postgresql') {
             params.options = {
                 encrypt: !!adapter.config.encrypt
             };
         }
 
-        if (adapter.config.dbtype === 'postgres') {
+        if (adapter.config.dbtype === 'postgresql') {
             params.database = 'postgres';
         }
 
