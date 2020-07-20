@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.15.0",
+        "version": "1.15.1",
         "news": {
+            "1.15.1": {
+                "en": "implement a workaround for postgres problem",
+                "de": "Implementieren Sie eine Problemumgehung für das Postgres-Problem",
+                "ru": "реализовать обходной путь для проблемы postgres",
+                "pt": "implementar uma solução alternativa para o problema do postgres",
+                "nl": "een oplossing voor postgres-probleem implementeren",
+                "fr": "implémenter une solution de contournement pour le problème postgres",
+                "it": "implementare una soluzione alternativa per il problema di Postgres",
+                "es": "implementar una solución alternativa para el problema de postgres",
+                "pl": "wdrożyć obejście problemu z postgres",
+                "zh-cn": "实现postgres问题的解决方法"
+            },
             "1.15.0": {
                 "en": "BREAKING* This version only accepts Node.js 10.x+ (because sqlite3 was upgraded)\nPrevent crash case (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
                 "de": "BREAKING * Diese Version akzeptiert nur Node.js 10.x + (da sqlite3 aktualisiert wurde)\nAbsturzfall verhindern (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",

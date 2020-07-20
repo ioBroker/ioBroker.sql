@@ -404,7 +404,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
-### __WORK IN PROGRESS__
+### 1.15.1 (2020-07-20)
 * (Apollon77) implement a workaround for postgres problem
 
 ### 1.15.0 (2020-07-19)
