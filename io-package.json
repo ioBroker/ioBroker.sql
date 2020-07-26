@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.15.1",
+        "version": "1.15.2",
         "news": {
+            "1.15.2": {
+                "en": "prevent wrong errors that realId is missing",
+                "de": "Verhindern Sie falsche Fehler, bei denen realId fehlt",
+                "ru": "предотвратить неправильные ошибки, которые отсутствуют в realId",
+                "pt": "evitar erros errados que faltam realId",
+                "nl": "voorkom verkeerde fouten die realId mist",
+                "fr": "éviter les erreurs erronées manquantes dans realId",
+                "it": "prevenire errori errati che realId manca",
+                "es": "evitar errores incorrectos que faltan realId",
+                "pl": "zapobiega błędnym błędom, których brakuje realId",
+                "zh-cn": "防止缺少realId的错误错误"
+            },
             "1.15.1": {
                 "en": "implement a workaround for postgres problem",
                 "de": "Implementieren Sie eine Problemumgehung für das Postgres-Problem",
