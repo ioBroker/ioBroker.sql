@@ -2671,13 +2671,13 @@ function main() {
 
                     if (count < 200) {
                         Object.keys(sqlDPs).forEach(id =>
-                            sqlDPs[id] && !sqlDPs[id].realId && adapter.log.warn(`No realID found for ${id}`));
+                            sqlDPs[id] && sqlDPs[id][adapter.namespace] && !sqlDPs[id].realId && adapter.log.warn(`No realID found for ${id}`));
 
                         // BF (2020.05.20) change it later to
-                        // adapter.subscribeForeignStates(Object.keys(sqlDPs).forEach(id => sqlDPs[id] && sqlDPs[id].realId).filter(id => id));
+                        // adapter.subscribeForeignStates(Object.keys(sqlDPs).forEach(id => sqlDPs[id] && sqlDPs[id][adapter.namespace] && sqlDPs[id].realId).filter(id => id));
 
                         Object.keys(sqlDPs).forEach(id =>
-                            sqlDPs[id] && sqlDPs[id].realId && adapter.subscribeForeignStates(sqlDPs[id].realId));
+                            sqlDPs[id] && sqlDPs[id][adapter.namespace] && sqlDPs[id].realId && adapter.subscribeForeignStates(sqlDPs[id].realId));
                     } else {
                         subscribeAll = true;
                         adapter.subscribeForeignStates('*');
