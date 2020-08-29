@@ -393,19 +393,26 @@ function connect(callback) {
                     return;
                 }
 
-                _client.execute('CREATE DATABASE ' + adapter.config.dbname + ';', (err /* , rows, fields */) => {
+                if (adapter.config.doNotCreateDatabase) {
                     _client.disconnect();
-                    if (err && err.code !== '42P04') { // if error not about yet exists
-                        _client = false;
-                        adapter.log.error(err);
-                        reconnectTimeout && clearTimeout(reconnectTimeout);
-                        reconnectTimeout = setTimeout(() => connect(callback), 30000);
-                    } else {
-                        _client = true;
-                        reconnectTimeout && clearTimeout(reconnectTimeout);
-                        reconnectTimeout = setTimeout(() => connect(callback), 100);
-                    }
-                });
+                    _client = true;
+                    reconnectTimeout && clearTimeout(reconnectTimeout);
+                    reconnectTimeout = setTimeout(() => connect(callback), 100);
+                } else {
+                    _client.execute('CREATE DATABASE ' + adapter.config.dbname + ';', (err /* , rows, fields */) => {
+                        _client.disconnect();
+                        if (err && err.code !== '42P04') { // if error not about yet exists
+                            _client = false;
+                            adapter.log.error(err);
+                            reconnectTimeout && clearTimeout(reconnectTimeout);
+                            reconnectTimeout = setTimeout(() => connect(callback), 30000);
+                        } else {
+                            _client = true;
+                            reconnectTimeout && clearTimeout(reconnectTimeout);
+                            reconnectTimeout = setTimeout(() => connect(callback), 100);
+                        }
+                    });
+                }
             });
         }
 
@@ -449,7 +456,7 @@ function connect(callback) {
         }
     }
 
-    allScripts(SQLFuncs.init(adapter.config.dbname), err => {
+    allScripts(SQLFuncs.init(adapter.config.dbname, adapter.config.doNotCreateDatabase), err => {
         if (err) {
             //adapter.log.error(err);
             reconnectTimeout && clearTimeout(reconnectTimeout);

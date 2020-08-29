@@ -240,11 +240,15 @@
                 <div class="row ms-sql real-sql">
                     <div class="input-field col s12 m6 l4">
                         <input id="multiRequests" type="checkbox" class="value" />
-                        <label class="translate" for="multiRequests">Allow parallel requests:</label>
+                        <span class="translate" for="multiRequests">Allow parallel requests:</span>
                     </div>
                     <div class="input-field col s12 m6 l4">
                         <input id="maxConnections" type="text" class="value" />
                         <label class="translate" for="maxConnections">Maximum concurrent connections:</label>
+                    </div>
+                    <div class="input-field col s12 m6 l4">
+                        <input id="doNotCreateDatabase" type="checkbox" class="value" />
+                        <label class="translate" for="doNotCreateDatabase">Do not create database (already created)</label>
                     </div>
                 </div>
                 <div class="row">

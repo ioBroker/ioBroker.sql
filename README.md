@@ -402,8 +402,15 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 - **Minimum difference from last value to log**: The minimum interval between two values.
 - **Storage retention**: How long the values will be stored in the DB.
 
-## Changelog
+<!--
+	Placeholder for the next version (at the beginning of the line):
+	### __WORK IN PROGRESS__
+-->
 
+## Changelog
+### __WORK IN PROGRESS__
+* (bluefox) Added the option "Do not create database". E.g. if DB was created and it does not required to do that, because the user does not have enough rights.
+ 
 ### 1.15.2 (2020-07-26)
 * (Apollon77) prevent wrong errors that realId is missing
 

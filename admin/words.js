@@ -501,5 +501,17 @@ systemDictionary = {
         "it": "Scrivi valori NULL sui limiti di avvio / arresto:",
         "es": "Escribe valores NULL en los límites de inicio / finalización:",
         "pl": "Napisz wartości NULL na granicach start / stop:"
+    },
+    "Do not create database (already created)": {
+        "en": "Do not create database (already created)",
+        "de": "Datenbank nicht erstellen (bereits erstellt)",
+        "ru": "Не создавать базу данных (уже создана)",
+        "pt": "Não crie banco de dados (já criado)",
+        "nl": "Maak geen database (al aangemaakt)",
+        "fr": "Ne pas créer de base de données (déjà créée)",
+        "it": "Non creare database (già creato)",
+        "es": "No crear base de datos (ya creada)",
+        "pl": "Nie twórz bazy danych (już utworzona)",
+        "zh-cn": "不创建数据库（已创建）"
     }
 };
