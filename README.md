@@ -395,6 +395,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 - **Encrypt**: Some DBs support encryption.
 - **Round real to**: Number of digits after the comma.
 - **Allow parallel requests**: Allow simultaneous SQL requests to DB.
+- **Do not create database**: Activate this option if database already created (e.g. by administrator) and the ioBroker-user does not have enough rights to create a DB.
 
 ## Default Settings
 - **De-bounce interval**: Do not store values oftener than this interval.
