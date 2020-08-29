@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.15.2",
+        "version": "1.15.3",
         "news": {
+            "1.15.3": {
+                "en": "Added the option \"Do not create database\". E.g. if DB was created and it does not required to do that, because the user does not have enough rights.",
+                "de": "Die Option \"Datenbank nicht erstellen\" wurde hinzugefügt. Z.B. wenn DB erstellt wurde und dies nicht erforderlich ist, da der Benutzer nicht über genügend Rechte verfügt.",
+                "ru": "Добавлена опция «Не создавать базу данных». Например. если БД была создана, а этого делать не нужно, так как у пользователя недостаточно прав.",
+                "pt": "Adicionada a opção \"Não criar banco de dados\". Por exemplo. se o DB foi criado e não é obrigatório, porque o usuário não tem direitos suficientes.",
+                "nl": "De optie \"Geen database aanmaken\" toegevoegd. Bijv. als DB is gemaakt en het is niet nodig om dat te doen, omdat de gebruiker niet genoeg rechten heeft.",
+                "fr": "Ajout de l'option \"Ne pas créer de base de données\". Par exemple. si DB a été créé et qu'il n'est pas nécessaire de le faire, car l'utilisateur n'a pas suffisamment de droits.",
+                "it": "Aggiunta l'opzione \"Non creare database\". Per esempio. se DB è stato creato e non è necessario farlo, perché l'utente non dispone di diritti sufficienti.",
+                "es": "Añadida la opción \"No crear base de datos\". P.ej. si se creó DB y no es necesario que lo haga, porque el usuario no tiene suficientes derechos.",
+                "pl": "Dodano opcję „Nie twórz bazy danych”. Na przykład. jeśli baza danych została utworzona i nie jest to wymagane, ponieważ użytkownik nie ma wystarczających uprawnień.",
+                "zh-cn": "添加了选项“不创建数据库”。例如。如果已创建数据库，则不需要这样做，因为用户没有足够的权限。"
+            },
             "1.15.2": {
                 "en": "prevent wrong errors that realId is missing",
                 "de": "Verhindern Sie falsche Fehler, bei denen realId fehlt",
