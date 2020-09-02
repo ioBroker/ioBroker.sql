@@ -326,7 +326,7 @@ function setConnected(isConnected) {
     }
 }
 
-let _client = false;
+let postgresDbCreated = false;
 function connect(callback) {
     if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
@@ -354,6 +354,16 @@ function connect(callback) {
             params.port = adapter.config.port;
         }
 
+        if (!adapter.config.dbtype) {
+            return adapter.log.error('DB Type is not defined!');
+        } else
+        if (!clients[adapter.config.dbtype] || !clients[adapter.config.dbtype].name) {
+            return adapter.log.error('Unknown type "' + adapter.config.dbtype + '"');
+        } else
+        if (!SQL[clients[adapter.config.dbtype].name]) {
+            return adapter.log.error('SQL package "' + clients[adapter.config.dbtype].name + '" is not installed.');
+        }
+
         if (adapter.config.dbtype !== 'postgresql') {
             params.options = {
                 encrypt: !!adapter.config.encrypt
@@ -368,20 +378,10 @@ function connect(callback) {
             params = getSqlLiteDir(adapter.config.fileName);
         } else
         // special solution for postgres. Connect first to Db "postgres", create new DB "iobroker" and then connect to "iobroker" DB.
-        if (_client !== true && adapter.config.dbtype === 'postgresql') {
-            if (!adapter.config.dbtype) {
-                return adapter.log.error('DB Type is not defined!');
-            } else
-            if (!clients[adapter.config.dbtype] || !clients[adapter.config.dbtype].name) {
-                return adapter.log.error('Unknown type "' + adapter.config.dbtype + '"');
-            } else
-            if (!SQL[clients[adapter.config.dbtype].name]) {
-                return adapter.log.error('SQL package "' + clients[adapter.config.dbtype].name + '" is not installed.');
-            }
-
+        if (adapter.config.dbtype === 'postgresql' && !postgresDbCreated) {
             // connect first to DB postgres and create iobroker DB
             adapter.log.info('Postgres connection options: ' + JSON.stringify(params));
-            _client = new SQL[clients[adapter.config.dbtype].name](params);
+            const _client = new SQL[clients[adapter.config.dbtype].name](params);
             _client.on && _client.on('error', err =>
                 adapter.log.warn('SQL client error: ' + err));
 
@@ -395,19 +395,19 @@ function connect(callback) {
 
                 if (adapter.config.doNotCreateDatabase) {
                     _client.disconnect();
-                    _client = true;
+                    postgresDbCreated = true;
                     reconnectTimeout && clearTimeout(reconnectTimeout);
                     reconnectTimeout = setTimeout(() => connect(callback), 100);
                 } else {
                     _client.execute('CREATE DATABASE ' + adapter.config.dbname + ';', (err /* , rows, fields */) => {
                         _client.disconnect();
                         if (err && err.code !== '42P04') { // if error not about yet exists
-                            _client = false;
+                            postgresDbCreated = false;
                             adapter.log.error(err);
                             reconnectTimeout && clearTimeout(reconnectTimeout);
                             reconnectTimeout = setTimeout(() => connect(callback), 30000);
                         } else {
-                            _client = true;
+                            postgresDbCreated = true;
                             reconnectTimeout && clearTimeout(reconnectTimeout);
                             reconnectTimeout = setTimeout(() => connect(callback), 100);
                         }
