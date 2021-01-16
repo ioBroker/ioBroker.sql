@@ -104,7 +104,24 @@ describe('Test MySQL Existing', function() {
                 function (_objects, _states) {
                     objects = _objects;
                     states  = _states;
-                    _done();
+
+                    objects.setObject('sql.0.memRss', {
+                        common: {
+                            type: 'number',
+                            role: 'state',
+                            custom: {
+                                "sql.0": {
+                                    enabled: true,
+                                    changesOnly:  true,
+                                    debounce:     0,
+                                    retention:    31536000,
+                                    maxLength:    3,
+                                    changesMinDelta: 0.5
+                                }
+                            }
+                        },
+                        type: 'state'
+                    }, _done);
                 });
         });
     });
