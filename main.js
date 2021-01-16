@@ -818,6 +818,17 @@ function finish(callback) {
         }
     }
 
+    if (!subscribeAll) {
+        for (const _id in sqlDPs) {
+            if (sqlDPs.hasOwnProperty(_id) && sqlDPs.hasOwnProperty(sqlDPs[_id].realId)) {
+                adapter.unsubscribeForeignStates(sqlDPs[_id].realId);
+            }
+        }
+    } else {
+        subscribeAll = false;
+        adapter.subscribeForeignStates('*');
+    }
+
     if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
         reconnectTimeout = null;
@@ -827,7 +838,6 @@ function finish(callback) {
         testConnectTimeout = null;
     }
 
-    adapter.unsubscribeForeignStates('*');
     let count = 0;
     if (finished) {
         if (callback) {
@@ -1544,13 +1554,13 @@ function prepareTaskReadDbId(id, state, isCounter, cb) {
 function prepareTaskCheckTypeAndDbId(id, state, isCounter, cb) {
     // check if we know about this ID
     if (!sqlDPs[id]) {
-        return cb && cb('Unknown ID: ' + id);
+        return cb && setImmediate(cb, 'Unknown ID: ' + id);
     }
 
     // Check sql connection
     if (!clientPool) {
         adapter.log.warn('No Connection to database');
-        return cb && cb('No Connection to database');
+        return cb && setImmediate(cb, 'No Connection to database');
     }
     adapter.log.debug('prepareTaskCheckTypeAndDbId CALLED for ' + id);
 

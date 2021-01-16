@@ -233,7 +233,8 @@
                 "admin": ">=1.6.10"
             }
         ],
-        "supportStopInstance": 2000,
+        "supportStopInstance": 3000,
+        "stopTimeout": 3000,
         "config": {
             "minWidth": 570,
             "width ": 435,
