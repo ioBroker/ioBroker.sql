@@ -391,7 +391,7 @@ describe('Test MSSQL', function() {
 
         setup.stopController(function (normalTerminated) {
             console.log('MSSQL: Adapter normal terminated: ' + normalTerminated);
-            done();
+            setTimeout(done, 2000);
         });
     });
 });

@@ -338,7 +338,7 @@ describe('Test PostgreSQL', function() {
 
         setup.stopController(function (normalTerminated) {
             console.log('PostgreSQL: Adapter normal terminated: ' + normalTerminated);
-            done();
+            setTimeout(done, 2000);
         });
     });
 });

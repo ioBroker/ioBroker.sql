@@ -370,7 +370,7 @@ describe('Test MySQL', function() {
 
         setup.stopController(function (normalTerminated) {
             console.log('MySQL: Adapter normal terminated: ' + normalTerminated);
-            done();
+            setTimeout(done, 2000);
         });
     });
 });

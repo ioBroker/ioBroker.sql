@@ -451,7 +451,7 @@ describe('Test MySQL-with-dash', function() {
 
         setup.stopController(function (normalTerminated) {
             console.log('MySQL-with-dash: Adapter normal terminated: ' + normalTerminated);
-            done();
+            setTimeout(done, 2000);
         });
     });
 });

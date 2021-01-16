@@ -349,7 +349,7 @@ describe('Test SQLite', function() {
 
         setup.stopController(function (normalTerminated) {
             console.log('SQLite: Adapter normal terminated: ' + normalTerminated);
-            done();
+            setTimeout(done, 2000);
         });
     });
 });

@@ -364,7 +364,7 @@ describe('Test MySQL Existing', function() {
 
         setup.stopController(function (normalTerminated) {
             console.log('MySQL: Adapter normal terminated: ' + normalTerminated);
-            done();
+            setTimeout(done, 2000);
         });
     });
 });
