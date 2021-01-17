@@ -421,7 +421,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
-### __WORK IN PROGRESS__
+### 1.15.4 (2021-01-17)
 * (Apollon77) Optimize stop handling
 
 ### 1.15.3 (2020-08-29)
