@@ -595,6 +595,9 @@ function destroyDB(msg) {
 
 function _userQuery(msg, callback) {
     try {
+        if (typeof msg.message !== 'string' || !msg.message.length) {
+            throw new Error('No query provided');
+        }
         adapter.log.debug(msg.message);
 
         borrowClientFromPool((err, client) => {
