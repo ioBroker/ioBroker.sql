@@ -421,7 +421,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 
-### __WORK IN PROGRESS__
+### 1.15.5 (2021-01-22)
 * (Apollon77) make sure message query is a string (Sentry)
 
 ### 1.15.4 (2021-01-17)

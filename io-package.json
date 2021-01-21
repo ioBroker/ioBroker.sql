@@ -24,8 +24,20 @@
             "es": "Registro de estados en SQL DB",
             "pl": "Rejestrowanie stanów w SQL DB"
         },
-        "version": "1.15.4",
+        "version": "1.15.5",
         "news": {
+            "1.15.5": {
+                "en": "make sure message query is a string (Sentry)",
+                "de": "Stellen Sie sicher, dass die Nachrichtenabfrage eine Zeichenfolge ist (Sentry).",
+                "ru": "убедитесь, что запрос сообщения является строкой (Sentry)",
+                "pt": "certifique-se de que a consulta da mensagem é uma string (Sentry)",
+                "nl": "zorg ervoor dat de berichtvraag een tekenreeks is (Sentry)",
+                "fr": "assurez-vous que la requête de message est une chaîne (Sentry)",
+                "it": "assicurati che la query del messaggio sia una stringa (Sentry)",
+                "es": "asegúrese de que la consulta del mensaje sea una cadena (Sentry)",
+                "pl": "upewnij się, że zapytanie o wiadomość jest ciągiem (Sentry)",
+                "zh-cn": "确保消息查询是字符串（Sentry）"
+            },
             "1.15.4": {
                 "en": "Optimize stop handling",
                 "de": "Optimieren Sie das Stop-Handling",
