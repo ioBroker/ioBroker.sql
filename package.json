@@ -34,7 +34,7 @@
     "@alcalzone/release-script": "^1.8.3",
     "gulp": "^4.0.2",
     "mocha": "^8.3.0",
-    "chai": "^4.3.0"
+    "chai": "^4.3.4"
   },
   "bugs": {
     "url": "https://github.com/ioBroker/ioBroker.sql/issues"
