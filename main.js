@@ -38,6 +38,7 @@ const storageTypes = [
 
 const sqlDPs        = {};
 const from          = {};
+const MAXTASKS      = 100;
 const tasks         = [];
 const tasksReadType = [];
 const tasksStart    = [];
@@ -622,8 +623,8 @@ function _userQuery(msg, callback) {
 // execute custom query
 function query(msg) {
     if (!multiRequests) {
-        if (tasks.length > 100) {
-            const error = 'Cannot queue new requests, because more than 100';
+        if (tasks.length > MAXTASKS) {
+            const error = 'Cannot queue new requests, because more than '+MAXTASKS;
             adapter.log.error(error);
             adapter.sendTo(msg.from, msg.command, {error}, msg.callback);
         } else {
@@ -1291,8 +1292,8 @@ function checkRetention(id) {
                 const query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, dbNames[sqlDPs[id].type], sqlDPs[id][adapter.namespace].retention);
 
                 if (!multiRequests) {
-                    if (tasks.length > 100) {
-                        return adapter.log.error('Cannot queue new requests, because more than 100');
+                    if (tasks.length > MAXTASKS) {
+                        return adapter.log.error('Cannot queue new requests, because more than '+MAXTASKS);
                     }
 
                     let start = tasks.length === 1;
@@ -1605,8 +1606,8 @@ function pushValueIntoDB(id, state, isCounter, cb) {
         const query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, isCounter ? 'ts_counter' : dbNames[type]);
 
         if (!multiRequests) {
-            if (tasks.length > 100) {
-                const error = 'Cannot queue new requests, because more than 100';
+            if (tasks.length > MAXTASKS) {
+                const error = 'Cannot queue new requests, because more than '+MAXTASKS;
                 adapter.log.error(error);
                 cb && cb(error);
             } else {
@@ -1879,9 +1880,9 @@ function getDataFromDB(db, options, callback) {
     const query = SQLFuncs.getHistory(adapter.config.dbname, db, options);
     adapter.log.debug(query);
     if (!multiRequests) {
-        if (tasks.length > 100) {
-            adapter.log.error('Cannot queue new requests, because more than 100');
-            callback && callback('Cannot queue new requests, because more than 100');
+        if (tasks.length > MAXTASKS) {
+            adapter.log.error('Cannot queue new requests, because more than '+MAXTASKS);
+            callback && callback('Cannot queue new requests, because more than '+MAXTASKS);
         } else {
             tasks.push({operation: 'select', query, options, callback});
             tasks.length === 1 && processTasks();
@@ -1897,8 +1898,8 @@ function getCounterDataFromDB(options, callback) {
     adapter.log.debug(query);
 
     if (!multiRequests) {
-        if (tasks.length > 100) {
-            const error = 'Cannot queue new requests, because more than 100';
+        if (tasks.length > MAXTASKS) {
+            const error = 'Cannot queue new requests, because more than '+MAXTASKS;
             adapter.log.error(error);
             callback && callback(error);
         } else {
@@ -2043,8 +2044,8 @@ function update(id, state, cb) {
         const query = SQLFuncs.update(adapter.config.dbname, sqlDPs[id].index, state, from[state.from], dbNames[type]);
 
         if (!multiRequests) {
-            if (tasks.length > 100) {
-                const error = 'Cannot queue new requests, because more than 100';
+            if (tasks.length > MAXTASKS) {
+                const error = 'Cannot queue new requests, because more than '+MAXTASKS;
                 adapter.log.error(error);
                 cb && cb(error);
             } else {
@@ -2075,8 +2076,8 @@ function _delete(id, state, cb) {
         }
 
         if (!multiRequests) {
-            if (tasks.length > 100) {
-                const error = 'Cannot queue new requests, because more than 100';
+            if (tasks.length > MAXTASKS) {
+                const error = 'Cannot queue new requests, because more than '+MAXTASKS;
                 adapter.log.error(error);
                 cb && cb(error);
             } else {
