@@ -387,7 +387,6 @@
                     enabled:                false,
                     changesOnly:            false,
                     debounce:               0,
-                    maxLength:              10,
                     retention:              instanceObj.native.retention,
                     changesRelogInterval:   instanceObj.native.changesRelogInterval,
                     changesMinDelta:        0,
@@ -399,7 +398,6 @@
                     enabled:                false,
                     changesOnly:            true,
                     debounce:               instanceObj.native.debounce,
-                    maxLength:              instanceObj.native.maxLength,
                     retention:              instanceObj.native.retention,
                     changesRelogInterval:   instanceObj.native.changesRelogInterval,
                     changesMinDelta:        instanceObj.native.changesMinDelta,
@@ -409,6 +407,7 @@
             }
         }
     }
+
     if (typeof customPostInits !== 'undefined') {
         customPostInits.sql = function ($tab, settings, instanceObj, type, role, obj) {
             $tab.find('.sql-storageType').on('change', function () {

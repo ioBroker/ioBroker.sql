@@ -97,126 +97,6 @@
                 "es": "BREAKING * Esta versión solo acepta Node.js 10.x + (porque se actualizó sqlite3)\nPrevenir caso de bloqueo (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
                 "pl": "BREAKING * Ta wersja akceptuje tylko Node.js 10.x + (ponieważ sqlite3 został zaktualizowany)\nZapobiegaj przypadkom awarii (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
                 "zh-cn": "BREAKING *此版本仅接受Node.js 10.x +（因为sqlite3已升级）\n防止发生崩溃情况（哨兵IOBROKER-SQL-16，IOBROKER-SQL-15，IOBROKER-SQL-1K）"
-            },
-            "1.14.2": {
-                "en": "Fixed error for data storage",
-                "de": "Fehler beim Speichern der Daten behoben",
-                "ru": "Исправлена ошибка хранения данных",
-                "pt": "Corrigido erro no armazenamento de dados",
-                "nl": "Vaste fout voor gegevensopslag",
-                "fr": "Correction d'une erreur pour le stockage des données",
-                "it": "Risolto errore per la memorizzazione dei dati",
-                "es": "Error corregido para el almacenamiento de datos",
-                "pl": "Naprawiono błąd przechowywania danych",
-                "zh-cn": "修复了数据存储错误"
-            },
-            "1.14.0": {
-                "en": "added the range deletion and the delete all operations",
-                "de": "Das Löschen des Bereichs und das Löschen aller Vorgänge wurden hinzugefügt",
-                "ru": "добавлено удаление диапазона и удаление всех операций",
-                "pt": "adicionada a exclusão do intervalo e a exclusão de todas as operações",
-                "nl": "het verwijderen van het bereik en het verwijderen van alle bewerkingen toegevoegd",
-                "fr": "ajouté la suppression de plage et la suppression de toutes les opérations",
-                "it": "aggiunta la cancellazione dell'intervallo e l'eliminazione di tutte le operazioni",
-                "es": "agregó la eliminación de rango y eliminar todas las operaciones",
-                "pl": "dodano usuwanie zakresu i usuwanie wszystkich operacji",
-                "zh-cn": "添加了范围删除和删除所有操作"
-            },
-            "1.13.1": {
-                "en": "added changed and delete operations",
-                "de": "geänderte und gelöschte Operationen hinzugefügt",
-                "ru": "добавлены операции изменения и удаления",
-                "pt": "adicionou operações alteradas e excluídas",
-                "nl": "toegevoegde bewerkingen en verwijderbewerkingen",
-                "fr": "opérations modifiées et supprimées ajoutées",
-                "it": "aggiunte operazioni modificate ed eliminate",
-                "es": "agregado cambiado y eliminar operaciones",
-                "pl": "dodano zmienione i usuń operacje",
-                "zh-cn": "添加了更改和删除操作"
-            },
-            "1.12.6": {
-                "en": "set default history if not yet set",
-                "de": "Standardverlauf festlegen, falls noch nicht festgelegt",
-                "ru": "установить историю по умолчанию, если еще не установлено",
-                "pt": "definir histórico padrão se ainda não estiver definido",
-                "nl": "stel de standaardgeschiedenis in als deze nog niet is ingesteld",
-                "fr": "définir l'historique par défaut s'il n'est pas encore défini",
-                "it": "imposta la cronologia predefinita se non ancora impostata",
-                "es": "establecer el historial predeterminado si aún no está configurado",
-                "pl": "ustaw domyślną historię, jeśli jeszcze nie została ustawiona",
-                "zh-cn": "设置默认历史记录（如果尚未设置）"
-            },
-            "1.12.5": {
-                "en": "Crash prevented for invalid objects (Sentry IOBROKER-SQL-X)",
-                "de": "Absturz für ungültige Objekte verhindert (Sentry IOBROKER-SQL-X)",
-                "ru": "Предотвращен сбой для недопустимых объектов (Sentry IOBROKER-SQL-X)",
-                "pt": "Falha impedida por objetos inválidos (Sentry IOBROKER-SQL-X)",
-                "nl": "Crash voorkomen voor ongeldige objecten (Sentry IOBROKER-SQL-X)",
-                "fr": "Blocage évité pour les objets invalides (Sentry IOBROKER-SQL-X)",
-                "it": "Blocco impedito per oggetti non validi (Sentry IOBROKER-SQL-X)",
-                "es": "Se evitó el bloqueo de objetos no válidos (Sentry IOBROKER-SQL-X)",
-                "pl": "Zapobieganie awariom dla nieprawidłowych obiektów (Sentry IOBROKER-SQL-X)",
-                "zh-cn": "防止无效对象崩溃（Sentry IOBROKER-SQL-X）"
-            },
-            "1.12.4": {
-                "en": "Potential crash fixed when disabling datapoints too fast (Sentry IOBROKER-SQL-W) \nAlways set \"encrypt\" flag, even if false because else might en in default true (see https://github.com/tediousjs/tedious/issues/931)",
-                "de": "Möglicher Absturz behoben, wenn Datenpunkte zu schnell deaktiviert wurden (Sentry IOBROKER-SQL-W)\nSetzen Sie immer das \"Verschlüsselungs\" -Flag, auch wenn es falsch ist, da sonst möglicherweise standardmäßig true aktiviert ist (siehe https://github.com/tediousjs/tedious/issues/931).",
-                "ru": "Исправлено потенциальное падение при слишком быстром отключении точек данных (Sentry IOBROKER-SQL-W)\nВсегда устанавливайте флаг «шифровать», даже если он равен false, поскольку в противном случае по умолчанию может быть задано значение true (см. Https://github.com/tediousjs/tedious/issues/931).",
-                "pt": "Possível falha corrigida ao desativar os pontos de dados muito rápido (Sentry IOBROKER-SQL-W)\nSempre defina o sinalizador \"criptografar\", mesmo se falso, pois o valor poderá estar no padrão true (consulte https://github.com/tediousjs/tedious/issues/931)",
-                "nl": "Potentiële crash opgelost bij het te snel uitschakelen van datapunten (Sentry IOBROKER-SQL-W)\nStel altijd de vlag \"encrypt\" in, ook al is deze false omdat anders anders standaard in true zou kunnen staan (zie https://github.com/tediousjs/tedious/issues/931)",
-                "fr": "Crash potentiel corrigé lors de la désactivation trop rapide des points de données (Sentry IOBROKER-SQL-W)\nDéfinissez toujours l'indicateur \"encrypt\", même s'il est faux car sinon, il pourrait en être vrai par défaut (voir https://github.com/tediousjs/tedious/issues/931)",
-                "it": "Potenziale crash risolto quando la disabilitazione dei punti dati era troppo rapida (Sentry IOBROKER-SQL-W)\nImposta sempre il flag \"encrypt\", anche se false perché else potrebbe essere impostato su true true (vedi https://github.com/tediousjs/tedious/issues/931)",
-                "es": "Posible bloqueo solucionado al deshabilitar los puntos de datos demasiado rápido (Sentry IOBROKER-SQL-W)\nEstablezca siempre el indicador \"cifrar\", incluso si es falso, ya que de lo contrario podría estar en predeterminado verdadero (consulte https://github.com/tediousjs/tedious/issues/931)",
-                "pl": "Naprawiono potencjalną awarię podczas zbyt szybkiego wyłączania punktów danych (Sentry IOBROKER-SQL-W)\nZawsze ustawiaj flagę „szyfruj”, nawet jeśli ma wartość false, ponieważ w przeciwnym razie domyślnie może mieć wartość true (patrz https://github.com/tediousjs/tedious/issues/931)",
-                "zh-cn": "禁用数据点时过快修复了潜在的崩溃问题（Sentry IOBROKER-SQL-W）\n始终设置“ encrypt”标志，即使为false，因为其他情况默认情况下也为true（请参阅https://github.com/tediousjs/tedious/issues/931）"
-            },
-            "1.12.3": {
-                "en": "maximum concurrent database connection handling added, MSSQL now got indizes, connection status is updated in certain error cases, Node.js 14 compatibility, other fixes and optimizations",
-                "de": "Maximale gleichzeitige Behandlung von Datenbankverbindungen hinzugefügt, MSSQL hat jetzt Indizes erhalten, der Verbindungsstatus wird in bestimmten Fehlerfällen aktualisiert, Node.js 14-Kompatibilität, andere Korrekturen und Optimierungen",
-                "ru": "добавлена максимальная одновременная обработка соединения с базой данных, теперь MSSQL получил индизы, состояние соединения обновляется в некоторых случаях ошибок, совместимость с Node.js 14, другие исправления и оптимизации",
-                "pt": "máximo de manipulação simultânea de conexões com o banco de dados adicionada, o MSSQL agora obtém indizes, o status da conexão é atualizado em certos casos de erro, compatibilidade com o Node.j 14, outras correções e otimizações",
-                "nl": "maximale gelijktijdige verwerking van databaseverbindingen toegevoegd, MSSQL heeft nu indices, verbindingsstatus wordt bijgewerkt in bepaalde foutgevallen, compatibiliteit met Node.js 14, andere fixes en optimalisaties",
-                "fr": "ajout de la gestion maximale des connexions de bases de données simultanées, MSSQL est désormais affiché, l'état de la connexion est mis à jour dans certains cas d'erreur, la compatibilité avec Node.js 14, d'autres correctifs et optimisations",
-                "it": "aggiunta la massima gestione simultanea della connessione al database, MSSQL ora è stato identificato, lo stato della connessione viene aggiornato in alcuni casi di errore, compatibilità Node.js 14, altre correzioni e ottimizzazioni",
-                "es": "se agregó el máximo manejo simultáneo de la conexión de la base de datos, MSSQL ahora obtuvo índices, el estado de la conexión se actualiza en ciertos casos de error, compatibilidad con Node.js 14, otras correcciones y optimizaciones",
-                "pl": "dodano maksymalną obsługę jednoczesnych połączeń z bazą danych, MSSQL został teraz indeksowany, status połączenia jest aktualizowany w niektórych przypadkach błędów, kompatybilność z Node.js 14, inne poprawki i optymalizacje",
-                "zh-cn": "添加了最大的并发数据库连接处理功能，MSSQL现在已初始化，在某些错误情况下连接状态已更新，Node.js 14兼容性，其他修复和优化"
-            },
-            "1.11.1": {
-                "en": "REQUIRES at least js-controller 2.0, fixes and optimizations, ready for js-controller 3.0, Sentry added for Error reporting",
-                "de": "ERFORDERT mindestens js-controller 2.0, Korrekturen und Optimierungen, bereit für js-controller 3.0, Sentry für Fehlerberichterstattung hinzugefügt",
-                "ru": "ТРЕБУЕТ как минимум js-controller 2.0, исправления и оптимизации, готов для js-controller 3.0, добавлен Sentry для отчетов об ошибках",
-                "pt": "EXIGE pelo menos o js-controller 2.0, correções e otimizações, pronto para o controller 3.0, acrescentou o Sentry para o relatório de erros",
-                "nl": "VEREIST minimaal js-controller 2.0, fixes en optimalisaties, klaar voor js-controller 3.0, Sentry toegevoegd voor foutrapportage",
-                "fr": "NÉCESSITE au moins js-controller 2.0, des corrections et des optimisations, prêt pour js-controller 3.0, Sentry ajouté pour le rapport d'erreurs",
-                "it": "RICHIEDE almeno js-controller 2.0, correzioni e ottimizzazioni, pronto per js-controller 3.0, aggiunta Sentry per la segnalazione degli errori",
-                "es": "REQUIERE al menos js-controller 2.0, correcciones y optimizaciones, listo para js-controller 3.0, Sentry agregado para informes de errores",
-                "pl": "WYMAGA co najmniej js-kontrolera 2.0, poprawek i optymalizacji, gotowy do js-kontrolera 3.0, dodano Sentry do raportowania błędów",
-                "zh-cn": "至少需要js-controller 2.0，修复和优化，为js-controller 3.0做好准备，并添加了Sentry以进行错误报告"
-            },
-            "1.10.1": {
-                "en": "Converted to ES6\nThe counter functionality was implemented.",
-                "de": "Auf ES6 umgestellt\nDie Zählerfunktionalität wurde implementiert.",
-                "ru": "Преобразован в ES6\nФункциональность счетчика была реализована.",
-                "pt": "Convertido para ES6\nA funcionalidade do contador foi implementada.",
-                "nl": "Omgerekend naar ES6\nDe tellerfunctionaliteit is geïmplementeerd.",
-                "fr": "Converti en ES6\nLa fonctionnalité de compteur a été implémentée.",
-                "it": "Convertito in ES6\nLa funzionalità contatore è stata implementata.",
-                "es": "Convertido a ES6\nSe implementó la funcionalidad del contador.",
-                "pl": "Konwersja do ES6\nWdrożono funkcjonalność licznika.",
-                "zh-cn": "转换为ES6\n计数器功能已实现。"
-            },
-            "1.9.5": {
-                "en": "Support for nodejs 12 added",
-                "de": "Unterstützung für NodeJS 12 hinzugefügt",
-                "ru": "Добавлена ​​поддержка nodejs 12",
-                "pt": "Suporte para nodejs 12 adicionados",
-                "nl": "Ondersteuning voor nodejs 12 toegevoegd",
-                "fr": "Support pour nodejs 12 ajouté",
-                "it": "Supporto per nodejs 12 aggiunto",
-                "es": "Soporte para nodejs 12 agregado",
-                "pl": "Dodano wsparcie dla nodejs 12",
-                "zh-cn": "增加了对nodejs 12的支持"
             }
         },
         "mode": "daemon",
@@ -269,7 +149,9 @@
             "sentry": {
                 "dsn": "https://c30462d3e0834993b0aa29824346701e@sentry.iobroker.net/45"
             }
-        }
+        },
+        "jsonCustom": true,
+        "jsonConfig": true
     },
     "native": {
         "connLink": "",

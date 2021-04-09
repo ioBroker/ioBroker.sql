@@ -115,7 +115,7 @@ function startAdapter(options) {
             if (obj.common.custom && obj.common.custom[adapter.namespace] && obj.common.custom[adapter.namespace].aliasId) {
                 if (obj.common.custom[adapter.namespace].aliasId !== id) {
                     aliasMap[id] = obj.common.custom[adapter.namespace].aliasId;
-                    adapter.log.debug('Registered Alias: ' + id + ' --> ' + aliasMap[id]);
+                    adapter.log.debug(`Registered Alias: ${id} --> ${aliasMap[id]}`);
                     id = aliasMap[id];
                     checkForRemove = false;
                 } else {
@@ -125,7 +125,7 @@ function startAdapter(options) {
             }
 
             if (checkForRemove && aliasMap[id]) {
-                adapter.log.debug('Removed Alias: ' + id + ' !-> ' + aliasMap[id]);
+                adapter.log.debug(`Removed Alias: ${id} !-> ${aliasMap[id]}`);
                 delete aliasMap[id];
             }
 

@@ -1,0 +1,394 @@
+{
+  "i18n": {
+    "1 day": {
+      "en": "1 day",
+      "de": "1 Tag",
+      "ru": "1 день",
+      "pt": "1 dia",
+      "nl": "1 dag",
+      "fr": "Un jour",
+      "it": "1 giorno",
+      "es": "1 día",
+      "pl": "1 dzień"
+    },
+    "1 months": {
+      "en": "1 months",
+      "de": "1 Monat",
+      "ru": "1 месяц",
+      "pt": "1 mês",
+      "nl": "1 maanden",
+      "fr": "1 mois",
+      "it": "1 mese",
+      "es": "1 mes",
+      "pl": "1 miesiąc"
+    },
+    "1 week": {
+      "en": "1 week",
+      "de": "1 Woche",
+      "ru": "1 неделя",
+      "pt": "1 semana",
+      "nl": "1 week",
+      "fr": "1 semaine",
+      "it": "1 settimana",
+      "es": "1 semana",
+      "pl": "1 tydzień"
+    },
+    "1 year": {
+      "en": "1 year",
+      "de": "1 Jahr",
+      "ru": "1 год",
+      "pt": "1 ano",
+      "nl": "1 jaar",
+      "fr": "1 an",
+      "it": "1 anno",
+      "es": "1 año",
+      "pl": "1 rok"
+    },
+    "2 weeks": {
+      "en": "2 weeks",
+      "de": "2 Wochen",
+      "ru": "2 недели",
+      "pt": "2 semanas",
+      "nl": "2 weken",
+      "fr": "2 semaines",
+      "it": "2 settimane",
+      "es": "2 semanas",
+      "pl": "2 tygodnie"
+    },
+    "2 years": {
+      "en": "2 years",
+      "de": "2 Jahre",
+      "ru": "2 года",
+      "pt": "2 anos",
+      "nl": "2 jaar",
+      "fr": "2 ans",
+      "it": "2 anni",
+      "es": "2 años",
+      "pl": "2 lata"
+    },
+    "3 days": {
+      "en": "3 days",
+      "de": "3 Tage",
+      "ru": "3 дня",
+      "pt": "3 dias",
+      "nl": "3 dagen",
+      "fr": "3 jours",
+      "it": "3 giorni",
+      "es": "3 días",
+      "pl": "3 dni"
+    },
+    "3 months": {
+      "en": "3 months",
+      "de": "3 Monate",
+      "ru": "3 месяца",
+      "pt": "3 meses",
+      "nl": "3 maanden",
+      "fr": "3 mois",
+      "it": "3 mesi",
+      "es": "3 meses",
+      "pl": "3 miesiące"
+    },
+    "5 days": {
+      "en": "5 days",
+      "de": "5 Tage",
+      "ru": "5 дней",
+      "pt": "5 dias",
+      "nl": "5 dagen",
+      "fr": "5 jours",
+      "it": "5 giorni",
+      "es": "5 dias",
+      "pl": "5 dni"
+    },
+    "6 months": {
+      "en": "6 months",
+      "de": "6 Monate",
+      "ru": "6 месяцев",
+      "pt": "6 meses",
+      "nl": "6 maanden",
+      "fr": "6 mois",
+      "it": "6 mesi",
+      "es": "6 meses",
+      "pl": "6 miesięcy"
+    },
+    "De-bounce interval(ms)": {
+      "en": "Ignore changes till value stays unchanged for X ms",
+      "de": "Änderungen ignorieren, bis der Wert für X ms unverändert bleibt",
+      "ru": "Игнорировать изменения до тех пор, пока значение не останется неизменным в течение X мс",
+      "pt": "Ignorar alterações até que o valor permaneça inalterado por X ms",
+      "nl": "Wijzigingen negeren totdat waarde ongewijzigd blijft voor X ms",
+      "fr": "Ignorer les modifications jusqu'à ce que la valeur reste inchangée pour X ms",
+      "it": "Ignora le modifiche fino a quando il valore rimane invariato per X ms",
+      "es": "Ignorar cambios hasta que el valor permanezca sin cambios durante X ms",
+      "pl": "Zignoruj ​​zmiany, aż wartość pozostanie niezmieniona przez X ms",
+      "zh-cn": "忽略更改，直到值保持不变为X毫秒<br>（去抖时间）"
+    },
+	"De-bounce time": {
+      "en": "Debounce Time",
+      "de": "Entprellzeit",
+      "ru": "Дребезг",
+      "pt": "Tempo de Depuração",
+      "nl": "Debounce Time",
+      "fr": "Debounce Time",
+      "it": "Debounce Time",
+      "es": "Tiempo de rebote",
+      "pl": "Czas odbicia",
+      "zh-cn": "去抖时间"
+	},
+    "Storage retention": {
+      "en": "Storage retention",
+      "de": "Storage Vorhaltezeit",
+      "ru": "Сохранять в файле",
+      "pt": "Retenção de armazenamento",
+      "nl": "Opslag retentie",
+      "fr": "Conservation du stockage",
+      "it": "Conservazione di memoria",
+      "es": "Retención de almacenamiento",
+      "pl": "Przechowywanie danych"
+    },
+    "enabled": {
+      "en": "enabled",
+      "de": "Aktiviert",
+      "ru": "активно",
+      "pt": "ativado",
+      "nl": "ingeschakeld",
+      "fr": "activée",
+      "it": "abilitato",
+      "es": "habilitado",
+      "pl": "włączony"
+    },
+    "keep forever": {
+      "en": "keep forever",
+      "de": "keine automatische Löschung",
+      "ru": "хранить вечно",
+      "pt": "mantenha para sempre",
+      "nl": "blijf voor altijd",
+      "fr": "garde pour toujours",
+      "it": "tienilo per sempre",
+      "es": "mantener para siempre",
+      "pl": "zachowaj na zawsze"
+    },
+    "log changes interval(s)": {
+      "en": "still record the same values (seconds)",
+      "de": "trotzdem gleiche Werte aufzeichnen (Sekunden)",
+      "ru": "по-прежнему записывать те же значения (в секундах)",
+      "pt": "ainda gravar os mesmos valores (segundos)",
+      "nl": "nog steeds dezelfde waarden (seconden)",
+      "fr": "toujours enregistrer les mêmes valeurs (secondes)",
+      "it": "registra ancora gli stessi valori (secondi)",
+      "es": "sigue registrando los mismos valores (segundos)",
+      "pl": "nadal nagrywaj te same wartości (sekundy)",
+      "zh-cn": "仍记录相同的值（秒）<br>（0 =禁用）"
+    },
+	"0 = disabled": {
+      "en": "0 = disabled",
+      "de": "0 = deaktiviert",
+      "ru": "0 = отключить",
+      "pt": "0 = desabilitar",
+      "nl": "0 = uitschakelen",
+      "fr": "0 = désactiver",
+      "it": "0 = disabilita",
+      "es": "0 = deshabilitar",
+      "pl": "0 = wyłącz",
+      "zh-cn": "0 =禁用"
+    },
+    "log changes minimal delta": {
+      "en": "Minimum difference from last value",
+      "de": "Minimale Differenz zum letzten Wert",
+      "ru": "Минимальное отличие от последнего значения",
+      "pt": "Diferença mínima do último valor",
+      "nl": "Minimaal verschil met laatste waarde",
+      "fr": "Différence minimale par rapport à la dernière valeur",
+      "it": "Differenza minima dall'ultimo valore",
+      "es": "Diferencia mínima desde el último valor",
+      "pl": "Minimalna różnica od ostatniej wartości",
+      "zh-cn": "与上一个值的最小差异"
+    },
+	"0 = disable delta check": {
+      "en": "0 = disable delta check",
+      "de": "0 = Deltaprüfung deaktivieren",
+      "ru": "0 = отключить дельта-проверку",
+      "pt": "0 = desabilitar verificação delta",
+      "nl": "0 = deltablokkering uitschakelen",
+      "fr": "0 = désactiver la vérification delta",
+      "it": "0 = disabilita il controllo delta",
+      "es": "0 = deshabilitar la comprobación delta",
+      "pl": "0 = wyłącz kontrolę delta",
+      "zh-cn": "0 =禁用增量检查"
+    },
+    "log changes only": {
+      "en": "Record changes only",
+      "de": "Nur Änderungen aufzeichnen",
+      "ru": "Запись только изменений",
+      "pt": "Registrar apenas alterações",
+      "nl": "Wijzigingen alleen registreren",
+      "fr": "Enregistrer les modifications uniquement",
+      "it": "Registra solo le modifiche",
+      "es": "Registrar solo cambios",
+      "pl": "Zapisz tylko zmiany",
+      "zh-cn": "仅记录更改"
+    },
+    "maximum datapoint count in RAM": {
+      "en": "maximum datapoint count in RAM",
+      "de": "maximale Anzahl Datenpunkte in RAM",
+      "ru": "макс. кол-во значений в RAM памяти",
+      "pt": "contagem máxima do datapoint na RAM",
+      "nl": "maximum aantal datapunten in RAM",
+      "fr": "nombre de points de données maximum en RAM",
+      "it": "massimo conteggio dei punti di accesso nella RAM",
+      "es": "recuento máximo de datos en RAM",
+      "pl": "maksymalna liczba punktów w pamięci RAM"
+    },
+    "aliasId": {
+      "en": "Alias-ID",
+      "de": "Alias-ID",
+      "ru": "Псевдоним ИД",
+      "pt": "Alias-ID",
+      "nl": "Alias-ID",
+      "fr": "Alias-ID",
+      "it": "Alias-ID",
+      "es": "Alias-ID",
+      "pl": "Alias-ID"
+    },
+    "Alias Info": {
+      "en": "if Alias-ID is set, the data will be logged as this ID in data files",
+      "de": "Wenn Alias-ID gesetzt ist, werden die Daten als diese ID in Datendateien protokolliert",
+      "ru": "если установлен Alias-ID, данные будут регистрироваться как этот идентификатор в файлах данных",
+      "pt": "Se o Alias-ID for definido, os dados serão registrados como esse ID em arquivos de dados",
+      "nl": "als Alias-ID is ingesteld, worden de gegevens als dit ID in databestanden vastgelegd",
+      "fr": "Si Alias-ID est défini, les données seront enregistrées comme cet ID dans les fichiers de données",
+      "it": "se Alias-ID è impostato, i dati verranno registrati come questo ID nei file di dati",
+      "es": "si se establece Alias-ID, los datos se registrarán como esta ID en los archivos de datos",
+      "pl": "jeśli ustawiony jest Alias-ID, dane będą rejestrowane jako te ID w plikach danych"
+    }
+  },
+  "items": {
+    "changesOnly": {
+      "type": "checkbox",
+      "label": "log changes only",
+      "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number'",
+      "sm": 6
+    },
+    "debounce": {
+      "type": "number",
+	  "label": "De-bounce time",
+      "help": "De-bounce interval(ms)",
+      "min": 500,
+      "max": 86400000,
+      "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number' ? instanceObj.native.debounce : 0",
+      "sm": 6
+    },
+    "changesRelogInterval": {
+      "newLine": true,
+      "type": "number",
+      "label": "log changes interval(s)",
+      "min": 0,
+      "max": 86400000,
+	  "help": "0 = disabled",
+      "defaultFunc": "instanceObj.native.changesRelogInterval",
+      "sm": 6
+    },
+    "changesMinDelta": {
+      "type": "number",
+      "label": "log changes minimal delta",
+      "min": 0,
+      "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number' ? instanceObj.native.changesMinDelta : 0",
+      "default": 0,
+      "sm": 6,
+      "help": "0 = disable delta check"
+    },
+    "storageType": {
+      "newLine": true,
+      "type": "select",
+      "label": "Store as",
+      "options": [
+        {
+          "value": "",
+          "label": "Automatic"
+        },
+        {
+          "value": "String",
+          "label": "String"
+        },
+        {
+          "value": "Number",
+          "label": "Number"
+        },
+        {
+          "value": "Boolean",
+          "label": "Boolean"
+        }
+      ],
+      "default": "",
+      "sm": 6
+    },
+    "retention": {
+      "type": "select",
+      "label": "Storage retention",
+      "options": [
+        {
+          "value": 0,
+          "label": "keep forever"
+        },
+        {
+          "value": 63072000,
+          "label": "2 years"
+        },
+        {
+          "value": 31536000,
+          "label": "1 year"
+        },
+        {
+          "value": 15811200,
+          "label": "6 months"
+        },
+        {
+          "value": 7948800,
+          "label": "3 months"
+        },
+        {
+          "value": 2678400,
+          "label": "1 months"
+        },
+        {
+          "value": 1209600,
+          "label": "2 weeks"
+        },
+        {
+          "value": 604800,
+          "label": "1 week"
+        },
+        {
+          "value": 432000,
+          "label": "5 days"
+        },
+        {
+          "value": 259200,
+          "label": "3 days"
+        },
+        {
+          "value": 86400,
+          "label": "1 day"
+        }
+      ],
+      "defaultFunc": "instanceObj.native.retention",
+      "sm": 6
+    },
+    "counter": {
+      "newLine": true,
+      "type": "checkbox",
+      "label": "Counter",
+      "hidden": "data.storageType !== 'Number' && !Array.isArray(data.storageType)",
+      "default": false,
+      "sm": 6
+    },
+    "aliasId": {
+      "newLine": true,
+      "type": "text",
+      "label": "aliasId",
+      "max": 255,
+      "default": "",
+      "sm": 12,
+      "help": "Alias Info"
+    }
+  }
+}

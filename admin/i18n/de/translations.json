@@ -38,7 +38,7 @@
   "Round real to:": "Aufrunden auf: ",
   "Password confirmation is not equal with password!": "Kennwort-Bestätigung ist nicht gleich mit dem Kennwort!",
   "Input path with the file name.": "Z.B. /opt/sqlite/data.db",
-  "Are you sure? All data will be dropped.": "Sind Sie sicher? ALLE Daten werden geöscht.",
+  "Are you sure? All data will be dropped.": "Sind Sie sicher? ALLE Daten werden gelöscht.",
   "Reset DB": "Alle Daten in DB löschen",
   "Ok": "Ok",
   "Allow parallel requests:": "Gleichzeitige Anfragen erlauben",

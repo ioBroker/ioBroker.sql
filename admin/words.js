@@ -437,7 +437,7 @@ systemDictionary = {
     },
     "Are you sure? All data will be dropped.": {
         "en": "Are you sure? All data will be dropped.",
-        "de": "Sind Sie sicher? ALLE Daten werden geöscht.",
+        "de": "Sind Sie sicher? ALLE Daten werden gelöscht.",
         "ru": "Вы уверенны? Все данные в базе будут удалены.",
         "pt": "Você tem certeza? Todos os dados serão descartados.",
         "nl": "Weet je het zeker? Alle gegevens worden verwijderd.",

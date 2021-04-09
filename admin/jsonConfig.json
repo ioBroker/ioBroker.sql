@@ -1,0 +1,256 @@
+{
+  "type": "tabs",
+  "i18n": true,
+  "items": {
+    "dbTab": {
+      "type": "panel",
+      "label": "DB settings",
+      "items": {
+        "dbtype": {
+          "type": "select",
+          "options": [
+            {"label": "MySQL",      "value": "mysql"},
+            {"label": "PostgreSQL", "value": "postgresql"},
+            {"label": "SQLite3",    "value": "sqlite"},
+            {"label": "MS-SQL",     "value": "mssql"}
+          ],
+          "label": "DB Type",
+          "sm": 12,
+          "md": 4,
+          "lg": 3
+        },
+
+        "host": {
+          "newLine": true,
+          "type": "text",
+          "label": "Host",
+          "hidden": "data.dbtype === 'sqlite'",
+          "sm": 12,
+          "md": 4,
+          "lg": 3
+        },
+        "port": {
+          "type": "number",
+          "label": "Port",
+          "hidden": "data.dbtype === 'sqlite'",
+          "min": 1,
+          "max": 65565,
+          "sm": 12,
+          "md": 4,
+          "lg": 3
+        },
+        "dbname": {
+          "type": "text",
+          "label": "DB Name",
+          "hidden": "data.dbtype === 'sqlite'",
+          "sm": 12,
+          "md": 4,
+          "lg": 3
+        },
+
+        "user": {
+          "newLine": true,
+          "type": "text",
+          "label": "User",
+          "hidden": "data.dbtype === 'sqlite'",
+          "sm": 12,
+          "md": 4,
+          "lg": 3
+        },
+        "password": {
+          "type": "password",
+          "label": "Password",
+          "repeat": true,
+          "hidden": "data.dbtype === 'sqlite'",
+          "sm": 12,
+          "md": 4,
+          "lg": 3
+        },
+
+
+        "fileName": {
+          "newLine": true,
+          "type": "text",
+          "label": "File for sqlite",
+          "hidden": "data.dbtype !== 'sqlite'",
+          "help": "Input path with the file name.",
+          "sm": 12,
+          "md": 6,
+          "lg": 2
+        },
+        "requestInterval": {
+          "type": "number",
+          "label": "requestInterval",
+          "hidden": "data.dbtype !== 'sqlite'",
+          "sm": 12,
+          "md": 6,
+          "lg": 2
+        },
+
+        "encrypt": {
+          "newLine": true,
+          "type": "checkbox",
+          "hidden": "data.dbtype !== 'mssql'",
+          "label": "Encrypt",
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+        "round": {
+          "hidden": "data.dbtype !== 'mssql'",
+          "type": "number",
+          "label": "Round real to",
+          "sm": 12,
+          "md": 6,
+          "lg": 2
+        },
+
+
+        "multiRequests": {
+          "newLine": true,
+          "type": "checkbox",
+          "hidden": "data.dbtype !== 'mssql'",
+          "label": "Allow parallel requests",
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+        "maxConnections": {
+          "type": "number",
+          "hidden": "data.dbtype !== 'mssql'",
+          "label": "Maximum concurrent connections",
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+        "doNotCreateDatabase": {
+          "type": "checkbox",
+          "hidden": "data.dbtype !== 'mssql'",
+          "label": "Do not create database (already created)",
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+
+        "writeNulls": {
+          "newLine": true,
+          "type": "checkbox",
+          "label": "Write NULL values on start/stop boundaries",
+          "sm": 12
+        },
+
+        "_testConnection": {
+          "newLine": true,
+          "variant": "contained",
+          "color": "primary",
+          "disabled": "!_alive",
+          "type": "sendto",
+          "icon": "data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDMyIDMyIiB3aWR0aD0iNTEyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPg0KICAgIDxwYXRoIGZpbGw9ImN1cnJlbnRDb2xvciIgZD0ibTIyLjk4NSAxMy42OTJoLS4wMTl2LTEuNzQ2YS44MjIuODIyIDAgMCAwIDAtLjEzOSAxIDEgMCAwIDAgLS4wMTEtLjE0NXYtNS4zNjhhLjcwOC43MDggMCAwIDAgMC0uMTM5IDIuNjQgMi42NCAwIDAgMCAtMS42MzQtMi4xNzFjLTEuNzUtLjk1NC01LjI2OS0xLjY0NS05LjMzLTEuNjQ1cy03LjU3OS42OTEtOS4zMjkgMS42NDVhMi42NCAyLjY0IDAgMCAwIC0xLjYzNSAyLjE2Ny43ODguNzg4IDAgMCAwIDAgLjEzNWwtLjAxIDUuNTIyYTEuMDQxIDEuMDQxIDAgMCAwIC4wMi4yNTZsLS4wMSA1LjRhLjg4NS44ODUgMCAwIDAgLjAxLjE5MWwtLjAxIDUuNDU1cy0uMTE4IDEuMTkgMS43ODQgMi4yNTVjMS4zMjguNzQ0IDMuOTU2IDEuNTM1IDkuMTg5IDEuNTM1YTM3LjA5MSAzNy4wOTEgMCAwIDAgNC43MTUtLjI2NCA3Ljk5MyA3Ljk5MyAwIDEgMCA2LjI2OC0xMi45NDV6bS0xOS42NjEtNy43NzJhNC43MDYgNC43MDYgMCAwIDEgLjk4Ni0uNDk0IDIzLjExMiAyMy4xMTIgMCAwIDEgNy42ODEtMS4wODcgMjMuMTExIDIzLjExMSAwIDAgMSA3LjY4MSAxLjA4NyA0LjczOSA0LjczOSAwIDAgMSAuOTg3LjQ5NCAxLjcgMS43IDAgMCAxIC4yMzIuMjA5IDIuMjc2IDIuMjc2IDAgMCAxIC0uMzE4LjMxOCA0Ljk4NCA0Ljk4NCAwIDAgMSAtLjkuNDM4IDIzLjE0IDIzLjE0IDAgMCAxIC03LjY4MSAxLjA4NiAyMy4xNDEgMjMuMTQxIDAgMCAxIC03LjY4Mi0xLjA4NiA1LjAxOSA1LjAxOSAwIDAgMSAtLjktLjQzOCAyLjMzNCAyLjMzNCAwIDAgMSAtLjMxOC0uMzE4IDEuNzcgMS43NyAwIDAgMSAuMjMyLS4yMDl6bS0uMyAyLjY0M2MxLjM4Ny43IDQuMDA1IDEuNDA4IDguOTY4IDEuNDA4czcuNTc1LS43IDguOTY0LTEuNDA2djMuMTEyYTIuMzE2IDIuMzE2IDAgMCAxIC0uNzM3LjY0N2MtMS4xNzQuNjY0LTMuNTMgMS4yNzktOC4yMjcgMS4yNzktNC42NjkgMC03LjAyOC0uNjE2LTguMjEyLTEuMjhhMi40NTUgMi40NTUgMCAwIDEgLS43NS0uNjQ2cTAtLjAzNi0uMDEyLS4wNzJ6bTguOTc2IDE2LjMzN2MtNC42NyAwLTcuMDI5LS42MTctOC4yMTMtMS4yODFhMi40MzggMi40MzggMCAwIDEgLS43NjItLjY2MmwuMDA2LTMuMWMxLjM4OC43IDQuMDA2IDEuNDA4IDguOTY5IDEuNDA4IDEuMTE3IDAgMi4xMTItLjAzNSAzLS4xLS4wMTEuMTY3LS4wMTYuMzM1LS4wMTYuNTA1YTcuOTM4IDcuOTM4IDAgMCAwIC42MTUgMy4wNzJjLTEuMDE4LjEwMy0yLjIwOC4xNTgtMy41OTkuMTU4em0zLjQtNS43OGMtLjk3NS4wODUtMi4xLjEzNC0zLjQuMTM0LTQuNjcgMC03LjAyOS0uNjE2LTguMjEzLTEuMjhhMi40MjkgMi40MjkgMCAwIDEgLS43NjEtLjY2MmwuMDA2LTMuMWMxLjM4OC43IDQuMDA2IDEuNDA4IDguOTY5IDEuNDA4YTMwLjIyMyAzMC4yMjMgMCAwIDAgNi41MzktLjU4NSA4LjAyIDguMDIgMCAwIDAgLTMuMTQgNC4wODZ6bTcuNTgxIDguNTRhNS45ODggNS45ODggMCAwIDEgLTUuODUxLTcuMzE1Yy4wMDYtLjAxOS4wMTEtLjAzOS4wMTYtLjA1OHMuMDA5LS4wMzkuMDEyLS4wNTlhNiA2IDAgMSAxIDUuODIzIDcuNDMyeiIvPg0KICAgIDxwYXRoIGZpbGw9ImN1cnJlbnRDb2xvciIgZD0ibTE5LjYzOSAyMS45YTEgMSAwIDAgMCAxLjQxOCAxLjQxMSAyLjYyOCAyLjYyOCAwIDAgMSAzLjcyNSAwIDEgMSAwIDAgMCAxLjQxOC0xLjQxMSA0LjYyOCA0LjYyOCAwIDAgMCAtNi41NjEgMHoiLz4NCiAgICA8ZWxsaXBzZSBmaWxsPSJjdXJyZW50Q29sb3IiIGN4PSIyMi45ODUiIGN5PSIyNC44NDMiIHJ4PSIxLjY2NyIgcnk9IjEuNjc0Ii8+DQogICAgPHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJtMjcuOTc5IDE5Ljc2OGE3LjA0NSA3LjA0NSAwIDAgMCAtOS45ODggMCAxIDEgMCAxIDAgMS40MTcgMS40MTIgNS4wNDUgNS4wNDUgMCAwIDEgNy4xNTQgMCAxIDEgMCAxIDAgMS40MTctMS40MTJ6Ii8+DQo8L3N2Zz4=",
+          "command": "test",
+          "jsonData": "{\"config\": {\"dbtype\": \"${data.dbtype}\", \"port\": \"${data.port}\", \"host\": \"${data.host}\", \"user\": \"${data.user}\", \"fileName\": \"${data.fileName}\", \"password\": \"${data.password}\"}}",
+          "label": "Test connection"
+        },
+
+        "_resetDB": {
+          "type": "sendto",
+          "variant": "contained",
+          "color": "primary",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSIjODAxMTExIiBkPSJNNiAxOWMwIDEuMS45IDIgMiAyaDhjMS4xIDAgMi0uOSAyLTJWN0g2djEyek0xOSA0aC0zLjVsLTEtMWgtNWwtMSAxSDV2MmgxNFY0eiIvPjwvc3ZnPgkJCQkJCQkJ",
+          "disabled": "!_alive",
+          "confirm": {
+            "text": "Are you sure? All data will be dropped.",
+            "title": "Please confirm",
+            "ok": "Reset",
+            "cancel": "Cancel"
+          },
+          "command": "test",
+          "label": "Reset DB"
+        }
+      }
+    },
+    "defaultTab": {
+      "type": "panel",
+      "label": "Default settings",
+      "items": {
+        "debounce": {
+          "type": "number",
+          "sm": 12,
+          "md": 6,
+          "lg": 4,
+          "min": 0,
+          "label": "debounce"
+        },
+        "changesRelogInterval": {
+          "type": "number",
+          "label": "log changes interval(s)",
+          "help": "0 = disable",
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+        "changesMinDelta": {
+          "newLine": true,
+          "type": "number",
+          "label": "log changes minimal delta",
+          "help": "0 = disable delta check",
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+        "retention": {
+          "type": "select",
+          "label": "retention",
+          "options": [
+            {
+              "value": 0,
+              "label": "keep forever"
+            },
+            {
+              "value": 63072000,
+              "label": "2 years"
+            },
+            {
+              "value": 31536000,
+              "label": "1 year"
+            },
+            {
+              "value": 15811200,
+              "label": "6 months"
+            },
+            {
+              "value": 7948800,
+              "label": "3 months"
+            },
+            {
+              "value": 2678400,
+              "label": "1 months"
+            },
+            {
+              "value": 1209600,
+              "label": "2 weeks"
+            },
+            {
+              "value": 604800,
+              "label": "1 week"
+            },
+            {
+              "value": 432000,
+              "label": "5 days"
+            },
+            {
+              "value": 259200,
+              "label": "3 days"
+            },
+            {
+              "value": 86400,
+              "label": "1 day"
+            }
+          ],
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        }
+      }
+    }
+  }
+}
