@@ -496,6 +496,10 @@ function getSqlLiteDir(fileName) {
 }
 
 function testConnection(msg) {
+    if (!msg.message.config) {
+        return msg.callback && adapter.sendTo(msg.from, msg.command, {error: 'invalid config'}, msg.callback);
+    }
+
     msg.message.config.port = parseInt(msg.message.config.port, 10) || 0;
     let params = {
         server:     msg.message.config.host,
@@ -576,14 +580,14 @@ function destroyDB(msg) {
                 adapter.log.error(err);
                 adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
             } else {
-                adapter.sendTo(msg.from, msg.command, {error: null}, msg.callback);
+                adapter.sendTo(msg.from, msg.command, {error: null, result: 'deleted'}, msg.callback);
                 // restart adapter
                 setTimeout(() =>
                     adapter.getForeignObject('system.adapter.' + adapter.namespace, (err, obj) => {
                         if (!err) {
                             adapter.setForeignObject(obj._id, obj);
                         } else {
-                            adapter.log.error('Cannot read object "system.adapter.' + adapter.namespace + '": ' + err);
+                            adapter.log.error(`Cannot read object "system.adapter.${adapter.namespace}": ${err}`);
                             adapter.stop();
                         }
                     }), 2000);
