@@ -11,7 +11,8 @@
             "fr": "Journalisation SQL",
             "it": "Registrazione SQL",
             "es": "Registro de SQL",
-            "pl": "Rejestrowanie SQL"
+            "pl": "Rejestrowanie SQL",
+            "zh-cn": "SQL记录"
         },
         "desc": {
             "en": "Logging of states into SQL DB",
@@ -22,7 +23,8 @@
             "fr": "Journalisation des états dans la base de données SQL",
             "it": "Registrazione degli stati nel DB SQL",
             "es": "Registro de estados en SQL DB",
-            "pl": "Rejestrowanie stanów w SQL DB"
+            "pl": "Rejestrowanie stanów w SQL DB",
+            "zh-cn": "将状态记录到SQL DB"
         },
         "version": "1.15.5",
         "news": {
