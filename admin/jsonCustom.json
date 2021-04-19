@@ -298,10 +298,10 @@
       "help": "No status query",
       "sm": 6
     },
-    "offCommand": {
+    "storageType": {
       "newLine": true,
-      "type": "text",
-      "label": "OFF command",
+      "type": "select",
+      "label": "Store as",
       "options": [
         {
           "value": "",
