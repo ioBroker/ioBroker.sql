@@ -26,8 +26,20 @@
             "pl": "Rejestrowanie stanów w SQL DB",
             "zh-cn": "将状态记录到SQL DB"
         },
-        "version": "1.15.5",
+        "version": "1.15.6",
         "news": {
+            "1.15.6": {
+                "en": "added support of Admin5",
+                "de": "Unterstützung von Admin5 hinzugefügt",
+                "ru": "добавлена поддержка Admin5",
+                "pt": "adicionado suporte de Admin5",
+                "nl": "toegevoegde ondersteuning van Admin5",
+                "fr": "ajout de la prise en charge d'Admin5",
+                "it": "aggiunto il supporto di Admin5",
+                "es": "soporte agregado de Admin5",
+                "pl": "dodana obsługa Admin5",
+                "zh-cn": "增加了对Admin5的支持"
+            },
             "1.15.5": {
                 "en": "make sure message query is a string (Sentry)",
                 "de": "Stellen Sie sicher, dass die Nachrichtenabfrage eine Zeichenfolge ist (Sentry).",
