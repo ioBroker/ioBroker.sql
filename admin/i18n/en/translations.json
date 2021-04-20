@@ -24,7 +24,7 @@
     "Host": "Host",
     "Input path with the file name.": "E.g. /opt/sqlite/data.db",
     "Maximum concurrent connections": "Maximum concurrent connections",
-    "Maximum concurrent connections:": "",
+    "Maximum concurrent connections:": "Maximum concurrent connections:",
     "Ok": "Ok",
     "Password": "Password",
     "Password confirm": "Password confirm",
