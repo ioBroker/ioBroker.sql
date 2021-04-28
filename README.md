@@ -420,7 +420,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### __WORK IN PROGRESS__
+### 1.15.7 (2021-04-28)
 * (bluefox) fixed the support of Admin5
 
 ### 1.15.6 (2021-04-19)

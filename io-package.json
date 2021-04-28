@@ -26,8 +26,20 @@
             "pl": "Rejestrowanie stanów w SQL DB",
             "zh-cn": "将状态记录到SQL DB"
         },
-        "version": "1.15.6",
+        "version": "1.15.7",
         "news": {
+            "1.15.7": {
+                "en": "fixed the support of Admin5",
+                "de": "Die Unterstützung von Admin5 wurde behoben",
+                "ru": "исправлена поддержка Admin5",
+                "pt": "consertou o suporte do Admin5",
+                "nl": "de ondersteuning van Admin5 opgelost",
+                "fr": "correction du support d'Admin5",
+                "it": "risolto il supporto di Admin5",
+                "es": "arreglado el soporte de Admin5",
+                "pl": "naprawiono obsługę Admin5",
+                "zh-cn": "修复了对Admin5的支持"
+            },
             "1.15.6": {
                 "en": "added support of Admin5",
                 "de": "Unterstützung von Admin5 hinzugefügt",
