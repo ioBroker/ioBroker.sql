@@ -153,16 +153,14 @@
         ],
         "supportStopInstance": 3000,
         "stopTimeout": 3000,
-        "config": {
-            "minWidth": 570,
-            "width ": 435,
-            "minHeight": 200,
-            "height": 540
-        },
         "plugins": {
             "sentry": {
                 "dsn": "https://c30462d3e0834993b0aa29824346701e@sentry.iobroker.net/45"
             }
+        },
+        "adminUI": {
+            "config": "json",
+            "custom": "json"
         },
         "jsonCustom": true,
         "jsonConfig": true

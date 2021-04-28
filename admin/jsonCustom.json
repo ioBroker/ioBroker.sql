@@ -110,6 +110,62 @@
       "es": "6 meses",
       "pl": "6 miesięcy"
     },
+    "Store as": {
+      "en": "Store as",
+      "de": "Speichern als",
+      "ru": "Сохранить как",
+      "pt": "Armazenar como",
+      "nl": "Opslaan als",
+      "fr": "Magasin comme",
+      "it": "Conservare come",
+      "es": "Przechowuj jako",
+      "pl": "Przechowuj jako"
+    },
+    "Automatic": {
+      "en": "Automatic",
+      "de": "Automatisch",
+      "ru": "автоматическая",
+      "pt": "Automático",
+      "nl": "automatisch",
+      "fr": "Automatique",
+      "it": "Automatico",
+      "es": "Automatycznyy",
+      "pl": "Automatyczny",
+      "zh-cn": "自动"
+    },
+    "String": {
+      "en": "String",
+      "de": "Zeichenfolge",
+      "ru": "строка",
+      "pt": "Corda",
+      "nl": "Draad",
+      "fr": "Chaîne",
+      "it": "Stringa",
+      "es": "Strunowy",
+      "pl": "Strunowy"
+    },
+    "Number": {
+      "en": "Number",
+      "de": "Nummer",
+      "ru": "Число",
+      "pt": "Número",
+      "nl": "Aantal",
+      "fr": "Nombre",
+      "it": "Numero",
+      "es": "Numer",
+      "pl": "Numer"
+    },
+    "Boolean": {
+      "en": "Boolean",
+      "de": "Boolesch",
+      "ru": "логический",
+      "pt": "boleano",
+      "nl": "Boolean",
+      "fr": "Booléen",
+      "it": "booleano",
+      "es": "Booleano",
+      "pl": "Boolean"
+    },
     "De-bounce interval(ms)": {
       "en": "Ignore changes till value stays unchanged for X ms",
       "de": "Änderungen ignorieren, bis der Wert für X ms unverändert bleibt",
@@ -122,7 +178,7 @@
       "pl": "Zignoruj ​​zmiany, aż wartość pozostanie niezmieniona przez X ms",
       "zh-cn": "忽略更改，直到值保持不变为X毫秒<br>（去抖时间）"
     },
-	"De-bounce time": {
+    "De-bounce time": {
       "en": "Debounce Time",
       "de": "Entprellzeit",
       "ru": "Дребезг",
@@ -133,7 +189,7 @@
       "es": "Tiempo de rebote",
       "pl": "Czas odbicia",
       "zh-cn": "去抖时间"
-	},
+    },
     "Storage retention": {
       "en": "Storage retention",
       "de": "Storage Vorhaltezeit",
@@ -144,17 +200,6 @@
       "it": "Conservazione di memoria",
       "es": "Retención de almacenamiento",
       "pl": "Przechowywanie danych"
-    },
-    "enabled": {
-      "en": "enabled",
-      "de": "Aktiviert",
-      "ru": "активно",
-      "pt": "ativado",
-      "nl": "ingeschakeld",
-      "fr": "activée",
-      "it": "abilitato",
-      "es": "habilitado",
-      "pl": "włączony"
     },
     "keep forever": {
       "en": "keep forever",
@@ -168,7 +213,7 @@
       "pl": "zachowaj na zawsze"
     },
     "log changes interval(s)": {
-      "en": "still record the same values (seconds)",
+      "en": "Record the same values (seconds)",
       "de": "trotzdem gleiche Werte aufzeichnen (Sekunden)",
       "ru": "по-прежнему записывать те же значения (в секундах)",
       "pt": "ainda gravar os mesmos valores (segundos)",
@@ -179,7 +224,7 @@
       "pl": "nadal nagrywaj te same wartości (sekundy)",
       "zh-cn": "仍记录相同的值（秒）<br>（0 =禁用）"
     },
-	"0 = disabled": {
+    "0 = disabled": {
       "en": "0 = disabled",
       "de": "0 = deaktiviert",
       "ru": "0 = отключить",
@@ -203,7 +248,7 @@
       "pl": "Minimalna różnica od ostatniej wartości",
       "zh-cn": "与上一个值的最小差异"
     },
-	"0 = disable delta check": {
+    "0 = disable delta check": {
       "en": "0 = disable delta check",
       "de": "0 = Deltaprüfung deaktivieren",
       "ru": "0 = отключить дельта-проверку",
@@ -227,17 +272,6 @@
       "pl": "Zapisz tylko zmiany",
       "zh-cn": "仅记录更改"
     },
-    "maximum datapoint count in RAM": {
-      "en": "maximum datapoint count in RAM",
-      "de": "maximale Anzahl Datenpunkte in RAM",
-      "ru": "макс. кол-во значений в RAM памяти",
-      "pt": "contagem máxima do datapoint na RAM",
-      "nl": "maximum aantal datapunten in RAM",
-      "fr": "nombre de points de données maximum en RAM",
-      "it": "massimo conteggio dei punti di accesso nella RAM",
-      "es": "recuento máximo de datos en RAM",
-      "pl": "maksymalna liczba punktów w pamięci RAM"
-    },
     "aliasId": {
       "en": "Alias-ID",
       "de": "Alias-ID",
@@ -259,44 +293,54 @@
       "it": "se Alias-ID è impostato, i dati verranno registrati come questo ID nei file di dati",
       "es": "si se establece Alias-ID, los datos se registrarán como esta ID en los archivos de datos",
       "pl": "jeśli ustawiony jest Alias-ID, dane będą rejestrowane jako te ID w plikach danych"
+    },
+    "Counter": {
+      "en": "Counter",
+      "de": "Zähler",
+      "ru": "счетчик",
+      "pt": "Contador",
+      "nl": "Teller",
+      "fr": "Compteur",
+      "it": "contatore",
+      "es": "Mostrador",
+      "pl": "Licznik",
+      "zh-cn": "计数器"
     }
   },
   "items": {
-    "alias": {
-      "type": "text",
-      "sm": 12,
-      "label": "Alias",
-      "help": "Leave empty to use object's name"
-    },
-    "readOnly": {
-      "newLine": true,
+    "changesOnly": {
       "type": "checkbox",
-	  "label": "Read only",
-      "help": "Only delivers the changes",
+      "label": "log changes only",
+      "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number'",
+      "sm": 6
+    },
+    "debounce": {
+      "type": "number",
+      "label": "De-bounce time",
+      "help": "De-bounce interval(ms)",
+      "min": 500,
+      "max": 86400000,
       "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number' ? instanceObj.native.debounce : 0",
       "sm": 6
     },
-    "report": {
-      "type": "checkbox",
-      "label": "Report changes",
-      "help": "If the changes must be sent to telegram",
-      "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number' ? instanceObj.native.debounce : 0",
-      "sm": 6
-    },
-    "buttons": {
+    "changesRelogInterval": {
       "newLine": true,
       "type": "number",
-      "label": "Buttons in line",
-      "min": 1,
-      "max": 3,
+      "label": "log changes interval(s)",
+      "min": 0,
+      "max": 86400000,
+      "help": "0 = disabled",
+      "defaultFunc": "instanceObj.native.changesRelogInterval",
       "sm": 6
     },
-    "writeOnly": {
-      "type": "checkbox",
-      "label": "Write only",
-      "defaultFunc": "false",
-      "help": "No status query",
-      "sm": 6
+    "changesMinDelta": {
+      "type": "number",
+      "label": "log changes minimal delta",
+      "min": 0,
+      "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number' ? instanceObj.native.changesMinDelta : 0",
+      "default": 0,
+      "sm": 6,
+      "help": "0 = disable delta check"
     },
     "storageType": {
       "newLine": true,
@@ -379,8 +423,8 @@
       "newLine": true,
       "type": "checkbox",
       "label": "Counter",
-      "hidden": "data.storageType !== 'Number' && !Array.isArray(data.storageType)",
       "default": false,
+      "visible": "data.storageType === 'Number'",
       "sm": 6
     },
     "aliasId": {
