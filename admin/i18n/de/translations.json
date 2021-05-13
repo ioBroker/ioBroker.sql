@@ -28,7 +28,7 @@
     "Ok": "Ok",
     "Password": "Passwort",
     "Password confirm": "Passwort-Wiederholung",
-    "Password confirmation is not equal with password!": "Kennwort-Bestätigung ist nicht gleich mit dem Kennwort!",
+    "Password confirmation is not equal with password!": "Kennwort-Bestätigung stimmt nicht  mit dem Kennwort überein!",
     "Port": "Port",
     "Reset DB": "Alle Daten in DB löschen",
     "Round real to": "Aufrunden auf",
@@ -41,7 +41,7 @@
     "keep forever": "keine automatische Löschung",
     "log changes interval(s)": "Gleiche Werte aufzeichnen(s)",
     "log changes minimal delta": "Minimale Abweichung vom letzten Wert für Aufzeichnung",
-    "note": "History Einstellungen mussen für jeden State einzeln gemacht werden auf der Lasche \"States\" und nur wenn adapter aktiv ist",
+    "note": "History Einstellungen müssen für jeden State einzeln gemacht werden, im Tab \"States\" und nur wenn die Adapter Instanz aktiv ist",
     "requestInterval": "Intervall zwischen DB Anfragen(ms)",
     "retention": "Storage Vorhaltezeit"
 }
