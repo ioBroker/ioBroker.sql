@@ -12,7 +12,7 @@
     "5 days": "5 days",
     "6 months": "6 months",
     "Allow parallel requests": "Allow parallel requests",
-    "Are you sure? All data will be dropped.": "Are you sure? All data will be dropped.",
+    "Are you sure? All data will be dropped.": "All data will be dropped. Are you sure? ",
     "DB Name": "Database name",
     "DB Type": "DB Type",
     "DB settings": "DB settings",
