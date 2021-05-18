@@ -21,7 +21,7 @@
     "Encrypt": "Verschlüsseln",
     "File for sqlite": "Datei für sqlite",
     "History adapter settings": "History-Adapter Einstellungen",
-    "Host": "Host",
+    "Host": "Server",
     "Input path with the file name.": "Z.B. /opt/sqlite/data.db",
     "Maximum concurrent connections": "Max. gleichzeitige Verbindungen",
     "Maximum concurrent connections:": "Maximale Anzahl parallele Verbindungen:",
