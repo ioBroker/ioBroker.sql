@@ -12,7 +12,7 @@
     "5 days": "5 дней",
     "6 months": "3 месяца",
     "Allow parallel requests": "Разрешить параллельные запросы к базе",
-    "Are you sure? All data will be dropped.": "Вы уверенны? Все данные в базе будут удалены. ",
+    "Are you sure? All data will be dropped.": "Вы уверены? Все данные в базе будут удалены. ",
     "DB Name": "Имя базы данных",
     "DB Type": "Тип базы",
     "DB settings": "Настройки соединения с DB",
