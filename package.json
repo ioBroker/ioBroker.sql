@@ -22,7 +22,7 @@
   ],
   "optionalDependencies": {
     "mysql": "^2.18.1",
-    "pg": "^8.6.0",
+    "pg": "^8.7.1",
     "sqlite3": "^5.0.2",
     "mssql": "^6.3.1"
   },
