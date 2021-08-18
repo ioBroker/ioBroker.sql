@@ -27,7 +27,7 @@
     "Maximum concurrent connections:": "Maximale Anzahl parallele Verbindungen:",
     "Ok": "Ok",
     "Password": "Passwort",
-    "Password confirm": "Passwort-Wiederholung",
+    "Password confirm": "Kennwort-Wiederholung",
     "Password confirmation is not equal with password!": "Kennwort-Bestätigung stimmt nicht mit dem Kennwort überein!",
     "Port": "Port",
     "Reset DB": "Alle Daten in Datenbank löschen",
