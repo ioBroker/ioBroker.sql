@@ -28,7 +28,7 @@
     "Ok": "Ok",
     "Password": "Passwort",
     "Password confirm": "Passwort-Wiederholung",
-    "Password confirmation is not equal with password!": "Kennwort-Bestätigung stimmt nicht mit dem Kennwort überein!",
+    "Password confirmation is not equal with password!": "Passwort-Bestätigung stimmt nicht mit dem Passwort überein!",
     "Port": "Port",
     "Reset DB": "Alle Daten in Datenbank löschen",
     "Round real to": "Aufrunden auf",
