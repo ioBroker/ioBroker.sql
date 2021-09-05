@@ -5,9 +5,9 @@ os:
 osx_image: xcode11.6
 language: node_js
 node_js:
-  - '10'
   - '12'
   - '14'
+  - '16'
 services:
   - mysql
   - postgresql
@@ -23,14 +23,14 @@ before_script:
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mkdir /usr/local/etc/my.cnf.d || true; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew services start mariadb; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sleep 5; fi'
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mariadb -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('mysql');"; fi
+  - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mariadb -e "SET PASSWORD FOR ''root''@''localhost'' = PASSWORD(''mysql'');"; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rm -rf /usr/local/var/postgres; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then initdb /usr/local/var/postgres; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pg_ctl -D /usr/local/var/postgres start; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sleep 5; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then createuser -s postgres; fi'
   - 'if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then choco install mariadb --version=10.4.8; fi'
-  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then choco install postgresql10 --params '/Password:postgres'; fi
+  - 'if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then choco install postgresql10 --params ''/Password:postgres''; fi'
   - sleep 15
 addons:
   apt:
