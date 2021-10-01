@@ -27,7 +27,7 @@
     "mssql": "^6.3.1"
   },
   "dependencies": {
-    "sql-client": "^2.0.3",
+    "sql-client": "^3.0.0",
     "@iobroker/adapter-core": "^2.5.1"
   },
   "devDependencies": {
