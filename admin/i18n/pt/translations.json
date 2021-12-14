@@ -25,7 +25,7 @@
     "Input path with the file name.": "Por exemplo. /opt/sqlite/data.db",
     "Maximum concurrent connections": "Máximo de conexões simultâneas",
     "Maximum concurrent connections:": "",
-    "Ok": "Está bem",
+    "Ok": "Ok",
     "Password": "Senha",
     "Password confirm": "Confirmação de senha",
     "Password confirmation is not equal with password!": "A confirmação da senha não é igual com a senha!",
