@@ -1,221 +1,209 @@
 {
-    "common": {
-        "name": "sql",
-        "title": "SQL History",
-        "titleLang": {
-            "en": "SQL logging",
-            "de": "SQL-Protokollierung",
-            "ru": "Ведение журнала SQL",
-            "pt": "Log de SQL",
-            "nl": "SQL logging",
-            "fr": "Journalisation SQL",
-            "it": "Registrazione SQL",
-            "es": "Registro de SQL",
-            "pl": "Rejestrowanie SQL",
-            "zh-cn": "SQL记录"
-        },
-        "desc": {
-            "en": "Logging of states into SQL DB",
-            "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
-            "ru": "Сохраняет историю событий для отдельных состояний в SQL DB",
-            "pt": "Registro de estados em SQL DB",
-            "nl": "Logging van toestanden in SQL DB",
-            "fr": "Journalisation des états dans la base de données SQL",
-            "it": "Registrazione degli stati nel DB SQL",
-            "es": "Registro de estados en SQL DB",
-            "pl": "Rejestrowanie stanów w SQL DB",
-            "zh-cn": "将状态记录到SQL DB"
-        },
-        "version": "1.15.7",
-        "news": {
-            "1.15.7": {
-                "en": "fixed the support of Admin5",
-                "de": "Die Unterstützung von Admin5 wurde behoben",
-                "ru": "исправлена поддержка Admin5",
-                "pt": "consertou o suporte do Admin5",
-                "nl": "de ondersteuning van Admin5 opgelost",
-                "fr": "correction du support d'Admin5",
-                "it": "risolto il supporto di Admin5",
-                "es": "arreglado el soporte de Admin5",
-                "pl": "naprawiono obsługę Admin5",
-                "zh-cn": "修复了对Admin5的支持"
-            },
-            "1.15.6": {
-                "en": "added support of Admin5",
-                "de": "Unterstützung von Admin5 hinzugefügt",
-                "ru": "добавлена поддержка Admin5",
-                "pt": "adicionado suporte de Admin5",
-                "nl": "toegevoegde ondersteuning van Admin5",
-                "fr": "ajout de la prise en charge d'Admin5",
-                "it": "aggiunto il supporto di Admin5",
-                "es": "soporte agregado de Admin5",
-                "pl": "dodana obsługa Admin5",
-                "zh-cn": "增加了对Admin5的支持"
-            },
-            "1.15.5": {
-                "en": "make sure message query is a string (Sentry)",
-                "de": "Stellen Sie sicher, dass die Nachrichtenabfrage eine Zeichenfolge ist (Sentry).",
-                "ru": "убедитесь, что запрос сообщения является строкой (Sentry)",
-                "pt": "certifique-se de que a consulta da mensagem é uma string (Sentry)",
-                "nl": "zorg ervoor dat de berichtvraag een tekenreeks is (Sentry)",
-                "fr": "assurez-vous que la requête de message est une chaîne (Sentry)",
-                "it": "assicurati che la query del messaggio sia una stringa (Sentry)",
-                "es": "asegúrese de que la consulta del mensaje sea una cadena (Sentry)",
-                "pl": "upewnij się, że zapytanie o wiadomość jest ciągiem (Sentry)",
-                "zh-cn": "确保消息查询是字符串（Sentry）"
-            },
-            "1.15.4": {
-                "en": "Optimize stop handling",
-                "de": "Optimieren Sie das Stop-Handling",
-                "ru": "Оптимизировать обработку остановок",
-                "pt": "Otimize o manuseio de parada",
-                "nl": "Optimaliseer het afhandelen van stops",
-                "fr": "Optimiser la gestion des arrêts",
-                "it": "Ottimizza la gestione delle fermate",
-                "es": "Optimizar el manejo de paradas",
-                "pl": "Zoptymalizuj obsługę zatrzymania",
-                "zh-cn": "优化停止处理"
-            },
-            "1.15.3": {
-                "en": "Added the option \"Do not create database\". E.g. if DB was created and it does not required to do that, because the user does not have enough rights.",
-                "de": "Die Option \"Datenbank nicht erstellen\" wurde hinzugefügt. Z.B. wenn DB erstellt wurde und dies nicht erforderlich ist, da der Benutzer nicht über genügend Rechte verfügt.",
-                "ru": "Добавлена опция «Не создавать базу данных». Например. если БД была создана, а этого делать не нужно, так как у пользователя недостаточно прав.",
-                "pt": "Adicionada a opção \"Não criar banco de dados\". Por exemplo. se o DB foi criado e não é obrigatório, porque o usuário não tem direitos suficientes.",
-                "nl": "De optie \"Geen database aanmaken\" toegevoegd. Bijv. als DB is gemaakt en het is niet nodig om dat te doen, omdat de gebruiker niet genoeg rechten heeft.",
-                "fr": "Ajout de l'option \"Ne pas créer de base de données\". Par exemple. si DB a été créé et qu'il n'est pas nécessaire de le faire, car l'utilisateur n'a pas suffisamment de droits.",
-                "it": "Aggiunta l'opzione \"Non creare database\". Per esempio. se DB è stato creato e non è necessario farlo, perché l'utente non dispone di diritti sufficienti.",
-                "es": "Añadida la opción \"No crear base de datos\". P.ej. si se creó DB y no es necesario que lo haga, porque el usuario no tiene suficientes derechos.",
-                "pl": "Dodano opcję „Nie twórz bazy danych”. Na przykład. jeśli baza danych została utworzona i nie jest to wymagane, ponieważ użytkownik nie ma wystarczających uprawnień.",
-                "zh-cn": "添加了选项“不创建数据库”。例如。如果已创建数据库，则不需要这样做，因为用户没有足够的权限。"
-            },
-            "1.15.2": {
-                "en": "prevent wrong errors that realId is missing",
-                "de": "Verhindern Sie falsche Fehler, bei denen realId fehlt",
-                "ru": "предотвратить неправильные ошибки, которые отсутствуют в realId",
-                "pt": "evitar erros errados que faltam realId",
-                "nl": "voorkom verkeerde fouten die realId mist",
-                "fr": "éviter les erreurs erronées manquantes dans realId",
-                "it": "prevenire errori errati che realId manca",
-                "es": "evitar errores incorrectos que faltan realId",
-                "pl": "zapobiega błędnym błędom, których brakuje realId",
-                "zh-cn": "防止缺少realId的错误错误"
-            },
-            "1.15.1": {
-                "en": "implement a workaround for postgres problem",
-                "de": "Implementieren Sie eine Problemumgehung für das Postgres-Problem",
-                "ru": "реализовать обходной путь для проблемы postgres",
-                "pt": "implementar uma solução alternativa para o problema do postgres",
-                "nl": "een oplossing voor postgres-probleem implementeren",
-                "fr": "implémenter une solution de contournement pour le problème postgres",
-                "it": "implementare una soluzione alternativa per il problema di Postgres",
-                "es": "implementar una solución alternativa para el problema de postgres",
-                "pl": "wdrożyć obejście problemu z postgres",
-                "zh-cn": "实现postgres问题的解决方法"
-            },
-            "1.15.0": {
-                "en": "BREAKING* This version only accepts Node.js 10.x+ (because sqlite3 was upgraded)\nPrevent crash case (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
-                "de": "BREAKING * Diese Version akzeptiert nur Node.js 10.x + (da sqlite3 aktualisiert wurde)\nAbsturzfall verhindern (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
-                "ru": "BREAKING * Эта версия поддерживает только Node.js 10.x + (потому что sqlite3 был обновлен)\nПредотвращение сбоя (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
-                "pt": "BREAKING * Esta versão aceita apenas o Node.js 10.x + (porque o sqlite3 foi atualizado)\nEvitar caso de falha (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
-                "nl": "BREAKING * Deze versie accepteert alleen Node.js 10.x + (omdat sqlite3 is geüpgraded)\nVoorkom crashgeval (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
-                "fr": "BREAKING * Cette version accepte uniquement Node.js 10.x + (car sqlite3 a été mis à niveau)\nPrévenir les cas de crash (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
-                "it": "BREAKING * Questa versione accetta solo Node.js 10.x + (poiché sqlite3 è stato aggiornato)\nPrevenire il caso di crash (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
-                "es": "BREAKING * Esta versión solo acepta Node.js 10.x + (porque se actualizó sqlite3)\nPrevenir caso de bloqueo (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
-                "pl": "BREAKING * Ta wersja akceptuje tylko Node.js 10.x + (ponieważ sqlite3 został zaktualizowany)\nZapobiegaj przypadkom awarii (Sentry IOBROKER-SQL-16, IOBROKER-SQL-15, IOBROKER-SQL-1K)",
-                "zh-cn": "BREAKING *此版本仅接受Node.js 10.x +（因为sqlite3已升级）\n防止发生崩溃情况（哨兵IOBROKER-SQL-16，IOBROKER-SQL-15，IOBROKER-SQL-1K）"
-            }
-        },
-        "mode": "daemon",
-        "platform": "Javascript/Node.js",
-        "loglevel": "info",
-        "messagebox": true,
-        "subscribe": "messagebox",
-        "keywords": [
-            "charts",
-            "sql",
-            "logging",
-            "graphs",
-            "archive"
-        ],
-        "preserveSettings": "custom",
-        "supportCustoms": true,
-        "getHistory": true,
-        "enabled": true,
-        "stopBeforeUpdate": true,
-        "materialize": true,
-        "compact": true,
-        "authors": [
-            "bluefox <dogafox@gmail.com>",
-            "Apollon77 <ingo@fischer-ka.de>"
-        ],
-        "license": "MIT",
-        "readme": "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
-        "icon": "sql.png",
-        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
-        "type": "storage",
-        "dependencies": [
-            {
-                "js-controller": ">=3.3.0"
-            }
-        ],
-        "supportStopInstance": 3000,
-        "stopTimeout": 3000,
-        "plugins": {
-            "sentry": {
-                "dsn": "https://c30462d3e0834993b0aa29824346701e@sentry.iobroker.net/45"
-            }
-        },
-        "adminUI": {
-            "config": "json",
-            "custom": "json"
-        },
-        "jsonCustom": true,
-        "jsonConfig": true,
-        "tier": 1
+  "common": {
+    "name": "sql",
+    "title": "SQL History",
+    "titleLang": {
+      "en": "SQL logging",
+      "de": "SQL-Protokollierung",
+      "ru": "Ведение журнала SQL",
+      "pt": "Log de SQL",
+      "nl": "SQL logging",
+      "fr": "Journalisation SQL",
+      "it": "Registrazione SQL",
+      "es": "Registro de SQL",
+      "pl": "Rejestrowanie SQL",
+      "zh-cn": "SQL记录"
     },
-    "native": {
-        "connLink": "",
-        "debounce": 1000,
-        "retention": 31536000,
-        "host": "localhost",
-        "port": 0,
-        "user": "",
-        "password": "",
-        "dbtype": "sqlite",
-        "fileName": "sqlite.db",
-        "requestInterval": 0,
-        "encrypt": false,
-        "round": 4,
-        "dbname": "iobroker",
-        "multiRequests": true,
-        "maxConnections": 100,
-        "changesRelogInterval": 0,
-        "changesMinDelta": 0,
-        "writeNulls": true,
-        "doNotCreateDatabase": false
+    "desc": {
+      "en": "Logging of states into SQL DB",
+      "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
+      "ru": "Сохраняет историю событий для отдельных состояний в SQL DB",
+      "pt": "Registro de estados em SQL DB",
+      "nl": "Logging van toestanden in SQL DB",
+      "fr": "Journalisation des états dans la base de données SQL",
+      "it": "Registrazione degli stati nel DB SQL",
+      "es": "Registro de estados en SQL DB",
+      "pl": "Rejestrowanie stanów w SQL DB",
+      "zh-cn": "将状态记录到SQL DB"
     },
-    "instanceObjects": [
-        {
-            "_id": "info",
-            "type": "channel",
-            "common": {
-                "name": "Information"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info.connection",
-            "type": "state",
-            "common": {
-                "role": "indicator.connected",
-                "name": "If connected to DB",
-                "type": "boolean",
-                "read": true,
-                "write": false,
-                "def": false
-            },
-            "native": {}
-        }
+    "version": "1.16.0",
+    "news": {
+      "1.16.0": {
+        "en": "Support only `js.controller` >= 3.3.x\nUsed system/custom view for collecting the objects\nImplemented option to ignore zero- or/and below zero- values",
+        "de": "Unterstützt nur `js.controller` >= 3.3.x\nVerwendete Systemansicht/benutzerdefinierte Ansicht zum Sammeln der Objekte\nImplementierte Option zum Ignorieren von Null- oder/und Unter-Null-Werten",
+        "ru": "Поддерживает только `js.controller`> = 3.3.x\nИспользуемый системный / пользовательский вид для сбора объектов\nРеализована возможность игнорировать нулевые и / или отрицательные значения.",
+        "pt": "Suporte apenas `js.controller`> = 3.3.x\nSistema usado / visão personalizada para coletar os objetos\nOpção implementada para ignorar valores zero ou / e abaixo de zero",
+        "nl": "Ondersteuning alleen `js.controller` >= 3.3.x\nGebruikt systeem/aangepaste weergave voor het verzamelen van de objecten\nGeïmplementeerde optie om nul- of/en onder nul-waarden te negeren",
+        "fr": "Supporte uniquement `js.controller` >= 3.3.x\nSystème utilisé/vue personnalisée pour la collecte des objets\nOption implémentée pour ignorer les valeurs zéro ou/et inférieures à zéro",
+        "it": "Supporta solo `js.controller` >= 3.3.x\nSistema utilizzato/vista personalizzata per la raccolta degli oggetti\nOpzione implementata per ignorare i valori zero o/o inferiori a zero",
+        "es": "Admite solo `js.controller`> = 3.3.x\nSistema usado / vista personalizada para recolectar los objetos.\nOpción implementada para ignorar valores cero o inferiores a cero",
+        "pl": "Obsługuje tylko `js.controller` >= 3.3.x\nWykorzystany widok systemowy/niestandardowy do zbierania obiektów\nZaimplementowana opcja ignorowania wartości zerowych lub/i poniżej zera",
+        "zh-cn": "仅支持 `js.controller` >= 3.3.x\n用于收集对象的系统/自定义视图\n已实现忽略零或/和低于零值的选项"
+      },
+      "1.15.7": {
+        "en": "fixed the support of Admin5",
+        "de": "Die Unterstützung von Admin5 wurde behoben",
+        "ru": "исправлена поддержка Admin5",
+        "pt": "consertou o suporte do Admin5",
+        "nl": "de ondersteuning van Admin5 opgelost",
+        "fr": "correction du support d'Admin5",
+        "it": "risolto il supporto di Admin5",
+        "es": "arreglado el soporte de Admin5",
+        "pl": "naprawiono obsługę Admin5",
+        "zh-cn": "修复了对Admin5的支持"
+      },
+      "1.15.6": {
+        "en": "added support of Admin5",
+        "de": "Unterstützung von Admin5 hinzugefügt",
+        "ru": "добавлена поддержка Admin5",
+        "pt": "adicionado suporte de Admin5",
+        "nl": "toegevoegde ondersteuning van Admin5",
+        "fr": "ajout de la prise en charge d'Admin5",
+        "it": "aggiunto il supporto di Admin5",
+        "es": "soporte agregado de Admin5",
+        "pl": "dodana obsługa Admin5",
+        "zh-cn": "增加了对Admin5的支持"
+      },
+      "1.15.5": {
+        "en": "make sure message query is a string (Sentry)",
+        "de": "Stellen Sie sicher, dass die Nachrichtenabfrage eine Zeichenfolge ist (Sentry).",
+        "ru": "убедитесь, что запрос сообщения является строкой (Sentry)",
+        "pt": "certifique-se de que a consulta da mensagem é uma string (Sentry)",
+        "nl": "zorg ervoor dat de berichtvraag een tekenreeks is (Sentry)",
+        "fr": "assurez-vous que la requête de message est une chaîne (Sentry)",
+        "it": "assicurati che la query del messaggio sia una stringa (Sentry)",
+        "es": "asegúrese de que la consulta del mensaje sea una cadena (Sentry)",
+        "pl": "upewnij się, że zapytanie o wiadomość jest ciągiem (Sentry)",
+        "zh-cn": "确保消息查询是字符串（Sentry）"
+      },
+      "1.15.4": {
+        "en": "Optimize stop handling",
+        "de": "Optimieren Sie das Stop-Handling",
+        "ru": "Оптимизировать обработку остановок",
+        "pt": "Otimize o manuseio de parada",
+        "nl": "Optimaliseer het afhandelen van stops",
+        "fr": "Optimiser la gestion des arrêts",
+        "it": "Ottimizza la gestione delle fermate",
+        "es": "Optimizar el manejo de paradas",
+        "pl": "Zoptymalizuj obsługę zatrzymania",
+        "zh-cn": "优化停止处理"
+      },
+      "1.15.3": {
+        "en": "Added the option \"Do not create database\". E.g. if DB was created and it does not required to do that, because the user does not have enough rights.",
+        "de": "Die Option \"Datenbank nicht erstellen\" wurde hinzugefügt. Z.B. wenn DB erstellt wurde und dies nicht erforderlich ist, da der Benutzer nicht über genügend Rechte verfügt.",
+        "ru": "Добавлена опция «Не создавать базу данных». Например. если БД была создана, а этого делать не нужно, так как у пользователя недостаточно прав.",
+        "pt": "Adicionada a opção \"Não criar banco de dados\". Por exemplo. se o DB foi criado e não é obrigatório, porque o usuário não tem direitos suficientes.",
+        "nl": "De optie \"Geen database aanmaken\" toegevoegd. Bijv. als DB is gemaakt en het is niet nodig om dat te doen, omdat de gebruiker niet genoeg rechten heeft.",
+        "fr": "Ajout de l'option \"Ne pas créer de base de données\". Par exemple. si DB a été créé et qu'il n'est pas nécessaire de le faire, car l'utilisateur n'a pas suffisamment de droits.",
+        "it": "Aggiunta l'opzione \"Non creare database\". Per esempio. se DB è stato creato e non è necessario farlo, perché l'utente non dispone di diritti sufficienti.",
+        "es": "Añadida la opción \"No crear base de datos\". P.ej. si se creó DB y no es necesario que lo haga, porque el usuario no tiene suficientes derechos.",
+        "pl": "Dodano opcję „Nie twórz bazy danych”. Na przykład. jeśli baza danych została utworzona i nie jest to wymagane, ponieważ użytkownik nie ma wystarczających uprawnień.",
+        "zh-cn": "添加了选项“不创建数据库”。例如。如果已创建数据库，则不需要这样做，因为用户没有足够的权限。"
+      },
+      "1.15.2": {
+        "en": "prevent wrong errors that realId is missing",
+        "de": "Verhindern Sie falsche Fehler, bei denen realId fehlt",
+        "ru": "предотвратить неправильные ошибки, которые отсутствуют в realId",
+        "pt": "evitar erros errados que faltam realId",
+        "nl": "voorkom verkeerde fouten die realId mist",
+        "fr": "éviter les erreurs erronées manquantes dans realId",
+        "it": "prevenire errori errati che realId manca",
+        "es": "evitar errores incorrectos que faltan realId",
+        "pl": "zapobiega błędnym błędom, których brakuje realId",
+        "zh-cn": "防止缺少realId的错误错误"
+      }
+    },
+    "mode": "daemon",
+    "platform": "Javascript/Node.js",
+    "loglevel": "info",
+    "messagebox": true,
+    "subscribe": "messagebox",
+    "keywords": [
+      "charts",
+      "sql",
+      "logging",
+      "graphs",
+      "archive"
     ],
-    "objects": []
+    "preserveSettings": "custom",
+    "supportCustoms": true,
+    "getHistory": true,
+    "enabled": true,
+    "stopBeforeUpdate": true,
+    "materialize": true,
+    "compact": true,
+    "authors": [
+      "bluefox <dogafox@gmail.com>",
+      "Apollon77 <ingo@fischer-ka.de>"
+    ],
+    "license": "MIT",
+    "readme": "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
+    "icon": "sql.png",
+    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
+    "type": "storage",
+    "dependencies": [
+      {
+        "js-controller": ">=3.3.0"
+      }
+    ],
+    "supportStopInstance": 3000,
+    "stopTimeout": 3000,
+    "plugins": {
+      "sentry": {
+        "dsn": "https://c30462d3e0834993b0aa29824346701e@sentry.iobroker.net/45"
+      }
+    },
+    "adminUI": {
+      "config": "json",
+      "custom": "json"
+    },
+    "jsonCustom": true,
+    "jsonConfig": true,
+    "tier": 1
+  },
+  "native": {
+    "connLink": "",
+    "debounce": 1000,
+    "retention": 31536000,
+    "host": "localhost",
+    "port": 0,
+    "user": "",
+    "password": "",
+    "dbtype": "sqlite",
+    "fileName": "sqlite.db",
+    "requestInterval": 0,
+    "encrypt": false,
+    "round": 4,
+    "dbname": "iobroker",
+    "multiRequests": true,
+    "maxConnections": 100,
+    "changesRelogInterval": 0,
+    "changesMinDelta": 0,
+    "writeNulls": true,
+    "doNotCreateDatabase": false
+  },
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "role": "indicator.connected",
+        "name": "If connected to DB",
+        "type": "boolean",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    }
+  ],
+  "objects": []
 }
