@@ -305,6 +305,30 @@
       "es": "Mostrador",
       "pl": "Licznik",
       "zh-cn": "计数器"
+    },
+    "ignore zero or null values": {
+      "en": "ignore zero or null values (==0)",
+      "de": "Zero- oder Nullwerte ignorieren (==0)",
+      "ru": "игнорировать нулевые или нулевые значения (== 0)",
+      "pt": "ignorar valores zero ou nulos (== 0)",
+      "nl": "negeer nul- of null-waarden (==0)",
+      "fr": "ignorer les valeurs nulles ou nulles (==0)",
+      "it": "ignora i valori zero o null (==0)",
+      "es": "ignorar valores cero o nulos (== 0)",
+      "pl": "zignoruj wartości zero lub null (==0)",
+      "zh-cn": "忽略零或空值 (==0)"
+    },
+    "ignore values below zero": {
+      "en": "ignore values below zero (<0)",
+      "de": "Werte unter 0 ignorieren (<0)",
+      "ru": "игнорировать значения ниже нуля (<0)",
+      "pt": "ignorar valores abaixo de zero (<0)",
+      "nl": "negeer waarden onder nul (<0)",
+      "fr": "ignorer les valeurs inférieures à zéro (<0)",
+      "it": "ignora i valori inferiori a zero (<0)",
+      "es": "ignorar valores por debajo de cero (<0)",
+      "pl": "zignoruj wartości poniżej zera (<0)",
+      "zh-cn": "忽略低于零 (<0) 的值"
     }
   },
   "items": {
@@ -431,10 +455,22 @@
       "newLine": true,
       "type": "text",
       "label": "aliasId",
-      "max": 255,
+      "maxLength": 255,
       "default": "",
       "sm": 12,
       "help": "Alias Info"
+    },
+    "ignoreZero": {
+      "newLine": true,
+      "type": "checkbox",
+      "label": "ignore zero or null values",
+      "sm": 6
+    },
+    "ignoreBelowZero": {
+      "type": "checkbox",
+      "label": "ignore values below zero",
+      "hidden": "!customObj || !customObj.common || customObj.common.type !== 'number'",
+      "sm": 6
     }
   }
 }

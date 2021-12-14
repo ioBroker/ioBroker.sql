@@ -155,12 +155,7 @@
         "type": "storage",
         "dependencies": [
             {
-                "js-controller": ">=2.0.0"
-            }
-        ],
-        "globalDependencies": [
-            {
-                "admin": ">=1.6.10"
+                "js-controller": ">=3.3.0"
             }
         ],
         "supportStopInstance": 3000,
@@ -222,15 +217,5 @@
             "native": {}
         }
     ],
-    "objects": [
-        {
-            "_id": "_design/custom",
-            "language": "javascript",
-            "views": {
-                "state": {
-                    "map": "function(doc) { if (doc.type==='state' && (doc.common.custom || doc.common.history)) emit(doc._id, doc.common.custom || doc.common.history) }"
-                }
-            }
-        }
-    ]
+    "objects": []
 }

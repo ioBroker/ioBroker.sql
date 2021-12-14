@@ -368,7 +368,7 @@ sendTo('sql.0', 'disableHistory', {
         console.log(result.error);
     }
     if (result.success) {
-        //successfull enabled
+        // successful enabled
     }
 });
 ```
@@ -400,7 +400,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 - **Host**: IP address or host name with SQL Server
 - **Port**: Port of SQL Server (leave blank if not sure)
 - **Database name**: Database name. Default iobroker
-- **User**: User name for SQL. Must exist in the DB.
+- **User**: Username for SQL. Must exist in the DB.
 - **Password**: Password for SQL.
 - **Password confirm**: Just repeat password here.
 - **Encrypt**: Some DBs support encryption.
@@ -420,6 +420,11 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### __WORK IN PROGRESS__
+* (bluefox) Support only `js.controller` >= 3.3.x
+* (bluefox) Used system/custom view for collecting the objects
+* (bluefox) Implemented option to ignore zero- or/and below zero- values
+
 ### 1.15.7 (2021-04-28)
 * (bluefox) fixed the support of Admin5
 
