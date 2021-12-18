@@ -85,7 +85,6 @@ jobs:
 #        if: startsWith(runner.OS, 'windows')
 #        run: set DEBUG=testing:* & npm run test:integration
 
-  # Runs adapter tests on all supported node versions and OSes
   adapter-tests-postgres:
     if: contains(github.event.head_commit.message, '[skip ci]') == false
 
@@ -138,6 +137,50 @@ jobs:
   #        if: startsWith(runner.OS, 'windows')
   #        run: set DEBUG=testing:* & npm run test:integration
 
+  adapter-tests-mssql:
+    if: contains(github.event.head_commit.message, '[skip ci]') == false
+
+    needs: [check-and-lint]
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x, 14.x, 16.x]
+
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      sql.data:
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        env:
+          SA_PASSWORD: Password12!
+          ACCEPT_EULA: Y
+        ports:
+          - "1433:1433"
+
+    steps:
+      - uses: actions/checkout@v2.3.4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2.5.0
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run MSSQL tests
+        run: node node_modules/mocha/bin/mocha test/testMSSQL.js --exit
+        env:
+          SQL_PASS: Password12!
+  #      - name: Run unit tests
+  #        run: npm run test:unit
+  #      - name: Run integration tests # (linux/osx)
+  #        if: startsWith(runner.OS, 'windows') == false
+  #        run: DEBUG=testing:* npm run test:integration
+  #      - name: Run integration tests # (windows)
+  #        if: startsWith(runner.OS, 'windows')
+  #        run: set DEBUG=testing:* & npm run test:integration
+
   adapter-tests-sqlite:
     if: contains(github.event.head_commit.message, '[skip ci]') == false
 
@@ -175,7 +218,7 @@ jobs:
 
   # Deploys the final package to NPM
   deploy:
-    needs: [adapter-tests-mysql, adapter-tests-postgres, adapter-tests-sqlite]
+    needs: [adapter-tests-mysql, adapter-tests-postgres, adapter-tests-sqlite, adapter-tests-mssql]
 
     # Trigger this step only when a commit on master is tagged with a version number
     if: |
