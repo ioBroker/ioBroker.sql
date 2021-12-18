@@ -80,14 +80,6 @@ describe('Test MSSQL', function() {
         this.timeout(600000); // because of first install from npm
         setup.adapterStarted = false;
 
-        console.log('Started in TRAVIS: ' + (process.env.TRAVIS && process.env.TRAVIS === 'true'));
-        console.log('Started in APPVEYOR: ' + (process.env.APPVEYOR && process.env.APPVEYOR === 'True'));
-
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR === 'True')) {
-            console.log('MSSQL testing only available in Appveyor on Windows, ignore test run (APPVEYOR:' + JSON.stringify(process.env.APPVEYOR) + ', TRAVIS:' + JSON.stringify(process.env.TRAVIS) + ')');
-            _done();
-            return;
-        }
         setup.setupController(function () {
             var config = setup.getAdapterConfig();
             // enable adapter
@@ -129,10 +121,6 @@ describe('Test MSSQL', function() {
 
     it('Test MSSQL: Check if adapter started', function (done) {
         this.timeout(60000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
-            done();
-            return;
-        }
         checkConnectionOfAdapter(function () {
             now = new Date().getTime();
             objects.setObject('system.adapter.test.0', {
@@ -191,10 +179,6 @@ describe('Test MSSQL', function() {
     });
     it('Test ' + adapterShortName + ': Check Enabled Points after Enable', function (done) {
         this.timeout(20000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
-            done();
-            return;
-        }
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
@@ -207,10 +191,6 @@ describe('Test MSSQL', function() {
     });
     it('Test MSSQL: Write values into DB', function (done) {
         this.timeout(10000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
-            done();
-            return;
-        }
 
         this.timeout(10000);
 
@@ -265,10 +245,6 @@ describe('Test MSSQL', function() {
     });
     it('Test MSSQL: Read values from DB using query', function (done) {
         this.timeout(10000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
-            done();
-            return;
-        }
 
         sendTo('sql.0', 'query', "SELECT id FROM iobroker.dbo.datapoints WHERE name='sql.0.memRss'", function (result) {
             sendTo('sql.0', 'query', 'SELECT * FROM iobroker.dbo.ts_number WHERE id=' + result.result[0].id, function (result) {
@@ -288,10 +264,6 @@ describe('Test MSSQL', function() {
     });
     it('Test MSSQL: Read values from DB using GetHistory', function (done) {
         this.timeout(10000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
-            done();
-            return;
-        }
 
         sendTo('sql.0', 'getHistory', {
             id: 'sql.0.memRss',
@@ -328,10 +300,6 @@ describe('Test MSSQL', function() {
     });
     it('Test ' + adapterShortName + ': Check Datapoint Types', function (done) {
         this.timeout(5000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
-            done();
-            return;
-        }
 
         sendTo('sql.0', 'query', "SELECT name, type FROM iobroker.dbo.datapoints", function (result) {
             console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
@@ -355,10 +323,6 @@ describe('Test MSSQL', function() {
     });
     it('Test ' + adapterShortName + ': Disable Datapoint again', function (done) {
         this.timeout(5000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
-            done();
-            return;
-        }
 
         sendTo('sql.0', 'disableHistory', {
             id: 'sql.0.memRss',
@@ -370,10 +334,6 @@ describe('Test MSSQL', function() {
     });
     it('Test ' + adapterShortName + ': Check Enabled Points after Disable', function (done) {
         this.timeout(5000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
-            done();
-            return;
-        }
 
         sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
@@ -384,10 +344,6 @@ describe('Test MSSQL', function() {
 
     after('Test MSSQL: Stop js-controller', function (done) {
         this.timeout(6000);
-        if (!(process.env.APPVEYOR && process.env.APPVEYOR==='True')) {
-            done();
-            return;
-        }
 
         setup.stopController(function (normalTerminated) {
             console.log('MSSQL: Adapter normal terminated: ' + normalTerminated);

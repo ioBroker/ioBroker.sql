@@ -91,13 +91,7 @@ describe('Test MySQL Existing No Nulls', function() {
             config.native.writeNulls = false;
             config.native.dbtype   = 'mysql';
             config.native.user     = 'root';
-            if (process.env.APPVEYOR && process.env.APPVEYOR === 'True') {
-                config.native.password = 'Password12!';
-            } else if (process.env.TRAVIS_OS_NAME && process.env.TRAVIS_OS_NAME === 'osx'){
-                config.native.password = 'mysql';
-            } else {
-                config.native.password = process.env.SQL_PASS || '';
-            }
+            config.native.password = process.env.SQL_PASS || '';
 
             setup.setAdapterConfig(config.common, config.native);
 
