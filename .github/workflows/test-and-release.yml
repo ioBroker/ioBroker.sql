@@ -175,7 +175,7 @@ jobs:
 
   # Deploys the final package to NPM
   deploy:
-    needs: [adapter-tests]
+    needs: [adapter-tests-mysql, adapter-tests-postgres, adapter-tests-sqlite]
 
     # Trigger this step only when a commit on master is tagged with a version number
     if: |
