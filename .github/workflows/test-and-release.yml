@@ -48,7 +48,97 @@ jobs:
         run: node node_modules/mocha/bin/mocha test/testPackageFiles.js --exit
 
   # Runs adapter tests on all supported node versions and OSes
-  adapter-tests:
+  adapter-tests-mysql:
+    if: contains(github.event.head_commit.message, '[skip ci]') == false
+
+    needs: [check-and-lint]
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x, 14.x, 16.x]
+
+    steps:
+      - uses: actions/checkout@v2.3.4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2.5.0
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Set up MySQL
+        run: |
+          sudo /etc/init.d/mysql start
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run MySQL tests
+        run: node node_modules/mocha/bin/mocha test/testMySQL*.js --exit
+        env:
+          SQL_PASS: root
+#      - name: Run unit tests
+#        run: npm run test:unit
+#      - name: Run integration tests # (linux/osx)
+#        if: startsWith(runner.OS, 'windows') == false
+#        run: DEBUG=testing:* npm run test:integration
+#      - name: Run integration tests # (windows)
+#        if: startsWith(runner.OS, 'windows')
+#        run: set DEBUG=testing:* & npm run test:integration
+
+  # Runs adapter tests on all supported node versions and OSes
+  adapter-tests-postgres:
+    if: contains(github.event.head_commit.message, '[skip ci]') == false
+
+    needs: [check-and-lint]
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x, 14.x, 16.x]
+
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v2.3.4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2.5.0
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Postgres tests
+        run: node node_modules/mocha/bin/mocha test/testPstgreSQL.js --exit
+        env:
+          SQL_PASS: postgres
+  #      - name: Run unit tests
+  #        run: npm run test:unit
+  #      - name: Run integration tests # (linux/osx)
+  #        if: startsWith(runner.OS, 'windows') == false
+  #        run: DEBUG=testing:* npm run test:integration
+  #      - name: Run integration tests # (windows)
+  #        if: startsWith(runner.OS, 'windows')
+  #        run: set DEBUG=testing:* & npm run test:integration
+
+  adapter-tests-sqlite:
     if: contains(github.event.head_commit.message, '[skip ci]') == false
 
     needs: [check-and-lint]
@@ -69,19 +159,19 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Run sqlite3 tests
+      - name: Run SQLite tests
         run: node node_modules/mocha/bin/mocha test/testSQLite.js --exit
+      - name: Run Commons
+        run: node node_modules/mocha/bin/mocha test/testCommons.js --exit
 
-#      - name: Run local tests
-#        run: npm test
-#      - name: Run unit tests
-#        run: npm run test:unit
-#      - name: Run integration tests # (linux/osx)
-#        if: startsWith(runner.OS, 'windows') == false
-#        run: DEBUG=testing:* npm run test:integration
-#      - name: Run integration tests # (windows)
-#        if: startsWith(runner.OS, 'windows')
-#        run: set DEBUG=testing:* & npm run test:integration
+  #      - name: Run unit tests
+  #        run: npm run test:unit
+  #      - name: Run integration tests # (linux/osx)
+  #        if: startsWith(runner.OS, 'windows') == false
+  #        run: DEBUG=testing:* npm run test:integration
+  #      - name: Run integration tests # (windows)
+  #        if: startsWith(runner.OS, 'windows')
+  #        run: set DEBUG=testing:* & npm run test:integration
 
   # Deploys the final package to NPM
   deploy:

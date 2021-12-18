@@ -92,6 +92,8 @@ describe('Test PostgreSQL', function() {
                 config.native.password = 'Password12!';
             } else if (process.env.TRAVIS_OS_NAME && process.env.TRAVIS_OS_NAME === 'windows'){
                 config.native.password = 'postgres';
+            } else {
+                config.native.password = process.env.SQL_PASS || '';
             }
 
             setup.setAdapterConfig(config.common, config.native);
