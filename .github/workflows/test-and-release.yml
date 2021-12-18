@@ -126,7 +126,7 @@ jobs:
         run: npm install
 
       - name: Run Postgres tests
-        run: node node_modules/mocha/bin/mocha test/testPstgreSQL.js --exit
+        run: node node_modules/mocha/bin/mocha test/testPostgreSQL.js --exit
         env:
           SQL_PASS: postgres
   #      - name: Run unit tests
