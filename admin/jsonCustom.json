@@ -342,7 +342,7 @@
       "type": "number",
       "label": "De-bounce time",
       "help": "De-bounce interval(ms)",
-      "min": 500,
+      "min": 0,
       "max": 86400000,
       "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number' ? instanceObj.native.debounce : 0",
       "sm": 6
@@ -355,7 +355,8 @@
       "max": 86400000,
       "help": "0 = disabled",
       "defaultFunc": "instanceObj.native.changesRelogInterval",
-      "sm": 6
+      "sm": 6,
+      "disabled": "!data.changesOnly"
     },
     "changesMinDelta": {
       "type": "number",
@@ -364,7 +365,8 @@
       "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number' ? instanceObj.native.changesMinDelta : 0",
       "default": 0,
       "sm": 6,
-      "help": "0 = disable delta check"
+      "help": "0 = disable delta check",
+      "disabled": "!data.changesOnly"
     },
     "storageType": {
       "newLine": true,

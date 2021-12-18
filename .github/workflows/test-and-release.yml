@@ -44,8 +44,8 @@ jobs:
 #          CI: true
       # - name: Lint TypeScript code
       #   run: npm run lint
-#      - name: Test package files
-#        run: npm run test:package
+      - name: Test package files
+        run: node node_modules/mocha/bin/mocha test/testPackageFiles.js --exit
 
   # Runs adapter tests on all supported node versions and OSes
   adapter-tests:
@@ -68,6 +68,9 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
+
+      - name: Run sqlite3 tests
+        run: node node_modules/mocha/bin/mocha test/testSQLite.js --exit
 
 #      - name: Run local tests
 #        run: npm test
@@ -149,10 +152,8 @@ jobs:
           export SENTRY_PROJECT=iobroker-sql
           export SENTRY_VERSION=iobroker.sql@${{ steps.extract_release.outputs.VERSION }}
           sentry-cli releases new $SENTRY_VERSION
+          sentry-cli releases new $SENTRY_VERSION
           sentry-cli releases finalize $SENTRY_VERSION
-
-        # Add the following line BEFORE finalize if repositories are connected in Sentry
-        # sentry-cli releases set-commits $SENTRY_VERSION --auto
 
         # Add the following line BEFORE finalize if sourcemap uploads are needed
         # sentry-cli releases files $SENTRY_VERSION upload-sourcemaps build/

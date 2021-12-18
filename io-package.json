@@ -159,7 +159,9 @@
     },
     "jsonCustom": true,
     "jsonConfig": true,
-    "tier": 1
+    "tier": 1,
+    "connectionType": "none",
+    "dataSource": "push"
   },
   "native": {
     "connLink": "",
