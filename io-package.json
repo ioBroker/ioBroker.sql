@@ -26,8 +26,20 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "1.16.0",
+    "version": "1.16.1",
     "news": {
+      "1.16.1": {
+        "en": "Hide settings not relevant when \"log changes only\" is not used\nAllow all number values for debounce again",
+        "de": "Nicht relevante Einstellungen ausblenden, wenn \"Nur Änderungen protokollieren\" nicht verwendet wird\nAlle Zahlenwerte wieder für die Entprellung zulassen",
+        "ru": "Скрыть настройки, не актуальные, если не используется \"только изменения журнала\"\nРазрешить все числовые значения для устранения дребезга снова",
+        "pt": "Ocultar configurações irrelevantes quando \"apenas registro de alterações\" não é usado\nPermitir todos os valores numéricos para debounce novamente",
+        "nl": "Instellingen verbergen die niet relevant zijn wanneer \"alleen logboekwijzigingen\" niet wordt gebruikt\nSta alle getalwaarden opnieuw toe voor debounce",
+        "fr": "Masquer les paramètres non pertinents lorsque \"log changes only\" n'est pas utilisé\nAutoriser à nouveau toutes les valeurs numériques pour l'anti-rebond",
+        "it": "Nascondi le impostazioni non rilevanti quando \"solo modifiche al registro\" non viene utilizzato\nConsenti di nuovo l'antirimbalzo di tutti i valori numerici",
+        "es": "Ocultar la configuración que no es relevante cuando no se utiliza \"solo cambios de registro\"\nPermitir todos los valores numéricos para antirrebote nuevamente",
+        "pl": "Ukryj ustawienia nieistotne, gdy nie używasz opcji „tylko rejestruj zmiany”\nZezwól ponownie na odrzucenie wszystkich wartości liczbowych",
+        "zh-cn": "不使用“仅记录更改”时隐藏不相关的设置\n再次允许所有数值去抖动"
+      },
       "1.16.0": {
         "en": "Support only `js.controller` >= 3.3.x\nUsed system/custom view for collecting the objects\nImplemented option to ignore zero- or/and below zero- values",
         "de": "Unterstützt nur `js.controller` >= 3.3.x\nVerwendete Systemansicht/benutzerdefinierte Ansicht zum Sammeln der Objekte\nImplementierte Option zum Ignorieren von Null- oder/und Unter-Null-Werten",
@@ -99,18 +111,6 @@
         "es": "Añadida la opción \"No crear base de datos\". P.ej. si se creó DB y no es necesario que lo haga, porque el usuario no tiene suficientes derechos.",
         "pl": "Dodano opcję „Nie twórz bazy danych”. Na przykład. jeśli baza danych została utworzona i nie jest to wymagane, ponieważ użytkownik nie ma wystarczających uprawnień.",
         "zh-cn": "添加了选项“不创建数据库”。例如。如果已创建数据库，则不需要这样做，因为用户没有足够的权限。"
-      },
-      "1.15.2": {
-        "en": "prevent wrong errors that realId is missing",
-        "de": "Verhindern Sie falsche Fehler, bei denen realId fehlt",
-        "ru": "предотвратить неправильные ошибки, которые отсутствуют в realId",
-        "pt": "evitar erros errados que faltam realId",
-        "nl": "voorkom verkeerde fouten die realId mist",
-        "fr": "éviter les erreurs erronées manquantes dans realId",
-        "it": "prevenire errori errati che realId manca",
-        "es": "evitar errores incorrectos que faltan realId",
-        "pl": "zapobiega błędnym błędom, których brakuje realId",
-        "zh-cn": "防止缺少realId的错误错误"
       }
     },
     "mode": "daemon",
