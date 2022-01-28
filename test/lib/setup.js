@@ -208,6 +208,32 @@ async function checkIsAdapterInstalled(cb, counter, customName) {
                 console.warn('checkIsAdapterInstalled: still not ready');
             }
         } else if (fs.existsSync(dataDir + 'objects.jsonl')) {
+            const DB = require('@alcalzone/jsonl-db');
+            const db = new DB(dataDir + 'objects.jsonl');
+            try {
+                await db.open();
+            } catch (err) {
+                if (err.message.includes('Failed to lock DB file')) {
+                    console.log('checkIsAdapterInstalled: DB still opened ...');
+                }
+                throw err;
+            }
+
+            const obj = db.get('system.adapter.' + customName + '.0');
+            await db.close();
+
+            if (obj) {
+                console.log('checkIsAdapterInstalled: ready!');
+                setTimeout(function () {
+                    if (cb) cb();
+                }, 100);
+                return;
+            } else {
+                console.warn('checkIsAdapterInstalled: still not ready');
+            }
+        }
+
+        } else if (fs.existsSync(dataDir + 'objects.jsonl')) {
             loadJSONLDB();
             const db = new JSONLDB(dataDir + 'objects.jsonl');
             try {
@@ -587,17 +613,18 @@ function setupController(cb) {
             const dataDir = rootDir + 'tmp/' + appName + '-data/';
 
             if (fs.existsSync(dataDir + 'objects.json')) {
-                let objs;
-                try {
-                    objs = fs.readFileSync(dataDir + 'objects.json');
-                    objs = JSON.parse(objs);
-                } catch (e) {
-                    console.log('ERROR reading/parsing system configuration. Ignore');
-                    objs = {'system.config': {}};
-                }
-                if (!objs || !objs['system.config']) {
-                    objs = {'system.config': {}};
-                }
+            let objs;
+            try {
+                objs = fs.readFileSync(dataDir + 'objects.json');
+                objs = JSON.parse(objs);
+
+            }catch (e) {
+                console.log('ERROR reading/parsing system configuration. Ignore');
+                objs = {'system.config': {}};
+            }
+            if (!objs || !objs['system.config']) {
+                objs = {'system.config': {}};
+            }
 
                 systemConfig = objs['system.config'];
                 if (cb) cb(objs['system.config']);
