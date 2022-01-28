@@ -2601,6 +2601,7 @@ function main() {
     if (adapter.config.dbtype === 'sqlite' || adapter.config.host) {
         connect(() => {
             // read all custom settings
+            adapter.log.info('Select System Custom');
             adapter.getObjectView('system', 'custom', {}, (err, doc) => {
                 let count = 0;
                 if (doc && doc.rows) {
