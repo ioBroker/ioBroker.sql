@@ -2602,7 +2602,7 @@ function main() {
         connect(() => {
             // read all custom settings
             adapter.log.info('Select System Custom');
-            adapter.getObjectView('system', 'custom', {}, (err, doc) => {
+            adapter.getObjectView('system', 'custom' , {}, (err, doc) => {
                 let count = 0;
                 if (doc && doc.rows) {
                     for (let i = 0, l = doc.rows.length; i < l; i++) {
