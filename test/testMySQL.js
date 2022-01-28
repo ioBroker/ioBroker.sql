@@ -80,8 +80,8 @@ describe('Test MySQL', function() {
         this.timeout(600000); // because of first install from npm
         setup.adapterStarted = false;
 
-        setup.setupController(function () {
-            var config = setup.getAdapterConfig();
+        setup.setupController(async function () {
+            var config = await setup.getAdapterConfig();
             // enable adapter
             config.common.enabled  = true;
             config.common.loglevel = 'debug';
@@ -90,7 +90,7 @@ describe('Test MySQL', function() {
             config.native.user     = 'root';
             config.native.password = process.env.SQL_PASS || '';
 
-            setup.setAdapterConfig(config.common, config.native);
+            await setup.setAdapterConfig(config.common, config.native);
 
             setup.startController(true, (id, obj) => {}, (id, state) => onStateChanged && onStateChanged(id, state),
                 (_objects, _states) => {

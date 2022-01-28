@@ -25,6 +25,8 @@ let states;
 
 let pid = null;
 
+let systemConfig = null;
+
 function copyFileSync(source, target) {
 
     let targetFile = target;
@@ -84,26 +86,61 @@ if (!fs.existsSync(rootDir + 'tmp')) {
     fs.mkdirSync(rootDir + 'tmp');
 }
 
-function storeOriginalFiles() {
+async function storeOriginalFiles() {
     console.log('Store original files...');
     const dataDir = rootDir + 'tmp/' + appName + '-data/';
 
-    let f = fs.readFileSync(dataDir + 'objects.json');
-    const objects = JSON.parse(f.toString());
-    if (objects['system.adapter.admin.0'] && objects['system.adapter.admin.0'].common) {
-        objects['system.adapter.admin.0'].common.enabled = false;
-    }
-    if (objects['system.adapter.admin.1'] && objects['system.adapter.admin.1'].common) {
-        objects['system.adapter.admin.1'].common.enabled = false;
+    if (fs.existsSync(dataDir + 'objects.json')) {
+        const f = fs.readFileSync(dataDir + 'objects.json');
+        const objects = JSON.parse(f.toString());
+        if (objects['system.adapter.admin.0'] && objects['system.adapter.admin.0'].common) {
+            objects['system.adapter.admin.0'].common.enabled = false;
+        }
+        if (objects['system.adapter.admin.1'] && objects['system.adapter.admin.1'].common) {
+            objects['system.adapter.admin.1'].common.enabled = false;
+        }
+
+        fs.writeFileSync(dataDir + 'objects.json.original', JSON.stringify(objects));
     }
 
-    fs.writeFileSync(dataDir + 'objects.json.original', JSON.stringify(objects));
-    try {
-        f = fs.readFileSync(dataDir + 'states.json');
-        fs.writeFileSync(dataDir + 'states.json.original', f);
+    if (fs.existsSync(dataDir + 'states.json')) {
+        try {
+            const f = fs.readFileSync(dataDir + 'states.json');
+            fs.writeFileSync(dataDir + 'states.json.original', f);
+        } catch (err) {
+            console.log('no states.json found - ignore');
+        }
     }
-    catch (err) {
-        console.log('no states.json found - ignore');
+
+    if (fs.existsSync(dataDir + 'objects.jsonl')) {
+        const DB = require('@alcalzone/jsonl-db');
+        const db = new DB(dataDir + 'objects.jsonl');
+        await db.open();
+
+        const admin0 = db.get('system.adapter.admin.0');
+        if (admin0) {
+            if (admin0.common) {
+                admin0.common.enabled = false;
+                db.set('system.adapter.admin.0', admin0);
+            }
+        }
+
+        const admin1 = db.get('system.adapter.admin.1');
+        if (admin1) {
+            if (admin1.common) {
+                admin1.common.enabled = false;
+                db.set('system.adapter.admin.1', admin1);
+            }
+        }
+        await db.close();
+
+        const f = fs.readFileSync(dataDir + 'objects.jsonl');
+        fs.writeFileSync(dataDir + 'objects.jsonl.original', f);
+    }
+
+    if (fs.existsSync(dataDir + 'states.jsonl')) {
+        const f = fs.readFileSync(dataDir + 'states.jsonl');
+        fs.writeFileSync(dataDir + 'states.jsonl.original', f);
     }
 }
 
@@ -111,36 +148,70 @@ function restoreOriginalFiles() {
     console.log('restoreOriginalFiles...');
     const dataDir = rootDir + 'tmp/' + appName + '-data/';
 
-    let f = fs.readFileSync(dataDir + 'objects.json.original');
-    fs.writeFileSync(dataDir + 'objects.json', f);
-    try {
-        f = fs.readFileSync(dataDir + 'states.json.original');
+    if (fs.existsSync(dataDir + 'objects.json.original')) {
+        const f = fs.readFileSync(dataDir + 'objects.json.original');
+        fs.writeFileSync(dataDir + 'objects.json', f);
+    }
+    if (fs.existsSync(dataDir + 'objects.json.original')) {
+        const f = fs.readFileSync(dataDir + 'states.json.original');
         fs.writeFileSync(dataDir + 'states.json', f);
     }
-    catch (err) {
-        console.log('no states.json.original found - ignore');
-    }
 
+    if (fs.existsSync(dataDir + 'objects.jsonl.original')) {
+        const f = fs.readFileSync(dataDir + 'objects.jsonl.original');
+        fs.writeFileSync(dataDir + 'objects.jsonl', f);
+    }
+    if (fs.existsSync(dataDir + 'objects.jsonl.original')) {
+        const f = fs.readFileSync(dataDir + 'states.jsonl.original');
+        fs.writeFileSync(dataDir + 'states.jsonl', f);
+    }
 }
 
-function checkIsAdapterInstalled(cb, counter, customName) {
+async function checkIsAdapterInstalled(cb, counter, customName) {
     customName = customName || pkg.name.split('.').pop();
     counter = counter || 0;
     const dataDir = rootDir + 'tmp/' + appName + '-data/';
     console.log('checkIsAdapterInstalled...');
 
     try {
-        const f = fs.readFileSync(dataDir + 'objects.json');
-        const objects = JSON.parse(f.toString());
-        if (objects['system.adapter.' + customName + '.0']) {
-            console.log('checkIsAdapterInstalled: ready!');
-            setTimeout(function () {
-                if (cb) cb();
-            }, 100);
-            return;
-        } else {
-            console.warn('checkIsAdapterInstalled: still not ready');
+        if (fs.existsSync(dataDir + 'objects.json')) {
+            const f = fs.readFileSync(dataDir + 'objects.json');
+            const objects = JSON.parse(f.toString());
+            if (objects['system.adapter.' + customName + '.0']) {
+                console.log('checkIsAdapterInstalled: ready!');
+                setTimeout(function () {
+                    if (cb) cb();
+                }, 100);
+                return;
+            } else {
+                console.warn('checkIsAdapterInstalled: still not ready');
+            }
+        } else if (fs.existsSync(dataDir + 'objects.jsonl')) {
+            const DB = require('@alcalzone/jsonl-db');
+            const db = new DB(dataDir + 'objects.jsonl');
+            try {
+                await db.open();
+            } catch (err) {
+                if (err.message.includes('Failed to lock DB file')) {
+                    console.log('checkIsAdapterInstalled: DB still opened ...');
+                }
+                throw err;
+            }
+
+            const obj = db.get('system.adapter.' + customName + '.0');
+            await db.close();
+
+            if (obj) {
+                console.log('checkIsAdapterInstalled: ready!');
+                setTimeout(function () {
+                    if (cb) cb();
+                }, 100);
+                return;
+            } else {
+                console.warn('checkIsAdapterInstalled: still not ready');
+            }
         }
+
     } catch (err) {
 
     }
@@ -156,20 +227,45 @@ function checkIsAdapterInstalled(cb, counter, customName) {
     }
 }
 
-function checkIsControllerInstalled(cb, counter) {
+async function checkIsControllerInstalled(cb, counter) {
     counter = counter || 0;
     const dataDir = rootDir + 'tmp/' + appName + '-data/';
 
     console.log('checkIsControllerInstalled...');
     try {
-        const f = fs.readFileSync(dataDir + 'objects.json');
-        const objects = JSON.parse(f.toString());
-        if (objects['system.certificates']) {
-            console.log('checkIsControllerInstalled: installed!');
-            setTimeout(function () {
-                if (cb) cb();
-            }, 100);
-            return;
+        if (fs.existsSync(dataDir + 'objects.json')) {
+            const f = fs.readFileSync(dataDir + 'objects.json');
+            const objects = JSON.parse(f.toString());
+            if (objects['system.certificates']) {
+                console.log('checkIsControllerInstalled: installed!');
+                setTimeout(function () {
+                    if (cb) cb();
+                }, 100);
+                return;
+            }
+        } else if (fs.existsSync(dataDir + 'objects.jsonl')) {
+            const DB = require('@alcalzone/jsonl-db');
+            const db = new DB(dataDir + 'objects.jsonl');
+            try {
+                await db.open();
+            } catch (err) {
+                if (err.message.includes('Failed to lock DB file')) {
+                    console.log('checkIsControllerInstalled: DB still opened ...');
+                }
+                throw err;
+            }
+
+            const obj = db.get('system.certificates');
+            await db.close();
+
+            if (obj) {
+                console.log('checkIsControllerInstalled: installed!');
+                setTimeout(function () {
+                    if (cb) cb();
+                }, 100);
+                return;
+            }
+
         }
     } catch (err) {
 
@@ -301,8 +397,8 @@ function installJsController(cb) {
 
                         copyAdapterToController();
 
-                        installAdapter(function () {
-                            storeOriginalFiles();
+                        installAdapter(async function () {
+                            await storeOriginalFiles();
                             if (cb) cb(true);
                         });
                     });
@@ -363,8 +459,8 @@ function installJsController(cb) {
 
                         copyAdapterToController();
 
-                        installAdapter(function () {
-                            storeOriginalFiles();
+                        installAdapter(async function () {
+                            await storeOriginalFiles();
                             if (cb) cb(true);
                         });
                     });
@@ -445,7 +541,7 @@ function clearDB() {
 }
 
 function setupController(cb) {
-    installJsController(function (isInited) {
+    installJsController(async function (isInited) {
         clearControllerLog();
         clearDB();
 
@@ -456,35 +552,71 @@ function setupController(cb) {
         // read system.config object
         const dataDir = rootDir + 'tmp/' + appName + '-data/';
 
+        if (fs.existsSync(dataDir + 'objects.json')) {
+            let objs;
+            try {
+                objs = fs.readFileSync(dataDir + 'objects.json');
+                objs = JSON.parse(objs);
+            }
+            catch (e) {
+                console.log('ERROR reading/parsing system configuration. Ignore');
+                objs = {'system.config': {}};
+            }
+            if (!objs || !objs['system.config']) {
+                objs = {'system.config': {}};
+            }
+
+            systemConfig = objs['system.config'];
+            if (cb) cb(objs['system.config']);
+        } else if (fs.existsSync(dataDir + 'objects.jsonl')) {
+            const DB = require('@alcalzone/jsonl-db');
+            const db = new DB(dataDir + 'objects.jsonl');
+            await db.open();
+
+            let config = db.get('system.config');
+            systemConfig = config || {};
+
+            await db.close();
+
+            if (cb) cb(systemConfig);
+        }
+    });
+}
+
+async function getSecret() {
+    var dataDir = rootDir + 'tmp/' + appName + '-data/';
+
+    if (systemConfig) {
+        return systemConfig.native.secret;
+    }
+    if (fs.existsSync(dataDir + 'objects.json')) {
         let objs;
         try {
             objs = fs.readFileSync(dataDir + 'objects.json');
             objs = JSON.parse(objs);
         }
         catch (e) {
-            console.log('ERROR reading/parsing system configuration. Ignore');
-            objs = {'system.config': {}};
+            console.warn("Could not load secret. Reason: " + e);
+            return null;
         }
         if (!objs || !objs['system.config']) {
             objs = {'system.config': {}};
         }
 
-        if (cb) cb(objs['system.config']);
-    });
-}
+        return objs['system.config'].native.secre;
+    } else if (fs.existsSync(dataDir + 'objects.jsonl')) {
+        const DB = require('@alcalzone/jsonl-db');
+        const db = new DB(dataDir + 'objects.jsonl');
+        await db.open();
 
-function getSecret() {
-    var dataDir = rootDir + 'tmp/' + appName + '-data/';
+        let config = db.get('system.config');
+        config = config || {};
 
-    try {
-        var objs = fs.readFileSync(dataDir + 'objects.json');
-        objs = JSON.parse(objs);
+        await db.close();
 
-        return objs['system.config'].native.secret;
-    } catch (e) {
-        console.warn("Could not load secret. Reason: " + e);
-        return null;
+        return config.native.secret;
     }
+
 }
 
 function encrypt (key, value) {
@@ -721,19 +853,43 @@ function stopController(cb) {
 }
 
 // Setup the adapter
-function setAdapterConfig(common, native, instance) {
-    const objects = JSON.parse(fs.readFileSync(rootDir + 'tmp/' + appName + '-data/objects.json').toString());
+async function setAdapterConfig(common, native, instance) {
     const id = 'system.adapter.' + adapterName.split('.').pop() + '.' + (instance || 0);
-    if (common) objects[id].common = common;
-    if (native) objects[id].native = native;
-    fs.writeFileSync(rootDir + 'tmp/' + appName + '-data/objects.json', JSON.stringify(objects));
+    if (fs.existsSync(dataDir + 'objects.json')) {
+        const objects = JSON.parse(fs.readFileSync(rootDir + 'tmp/' + appName + '-data/objects.json').toString());
+        if (common) objects[id].common = common;
+        if (native) objects[id].native = native;
+        fs.writeFileSync(rootDir + 'tmp/' + appName + '-data/objects.json', JSON.stringify(objects));
+    } else if (fs.existsSync(dataDir + 'objects.jsonl')) {
+        const DB = require('@alcalzone/jsonl-db');
+        const db = new DB(dataDir + 'objects.jsonl');
+        await db.open();
+
+        let obj = db.get(id);
+        if (common) obj.common = common;
+        if (native) obj.native = native;
+        db.set(id, obj);
+
+        await db.close();
+    }
 }
 
 // Read config of the adapter
-function getAdapterConfig(instance) {
-    const objects = JSON.parse(fs.readFileSync(rootDir + 'tmp/' + appName + '-data/objects.json').toString());
-    const id      = 'system.adapter.' + adapterName.split('.').pop() + '.' + (instance || 0);
-    return objects[id];
+async function getAdapterConfig(instance) {
+    const id = 'system.adapter.' + adapterName.split('.').pop() + '.' + (instance || 0);
+    if (fs.existsSync(dataDir + 'objects.json')) {
+        const objects = JSON.parse(fs.readFileSync(rootDir + 'tmp/' + appName + '-data/objects.json').toString());
+        return objects[id];
+    } else if (fs.existsSync(dataDir + 'objects.jsonl')) {
+        const DB = require('@alcalzone/jsonl-db');
+        const db = new DB(dataDir + 'objects.jsonl');
+        await db.open();
+
+        let obj = db.get(id);
+
+        await db.close();
+        return obj;
+    }
 }
 
 if (typeof module !== undefined && module.parent) {
