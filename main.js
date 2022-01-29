@@ -1572,11 +1572,11 @@ function pushValueIntoDB(id, state, isCounter, cb) {
         isCounter = false;
     }
 
-    if (sqlDPs[id][adapter.namespace].ignoreZero && (!state || state.val === undefined || state.val === null || state.val === 0)) {
+    if (sqlDPs[id] && sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].ignoreZero && (!state || state.val === undefined || state.val === null || state.val === 0)) {
         adapter.log.debug(`pushValueIntoDB called for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)} and it was ignored because the value zero or null`);
         return cb && cb();
     } else
-    if (state && sqlDPs[id][adapter.namespace].ignoreBelowZero && typeof state.val === 'number' && state.val < 0) {
+    if (state && sqlDPs[id] && sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].ignoreBelowZero && typeof state.val === 'number' && state.val < 0) {
         adapter.log.debug(`pushValueIntoDB called for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)} and it was ignored because the value is below 0`);
         return cb && cb();
     }
@@ -2601,7 +2601,7 @@ function main() {
     if (adapter.config.dbtype === 'sqlite' || adapter.config.host) {
         connect(() => {
             // read all custom settings
-            adapter.getObjectView('system', 'custom', {}, (err, doc) => {
+            adapter.getObjectView('system', 'custom' , {}, (err, doc) => {
                 let count = 0;
                 if (doc && doc.rows) {
                     for (let i = 0, l = doc.rows.length; i < l; i++) {

@@ -80,8 +80,8 @@ describe('Test MySQL-with-dash', function() {
         this.timeout(600000); // because of first install from npm
         setup.adapterStarted = false;
 
-        setup.setupController(function () {
-            var config = setup.getAdapterConfig();
+        setup.setupController(async function () {
+            var config = await setup.getAdapterConfig();
             // enable adapter
             config.common.enabled  = true;
             config.common.loglevel = 'debug';
@@ -91,7 +91,7 @@ describe('Test MySQL-with-dash', function() {
             config.native.dbname   = 'io-broker';
             config.native.password = process.env.SQL_PASS || '';
 
-            setup.setAdapterConfig(config.common, config.native);
+            await setup.setAdapterConfig(config.common, config.native);
 
             setup.startController(true, function(id, obj) {}, function (id, state) {
                     if (onStateChanged) onStateChanged(id, state);
@@ -99,7 +99,7 @@ describe('Test MySQL-with-dash', function() {
                 function (_objects, _states) {
                     objects = _objects;
                     states  = _states;
-                    objects.setObject('sql.0.memRss', {
+                    objects.extendObject('sql.0.memRss', {
                         common: {
                             type: 'number',
                             role: 'state',
