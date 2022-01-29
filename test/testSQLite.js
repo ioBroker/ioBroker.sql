@@ -96,7 +96,7 @@ describe('Test SQLite', function() {
                 function (_objects, _states) {
                     objects = _objects;
                     states  = _states;
-                    objects.setObject('sql.0.memRss', {
+                    objects.extendObject('sql.0.memRss', {
                         common: {
                             type: 'number',
                             role: 'state',
