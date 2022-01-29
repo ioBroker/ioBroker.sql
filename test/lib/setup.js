@@ -235,34 +235,6 @@ async function checkIsAdapterInstalled(cb, counter, customName) {
             console.error('checkIsAdapterInstalled: No objects file found in datadir ' + dataDir);
         }
 
-        } else if (fs.existsSync(dataDir + 'objects.jsonl')) {
-            loadJSONLDB();
-            const db = new JSONLDB(dataDir + 'objects.jsonl');
-            try {
-                await db.open();
-            } catch (err) {
-                if (err.message.includes('Failed to lock DB file')) {
-                    console.log('checkIsAdapterInstalled: DB still opened ...');
-                }
-                throw err;
-            }
-
-            const obj = db.get('system.adapter.' + customName + '.0');
-            await db.close();
-
-            if (obj) {
-                console.log('checkIsAdapterInstalled: ready!');
-                setTimeout(function () {
-                    if (cb) cb();
-                }, 100);
-                return;
-            } else {
-                console.warn('checkIsAdapterInstalled: still not ready');
-            }
-        } else {
-            console.error('checkIsAdapterInstalled: No objects file found in datadir ' + dataDir);
-        }
-
     } catch (err) {
         console.log('checkIsAdapterInstalled: catch ' + err);
     }
@@ -447,8 +419,8 @@ function installJsController(cb) {
                         config.states.port  = 19000;
 
                         // TEST WISE!
-                        config.objects.type = 'jsonl';
-                        config.states.type = 'jsonl';
+                        //config.objects.type = 'jsonl';
+                        //config.states.type = 'jsonl';
                         fs.writeFileSync(rootDir + 'tmp/' + appName + '-data/' + appName + '.json', JSON.stringify(config, null, 2));
                         console.log('Setup finished.');
 
@@ -514,8 +486,8 @@ function installJsController(cb) {
                         config.states.port  = 19000;
 
                         // TEST WISE!
-                        config.objects.type = 'jsonl';
-                        config.states.type = 'jsonl';
+                        //config.objects.type = 'jsonl';
+                        //config.states.type = 'jsonl';
                         fs.writeFileSync(rootDir + 'tmp/' + appName + '-data/' + appName + '.json', JSON.stringify(config, null, 2));
 
                         copyAdapterToController();
