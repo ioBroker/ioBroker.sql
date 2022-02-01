@@ -24,7 +24,7 @@
     "mysql": "^2.18.1",
     "pg": "^8.7.1",
     "sqlite3": "^5.0.2",
-    "mssql": "^6.4.0"
+    "mssql": "^8.0.1"
   },
   "dependencies": {
     "sql-client": "^3.0.0",
