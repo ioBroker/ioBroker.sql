@@ -420,7 +420,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### __WORK IN PROGRESS__
+### 1.16.2 (2022-02-16)
 * (bluefox) Marked interpolated data with `i=true`
 
 ### 1.16.1 (2021-12-19)
