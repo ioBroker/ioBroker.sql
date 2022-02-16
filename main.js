@@ -883,7 +883,7 @@ function finish(callback) {
 
 function processMessage(msg) {
     if (msg.command === 'features') {
-        adapter.sendTo(msg.from, msg.command, {supportedFeatures: ['update', 'delete', 'deleteRange', 'deleteAll']}, msg.callback);
+        adapter.sendTo(msg.from, msg.command, {supportedFeatures: ['update', 'delete', 'deleteRange', 'deleteAll', 'storeState']}, msg.callback);
     } else
     if (msg.command === 'getHistory') {
         getHistory(msg);
@@ -1974,12 +1974,12 @@ function getHistory(msg) {
     if (sqlDPs[options.id].type === undefined && sqlDPs[options.id].dbtype !== undefined) {
         if (sqlDPs[options.id][adapter.namespace] && sqlDPs[options.id][adapter.namespace].storageType) {
             if (storageTypes.indexOf(sqlDPs[options.id][adapter.namespace].storageType) === sqlDPs[options.id].dbtype) {
-                adapter.log.debug('For getHistory for id ' + options.id + ': Type empty, use storageType dbtype ' + sqlDPs[options.id].dbtype);
+                adapter.log.debug(`For getHistory for id ${options.id}: Type empty, use storageType dbtype ${sqlDPs[options.id].dbtype}`);
                 sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
             }
         }
         else {
-            adapter.log.debug('For getHistory for id ' + options.id + ': Type empty, use dbtype ' + sqlDPs[options.id].dbtype);
+            adapter.log.debug(`For getHistory for id ${options.id}: Type empty, use dbtype ${sqlDPs[options.id].dbtype}`);
             sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
         }
     }
@@ -1987,7 +1987,7 @@ function getHistory(msg) {
         // read or create in DB
         return getId(options.id, null, err => {
             if (err) {
-                adapter.log.warn('Cannot get index of "' + options.id + '": ' + err);
+                adapter.log.warn(`Cannot get index of "${options.id}": ${err}`);
                 commons.sendResponse(adapter, msg, options, [], startTime);
             } else {
                 getHistory(msg);
@@ -1995,7 +1995,7 @@ function getHistory(msg) {
         });
     }
     if (options.id && sqlDPs[options.id].type === undefined) {
-        adapter.log.warn('For getHistory for id ' + options.id + ': Type empty. Need to write data first. Index = ' + sqlDPs[options.id].index);
+        adapter.log.warn(`For getHistory for id "${options.id}": Type empty. Need to write data first. Index = ${sqlDPs[options.id].index}`);
         commons.sendResponse(adapter, msg, options, 'Please wait till next data record is logged and reload.', startTime);
         return;
     }

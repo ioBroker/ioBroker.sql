@@ -420,6 +420,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### __WORK IN PROGRESS__
+* (bluefox) Marked interpolated data with `i=true`
+
 ### 1.16.1 (2021-12-19)
 * (Excodibur) Hide settings not relevant when "log changes only" is not used
 * (Apollon77) Allow all number values for debounce again
