@@ -865,7 +865,9 @@ function finish(callback) {
     let dpcount = 0;
     let delay = 0;
     for (const id in sqlDPs) {
-        if (!sqlDPs.hasOwnProperty(id)) continue;
+        if (!sqlDPs.hasOwnProperty(id)) {
+            continue;
+        }
         dpcount++;
         delay += (dpcount%50 === 0) ? 1000: 0;
         setTimeout(finishId, delay, id);
@@ -2095,30 +2097,33 @@ function updateState(msg) {
     }
     let id;
     if (Array.isArray(msg.message)) {
-        adapter.log.debug('updateState ' + msg.message.length + ' items');
+        adapter.log.debug(`updateState ${msg.message.length} items`);
         for (let i = 0; i < msg.message.length; i++) {
             id = aliasMap[msg.message[i].id] ? aliasMap[msg.message[i].id] : msg.message[i].id;
 
             if (msg.message[i].state && typeof msg.message[i].state === 'object') {
                 update(id, msg.message[i].state);
             } else {
-                adapter.log.warn('Invalid state for ' + JSON.stringify(msg.message[i]));
+                adapter.log.warn(`Invalid state for ${JSON.stringify(msg.message[i])}`);
             }
         }
     } else if (msg.message.state && Array.isArray(msg.message.state)) {
-        adapter.log.debug('updateState ' + msg.message.state.length + ' items');
+        adapter.log.debug(`updateState ${msg.message.state.length} items`);
         id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
         for (let j = 0; j < msg.message.state.length; j++) {
             if (msg.message.state[j] && typeof msg.message.state[j] === 'object') {
                 update(id, msg.message.state[j]);
             } else {
-                adapter.log.warn('Invalid state for ' + JSON.stringify(msg.message.state[j]));
+                adapter.log.warn(`Invalid state for ${JSON.stringify(msg.message.state[j])}`);
             }
         }
     } else if (msg.message.id && msg.message.state && typeof msg.message.state === 'object') {
         adapter.log.debug('updateState 1 item');
         id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
-        update(id, msg.message.state);
+        return update(id, msg.message.state, () => adapter.sendTo(msg.from, msg.command, {
+            success:    true,
+            connected:  !!clientPool
+        }, msg.callback));
     } else {
         adapter.log.error('updateState called with invalid data');
         return adapter.sendTo(msg.from, msg.command, {
@@ -2203,17 +2208,23 @@ function deleteState(msg) {
             if (msg.message.ts[j] && typeof msg.message.ts[j] === 'number') {
                 _delete(id, {ts: msg.message.ts[j]});
             } else {
-                adapter.log.warn('Invalid state for ' + JSON.stringify(msg.message.ts[j]));
+                adapter.log.warn(`Invalid state for ${JSON.stringify(msg.message.ts[j])}`);
             }
         }
     } else if (msg.message.id && msg.message.state && typeof msg.message.state === 'object') {
         adapter.log.debug('deleteState 1 item');
         id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
-        _delete(id, {ts: msg.message.state.ts});
+        return _delete(id, {ts: msg.message.state.ts}, () => adapter.sendTo(msg.from, msg.command, {
+            success: true,
+            connected: !!clientPool
+        }, msg.callback));
     } else if (msg.message.id && msg.message.ts && typeof msg.message.ts === 'number') {
         adapter.log.debug('deleteState 1 item');
         id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
-        _delete(id, {ts: msg.message.ts});
+        return _delete(id, {ts: msg.message.ts}, () => adapter.sendTo(msg.from, msg.command, {
+            success: true,
+            connected: !!clientPool
+        }, msg.callback));
     } else {
         adapter.log.error('deleteState called with invalid data');
         return adapter.sendTo(msg.from, msg.command, {error: 'Invalid call: ' + JSON.stringify(msg)}, msg.callback);
@@ -2242,7 +2253,10 @@ function deleteStateAll(msg) {
     } else if (msg.message.id) {
         adapter.log.debug('deleteStateAll 1 item');
         id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
-        _delete(id, {});
+        return _delete(id, {}, () => adapter.sendTo(msg.from, msg.command, {
+            success: true,
+            connected: !!clientPool
+        }, msg.callback));
     } else {
         adapter.log.error('deleteStateAll called with invalid data');
         return adapter.sendTo(msg.from, msg.command, {error: 'Invalid call: ' + JSON.stringify(msg)}, msg.callback);
@@ -2258,7 +2272,7 @@ function storeState(msg) {
     if (!msg.message) {
         adapter.log.error('storeState called with invalid data');
         return adapter.sendTo(msg.from, msg.command, {
-            error:  'Invalid call: ' + JSON.stringify(msg)
+            error:  `Invalid call: ${JSON.stringify(msg)}`
         }, msg.callback);
     }
 
@@ -2269,17 +2283,17 @@ function storeState(msg) {
 
     let id;
     if (Array.isArray(msg.message)) {
-        adapter.log.debug('storeState ' + msg.message.length + ' items');
+        adapter.log.debug(`storeState ${msg.message.length} items`);
         for (let i = 0; i < msg.message.length; i++) {
             id = aliasMap[msg.message[i].id] ? aliasMap[msg.message[i].id] : msg.message[i].id;
             if (msg.message[i].state && typeof msg.message[i].state === 'object') {
                 pushFunc(id, msg.message[i].state);
             } else {
-                adapter.log.warn('Invalid state for ' + JSON.stringify(msg.message[i]));
+                adapter.log.warn(`Invalid state for ${JSON.stringify(msg.message[i])}`);
             }
         }
     } else if (msg.message.state && Array.isArray(msg.message.state)) {
-        adapter.log.debug('storeState ' + msg.message.state.length + ' items');
+        adapter.log.debug(`storeState ${msg.message.state.length} items`);
         id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
         for (let j = 0; j < msg.message.state.length; j++) {
             if (msg.message.state[j] && typeof msg.message.state[j] === 'object') {
