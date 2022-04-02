@@ -1866,6 +1866,9 @@ function _getDataFromDB(query, options, callback) {
                     if (sqlDPs[options.index].type === 2) {
                         rows[c].val = !!rows[c].val;
                     }
+                    if (options.addId && !rows[c].id && options.id) {
+                        rows[c].id = options.id;
+                    }
                 }
             }
 
@@ -2009,7 +2012,7 @@ function getHistory(msg) {
     }
 
     // if specific id requested
-    if (options.id || options.id === 0) {
+    if (options.id) {
         getDataFromDB(dbNames[type], options, (err, data) =>
             commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || data, startTime));
     } else {
