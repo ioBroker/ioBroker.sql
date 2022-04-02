@@ -1867,7 +1867,7 @@ function _getDataFromDB(query, options, callback) {
                         rows[c].val = !!rows[c].val;
                     }
                     if (options.addId && !rows[c].id && options.id) {
-                        rows[c].id = options.id;
+                        rows[c].id = options.index || options.id;
                     }
                 }
             }
