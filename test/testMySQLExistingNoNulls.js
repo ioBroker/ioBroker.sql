@@ -314,7 +314,7 @@ describe('Test MySQL Existing No Nulls', function() {
                 id: 'sql.0.memRss',
                 options: {
                     start:     now2 - 15000,
-                    end:       now2,
+                    end:       now,
                     limit:     2,
                     count:     2,
                     aggregate: 'none'
