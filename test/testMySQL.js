@@ -303,7 +303,24 @@ describe('Test MySQL', function() {
             }, function (result) {
                 console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.equal(2);
-                done();
+
+                const latestTs = result.result[result.result.length - 1].ts;
+
+                sendTo('sql.0', 'getHistory', {
+                    id: 'sql.0.memRss',
+                    options: {
+                        start:     now - 15000,
+                        end:       now,
+                        count:     2,
+                        aggregate: 'none',
+                        returnNewestEntries: true
+                    }
+                }, function (result) {
+                    console.log('MySQL: ' + JSON.stringify(result.result, null, 2));
+                    expect(result.result.length).to.be.equal(2);
+                    expect(result.result[0].ts > latestTs).to.be.true;
+                    done();
+                });
             });
         });
     });

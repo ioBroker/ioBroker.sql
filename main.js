@@ -1833,13 +1833,10 @@ function _getDataFromDB(query, options, callback) {
         client.execute(query, (err, rows /* , fields */) => {
             returnClientToPool(client);
 
-            if (rows && rows.rows) rows = rows.rows;
-            // because descending
-            if (!err && rows && !options.start && options.count) {
-                rows.sort(sortByTs);
-            }
+            if (!err && rows && rows.rows) rows = rows.rows;
 
-            if (rows) {
+            if (!err && rows) {
+                rows.sort(sortByTs);
                 let isNumber = null;
                 for (let c = 0; c < rows.length; c++) {
                     if (isNumber === null && rows[c].val !== null) {
@@ -1942,14 +1939,15 @@ function getHistory(msg) {
         step:       parseInt(msg.message.options.step, 10)  || null,
         count:      parseInt(msg.message.options.count, 10) || 500,
         ignoreNull: msg.message.options.ignoreNull,
-        aggregate:  msg.message.options.aggregate || 'average', // One of: max, min, average, total
-        limit:      msg.message.options.limit || adapter.config.limit || 2000,
+        aggregate:  msg.message.options.aggregate || 'average', // One of: max, min, average, total, none, on-change
+        limit:      msg.message.options.limit || parseInt(msg.message.options.count, 10) || adapter.config.limit || 2000,
         from:       msg.message.options.from  || false,
         q:          msg.message.options.q     || false,
         ack:        msg.message.options.ack   || false,
         ms:         msg.message.options.ms    || false,
         addId:      msg.message.options.addId || false,
-        sessionId:  msg.message.options.sessionId
+        sessionId:  msg.message.options.sessionId,
+        returnNewestEntries: msg.message.options.returnNewestEntries || false
     };
     if (options.id && aliasMap[options.id]) {
         options.id = aliasMap[options.id];
