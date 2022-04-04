@@ -294,7 +294,7 @@ describe('Test PostgreSQL', function() {
                         returnNewestEntries: true
                     }
                 }, function (result) {
-                    console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
+                    console.log('PostgreSQL: ' + JSON.stringify(result.result, null, 2));
                     expect(result.result.length).to.be.equal(2);
                     expect(result.result[0].ts > latestTs).to.be.true;
                     done();
