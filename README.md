@@ -423,7 +423,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ## Changelog
 
 ### __WORK IN PROGRESS__
-* (Apollon77) Add flag returnNewestEntries for GetHistory to determine which records to return when more entreis as "count" are existing for aggregate "none"
+* (Apollon77) Add flag returnNewestEntries for GetHistory to determine which records to return when more entries as "count" are existing for aggregate "none"
 * (Apollon77) Add support for addId getHistory flag
 * (winnyschuster) Fix Insert statement for MSSQL ts_counter
 
