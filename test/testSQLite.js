@@ -306,7 +306,7 @@ describe('Test SQLite', function() {
                 }, function (result) {
                     console.log('SQLite: ' + JSON.stringify(result.result, null, 2));
                     expect(result.result.length).to.be.equal(2);
-                    expect(result.result[0].ts > latestTs).to.be.true;
+                    expect(result.result[0].ts >= latestTs).to.be.true;
                     done();
                 });
             });
