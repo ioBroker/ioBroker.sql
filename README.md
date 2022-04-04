@@ -48,7 +48,7 @@ You can install mysql on linux systems as following:
 ```
 apt-get install mysql-server mysql-client
 
-mysql -uroot -p
+mysql -u root -p
 
 CREATE USER 'iobroker'@'%' IDENTIFIED BY 'iobroker';
 GRANT ALL PRIVILEGES ON * . * TO 'iobroker'@'%';
