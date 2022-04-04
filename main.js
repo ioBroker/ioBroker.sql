@@ -1950,6 +1950,10 @@ function getHistory(msg) {
         returnNewestEntries: msg.message.options.returnNewestEntries || false
     };
 
+    if (!options.start && options.count) {
+        options.returnNewestEntries = true;
+    }
+
     adapter.log.debug(`getHistory call: ${JSON.stringify(options)}`);
 
     if (options.id && aliasMap[options.id]) {
