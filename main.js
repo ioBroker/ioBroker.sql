@@ -619,7 +619,7 @@ function _userQuery(msg, callback) {
                     //convert ts for postgresql and ms sqlserver
                     if (!err && rows && rows[0].ts && typeof rows[0].ts === 'string') {
                         for (let i = 0; i < rows.length; i++) {
-                            rows[i].ts = parseFloat(rows[i].ts, 10);
+                            rows[i].ts = parseFloat(rows[i].ts);
                         }
                     }
                     adapter.sendTo(msg.from, msg.command, {error: err ? err.toString() : null, result: rows}, msg.callback);
