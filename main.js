@@ -1940,7 +1940,7 @@ function getHistory(msg) {
         count:      parseInt(msg.message.options.count, 10) || 500,
         ignoreNull: msg.message.options.ignoreNull,
         aggregate:  msg.message.options.aggregate || 'average', // One of: max, min, average, total, none, on-change
-        limit:      msg.message.options.limit || parseInt(msg.message.options.count, 10) || adapter.config.limit || 2000,
+        limit:      parseInt(msg.message.options.limit, 10) || parseInt(msg.message.options.count, 10) || adapter.config.limit || 2000,
         from:       msg.message.options.from  || false,
         q:          msg.message.options.q     || false,
         ack:        msg.message.options.ack   || false,
@@ -1949,6 +1949,13 @@ function getHistory(msg) {
         sessionId:  msg.message.options.sessionId,
         returnNewestEntries: msg.message.options.returnNewestEntries || false
     };
+
+    if (!options.start && options.count) {
+        options.returnNewestEntries = true;
+    }
+
+    adapter.log.debug(`getHistory call: ${JSON.stringify(options)}`);
+
     if (options.id && aliasMap[options.id]) {
         options.id = aliasMap[options.id];
     }
@@ -1961,7 +1968,7 @@ function getHistory(msg) {
     }
 
     if (!sqlDPs[options.id]) {
-        return commons.sendResponse(adapter, msg, options, [], startTime);
+        return commons.sendResponse(adapter, msg, options, `Logging not activated for ${options.id}`, startTime);
     }
 
     if (options.start > options.end) {
