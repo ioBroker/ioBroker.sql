@@ -331,13 +331,14 @@ describe('Test MySQL', function() {
     it(`Test ${adapterShortName}: Read average values from DB using GetHistory`, function (done) {
         this.timeout(10000);
 
-        sendTo('influxdb.0', 'getHistory', {
+        sendTo('sql.0', 'getHistory', {
             id: 'sql.0.memRss',
             options: {
                 start:     now - 30000,
                 end:       now,
                 count:     4,
                 aggregate: 'average',
+                ignoreNull: true,
                 addId: true
             }
         }, result => {
