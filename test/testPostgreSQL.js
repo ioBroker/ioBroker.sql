@@ -327,6 +327,26 @@ describe('Test PostgreSQL', function() {
         });
     });
 
+    it(`Test ${adapterShortName}: Read minmax values from DB using GetHistory`, function (done) {
+        this.timeout(10000);
+
+        sendTo('sql.0', 'getHistory', {
+            id: 'sql.0.memRss',
+            options: {
+                start:     now - 30000,
+                end:       now,
+                count:     4,
+                aggregate: 'minmax',
+                addId: true
+            }
+        }, result => {
+            console.log(JSON.stringify(result.result, null, 2));
+            expect(result.result.length).to.be.at.least(6);
+            expect(result.result[0].id).to.be.equal('sql.0.memRss');
+            done();
+        });
+    });
+
     it('Test ' + adapterShortName + ': Check Datapoint Types', function (done) {
         this.timeout(5000);
 
