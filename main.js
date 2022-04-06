@@ -617,7 +617,7 @@ function _userQuery(msg, callback) {
                     if (rows && rows.rows) rows = rows.rows;
                     returnClientToPool(client);
                     //convert ts for postgresql and ms sqlserver
-                    if (!err && rows && rows[0] && rows[0].ts && typeof rows[0].ts === 'string') {
+                    if (!err && rows && rows[0] && typeof rows[0].ts === 'string') {
                         for (let i = 0; i < rows.length; i++) {
                             rows[i].ts = parseInt(rows[i].ts, 10);
                         }
