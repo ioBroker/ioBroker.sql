@@ -132,14 +132,12 @@
           "md": 4,
           "lg": 6
         },
-
         "writeNulls": {
           "newLine": true,
           "type": "checkbox",
           "label": "Write NULL values on start/stop boundaries",
           "sm": 12
         },
-
         "_testConnection": {
           "newLine": true,
           "variant": "contained",
@@ -179,15 +177,28 @@
       "type": "panel",
       "label": "Default settings",
       "items": {
-        "debounce": {
+        "debounceTime": {
+          "newLine": true,
           "type": "number",
           "sm": 12,
-          "md": 6,
-          "lg": 4,
+          "md": 4,
           "min": 0,
-          "label": "debounce"
+          "max": 86400000,
+          "label": "De-bounce time",
+          "help": "De-bounce interval(ms)"
+        },
+        "blockTime": {
+          "type": "number",
+          "sm": 12,
+          "md": 4,
+          "min": 0,
+          "max": 86400000,
+          "label": "Block time",
+          "defaultFunc": "(data.debounce || data.debounce === '0' || data.debounce === 0) ? parseInt(data.debounce, 10) : 0",
+          "help": "blockTime"
         },
         "changesRelogInterval": {
+          "newLine": true,
           "type": "number",
           "label": "log changes interval(s)",
           "help": "0 = disable",
@@ -196,7 +207,6 @@
           "lg": 4
         },
         "changesMinDelta": {
-          "newLine": true,
           "type": "number",
           "label": "log changes minimal delta",
           "help": "0 = disable delta check",
@@ -205,6 +215,7 @@
           "lg": 4
         },
         "retention": {
+          "newLine": true,
           "type": "select",
           "label": "retention",
           "options": [
@@ -256,6 +267,43 @@
           "sm": 12,
           "md": 6,
           "lg": 4
+        },
+        "maxLength": {
+          "type": "number",
+          "label": "maximum datapoint count in RAM",
+          "min": 0,
+          "max": 100000,
+          "sm": 12,
+          "md": 4
+        },
+        "writeNulls": {
+          "newLine": true,
+          "label": "Write NULL values on start/stop boundaries",
+          "type": "checkbox",
+          "sm": 12,
+          "md": 4
+        },
+        "disableSkippedValueLogging": {
+          "label": "Disable charting optimized logging of skipped values",
+          "type": "checkbox",
+          "sm": 12,
+          "md": 4
+        },
+        "enableDebugLogs": {
+          "newLine": true,
+          "label": "Enable enhanced debug logs for the datapoint",
+          "type": "checkbox",
+          "sm": 12,
+          "md": 4
+        },
+        "debounce": {
+          "type": "number",
+          "sm": 12,
+          "md": 4,
+          "min": 0,
+          "label": "De-bounce time",
+          "help": "debounce",
+          "hidden": "true"
         }
       }
     }

@@ -166,10 +166,17 @@ function startAdapter(options) {
 
             id = formerAliasId;
 
-            if (sqlDPs[id]) {
+            if (sqlDPs[id] && sqlDPs[id][adapter.namespace]) {
                 adapter.log.info('disabled logging of ' + id);
-                sqlDPs[id].relogTimeout && clearTimeout(sqlDPs[id].relogTimeout);
-                sqlDPs[id].timeout && clearTimeout(sqlDPs[id].timeout);
+                if (sqlDPs[id].relogTimeout) {
+                    clearTimeout(sqlDPs[id].relogTimeout);
+                    sqlDPs[id].relogTimeout = null;
+                }
+                if (sqlDPs[id].timeout) {
+                    clearTimeout(sqlDPs[id].timeout);
+                    sqlDPs[id].timeout = null;
+                }
+                storeCached(true, id);
 
                 tmpState = Object.assign({}, sqlDPs[id].state);
                 const state = sqlDPs[id].state ? tmpState : null;
@@ -252,6 +259,13 @@ function returnClientToPool(client) {
 function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
     adapter.log.debug(`remembered Index/Type ${storedIndex} / ${storedType}`);
 
+    // maxLength
+    if (!obj.common.custom[adapter.namespace].maxLength && obj.common.custom[adapter.namespace].maxLength !== '0' && obj.common.custom[adapter.namespace].maxLength !== 0) {
+        obj.common.custom[adapter.namespace].maxLength = parseInt(adapter.config.maxLength, 10) || 960;
+    } else {
+        obj.common.custom[adapter.namespace].maxLength = parseInt(obj.common.custom[adapter.namespace].maxLength, 10);
+    }
+
     // retention
     if (obj.common.custom[adapter.namespace].retention || obj.common.custom[adapter.namespace].retention === 0) {
         obj.common.custom[adapter.namespace].retention = parseInt(obj.common.custom[adapter.namespace].retention, 10) || 0;
@@ -259,19 +273,55 @@ function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
         obj.common.custom[adapter.namespace].retention = adapter.config.retention;
     }
 
-    // debounce
-    if (obj.common.custom[adapter.namespace].debounce || obj.common.custom[adapter.namespace].debounce === 0) {
-        obj.common.custom[adapter.namespace].debounce = parseInt(obj.common.custom[adapter.namespace].debounce, 10) || 0;
+    // debounceTime and debounce compatibility handling
+    if (!obj.common.custom[adapter.namespace].blockTime && obj.common.custom[adapter.namespace].blockTime !== '0' && obj.common.custom[adapter.namespace].blockTime !== 0) {
+        if (!obj.common.custom[adapter.namespace].debounce && obj.common.custom[adapter.namespace].debounce !== '0' && obj.common.custom[adapter.namespace].debounce !== 0) {
+            obj.common.custom[adapter.namespace].blockTime = parseInt(adapter.config.blockTime, 10) || 0;
+        } else {
+            obj.common.custom[adapter.namespace].blockTime = parseInt(obj.common.custom[adapter.namespace].debounce, 10) || 0;
+        }
     } else {
-        obj.common.custom[adapter.namespace].debounce = adapter.config.debounce;
+        obj.common.custom[adapter.namespace].blockTime = parseInt(obj.common.custom[adapter.namespace].blockTime, 10) || 0;
+    }
+    if (!obj.common.custom[adapter.namespace].debounceTime && obj.common.custom[adapter.namespace].debounceTime !== '0' && obj.common.custom[adapter.namespace].debounceTime !== 0) {
+        obj.common.custom[adapter.namespace].debounceTime = parseInt(adapter.config.debounceTime, 10) || 0;
+    } else {
+        obj.common.custom[adapter.namespace].debounceTime = parseInt(obj.common.custom[adapter.namespace].debounceTime, 10) || 0;
     }
 
     // changesOnly
     obj.common.custom[adapter.namespace].changesOnly = obj.common.custom[adapter.namespace].changesOnly === 'true' || obj.common.custom[adapter.namespace].changesOnly === true;
 
+    // ignoreZero
     obj.common.custom[adapter.namespace].ignoreZero = obj.common.custom[adapter.namespace].ignoreZero === 'true' || obj.common.custom[adapter.namespace].ignoreZero === true;
-    obj.common.custom[adapter.namespace].ignoreBelowZero = obj.common.custom[adapter.namespace].ignoreBelowZero === 'true' || obj.common.custom[adapter.namespace].ignoreBelowZero === true;
 
+    // ignoreAboveNumber
+    if (obj.common.custom[adapter.namespace].ignoreAboveNumber !== undefined && obj.common.custom[adapter.namespace].ignoreAboveNumber !== null && obj.common.custom[adapter.namespace].ignoreAboveNumber !== '') {
+        obj.common.custom[adapter.namespace].ignoreAboveNumber = parseFloat(obj.common.custom[adapter.namespace].ignoreAboveNumber) || null;
+    }
+
+    // ignoreBelowNumber incl. ignoreBelowZero compatibility handling
+    if (obj.common.custom[adapter.namespace].ignoreBelowNumber !== undefined && obj.common.custom[adapter.namespace].ignoreBelowNumber !== null && obj.common.custom[adapter.namespace].ignoreBelowNumber !== '') {
+        obj.common.custom[adapter.namespace].ignoreBelowNumber = parseFloat(obj.common.custom[adapter.namespace].ignoreBelowNumber) || null;
+    } else if (obj.common.custom[adapter.namespace].ignoreBelowZero === 'true' || obj.common.custom[adapter.namespace].ignoreBelowZero === true) {
+        obj.common.custom[adapter.namespace].ignoreBelowNumber = 0;
+    }
+
+    // disableSkippedValueLogging
+    if (obj.common.custom[adapter.namespace].disableSkippedValueLogging !== undefined && obj.common.custom[adapter.namespace].disableSkippedValueLogging !== null && obj.common.custom[adapter.namespace].disableSkippedValueLogging !== '') {
+        obj.common.custom[adapter.namespace].disableSkippedValueLogging = obj.common.custom[adapter.namespace].disableSkippedValueLogging === 'true' || obj.common.custom[adapter.namespace].disableSkippedValueLogging === true;
+    } else {
+        obj.common.custom[adapter.namespace].disableSkippedValueLogging = adapter.config.disableSkippedValueLogging;
+    }
+
+    // enableDebugLogs
+    if (obj.common.custom[adapter.namespace].enableDebugLogs !== undefined && obj.common.custom[adapter.namespace].enableDebugLogs !== null && obj.common.custom[adapter.namespace].enableDebugLogs !== '') {
+        obj.common.custom[adapter.namespace].enableDebugLogs = obj.common.custom[adapter.namespace].enableDebugLogs === 'true' || obj.common.custom[adapter.namespace].enableDebugLogs === true;
+    } else {
+        obj.common.custom[adapter.namespace].enableDebugLogs = adapter.config.enableDebugLogs;
+    }
+
+    // changesRelogInterval
     if (obj.common.custom[adapter.namespace].changesRelogInterval || obj.common.custom[adapter.namespace].changesRelogInterval === 0) {
         obj.common.custom[adapter.namespace].changesRelogInterval = parseInt(obj.common.custom[adapter.namespace].changesRelogInterval, 10) || 0;
     } else {
@@ -309,9 +359,12 @@ function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
     sqlDPs[id] = obj.common.custom;
     sqlDPs[id].realId = realId;
 
+    if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].relogTimeout) {
+        clearTimeout(sqlDPs[formerAliasId].relogTimeout);
+        sqlDPs[formerAliasId].relogTimeout = null;
+    }
     // changesRelogInterval
     if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
-        sqlDPs[id].relogTimeout && clearTimeout(sqlDPs[id].relogTimeout);
         sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
     }
 
@@ -1027,7 +1080,7 @@ function pushHistory(id, state, timerRelog) {
 
         adapter.log.debug(`new value received for ${id}, new-value=${state.val}, ts=${state.ts}, relog=${timerRelog}`);
 
-        if (state.val !== null && typeof state.val === 'string' && settings.storageType !== 'String') {
+        if (typeof state.val === 'string' && settings.storageType !== 'String') {
             const f = parseFloat(state.val);
             // do not use here === or find a better way to validate if string is a valid float
             if (f == state.val) {
@@ -1035,42 +1088,89 @@ function pushHistory(id, state, timerRelog) {
             }
         }
 
-        if (settings.counter && sqlDPs[id].state) {
-            if (sqlDPs[id].type !== types.number) {
-                adapter.log.error('Counter cannot have type not "number"!');
+        let ignoreDebonce = false;
+
+        if (!timerRelog) {
+            const valueUnstable = !!sqlDPs[id].timeout;
+            // When a debounce timer runs and the value is the same as the last one, ignore it
+            if (sqlDPs[id].timeout && state.ts !== state.lc) {
+                settings.enableDebugLogs && adapter.log.debug(`value not changed debounce ${id}, value=${state.val}, ts=${state.ts}, debounce timer keeps running`);
+                return;
+            } else if (sqlDPs[id].timeout) { // if value changed, clear timer
+                settings.enableDebugLogs && adapter.log.debug(`value changed during debounce time ${id}, value=${state.val}, ts=${state.ts}, debounce timer restarted`);
+                clearTimeout(sqlDPs[id].timeout);
+                sqlDPs[id].timeout = null;
+            }
+
+            if (!valueUnstable && settings.blockTime && sqlDPs[id].state && (sqlDPs[id].state.ts + settings.blockTime) > state.ts) {
+                settings.enableDebugLogs && adapter.log.debug(`value ignored blockTime ${id}, value=${state.val}, ts=${state.ts}, lastState.ts=${sqlDPs[id].state.ts}, blockTime=${settings.blockTime}`);
+                return;
+            }
+
+            if (settings.ignoreZero && (state.val === undefined || state.val === null || state.val === 0)) {
+                settings.enableDebugLogs && adapter.log.debug(`value ignore because zero or null ${id}, new-value=${state.val}, ts=${state.ts}`);
+                return;
             } else
-            // if actual value is less then last seen counter
-            if (state.val < sqlDPs[id].state.val) {
-                // store both values
-                pushValueIntoDB(id, sqlDPs[id].state, true);
-                pushValueIntoDB(id, state, true);
+            if (typeof settings.ignoreBelowNumber === 'number' && typeof state.val === 'number' && state.val < settings.ignoreBelowNumber) {
+                settings.enableDebugLogs && adapter.log.debug(`value ignored because below ${settings.ignoreBelowNumber} for ${id}, new-value=${state.val}, ts=${state.ts}`);
+                return;
+            }
+            if (typeof settings.ignoreAboveNumber === 'number' && typeof state.val === 'number' && state.val > settings.ignoreAboveNumber) {
+                settings.enableDebugLogs && adapter.log.debug(`value ignored because above ${settings.ignoreAboveNumber} for ${id}, new-value=${state.val}, ts=${state.ts}`);
+                return;
+            }
+
+            if (sqlDPs[id].state && settings.changesOnly) {
+                if (settings.changesRelogInterval === 0) {
+                    if ((sqlDPs[id].state.val !== null || state.val === null) && state.ts !== state.lc) {
+                        // remember new timestamp
+                        if (!valueUnstable && !settings.disableSkippedValueLogging) {
+                            sqlDPs[id].skipped = state;
+                        }
+                        settings.enableDebugLogs && adapter.log.debug(`value not changed ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
+                        return;
+                    }
+                } else if (sqlDPs[id].lastLogTime) {
+                    if ((sqlDPs[id].state.val !== null || state.val === null) && (state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) {
+                        // remember new timestamp
+                        if (!valueUnstable && !settings.disableSkippedValueLogging) {
+                            sqlDPs[id].skipped = state;
+                        }
+                        settings.enableDebugLogs && adapter.log.debug(`value not changed ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
+                        return;
+                    }
+                    if (state.ts !== state.lc) {
+                        settings.enableDebugLogs && adapter.log.debug(`value-not-changed-relog ${id}, value=${state.val}, lastLogTime=${sqlDPs[id].lastLogTime}, ts=${state.ts}`);
+                        ignoreDebonce = true;
+                    }
+                }
+                if (typeof state.val === 'number') {
+                    if (
+                        sqlDPs[id].state.val !== null &&
+                        settings.changesMinDelta !== 0 &&
+                        Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta
+                    ) {
+                        if (!valueUnstable && !settings.disableSkippedValueLogging) {
+                            sqlDPs[id].skipped = state;
+                        }
+                        settings.enableDebugLogs && adapter.log.debug(`Min-Delta not reached ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
+                        return;
+                    } else if (settings.changesMinDelta !== 0) {
+                        settings.enableDebugLogs && adapter.log.debug(`Min-Delta reached ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
+                    }
+                } else {
+                    settings.enableDebugLogs && adapter.log.debug(`Min-Delta ignored because no number ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
+                }
             }
         }
 
-        if (sqlDPs[id].state && settings.changesOnly && !timerRelog) {
-            if (settings.changesRelogInterval === 0) {
-                if (state.ts !== state.lc) {
-                    sqlDPs[id].skipped = state; // remember new timestamp
-                    return adapter.log.debug(`value not changed ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
-                }
-            } else if (sqlDPs[id].lastLogTime) {
-                if ((state.ts !== state.lc) && (Math.abs(sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000)) {
-                    sqlDPs[id].skipped = state; // remember new timestamp
-                    return adapter.log.debug(`value not changed relog ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
-                }
-                if (state.ts !== state.lc) {
-                    adapter.log.debug(`value-changed-relog ${id}, value=${state.val}, lastLogTime=${sqlDPs[id].lastLogTime}, ts=${state.ts}`);
-                }
-            }
-
-            if (sqlDPs[id].state.val !== null && settings.changesMinDelta !== 0 && typeof state.val === 'number' && Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta) {
-                adapter.log.debug(`Min-Delta not reached ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
-                sqlDPs[id].skipped = state; // remember new timestamp
-                return;
-            } else if (typeof state.val === 'number') {
-                adapter.log.debug(`Min-Delta reached ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
-            } else {
-                adapter.log.debug(`Min-Delta ignored because no number ${id}, last-value=${sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
+        if (settings.counter && sqlDPs[id].state) {
+            if (sqlDPs[id].type !== types.number) {
+                adapter.log.error('Counter must have type "number"!');
+            } else if (state.val < sqlDPs[id].state.val) {
+                // if actual value is less then last seen counter, store both values
+                pushValueIntoDB(id, sqlDPs[id].state, true);
+                pushValueIntoDB(id, state, true);
             }
         }
 
@@ -1079,41 +1179,49 @@ function pushHistory(id, state, timerRelog) {
             sqlDPs[id].relogTimeout = null;
         }
 
-        if (settings.changesRelogInterval > 0) {
-            sqlDPs[id].relogTimeout = setTimeout(reLogHelper, settings.changesRelogInterval * 1000, id);
-        }
-
-        let ignoreDebonce = false;
         if (timerRelog) {
+            state = Object.assign({}, state);
             state.ts = Date.now();
             state.from = 'system.adapter.' + adapter.namespace;
-            adapter.log.debug(`timed-relog ${id}, value=${state.val}, lastLogTime=${sqlDPs[id].lastLogTime}, ts=${state.ts}`);
+            settings.enableDebugLogs && adapter.log.debug(`timed-relog ${id}, value=${state.val}, lastLogTime=${sqlDPs[id].lastLogTime}, ts=${state.ts}`);
             ignoreDebonce = true;
         } else {
             if (settings.changesOnly && sqlDPs[id].skipped) {
-                sqlDPs[id].state = sqlDPs[id].skipped;
-                pushHelper(id);
+                settings.enableDebugLogs && adapter.log.debug(`Skipped value logged ${id}, value=${sqlDPs[id].skipped.val}, ts=${sqlDPs[id].skipped.ts}`);
+                pushHelper(id, sqlDPs[id].skipped);
+                sqlDPs[id].skipped = null;
             }
-
             if (sqlDPs[id].state && ((sqlDPs[id].state.val === null && state.val !== null) || (sqlDPs[id].state.val !== null && state.val === null))) {
                 ignoreDebonce = true;
             } else if (!sqlDPs[id].state && state.val === null) {
                 ignoreDebonce = true;
             }
-
-            // only store state if really changed
-            sqlDPs[id].state = state;
         }
 
-        sqlDPs[id].lastLogTime = state.ts;
-        sqlDPs[id].skipped = null;
-
-        if (settings.debounce && !ignoreDebonce) {
-            // Discard changes in debounce time to store last stable value
+        if (settings.debounceTime && !ignoreDebonce && !timerRelog) {
+            // Discard changes in de-bounce time to store last stable value
             sqlDPs[id].timeout && clearTimeout(sqlDPs[id].timeout);
-            sqlDPs[id].timeout = setTimeout(pushHelper, settings.debounce, id, true);
+            sqlDPs[id].timeout = setTimeout((id, state) => {
+                sqlDPs[id].timeout = null;
+                sqlDPs[id].state = state;
+                sqlDPs[id].lastLogTime = state.ts;
+                settings.enableDebugLogs && adapter.log.debug(`Value logged ${id}, value=${sqlDPs[id].state.val}, ts=${sqlDPs[id].state.ts}`);
+                pushHelper(id);
+                if (settings.changesRelogInterval > 0) {
+                    sqlDPs[id].relogTimeout = setTimeout(reLogHelper, settings.changesRelogInterval * 1000, id);
+                }
+            }, settings.debounceTime, id, state);
         } else {
-            pushHelper(id);
+            if (!timerRelog) {
+                sqlDPs[id].state = state;
+            }
+            sqlDPs[id].lastLogTime = state.ts;
+
+            settings.enableDebugLogs && adapter.log.debug(`Value logged ${id}, value=${sqlDPs[id].state.val}, ts=${sqlDPs[id].state.ts}`);
+            pushHelper(id, state);
+            if (settings.changesRelogInterval > 0) {
+                sqlDPs[id].relogTimeout = setTimeout(reLogHelper, settings.changesRelogInterval * 1000, id);
+            }
         }
     }
 }
@@ -1124,9 +1232,8 @@ function reLogHelper(_id) {
     } else {
         sqlDPs[_id].relogTimeout = null;
         if (sqlDPs[_id].skipped) {
-            sqlDPs[_id].state = sqlDPs[_id].skipped;
-            sqlDPs[_id].state.from = 'system.adapter.' + adapter.namespace;
-            sqlDPs[_id].skipped = null;
+            pushHistory(_id, sqlDPs[_id].skipped, true);
+        } else if (sqlDPs[_id].state) {
             pushHistory(_id, sqlDPs[_id].state, true);
         } else {
             adapter.getForeignState(sqlDPs[_id].realId, (err, state) => {
@@ -1144,56 +1251,55 @@ function reLogHelper(_id) {
     }
 }
 
-function pushHelper(_id, timeoutTriggered) {
-    if (!sqlDPs[_id] || !sqlDPs[_id].state) {
+function pushHelper(_id, state) {
+    if (!sqlDPs[_id] || (!sqlDPs[_id].state&& !state)) {
         return;
+    }
+    if (!state) {
+        state = sqlDPs[_id].state;
     }
 
     const _settings = sqlDPs[_id][adapter.namespace];
 
     // if it was not deleted in this time
     if (_settings) {
-        if (timeoutTriggered) {
-            sqlDPs[_id].timeout = null;
+        if (state.val !== null && (typeof state.val === 'object' || typeof state.val === 'undefined')) {
+            state.val = JSON.stringify(state.val);
         }
 
-        if (sqlDPs[_id].state.val !== null && (typeof sqlDPs[_id].state.val === 'object' || typeof sqlDPs[_id].state.val === 'undefined')) {
-            sqlDPs[_id].state.val = JSON.stringify(sqlDPs[_id].state.val);
-        }
+        if (state.val !== null && state.val !== undefined) {
+            _settings.enableDebugLogs && adapter.log.debug(`Datatype ${_id}: Currently: ${typeof state.val}, StorageType: ${_settings.storageType}`);
 
-        if (sqlDPs[_id].state.val !== null && sqlDPs[_id].state.val !== undefined) {
-            adapter.log.debug(`Datatype ${_id}: Currently: ${typeof sqlDPs[_id].state.val}, StorageType: ${_settings.storageType}`);
-
-            if (typeof sqlDPs[_id].state.val === 'string' && _settings.storageType !== 'String') {
-                adapter.log.debug('Do Automatic Datatype conversion for ' + _id);
-                const f = parseFloat(sqlDPs[_id].state.val);
+            if (typeof state.val === 'string' && _settings.storageType !== 'String') {
+                _settings.enableDebugLogs && adapter.log.debug('Do Automatic Datatype conversion for ' + _id);
+                const f = parseFloat(state.val);
 
                 // do not use here === or find a better way to validate if string is valid float
-                if (f == sqlDPs[_id].state.val) {
-                    sqlDPs[_id].state.val = f;
-                } else if (sqlDPs[_id].state.val === 'true') {
-                    sqlDPs[_id].state.val = true;
-                } else if (sqlDPs[_id].state.val === 'false') {
-                    sqlDPs[_id].state.val = false;
+                if (f == state.val) {
+                    state.val = f;
+                } else if (state.val === 'true') {
+                    state.val = true;
+                } else if (state.val === 'false') {
+                    state.val = false;
                 }
             }
 
-            if (_settings.storageType === 'String' && typeof sqlDPs[_id].state.val !== 'string') {
-                sqlDPs[_id].state.val = sqlDPs[_id].state.val.toString();
-            } else if (_settings.storageType === 'Number' && typeof sqlDPs[_id].state.val !== 'number') {
-                if (typeof sqlDPs[_id].state.val === 'boolean') {
-                    sqlDPs[_id].state.val = sqlDPs[_id].state.val ? 1 : 0;
+            if (_settings.storageType === 'String' && typeof state.val !== 'string') {
+                state.val = state.val.toString();
+            } else if (_settings.storageType === 'Number' && typeof state.val !== 'number') {
+                if (typeof state.val === 'boolean') {
+                    state.val = state.val ? 1 : 0;
                 } else {
-                    return adapter.log.info('Do not store value "' + sqlDPs[_id].state.val + '" for ' + _id + ' because no number');
+                    return adapter.log.info('Do not store value "' + state.val + '" for ' + _id + ' because no number');
                 }
-            } else if (_settings.storageType === 'Boolean' && typeof sqlDPs[_id].state.val !== 'boolean') {
-                sqlDPs[_id].state.val = !!sqlDPs[_id].state.val;
+            } else if (_settings.storageType === 'Boolean' && typeof state.val !== 'boolean') {
+                state.val = !!state.val;
             }
         } else {
-            adapter.log.debug('Datatype ' + _id + ': Currently: null');
+            _settings.enableDebugLogs && adapter.log.debug('Datatype ' + _id + ': Currently: null');
         }
 
-        pushValueIntoDB(_id, sqlDPs[_id].state);
+        pushValueIntoDB(_id, state);
     }
 }
 
@@ -1530,12 +1636,7 @@ function prepareTaskReadDbId(id, state, isCounter, cb) {
         }
     }
 
-    // if greater than 2000.01.01 00:00:00
-    if (state.ts > 946681200000) {
-        state.ts = parseInt(state.ts, 10);
-    } else {
-        state.ts = parseInt(state.ts, 10) * 1000 + (parseInt(state.ms, 10) || 0);
-    }
+    state.ts = parseInt(state.ts, 10);
 
     try {
         if (state.val !== null && (typeof state.val === 'object' || typeof state.val === 'undefined')) {
@@ -1852,11 +1953,6 @@ function _getDataFromDB(query, options, callback) {
                         rows[c].ts = parseInt(rows[c].ts, 10);
                     }
 
-                    // if less than 2000.01.01 00:00:00
-                    if (rows[c].ts < 946681200000) {
-                        rows[c].ts *= 1000;
-                    }
-
                     if (adapter.common.loglevel === 'debug') {
                         rows[c].date = new Date(parseInt(rows[c].ts, 10));
                     }
@@ -1938,6 +2034,12 @@ function getCounterDiff(msg) {
 function getHistory(msg) {
     const startTime = Date.now();
 
+    if (!msg.message || !msg.message.options) {
+        return adapter.sendTo(msg.from, msg.command, {
+            error:  'Invalid call. No options for getHistory provided'
+        }, msg.callback);
+    }
+
     const options = {
         id:         msg.message.id === '*' ? null : msg.message.id,
         start:      msg.message.options.start,
@@ -1953,7 +2055,12 @@ function getHistory(msg) {
         ms:         msg.message.options.ms    || false,
         addId:      msg.message.options.addId || false,
         sessionId:  msg.message.options.sessionId,
-        returnNewestEntries: msg.message.options.returnNewestEntries || false
+        returnNewestEntries: msg.message.options.returnNewestEntries || false,
+        percentile: msg.message.options.aggregate === 'percentile' ? parseInt(msg.message.options.percentile, 10) || 50 : null,
+        quantile: msg.message.options.aggregate === 'quantile' ? parseFloat(msg.message.options.quantile) || 0.5 : null,
+        integralUnit: msg.message.options.aggregate === 'integral' ? parseInt(msg.message.options.integralUnit, 10) || 60 : null,
+        integralInterpolation: msg.message.options.aggregate === 'integral' ? msg.message.options.integralInterpolation || 'none' : null,
+        removeBorderValues: msg.message.options.removeBorderValues || false
     };
 
     if (!options.start && options.count) {
@@ -1965,6 +2072,23 @@ function getHistory(msg) {
     if (options.id && aliasMap[options.id]) {
         options.id = aliasMap[options.id];
     }
+
+    if (options.aggregate === 'percentile' && options.percentile < 0 || options.percentile > 100) {
+        adapter.log.error(`Invalid percentile value: ${options.percentile}, use 50 as default`);
+        options.percentile = 50;
+    }
+
+    if (options.aggregate === 'quantile' && options.quantile < 0 || options.quantile > 1) {
+        adapter.log.error(`Invalid quantile value: ${options.quantile}, use 0.5 as default`);
+        options.quantile = 0.5;
+    }
+
+    if (options.aggregate === 'integral' && (typeof options.integralUnit !== 'number' || options.integralUnit <= 0)) {
+        adapter.log.error(`Invalid integralUnit value: ${options.integralUnit}, use 60s as default`);
+        options.integralUnit = 60;
+    }
+
+    const debugLog = options.debugLog = !!(sqlDPs[options.id] && sqlDPs[options.id][adapter.namespace] && sqlDPs[options.id][adapter.namespace].enableDebugLogs);
 
     if (options.ignoreNull === 'true')  options.ignoreNull = true;  // include nulls and replace them with last value
     if (options.ignoreNull === 'false') options.ignoreNull = false; // include nulls
@@ -1990,12 +2114,12 @@ function getHistory(msg) {
     if (sqlDPs[options.id].type === undefined && sqlDPs[options.id].dbtype !== undefined) {
         if (sqlDPs[options.id][adapter.namespace] && sqlDPs[options.id][adapter.namespace].storageType) {
             if (storageTypes.indexOf(sqlDPs[options.id][adapter.namespace].storageType) === sqlDPs[options.id].dbtype) {
-                adapter.log.debug(`For getHistory for id ${options.id}: Type empty, use storageType dbtype ${sqlDPs[options.id].dbtype}`);
+                debugLog && adapter.log.debug(`For getHistory for id ${options.id}: Type empty, use storageType dbtype ${sqlDPs[options.id].dbtype}`);
                 sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
             }
         }
         else {
-            adapter.log.debug(`For getHistory for id ${options.id}: Type empty, use dbtype ${sqlDPs[options.id].dbtype}`);
+            debugLog && adapter.log.debug(`For getHistory for id ${options.id}: Type empty, use dbtype ${sqlDPs[options.id].dbtype}`);
             sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
         }
     }
@@ -2020,6 +2144,10 @@ function getHistory(msg) {
     if (options.id) {
         options.index = options.id;
         options.id = sqlDPs[options.id].index;
+    }
+
+    if (options.debugLog) {
+        options.log = adapter.log.debug;
     }
 
     // if specific id requested
@@ -2595,6 +2723,22 @@ function main() {
         adapter.config.changesMinDelta = 0;
     }
 
+    if (adapter.config.blockTime !== null && adapter.config.blockTime !== undefined) {
+        adapter.config.blockTime = parseInt(adapter.config.blockTime, 10) || 0;
+    } else {
+        if (adapter.config.debounce !== null && adapter.config.debounce !== undefined) {
+            adapter.config.debounce = parseInt(adapter.config.debounce, 10) || 0;
+        } else {
+            adapter.config.blockTime = 0;
+        }
+    }
+
+    if (adapter.config.debounceTime !== null && adapter.config.debounceTime !== undefined) {
+        adapter.config.debounceTime = parseInt(adapter.config.debounceTime, 10) || 0;
+    } else {
+        adapter.config.debounceTime = 0;
+    }
+
     multiRequests = clients[adapter.config.dbtype].multiRequests;
     if (!multiRequests) {
         adapter.config.writeNulls = false;
@@ -2665,6 +2809,13 @@ function main() {
                                 count++;
                                 adapter.log.info(`enabled logging of ${id}, Alias=${id !== realId}, ${count} points now activated`);
 
+                                // maxLength
+                                if (!sqlDPs[id][adapter.namespace].maxLength && sqlDPs[id][adapter.namespace].maxLength !== '0' && sqlDPs[id][adapter.namespace].maxLength !== 0) {
+                                    sqlDPs[id][adapter.namespace].maxLength = parseInt(adapter.config.maxLength, 10) || 960;
+                                } else {
+                                    sqlDPs[id][adapter.namespace].maxLength = parseInt(sqlDPs[id][adapter.namespace].maxLength, 10);
+                                }
+
                                 // retention
                                 if (sqlDPs[id][adapter.namespace].retention !== undefined && sqlDPs[id][adapter.namespace].retention !== null && sqlDPs[id][adapter.namespace].retention !== '') {
                                     sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
@@ -2672,11 +2823,20 @@ function main() {
                                     sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
                                 }
 
-                                // debounce
-                                if (sqlDPs[id][adapter.namespace].debounce !== undefined && sqlDPs[id][adapter.namespace].debounce !== null && sqlDPs[id][adapter.namespace].debounce !== '') {
-                                    sqlDPs[id][adapter.namespace].debounce = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
+                                // debounceTime and debounce compatibility handling
+                                if (!sqlDPs[id][adapter.namespace].blockTime && sqlDPs[id][adapter.namespace].blockTime !== '0' && sqlDPs[id][adapter.namespace].blockTime !== 0) {
+                                    if (!sqlDPs[id][adapter.namespace].debounce && sqlDPs[id][adapter.namespace].debounce !== '0' && sqlDPs[id][adapter.namespace].debounce !== 0) {
+                                        sqlDPs[id][adapter.namespace].blockTime = parseInt(adapter.config.blockTime, 10) || 0;
+                                    } else {
+                                        sqlDPs[id][adapter.namespace].blockTime = parseInt(sqlDPs[id][adapter.namespace].debounce, 10) || 0;
+                                    }
                                 } else {
-                                    sqlDPs[id][adapter.namespace].debounce = adapter.config.debounce;
+                                    sqlDPs[id][adapter.namespace].blockTime = parseInt(sqlDPs[id][adapter.namespace].blockTime, 10) || 0;
+                                }
+                                if (!sqlDPs[id][adapter.namespace].debounceTime && sqlDPs[id][adapter.namespace].debounceTime !== '0' && sqlDPs[id][adapter.namespace].debounceTime !== 0) {
+                                    sqlDPs[id][adapter.namespace].debounceTime = parseInt(adapter.config.debounceTime, 10) || 0;
+                                } else {
+                                    sqlDPs[id][adapter.namespace].debounceTime = parseInt(sqlDPs[id][adapter.namespace].debounceTime, 10) || 0;
                                 }
 
                                 // changesOnly
@@ -2685,8 +2845,31 @@ function main() {
                                 // ignoreZero
                                 sqlDPs[id][adapter.namespace].ignoreZero = sqlDPs[id][adapter.namespace].ignoreZero === 'true' || sqlDPs[id][adapter.namespace].ignoreZero === true;
 
-                                // ignoreBelowZero
-                                sqlDPs[id][adapter.namespace].ignoreBelowZero = sqlDPs[id][adapter.namespace].ignoreBelowZero === 'true' || sqlDPs[id][adapter.namespace].ignoreBelowZero === true;
+                                // ignoreAboveNumber
+                                if (sqlDPs[id][adapter.namespace].ignoreAboveNumber !== undefined && sqlDPs[id][adapter.namespace].ignoreAboveNumber !== null && sqlDPs[id][adapter.namespace].ignoreAboveNumber !== '') {
+                                    sqlDPs[id][adapter.namespace].ignoreAboveNumber = parseFloat(sqlDPs[id][adapter.namespace].ignoreAboveNumber) || null;
+                                }
+
+                                // ignoreBelowNumber and ignoreBelowZero compatibility handling
+                                if (sqlDPs[id][adapter.namespace].ignoreBelowNumber !== undefined && sqlDPs[id][adapter.namespace].ignoreBelowNumber !== null && sqlDPs[id][adapter.namespace].ignoreBelowNumber !== '') {
+                                    sqlDPs[id][adapter.namespace].ignoreBelowNumber = parseFloat(sqlDPs[id][adapter.namespace].ignoreBelowNumber) || null;
+                                } else if (sqlDPs[id][adapter.namespace].ignoreBelowZero === 'true' || sqlDPs[id][adapter.namespace].ignoreBelowZero === true) {
+                                    sqlDPs[id][adapter.namespace].ignoreBelowNumber = 0;
+                                }
+
+                                // disableSkippedValueLogging
+                                if (sqlDPs[id][adapter.namespace].disableSkippedValueLogging !== undefined && sqlDPs[id][adapter.namespace].disableSkippedValueLogging !== null && sqlDPs[id][adapter.namespace].disableSkippedValueLogging !== '') {
+                                    sqlDPs[id][adapter.namespace].disableSkippedValueLogging = sqlDPs[id][adapter.namespace].disableSkippedValueLogging === 'true' || sqlDPs[id][adapter.namespace].disableSkippedValueLogging === true;
+                                } else {
+                                    sqlDPs[id][adapter.namespace].disableSkippedValueLogging = adapter.config.disableSkippedValueLogging;
+                                }
+
+                                // enableDebugLogs
+                                if (sqlDPs[id][adapter.namespace].enableDebugLogs !== undefined && sqlDPs[id][adapter.namespace].enableDebugLogs !== null && sqlDPs[id][adapter.namespace].enableDebugLogs !== '') {
+                                    sqlDPs[id][adapter.namespace].enableDebugLogs = sqlDPs[id][adapter.namespace].enableDebugLogs === 'true' || sqlDPs[id][adapter.namespace].enableDebugLogs === true;
+                                } else {
+                                    sqlDPs[id][adapter.namespace].enableDebugLogs = adapter.config.enableDebugLogs;
+                                }
 
                                 // changesRelogInterval
                                 if (sqlDPs[id][adapter.namespace].changesRelogInterval !== undefined && sqlDPs[id][adapter.namespace].changesRelogInterval !== null && sqlDPs[id][adapter.namespace].changesRelogInterval !== '') {
@@ -2747,14 +2930,6 @@ function main() {
         });
     }
 }
-
-// close connection to DB
-process.on('SIGINT', () => finish());
-
-// close connection to DB
-process.on('SIGTERM', () => finish());
-
-process.on('uncaughtException', err => adapter.log.warn('Exception: ' + err));
 
 // If started as allInOne/compact mode => return function to create instance
 if (module.parent) {
