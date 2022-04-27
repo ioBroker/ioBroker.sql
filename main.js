@@ -8,9 +8,8 @@ const adapterName = require('./package.json').name.split('.').pop();
 const SQL         = require('sql-client');
 const commons     = require('./lib/aggregate');
 const fs          = require('fs');
+const mssql = require("./lib/mssql-client");
 let   SQLFuncs    = null;
-const mock = require('mock-require');
-mock('mysql', 'mysql2');
 
 const clients = {
     postgresql: {name: 'PostgreSQLClient',  multiRequests: true},
@@ -575,12 +574,16 @@ function testConnection(msg) {
         Object.keys(postgres)
             .filter(attr => !SQL[attr])
             .forEach(attr => SQL[attr] = postgres[attr]);
-    } else
-    if (msg.message.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
+    } else if (msg.message.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
         const mssql = require('./lib/mssql-client');
         Object.keys(mssql)
             .filter(attr => !SQL[attr])
             .forEach(attr => SQL[attr] = mssql[attr]);
+    } else if (msg.message.config.dbtype === 'mysql' && !SQL.MySQLClient) {
+        const mysql = require('./lib/mysql-client');
+        Object.keys(mysql)
+            .filter(attr => !SQL[attr])
+            .forEach(attr => SQL[attr] = mysql[attr]);
     }
 
     if (msg.message.config.dbtype === 'postgresql') {
@@ -2761,12 +2764,18 @@ function main() {
                 SQL[attr] = postgres[attr];
             }
         }
-    } else
-    if (adapter.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
+    } else if (adapter.config.dbtype === 'mssql' && !SQL.MSSQLClient) {
         const mssql = require(__dirname + '/lib/mssql-client');
         for (const attr_ in mssql) {
             if (mssql.hasOwnProperty(attr_) && !SQL[attr_]) {
                 SQL[attr_] = mssql[attr_];
+            }
+        }
+    } else if (adapter.config.dbtype === 'mysql' && !SQL.MySQLClient) {
+        const mysql = require(__dirname + '/lib/mysql-client');
+        for (const attr_ in mysql) {
+            if (mysql.hasOwnProperty(attr_) && !SQL[attr_]) {
+                SQL[attr_] = mysql[attr_];
             }
         }
     }
