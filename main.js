@@ -176,7 +176,7 @@ function startAdapter(options) {
                     clearTimeout(sqlDPs[id].timeout);
                     sqlDPs[id].timeout = null;
                 }
-                storeCached(true, id);
+                //storeCached(true, id);
 
                 tmpState = Object.assign({}, sqlDPs[id].state);
                 const state = sqlDPs[id].state ? tmpState : null;
