@@ -9,6 +9,8 @@ const SQL         = require('sql-client');
 const commons     = require('./lib/aggregate');
 const fs          = require('fs');
 let   SQLFuncs    = null;
+const mock = require('mock-require');
+mock('mysql', 'mysql2');
 
 const clients = {
     postgresql: {name: 'PostgreSQLClient',  multiRequests: true},
