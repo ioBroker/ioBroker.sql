@@ -8,12 +8,11 @@ const adapterName = require('./package.json').name.split('.').pop();
 const SQL         = require('sql-client');
 const commons     = require('./lib/aggregate');
 const fs          = require('fs');
-const mssql = require("./lib/mssql-client");
 let   SQLFuncs    = null;
 
 const clients = {
     postgresql: {name: 'PostgreSQLClient',  multiRequests: true},
-    mysql:      {name: 'MySQLClient',       multiRequests: true},
+    mysql:      {name: 'MySQL2Client',       multiRequests: true},
     sqlite:     {name: 'SQLite3Client',     multiRequests: false},
     mssql:      {name: 'MSSQLClient',       multiRequests: true}
 };
@@ -579,7 +578,7 @@ function testConnection(msg) {
         Object.keys(mssql)
             .filter(attr => !SQL[attr])
             .forEach(attr => SQL[attr] = mssql[attr]);
-    } else if (msg.message.config.dbtype === 'mysql' && !SQL.MySQLClient) {
+    } else if (msg.message.config.dbtype === 'mysql' && !SQL.MySQL2Client) {
         const mysql = require('./lib/mysql-client');
         Object.keys(mysql)
             .filter(attr => !SQL[attr])
@@ -2771,7 +2770,7 @@ function main() {
                 SQL[attr_] = mssql[attr_];
             }
         }
-    } else if (adapter.config.dbtype === 'mysql' && !SQL.MySQLClient) {
+    } else if (adapter.config.dbtype === 'mysql' && !SQL.MySQL2Client) {
         const mysql = require(__dirname + '/lib/mysql-client');
         for (const attr_ in mysql) {
             if (mysql.hasOwnProperty(attr_) && !SQL[attr_]) {
