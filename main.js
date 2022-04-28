@@ -1962,7 +1962,6 @@ function _getDataFromDB(query, options, callback) {
                     options.debugLog && adapter.log.debug(`pre-cut data to ${options.count} oldest values`);
                 }
 
-
                 rows.sort(sortByTs);
                 let isNumber = null;
                 for (let c = 0; c < rows.length; c++) {
