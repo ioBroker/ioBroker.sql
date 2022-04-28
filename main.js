@@ -1974,7 +1974,7 @@ function _getDataFromDB(query, options, callback) {
                     }
                 }
             }
-
+console.log('RESULT: ' + JSON.stringify(rows));
             callback && callback(err, rows);
         });
     });
