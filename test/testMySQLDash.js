@@ -144,7 +144,7 @@ describe(`Test ${__filename}`, function() {
         });
     });
 
-    tests.register(it, expect, sendTo, adapterShortName, true, 0, 3);
+    tests.register(it, expect, sendTo, adapterShortName, true, 0, 2);
 
     it(`Test ${__filename}: Check Datapoint Types`, function (done) {
         this.timeout(5000);
