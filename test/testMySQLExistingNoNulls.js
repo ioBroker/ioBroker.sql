@@ -144,12 +144,12 @@ describe(`Test ${__filename}`, function() {
         });
     });
 
-    tests.register(it, expect, sendTo, adapterShortName, false, 2, 2);
+    tests.register(it, expect, sendTo, adapterShortName, false, 2, 3);
 
     it(`Test ${__filename}: Check Datapoint Types`, function (done) {
         this.timeout(5000);
 
-        sendTo('sql.0', 'query', "SELECT name, type FROM iobroker.dbo.datapoints", function (result) {
+        sendTo('sql.0', 'query', "SELECT id, name, type FROM iobroker.datapoints", function (result) {
             console.log(`MySQL: ${JSON.stringify(result.result, null, 2)}`);
             expect(result.result.length).to.least(3);
             for (var i = 0; i < result.result.length; i++) {
