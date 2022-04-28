@@ -97,6 +97,14 @@ async function preInit(_objects, _states, sendTo, adapterShortName) {
         ignoreAboveNumber: 100
     };
     await objects.setObjectAsync(`${instanceName}.testValueBlocked`, obj);
+
+    await objects.setObjectAsync('system.adapter.test.0', {
+        common: {
+
+        },
+        type: 'instance'
+    });
+    await states.subscribeMessageAsync('system.adapter.test.0');
 }
 
 function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExistingData, additionalActiveObjects) {
@@ -106,41 +114,33 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
 
     it(`Test ${adapterShortName}: Setup test objects after start`, function(done) {
         this.timeout(3000);
-        objects.setObject('system.adapter.test.0', {
-                common: {
 
+        objects.setObject(`${instanceName}.testValue2`, {
+                common: {
+                    type: 'number',
+                    role: 'state'
                 },
-                type: 'instance'
+                type: 'state'
             },
             function () {
-                states.subscribeMessage('system.adapter.test.0');
-                objects.setObject(`${instanceName}.testValue2`, {
-                        common: {
-                            type: 'number',
-                            role: 'state'
-                        },
-                        type: 'state'
-                    },
-                    function () {
-                        sendTo(instanceName, 'enableHistory', {
-                            id: `${instanceName}.testValue2`,
-                            options: {
-                                changesOnly:  true,
-                                debounce:     0,
-                                retention:    31536000,
-                                maxLength:    0,
-                                changesMinDelta: 0.5,
-                                aliasId: `${instanceName}.testValue2-alias`
-                            }
-                        }, function (result) {
-                            expect(result.error).to.be.undefined;
-                            expect(result.success).to.be.true;
-                            // wait till adapter receives the new settings
-                            setTimeout(function () {
-                                done();
-                            }, 2000);
-                        });
-                    });
+                sendTo(instanceName, 'enableHistory', {
+                    id: `${instanceName}.testValue2`,
+                    options: {
+                        changesOnly:  true,
+                        debounce:     0,
+                        retention:    31536000,
+                        maxLength:    0,
+                        changesMinDelta: 0.5,
+                        aliasId: `${instanceName}.testValue2-alias`
+                    }
+                }, function (result) {
+                    expect(result.error).to.be.undefined;
+                    expect(result.success).to.be.true;
+                    // wait till adapter receives the new settings
+                    setTimeout(function () {
+                        done();
+                    }, 2000);
+                });
             });
     });
 

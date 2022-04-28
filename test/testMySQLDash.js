@@ -22,8 +22,8 @@ function checkConnectionOfAdapter(cb, counter) {
         return;
     }
 
-    states.getState('system.adapter.' + adapterShortName + '.0.alive', (err, state) => {
-        err && console.error('MySQL-with-dash: ' + err);
+    states.getState(`system.adapter.${adapterShortName}.0.alive`, (err, state) => {
+        err && console.error(`MySQL-with-dash: ${err}`);
         if (state && state.val) {
             cb && cb();
         } else {
@@ -37,12 +37,12 @@ function checkConnectionOfAdapter(cb, counter) {
 function checkValueOfState(id, value, cb, counter) {
     counter = counter || 0;
     if (counter > 20) {
-        cb && cb('Cannot check value Of State ' + id);
+        cb && cb(`Cannot check value Of State ${id}`);
         return;
     }
 
     states.getState(id, function (err, state) {
-        if (err) console.error('MySQL-with-dash: ' + err);
+        if (err) console.error(`MySQL-with-dash: ${err}`);
         if (value === null && !state) {
             cb && cb();
         } else
@@ -63,7 +63,7 @@ function sendTo(target, command, message, callback) {
         }
     };
 
-    states.pushMessage('system.adapter.' + target, {
+    states.pushMessage(`system.adapter.${target}`, {
         command:    command,
         message:    message,
         from:       'system.adapter.test.0',
@@ -76,8 +76,8 @@ function sendTo(target, command, message, callback) {
     });
 }
 
-describe('Test MySQL-with-dash', function() {
-    before('Test MySQL-with-dash: Start js-controller', function (_done) {
+describe(`Test ${__filename}`, function() {
+    before(`Test ${__filename} Start js-controller`, function (_done) {
         this.timeout(600000); // because of first install from npm
         setup.adapterStarted = false;
 
@@ -108,7 +108,7 @@ describe('Test MySQL-with-dash', function() {
         });
     });
 
-    it('Test MSSQL: Check if adapter started', function (done) {
+    it(`Test ${__filename}: Check if adapter started`, function (done) {
         this.timeout(60000);
         checkConnectionOfAdapter(function () {
             now = new Date().getTime();
@@ -145,11 +145,11 @@ describe('Test MySQL-with-dash', function() {
 
     tests.register(it, expect, sendTo, adapterShortName, true, 0, 2);
 
-    it('Test ' + adapterShortName + ': Check Datapoint Types', function (done) {
+    it(`Test ${__filename}: Check Datapoint Types`, function (done) {
         this.timeout(5000);
 
         sendTo('sql.0', 'query', "SELECT name, type FROM iobroker.dbo.datapoints", function (result) {
-            console.log('MSSQL: ' + JSON.stringify(result.result, null, 2));
+            console.log(`MySQL: ${JSON.stringify(result.result, null, 2)}`);
             expect(result.result.length).to.least(3);
             for (var i = 0; i < result.result.length; i++) {
                 if (result.result[i].name === 'sql.0.testValue') {
@@ -169,11 +169,11 @@ describe('Test MySQL-with-dash', function() {
         });
     });
 
-    after('Test MySQL-with-dash: Stop js-controller', function (done) {
+    after(`Test ${__filename}: Stop js-controller`, function (done) {
         this.timeout(6000);
 
         setup.stopController(function (normalTerminated) {
-            console.log('MySQL-with-dash: Adapter normal terminated: ' + normalTerminated);
+            console.log(`MySQL-with-dash: Adapter normal terminated: ${normalTerminated}`);
             setTimeout(done, 2000);
         });
     });
