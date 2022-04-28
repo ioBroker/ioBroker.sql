@@ -1949,16 +1949,16 @@ function _getDataFromDB(query, options, callback) {
             if (!err && rows) {
                 if (options.count && rows.length > options.count && options.aggregate === 'none' && !options.returnNewestEntries) {
                     if (options.start) {
-                        for (let i = 0; i < options.result.length; i++) {
-                            if (options.result[i].ts < options.start) {
-                                options.result.splice(i, 1);
+                        for (let i = 0; i < rows.length; i++) {
+                            if (rows[i].ts < options.start) {
+                                rows.splice(i, 1);
                                 i--;
                             } else {
                                 break;
                             }
                         }
                     }
-                    options.result = options.result.slice(0, options.count);
+                    rows = rows.slice(0, options.count);
                     adapter.log.debug(`pre-cut data to ${options.count} oldest values`);
                 }
 
