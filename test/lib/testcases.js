@@ -104,7 +104,7 @@ async function preInit(_objects, _states, sendTo, adapterShortName) {
         },
         type: 'instance'
     });
-    await states.subscribeMessageAsync('system.adapter.test.0');
+    states.subscribeMessage('system.adapter.test.0');
 }
 
 function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExistingData, additionalActiveObjects) {
