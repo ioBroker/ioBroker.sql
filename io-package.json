@@ -238,7 +238,7 @@
         "changesMinDelta": 0,
         "writeNulls": true,
         "doNotCreateDatabase": false,
-        "maxLength": 960,
+        "maxLength": 0,
         "blockTime": 0,
         "debounceTime": 0,
         "disableSkippedValueLogging": false,
