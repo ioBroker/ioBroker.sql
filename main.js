@@ -1959,7 +1959,7 @@ function _getDataFromDB(query, options, callback) {
                         }
                     }
                     rows = rows.slice(0, options.count);
-                    adapter.log.debug(`pre-cut data to ${options.count} oldest values`);
+                    options.debugLog && adapter.log.debug(`pre-cut data to ${options.count} oldest values`);
                 }
 
 
