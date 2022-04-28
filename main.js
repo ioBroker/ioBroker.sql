@@ -1947,6 +1947,22 @@ function _getDataFromDB(query, options, callback) {
             if (!err && rows && rows.rows) rows = rows.rows;
 
             if (!err && rows) {
+                if (options.count && rows.length > options.count && options.aggregate === 'none' && !options.returnNewestEntries) {
+                    if (options.start) {
+                        for (let i = 0; i < options.result.length; i++) {
+                            if (options.result[i].ts < options.start) {
+                                options.result.splice(i, 1);
+                                i--;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    options.result = options.result.slice(0, options.count);
+                    adapter.log.debug(`pre-cut data to ${options.count} oldest values`);
+                }
+
+
                 rows.sort(sortByTs);
                 let isNumber = null;
                 for (let c = 0; c < rows.length; c++) {
@@ -1974,7 +1990,6 @@ function _getDataFromDB(query, options, callback) {
                     }
                 }
             }
-console.log('RESULT: ' + JSON.stringify(rows));
             callback && callback(err, rows);
         });
     });
