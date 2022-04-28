@@ -181,14 +181,14 @@ function startAdapter(options) {
                 tmpState = Object.assign({}, sqlDPs[id].state);
                 const state = sqlDPs[id].state ? tmpState : null;
 
-                if (sqlDPs[id].skipped) {
-                    pushValueIntoDB(id, sqlDPs[id].skipped);
-                    sqlDPs[id].skipped = null;
-                }
-
-                const nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
-
                 if (sqlDPs[id][adapter.namespace] && adapter.config.writeNulls) {
+                    if (sqlDPs[id].skipped && !sqlDPs[id][adapter.namespace].disableSkippedValueLogging) {
+                        pushValueIntoDB(id, sqlDPs[id].skipped);
+                        sqlDPs[id].skipped = null;
+                    }
+
+                    const nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
+
                     if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
                         (function (_id, _state, _nullValue) {
                             _state.ts   = now;
@@ -2678,7 +2678,7 @@ function disableHistory(msg) {
 function getEnabledDPs(msg) {
     const data = {};
     for (const id in sqlDPs) {
-        if (sqlDPs.hasOwnProperty(id) && sqlDPs[id] && sqlDPs[id][adapter.namespace]) {
+        if (sqlDPs.hasOwnProperty(id) && sqlDPs[id] && sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].enabled) {
             data[sqlDPs[id].realId] = sqlDPs[id][adapter.namespace];
         }
     }
