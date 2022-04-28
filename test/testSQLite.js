@@ -7,7 +7,7 @@ const tests = require('./lib/testcases');
 
 let objects = null;
 let states  = null;
-let state = null;
+let onStateChanged = null;
 let onObjectChanged = null;
 let sendToID = 1;
 
@@ -57,7 +57,7 @@ function checkValueOfState(id, value, cb, counter) {
 }
 
 function sendTo(target, command, message, callback) {
-    state = function (id, state) {
+    onStateChanged = function (id, state) {
         if (id === 'messagebox.system.adapter.test.0') {
             callback(state.message);
         }
@@ -93,7 +93,7 @@ describe(`Test ${__filename}`, function() {
             await setup.setAdapterConfig(config.common, config.native);
 
             setup.startController(true, function(id, obj) {}, function (id, state) {
-                    if (state) state(id, state);
+                    if (state) onStateChanged(id, state);
                 },
                 async (_objects, _states) => {
                     objects = _objects;
