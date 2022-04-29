@@ -2035,11 +2035,11 @@ function getOneCachedData(id, options, cache, addId) {
                 }
             }
 
-            iProblemCount && adapter.log.warn(`got null states ${iProblemCount} times for ${options.id}`);
+            iProblemCount && adapter.log.warn(`got null states ${iProblemCount} times for ${options.index || options.id}`);
 
-            adapter.log.debug(`got ${res.length} datapoints for ${options.id}`);
+            adapter.log.debug(`got ${res.length} datapoints for ${options.index || options.id}`);
         } else {
-            adapter.log.debug(`datapoints for ${options.id} do not yet exist`);
+            adapter.log.debug(`datapoints for ${options.index || options.id} do not yet exist`);
         }
     }
 }
@@ -2304,28 +2304,29 @@ function getHistory(msg) {
                 getDataFromDB(dbNames[type], options, (err, data) => {
                     if ((!options.start && options.count) || (options.aggregate === 'none' && options.count && options.returnNewestEntries) ) {
                         cacheData = cacheData.reverse()
-                        cacheData = cacheData.concat(data);
+                        data = cacheData.concat(data);
                     } else {
-                        cacheData = data.concat(cacheData);
+                        data = data.concat(cacheData);
                     }
-                    if (options.count && cacheData.length > options.count && options.aggregate === 'none' && !options.returnNewestEntries) {
+                    debugLog && adapter.log.debug(`after getDataFromDB: length = ${data.length}`);
+                    if (options.count && data.length > options.count && options.aggregate === 'none' && !options.returnNewestEntries) {
                         if (options.start) {
-                            for (let i = 0; i < cacheData.length; i++) {
-                                if (cacheData[i].ts < options.start) {
-                                    cacheData.splice(i, 1);
+                            for (let i = 0; i < data.length; i++) {
+                                if (data[i].ts < options.start) {
+                                    data.splice(i, 1);
                                     i--;
                                 } else {
                                     break;
                                 }
                             }
                         }
-                        cacheData = cacheData.slice(0, options.count);
+                        data = data.slice(0, options.count);
                         options.debugLog && adapter.log.debug(`pre-cut data to ${options.count} oldest values`);
                     }
 
-                    cacheData.sort(sortByTs);
+                    data.sort(sortByTs);
 
-                    commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || cacheData, startTime)
+                    commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || data, startTime)
                 });
             }
         });
