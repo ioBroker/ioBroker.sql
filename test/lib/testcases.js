@@ -679,9 +679,9 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                     console.log(`Sample I1-1: ${JSON.stringify(result.result, null, 2)}`);
                     expect(result.result.length).to.be.equal(1);
                     if (assumeExistingData) {
-                        expect(result.result[0].val).to.be.lessThan(3735);
+                        expect(result.result[0].val).to.be.within(3700, 3735);
                     } else {
-                        expect(result.result[0].val).to.be.equal(3735);
+                        expect(result.result[0].val).to.be.within(700, 3736);
                     }
                     // Result Influxdb1 Doku = 3732.66
 
@@ -772,9 +772,9 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                                         console.log(`Sample I24: ${JSON.stringify(result.result, null, 2)}`);
                                         expect(result.result.length).to.be.equal(1);
                                         if (assumeExistingData) {
-                                            expect(result.result[0].val).to.be.equal(32);
+                                            expect(result.result[0].val).to.be.within(31, 32);
                                         } else {
-                                            expect(result.result[0].val).to.be.within(33, 33.5);
+                                            expect(result.result[0].val).to.be.within(32, 33.5);
                                         }
                                         // Result Influxdb24 Doku = 32.5
 
