@@ -142,22 +142,10 @@ function startAdapter(options) {
                 adapter.subscribeForeignStates('*');
             }
 
-            let storedIndex = null;
-            let storedType = null;
-            if (sqlDPs[id] && sqlDPs[id].index !== undefined) {
-                storedIndex = sqlDPs[id].index;
-            }
-
-            if (sqlDPs[id] && sqlDPs[id].dbtype !== undefined) {
-                storedType = sqlDPs[id].dbtype;
-            } else if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].dbtype !== undefined) {
-                storedType = sqlDPs[formerAliasId].dbtype;
-            }
-
-            if (storedIndex === undefined) {
-                getId(id, sqlDPs[id].dbtype, () => reInit(id, realId, formerAliasId, storedIndex, storedType, obj));
+            if (sqlDPs[id] && sqlDPs[id].index === undefined) {
+                getId(id, sqlDPs[id].dbtype, () => reInit(id, realId, formerAliasId, obj));
             } else {
-                reInit(id, realId, formerAliasId, storedIndex, storedType, obj);
+                reInit(id, realId, formerAliasId, obj);
             }
         } else {
             if (aliasMap[id]) {
@@ -177,14 +165,13 @@ function startAdapter(options) {
                     clearTimeout(sqlDPs[id].timeout);
                     sqlDPs[id].timeout = null;
                 }
-                //storeCached(true, id);
 
                 tmpState = Object.assign({}, sqlDPs[id].state);
                 const state = sqlDPs[id].state ? tmpState : null;
 
                 if (sqlDPs[id][adapter.namespace] && adapter.config.writeNulls) {
                     if (sqlDPs[id].skipped && !sqlDPs[id][adapter.namespace].disableSkippedValueLogging) {
-                        pushValueIntoDB(id, sqlDPs[id].skipped);
+                        pushValueIntoDB(id, sqlDPs[id].skipped, false, true);
                         sqlDPs[id].skipped = null;
                     }
 
@@ -197,7 +184,7 @@ function startAdapter(options) {
                             nullValue.ts += 4;
                             nullValue.lc += 4; // because of MS SQL
                             adapter.log.debug(`Write 1/2 "${_state.val}" _id: ${_id}`);
-                            pushValueIntoDB(_id, _state, () => {
+                            pushValueIntoDB(_id, _state, false, true,() => {
                                 // terminate values with null to indicate adapter stop. timestamp + 1
                                 adapter.log.debug(`Write 2/2 "null" _id: ${_id}`);
                                 pushValueIntoDB(_id, _nullValue, () => delete sqlDPs[id][adapter.namespace]);
@@ -257,8 +244,7 @@ function returnClientToPool(client) {
     return clientPool && clientPool.return(client);
 }
 
-function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
-    adapter.log.debug(`remembered Index/Type ${storedIndex} / ${storedType}`);
+function reInit(id, realId, formerAliasId, obj) {
 
     // maxLength
     if (!obj.common.custom[adapter.namespace].maxLength && obj.common.custom[adapter.namespace].maxLength !== '0' && obj.common.custom[adapter.namespace].maxLength !== 0) {
@@ -349,33 +335,76 @@ function reInit(id, realId, formerAliasId, storedIndex, storedType, obj) {
     if (sqlDPs[formerAliasId] &&
         sqlDPs[formerAliasId][adapter.namespace] &&
         isEqual(obj.common.custom[adapter.namespace], sqlDPs[formerAliasId][adapter.namespace])) {
-        return adapter.log.debug(`Object ${id} unchanged. Ignore`);
+        return obj.common.custom[adapter.namespace].enableDebugLogs && adapter.log.debug(`Object ${id} unchanged. Ignore`);
     }
 
     // relogTimeout
     if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].relogTimeout) {
         clearTimeout(sqlDPs[formerAliasId].relogTimeout);
-    }
-
-    sqlDPs[id] = obj.common.custom;
-    sqlDPs[id].realId = realId;
-
-    if (sqlDPs[formerAliasId] && sqlDPs[formerAliasId].relogTimeout) {
-        clearTimeout(sqlDPs[formerAliasId].relogTimeout);
         sqlDPs[formerAliasId].relogTimeout = null;
     }
+
+    const writeNull = !sqlDPs[id];
+    const state     = sqlDPs[id] ? sqlDPs[id].state   : null;
+    const list      = sqlDPs[id] ? sqlDPs[id].list    : null;
+    const timeout   = sqlDPs[id] ? sqlDPs[id].timeout : null;
+    const ts        = sqlDPs[id] ? sqlDPs[id].ts : null;
+
+    sqlDPs[id]         = obj.common.custom;
+    sqlDPs[id].state   = state;
+    sqlDPs[id].list    = list || [];
+    sqlDPs[id].timeout = timeout;
+    sqlDPs[id].ts      = ts;
+    sqlDPs[id].realId  = realId;
+
     // changesRelogInterval
     if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
         sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
     }
 
-    const writeNull = !(sqlDPs[id] && sqlDPs[id][adapter.namespace]);
     if (writeNull && adapter.config.writeNulls) {
         writeNulls(id);
     }
 
     adapter.log.info(`enabled logging of ${id}, Alias=${id !== realId}`);
 }
+
+function storeCached(isFinishing, onlyId) {
+    const now = Date.now();
+
+    for (const id in sqlDPs) {
+        if (!sqlDPs.hasOwnProperty(id) || (onlyId !== undefined && onlyId !== id)) {
+            continue;
+        }
+
+        if (isFinishing) {
+            if (sqlDPs[id].skipped && !(sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].disableSkippedValueLogging)) {
+                sqlDPs[id].list.push(sqlDPs[id].skipped);
+                sqlDPs[id].skipped = null;
+            }
+            if (adapter.config.writeNulls) {
+                const nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
+                if (sqlDPs[id][adapter.namespace].changesOnly && sqlDPs[id].state && sqlDPs[id].state !== null) {
+                    const state = Object.assign({}, sqlDPs[id].state);
+                    state.ts   = now;
+                    state.from = 'system.adapter.' + adapter.namespace;
+                    sqlDPs[id].list.push(state);
+                    nullValue.ts += 1;
+                    nullValue.lc += 1;
+                }
+
+                // terminate values with null to indicate adapter stop.
+                sqlDPs[id].list.push(nullValue);
+            }
+        }
+
+        if (sqlDPs[id].list && sqlDPs[id].list.length) {
+            adapter.log.debug('Store the rest for ' + id);
+            appendFile(id, sqlDPs[id].list);
+        }
+    }
+}
+
 
 function setConnected(isConnected) {
     if (connected !== isConnected) {
@@ -796,6 +825,22 @@ function allScripts(scripts, index, cb) {
 
 function finish(callback) {
 
+    function allFinished() {
+        if (clientPool) {
+            clientPool.close();
+            clientPool = null;
+            setConnected(false);
+        }
+        if (typeof finished === 'object') {
+            setTimeout(cb => {
+                for (let f = 0; f < cb.length; f++) {
+                    typeof cb[f] === 'function' && cb[f]();
+                }
+            }, 500, finished);
+            finished = true;
+        }
+    }
+
     function finishId(id) {
         if (!sqlDPs[id]) {
             return;
@@ -813,21 +858,11 @@ function finish(callback) {
 
         if (sqlDPs[id].skipped && !(sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].disableSkippedValueLogging)) {
             count++;
-            pushValueIntoDB(id, sqlDPs[id].skipped, () => {
+            pushValueIntoDB(id, sqlDPs[id].skipped, false, true,() => {
                 if (!--count) {
-                    if (clientPool) {
-                        clientPool.close();
-                        clientPool = null;
-                        setConnected(false);
-                    }
-                    if (typeof finished === 'object') {
-                        setTimeout(cb => {
-                            for (let f = 0; f < cb.length; f++) {
-                                typeof cb[f] === 'function' && cb[f]();
-                            }
-                        }, 500, finished);
-                        finished = true;
-                    }
+                    pushValuesIntoDB(id, sqlDPs[id].list, () => {
+                        allFinished();
+                    });
                 }
             });
             sqlDPs[id].skipped = null;
@@ -844,24 +879,14 @@ function finish(callback) {
                     nullValue.ts += 4;
                     nullValue.lc += 4; // because of MS SQL
                     adapter.log.debug(`Write 1/2 "${_state.val}" _id: ${_id}`);
-                    pushValueIntoDB(_id, _state, () => {
+                    pushValueIntoDB(_id, _state, false, true,() => {
                         // terminate values with null to indicate adapter stop. timestamp + 1
                         adapter.log.debug(`Write 2/2 "null" _id: ${_id}`);
-                        pushValueIntoDB(_id, _nullValue, () => {
+                        pushValueIntoDB(_id, _nullValue, false, true,() => {
                             if (!--count) {
-                                if (clientPool) {
-                                    clientPool.close();
-                                    clientPool = null;
-                                    setConnected(false);
-                                }
-                                if (typeof finished === 'object') {
-                                    setTimeout(cb => {
-                                        for (let f = 0; f < cb.length; f++) {
-                                            typeof cb[f] === 'function' && cb[f]();
-                                        }
-                                    }, 500, finished);
-                                    finished = true;
-                                }
+                                pushValuesIntoDB(id, sqlDPs[id].list, () => {
+                                    allFinished();
+                                });
                             }
                         });
                     });
@@ -870,23 +895,11 @@ function finish(callback) {
                 // terminate values with null to indicate adapter stop. timestamp + 1
                 count++;
                 adapter.log.debug(`Write 0 NULL _id: ${id}`);
-                pushValueIntoDB(id, nullValue, () => {
+                pushValueIntoDB(id, nullValue, false, true,() => {
                     if (!--count) {
-                        setTimeout(() => {
-                            if (clientPool) {
-                                clientPool.close();
-                                clientPool = null;
-                                setConnected(false);
-                            }
-                            if (typeof finished === 'object') {
-                                setTimeout(cb => {
-                                    for (let f = 0; f < cb.length; f++) {
-                                        typeof cb[f] === 'function' && cb[f]();
-                                    }
-                                }, 500, finished);
-                                finished = true;
-                            }
-                        }, 5000);
+                        pushValuesIntoDB(id, sqlDPs[id].list, () => {
+                            allFinished();
+                        });
                     }
                 });
             }
@@ -1693,22 +1706,23 @@ function prepareTaskCheckTypeAndDbId(id, state, isCounter, cb) {
     }
 }
 
-function pushValueIntoDB(id, state, isCounter, cb) {
+function pushValueIntoDB(id, state, isCounter, storeInCacheOnly, cb) {
+    if (typeof storeInCacheOnly === 'function') {
+        cb = storeInCacheOnly;
+        storeInCacheOnly = false;
+    }
+
     if (typeof isCounter === 'function') {
         cb = isCounter;
         isCounter = false;
     }
 
-    if (sqlDPs[id] && sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].ignoreZero && (!state || state.val === undefined || state.val === null || state.val === 0)) {
-        adapter.log.debug(`pushValueIntoDB called for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)} and it was ignored because the value zero or null`);
-        return cb && cb();
-    } else
-    if (state && sqlDPs[id] && sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].ignoreBelowZero && typeof state.val === 'number' && state.val < 0) {
-        adapter.log.debug(`pushValueIntoDB called for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)} and it was ignored because the value is below 0`);
-        return cb && cb();
-    }
+    if (!sqlDPs[id] || !state) return;
 
     adapter.log.debug(`pushValueIntoDB called for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)}`);
+
+    // if it was not deleted in this time
+    sqlDPs[id].list = sqlDPs[id].list || [];
 
     prepareTaskCheckTypeAndDbId(id, state, isCounter, err => {
         adapter.log.debug(`pushValueIntoDB-prepareTaskCheckTypeAndDbId RESULT for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)}`);
@@ -1726,21 +1740,39 @@ function pushValueIntoDB(id, state, isCounter, cb) {
         // remember last timestamp
         sqlDPs[id].ts = state.ts;
 
-        const query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, state, from[state.from] || 0, isCounter ? 'ts_counter' : dbNames[type]);
+        sqlDPs[id].list.push({state, from: from[state.from] || 0, db: isCounter ? 'ts_counter' : dbNames[type]});
 
-        if (!multiRequests) {
-            if (tasks.length > MAXTASKS) {
-                const error = `Cannot queue new requests, because more than ${MAXTASKS}`;
-                adapter.log.error(error);
-                cb && cb(error);
-            } else {
-                tasks.push({operation: 'insert', query, id, callback: cb});
-                tasks.length === 1 && processTasks();
-            }
-        } else {
-            _insertValueIntoDB(query, id, cb);
+        const _settings = sqlDPs[id][adapter.namespace];
+        if ((cb || _settings && sqlDPs[id].list.length > _settings.maxLength) && !storeInCacheOnly) {
+            _settings.enableDebugLogs && adapter.log.debug(`inserting ${sqlDPs[id].list.length} entries from ${id} to DB`);
+            pushValuesIntoDB(id, sqlDPs[id].list, cb);
+            sqlDPs[id].list = []
+        } else if (cb && storeInCacheOnly) {
+            setImmediate(cb);
         }
     });
+}
+
+
+function pushValuesIntoDB(id, list, cb) {
+    if (!list.length) {
+        return cb && setImmediate(cb);
+    }
+    const query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, list);
+
+    if (!multiRequests) {
+        if (tasks.length > MAXTASKS) {
+            const error = `Cannot queue new requests, because more than ${MAXTASKS}`;
+            adapter.log.error(error);
+            cb && cb(error);
+        } else {
+            tasks.push({operation: 'insert', query, id, callback: cb});
+            tasks.length === 1 && processTasks();
+        }
+    } else {
+        _insertValueIntoDB(query, id, cb);
+    }
+
 }
 
 let lockTasks = false;
@@ -1948,6 +1980,88 @@ function sortByTs(a, b) {
     return aTs < bTs ? -1 : (aTs > bTs ? 1 : 0);
 }
 
+
+function getOneCachedData(id, options, cache, addId) {
+    addId = addId || options.addId;
+
+    if (sqlDPs[id]) {
+        const res = sqlDPs[id].list;
+        // todo can be optimized
+        if (res) {
+            let iProblemCount = 0;
+            let vLast = null;
+            for (let i = res.length - 1; i >= 0 ; i--) {
+                if (!res[i] || !res[i].state) {
+                    iProblemCount++;
+                    continue;
+                }
+                if (options.start && res[i].state.ts < options.start) {
+                    if (options.ack) {
+                        res[i].state.ack = !!res[i].state.ack;
+                    }
+                    if (addId) {
+                        res[i].state.id = id;
+                    }
+                    // add one before start
+                    cache.unshift(res[i].state);
+                    break;
+                } else if (res[i].state.ts > options.end) {
+                    // add one after end
+                    vLast = res[i].state;
+                    continue;
+                }
+                if (options.ack) {
+                    res[i].state.ack = !!res[i].state.ack;
+                }
+
+                if (vLast) {
+                    if (options.ack) {
+                        vLast.ack = !!vLast.ack;
+                    }
+                    if (addId) {
+                        vLast.id = id;
+                    }
+                    cache.unshift(vLast);
+                    vLast = null;
+                }
+
+                if (addId) {
+                    res[i].state.id = id;
+                }
+                cache.unshift(res[i].state);
+
+                if (!options.start && cache.length >= options.count) {
+                    break;
+                }
+            }
+
+            iProblemCount && adapter.log.warn(`got null states ${iProblemCount} times for ${options.id}`);
+
+            adapter.log.debug(`got ${res.length} datapoints for ${options.id}`);
+        } else {
+            adapter.log.debug(`datapoints for ${options.id} do not yet exist`);
+        }
+    }
+}
+
+function getCachedData(options, callback) {
+    const cache = [];
+
+    if (options.id && options.id !== '*') {
+        getOneCachedData(options.id, options, cache);
+    } else {
+        for (const id in history) {
+            if (history.hasOwnProperty(id)) {
+                getOneCachedData(id, options, cache, true);
+            }
+        }
+    }
+
+    options.length = cache.length;
+    callback(cache, !options.start && options.count && cache.length >= options.count);
+}
+
+
 function _getDataFromDB(query, options, callback) {
     adapter.log.debug(query);
 
@@ -1961,22 +2075,6 @@ function _getDataFromDB(query, options, callback) {
             if (!err && rows && rows.rows) rows = rows.rows;
 
             if (!err && rows) {
-                if (options.count && rows.length > options.count && options.aggregate === 'none' && !options.returnNewestEntries) {
-                    if (options.start) {
-                        for (let i = 0; i < rows.length; i++) {
-                            if (rows[i].ts < options.start) {
-                                rows.splice(i, 1);
-                                i--;
-                            } else {
-                                break;
-                            }
-                        }
-                    }
-                    rows = rows.slice(0, options.count);
-                    options.debugLog && adapter.log.debug(`pre-cut data to ${options.count} oldest values`);
-                }
-
-                rows.sort(sortByTs);
                 let isNumber = null;
                 for (let c = 0; c < rows.length; c++) {
                     if (isNumber === null && rows[c].val !== null) {
@@ -2184,82 +2282,195 @@ function getHistory(msg) {
 
     // if specific id requested
     if (options.id) {
-        getDataFromDB(dbNames[type], options, (err, data) =>
-            commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || data, startTime));
+        getCachedData(options, (cacheData, isFull) => {
+            debugLog && adapter.log.debug(`after getCachedData: length = ${cacheData.length}, isFull=${isFull}`);
+
+            // if all data read
+            if ((isFull && cacheData.length) && ((!options.start && options.count) || options.aggregate === 'onchange' || options.aggregate === '' || options.aggregate === 'none')) {
+                cacheData = cacheData.sort(sortByTs);
+                if (options.count && cacheData.length > options.count && options.aggregate === 'none') {
+                    cacheData = cacheData.slice(-options.count);
+                    debugLog && adapter.log.debug(`cut cacheData to ${options.count} values`);
+                }
+                adapter.log.debug(`Send: ${cacheData.length} values in: ${Date.now() - startTime}ms`);
+
+                adapter.sendTo(msg.from, msg.command, {
+                    result: cacheData,
+                    step:   null,
+                    error:  null
+                }, msg.callback);
+            } else {
+                // if not all data read
+                getDataFromDB(dbNames[type], options, (err, data) => {
+                    cacheData = cacheData.concat(data);
+                    if (options.count && cacheData.length > options.count && options.aggregate === 'none' && !options.returnNewestEntries) {
+                        if (options.start) {
+                            for (let i = 0; i < cacheData.length; i++) {
+                                if (cacheData[i].ts < options.start) {
+                                    cacheData.splice(i, 1);
+                                    i--;
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                        cacheData = cacheData.slice(0, options.count);
+                        options.debugLog && adapter.log.debug(`pre-cut data to ${options.count} oldest values`);
+                    }
+
+                    cacheData.sort(sortByTs);
+
+                    commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || cacheData, startTime)
+                });
+            }
+        });
     } else {
         // if all IDs requested
         let rows = [];
         let count = 0;
-        for (let db = 0; db < dbNames.length; db++) {
-            count++;
-            getDataFromDB(dbNames[db], options, (err, data) => {
-                if (data) {
-                    rows = rows.concat(data);
+        getCachedData(options, (cacheData, isFull) => {
+            if (isFull && cacheData.length) {
+                cacheData.sort(sortByTs);
+                commons.sendResponse(adapter, msg, options, cacheData, startTime);
+            } else {
+                for (let db = 0; db < dbNames.length; db++) {
+                    count++;
+                    getDataFromDB(dbNames[db], options, (err, data) => {
+                        if (data) {
+                            rows = rows.concat(data);
+                        }
+                        if (!--count) {
+                            rows.sort(sortByTs);
+                            commons.sendResponse(adapter, msg, options, rows, startTime);
+                        }
+                    });
                 }
-                if (!--count) {
-                    rows.sort(sortByTs);
-                    commons.sendResponse(adapter, msg, options, rows, startTime);
-                }
-            });
-        }
+            }
+        });
     }
 }
 
 function update(id, state, cb) {
-    prepareTaskCheckTypeAndDbId(id, state, false, err => {
-        if (err) {
-            return cb && cb(err);
-        }
-
-        const type = sqlDPs[id].type;
-
-        const query = SQLFuncs.update(adapter.config.dbname, sqlDPs[id].index, state, from[state.from], dbNames[type]);
-
-        if (!multiRequests) {
-            if (tasks.length > MAXTASKS) {
-                const error = `Cannot queue new requests, because more than ${MAXTASKS}`;
-                adapter.log.error(error);
-                cb && cb(error);
-            } else {
-                tasks.push({operation: 'query', query, id, callback: cb});
-                tasks.length === 1 && processTasks();
+    // first try to find the value in not yet saved data
+    let found = false;
+    if (sqlDPs[id]) {
+        const res = sqlDPs[id].list;
+        if (res) {
+            for (let i = res.length - 1; i >= 0; i--) {
+                if (res[i].state.ts === state.ts) {
+                    if (state.val !== undefined) {
+                        res[i].state.val = state.val;
+                    }
+                    if (state.q !== undefined && res[i].q !== undefined) {
+                        res[i].state.q = state.q;
+                    }
+                    if (state.from !== undefined && res[i].from !== undefined) {
+                        res[i].state.from = state.from;
+                    }
+                    if (state.ack !== undefined) {
+                        res[i].state.ack = state.ack;
+                    }
+                    found = true;
+                    break;
+                }
             }
-        } else {
-            _executeQuery(query, id, cb);
         }
-    });
+    }
+
+    if (!found) {
+        prepareTaskCheckTypeAndDbId(id, state, false, err => {
+            if (err) {
+                return cb && cb(err);
+            }
+
+            const type = sqlDPs[id].type;
+
+            const query = SQLFuncs.update(adapter.config.dbname, sqlDPs[id].index, state, from[state.from], dbNames[type]);
+
+            if (!multiRequests) {
+                if (tasks.length > MAXTASKS) {
+                    const error = `Cannot queue new requests, because more than ${MAXTASKS}`;
+                    adapter.log.error(error);
+                    cb && cb(error);
+                } else {
+                    tasks.push({operation: 'query', query, id, callback: cb});
+                    tasks.length === 1 && processTasks();
+                }
+            } else {
+                _executeQuery(query, id, cb);
+            }
+        });
+    } else {
+        cb && cb();
+    }
 }
 
 function _delete(id, state, cb) {
-    prepareTaskCheckTypeAndDbId(id, state, false, err => {
-        if (err) {
-            return cb && cb(err);
-        }
-
-        const type = sqlDPs[id].type;
-
-        let query;
-        if (state.start && state.end) {
-            query = SQLFuncs.delete(adapter.config.dbname, dbNames[type], sqlDPs[id].index, state.start, state.end);
-        } else if (state.ts) {
-            query = SQLFuncs.delete(adapter.config.dbname, dbNames[type], sqlDPs[id].index, state.ts);
-        } else {
-            query = SQLFuncs.delete(adapter.config.dbname, dbNames[type], sqlDPs[id].index);
-        }
-
-        if (!multiRequests) {
-            if (tasks.length > MAXTASKS) {
-                const error = `Cannot queue new requests, because more than ${MAXTASKS}`;
-                adapter.log.error(error);
-                cb && cb(error);
+    // first try to find the value in not yet saved data
+    let found = false;
+    if (sqlDPs[id]) {
+        const res = sqlDPs[id].list;
+        if (res) {
+            if (!state.ts && !state.start && !state.end) {
+                sqlDPs[id].list = [];
             } else {
-                tasks.push({operation: 'query', query, id, callback: cb});
-                tasks.length === 1 && processTasks();
+                for (let i = res.length - 1; i >= 0; i--) {
+                    if (state.start && state.end) {
+                        if (res[i].state.ts >= state.start && res[i].state.ts <= state.end) {
+                            res.splice(i, 1);
+                        }
+                    } else if (state.start) {
+                        if (res[i].state.ts >= state.start) {
+                            res.splice(i, 1);
+                        }
+                    } else if (state.end) {
+                        if (res[i].state.ts <= state.end) {
+                            res.splice(i, 1);
+                        }
+                    } else
+                    if (res[i].state.ts === state.ts) {
+                        res.splice(i, 1);
+                        found = true;
+                        break;
+                    }
+                }
             }
-        } else {
-            _executeQuery(query, id, cb);
         }
-    });
+    }
+
+    if (!found) {
+        prepareTaskCheckTypeAndDbId(id, state, false, err => {
+            if (err) {
+                return cb && cb(err);
+            }
+
+            const type = sqlDPs[id].type;
+
+            let query;
+            if (state.start && state.end) {
+                query = SQLFuncs.delete(adapter.config.dbname, dbNames[type], sqlDPs[id].index, state.start, state.end);
+            } else if (state.ts) {
+                query = SQLFuncs.delete(adapter.config.dbname, dbNames[type], sqlDPs[id].index, state.ts);
+            } else {
+                query = SQLFuncs.delete(adapter.config.dbname, dbNames[type], sqlDPs[id].index);
+            }
+
+            if (!multiRequests) {
+                if (tasks.length > MAXTASKS) {
+                    const error = `Cannot queue new requests, because more than ${MAXTASKS}`;
+                    adapter.log.error(error);
+                    cb && cb(error);
+                } else {
+                    tasks.push({operation: 'query', query, id, callback: cb});
+                    tasks.length === 1 && processTasks();
+                }
+            } else {
+                _executeQuery(query, id, cb);
+            }
+        });
+    } else {
+        cb && cb();
+    }
 }
 
 function updateState(msg) {
@@ -2943,6 +3154,7 @@ function main() {
                                 }
 
                                 sqlDPs[id].realId = realId;
+                                sqlDPs[id].list = sqlDPs[id].list || [];
                             }
                         }
                     }
