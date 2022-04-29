@@ -1984,7 +1984,6 @@ function sortByTs(a, b) {
 function getOneCachedData(id, options, cache, addId) {
     addId = addId || options.addId;
 
-    adapter.log.debug(`getOneCachedData: ${id} ${JSON.stringify(sqlDPs[id])}`);
     if (sqlDPs[id]) {
         const res = sqlDPs[id].list;
         // todo can be optimized
@@ -2303,7 +2302,12 @@ function getHistory(msg) {
             } else {
                 // if not all data read
                 getDataFromDB(dbNames[type], options, (err, data) => {
-                    cacheData = cacheData.concat(data);
+                    if ((!options.start && options.count) || (options.aggregate === 'none' && options.count && options.returnNewestEntries) ) {
+                        cacheData = cacheData.reverse()
+                        cacheData = cacheData.concat(data);
+                    } else {
+                        cacheData = data.concat(cacheData);
+                    }
                     if (options.count && cacheData.length > options.count && options.aggregate === 'none' && !options.returnNewestEntries) {
                         if (options.start) {
                             for (let i = 0; i < cacheData.length; i++) {
