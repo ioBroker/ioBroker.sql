@@ -1729,7 +1729,6 @@ function pushValuesIntoDB(id, list, cb) {
     if (!list.length) {
         return cb && setImmediate(cb);
     }
-    const query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, list);
 
     if (!multiRequests) {
         if (tasks.length > MAXTASKS) {
@@ -1737,10 +1736,11 @@ function pushValuesIntoDB(id, list, cb) {
             adapter.log.error(error);
             cb && cb(error);
         } else {
-            tasks.push({operation: 'insert', query, id, callback: cb});
+            tasks.push({operation: 'insert', index: sqlDPs[id].index, list, id, callback: cb});
             tasks.length === 1 && processTasks();
         }
     } else {
+        const query = SQLFuncs.insert(adapter.config.dbname, sqlDPs[id].index, list);
         _insertValueIntoDB(query, id, cb);
     }
 
@@ -1763,8 +1763,23 @@ function processTasks() {
                 tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
             });
         } else if (tasks[0].operation === 'insert') {
-            _insertValueIntoDB(tasks[0].query, tasks[0].id, () => {
-                tasks[0].callback && tasks[0].callback();
+            const callbacks = [];
+            if (tasks[0].callback) {
+                callbacks.push(tasks[0].callback);
+            }
+            for (let i = 1; i < tasks.length; i++) {
+                if (tasks[i].operation === 'insert' && tasks[0].index === tasks[i].index) {
+                    tasks[0].list = tasks[0].list.concat(tasks[i].list);
+                    if (tasks[i].callback) {
+                        callbacks.push(tasks[i].callback);
+                    }
+                    tasks.splice(i, 1);
+                    i--;
+                }
+            }
+            const query = SQLFuncs.insert(adapter.config.dbname, tasks[0].index, tasks[0].list);
+            _insertValueIntoDB(query, tasks[0].id, () => {
+                callbacks.forEach(cb => cb());
                 tasks.shift();
                 lockTasks = false;
                 tasks.length && setTimeout(processTasks, adapter.config.requestInterval);
@@ -1957,9 +1972,9 @@ function getOneCachedData(id, options, cache, addId) {
 
     if (sqlDPs[id]) {
         let res = [];
-        for (let inFlight of sqlDPs[id].inFlight) {
-            adapter.log.debug(`getOneCachedData: add ${inFlight.length} inFlight datapoints for ${options.index || options.id}`);
-            res = res.concat(inFlight);
+        for (let inFlightId in sqlDPs[id].inFlight) {
+            adapter.log.debug(`getOneCachedData: add ${sqlDPs[id].inFlight[inFlightId].length} inFlight datapoints for ${options.index || options.id}`);
+            res = res.concat(sqlDPs[id].inFlight[inFlightId]);
         }
         res = res.concat(sqlDPs[id].list);
         // todo can be optimized
