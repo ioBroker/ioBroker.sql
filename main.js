@@ -1471,8 +1471,10 @@ function processReadTypes() {
             adapter.log.warn(`Ignore type lookup for ${task.id} because not enabled anymore`);
             task.cb && task.cb(`Ignore type lookup for ${task.id} because not enabled anymore`)
             task.cb = null;
-            tasksReadType.shift();
-            return setImmediate(processReadTypes);
+            return setImmediate(() => {
+                tasksReadType.shift();
+                processReadTypes();
+            });
         }
 
         adapter.log.debug(`Type set in Def for ${task.id}: ${sqlDPs[task.id][adapter.namespace].storageType}`);
@@ -1494,8 +1496,10 @@ function processReadTypes() {
                     adapter.log.warn(`Ignore type lookup for ${task.id} because not enabled anymore`);
                     task.cb && task.cb(`Ignore type lookup for ${task.id} because not enabled anymore`)
                     task.cb = null;
-                    tasksReadType.shift();
-                    return setImmediate(processReadTypes);
+                    return setImmediate(() => {
+                        tasksReadType.shift();
+                        processReadTypes();
+                    });
                 } else
                 // read type from object
                 if (obj && obj.common && obj.common.type && types[obj.common.type.toLowerCase()] !== undefined) {
@@ -1510,8 +1514,10 @@ function processReadTypes() {
                             adapter.log.warn(`Ignore type lookup for ${task.id} because not enabled anymore`);
                             task.cb && task.cb(`Ignore type lookup for ${task.id} because not enabled anymore`)
                             task.cb = null;
-                            tasksReadType.shift();
-                            return setImmediate(processReadTypes);
+                            return setImmediate(() => {
+                                tasksReadType.shift();
+                                processReadTypes();
+                            });
                         }
 
                         if (err) {
@@ -1565,9 +1571,12 @@ function processVerifyTypes(task) {
     }
 
     task.cb && task.cb();
+    task.cb = null;
 
-    tasksReadType.shift();
-    setTimeout(processReadTypes, 50);
+    setTimeout(() => {
+        tasksReadType.shift();
+        processReadTypes();
+    }, 50);
 }
 
 function prepareTaskReadDbId(id, state, isCounter, cb) {
@@ -1666,7 +1675,7 @@ function prepareTaskCheckTypeAndDbId(id, state, isCounter, cb) {
         adapter.log.warn('No Connection to database');
         return cb && setImmediate(cb, 'No Connection to database');
     }
-    adapter.log.debug(`prepareTaskCheckTypeAndDbId CALLED for ${id} (length tasks = ${tasksReadType.length})`);
+    adapter.log.debug(`prepareTaskCheckTypeAndDbId CALLED for ${id}`);
 
     // read type of value
     if (sqlDPs[id].type !== undefined) {
