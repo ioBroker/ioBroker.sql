@@ -2048,8 +2048,8 @@ function getOneCachedData(id, options, cache, addId) {
 function getCachedData(options, callback) {
     const cache = [];
 
-    if (options.id && options.id !== '*') {
-        getOneCachedData(options.id, options, cache);
+    if (options.index || options.id) {
+        getOneCachedData(options.index || options.id, options, cache);
     } else {
         for (const id in sqlDPs) {
             if (sqlDPs.hasOwnProperty(id)) {
