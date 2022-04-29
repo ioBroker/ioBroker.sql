@@ -52,6 +52,7 @@ let subscribeAll    = false;
 let clientPool;
 let reconnectTimeout = null;
 let testConnectTimeout = null;
+let dpOverviewTimeout = null;
 
 function isEqual(a, b) {
     //console.log('Compare ' + JSON.stringify(a) + ' with ' +  JSON.stringify(b));
@@ -197,7 +198,7 @@ function startAdapter(options) {
                             nullValue.lc += 4; // because of MS SQL
                             adapter.log.debug(`Write 1/2 "${_state.val}" _id: ${_id}`);
                             pushValueIntoDB(_id, _state, () => {
-                                // terminate values with null to indicate adapter stop. timestamp + 1#
+                                // terminate values with null to indicate adapter stop. timestamp + 1
                                 adapter.log.debug(`Write 2/2 "null" _id: ${_id}`);
                                 pushValueIntoDB(_id, _nullValue, () => delete sqlDPs[id][adapter.namespace]);
                             });
@@ -844,7 +845,7 @@ function finish(callback) {
                     nullValue.lc += 4; // because of MS SQL
                     adapter.log.debug(`Write 1/2 "${_state.val}" _id: ${_id}`);
                     pushValueIntoDB(_id, _state, () => {
-                        // terminate values with null to indicate adapter stop. timestamp + 1#
+                        // terminate values with null to indicate adapter stop. timestamp + 1
                         adapter.log.debug(`Write 2/2 "null" _id: ${_id}`);
                         pushValueIntoDB(_id, _nullValue, () => {
                             if (!--count) {
@@ -910,6 +911,10 @@ function finish(callback) {
     if (testConnectTimeout) {
         clearTimeout(testConnectTimeout);
         testConnectTimeout = null;
+    }
+    if (dpOverviewTimeout) {
+        clearTimeout(dpOverviewTimeout);
+        dpOverviewTimeout = null;
     }
 
     let count = 0;
@@ -2582,7 +2587,10 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
                 }
 
                 adapter.log.info(`enhanced result (${typeId}): ${JSON.stringify(resultData)}`);
-                setTimeout(getFirstTsForIds, 5000, dbClient, typeId + 1, resultData, msg);
+                dpOverviewTimeout = setTimeout(() => {
+                    dpOverviewTimeout = null;
+                    getFirstTsForIds();
+                }, 5000, dbClient, typeId + 1, resultData, msg);
             });
         }
     } else {
