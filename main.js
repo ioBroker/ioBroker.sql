@@ -1725,7 +1725,7 @@ function pushValueIntoDB(id, state, isCounter, storeInCacheOnly, cb) {
     sqlDPs[id].list = sqlDPs[id].list || [];
 
     prepareTaskCheckTypeAndDbId(id, state, isCounter, err => {
-        adapter.log.debug(`pushValueIntoDB-prepareTaskCheckTypeAndDbId RESULT for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)}`);
+        adapter.log.debug(`pushValueIntoDB-prepareTaskCheckTypeAndDbId RESULT for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)}: ${err}`);
         if (err) {
             return cb && cb(err);
         }
@@ -1986,6 +1986,7 @@ function getOneCachedData(id, options, cache, addId) {
 
     if (sqlDPs[id]) {
         const res = sqlDPs[id].list;
+adapter.log.debug(`getOneCachedData: ${id} ${JSON.stringify(res)}`);
         // todo can be optimized
         if (res) {
             let iProblemCount = 0;
@@ -2050,8 +2051,8 @@ function getCachedData(options, callback) {
     if (options.id && options.id !== '*') {
         getOneCachedData(options.id, options, cache);
     } else {
-        for (const id in history) {
-            if (history.hasOwnProperty(id)) {
+        for (const id in sqlDPs) {
+            if (sqlDPs.hasOwnProperty(id)) {
                 getOneCachedData(id, options, cache, true);
             }
         }
