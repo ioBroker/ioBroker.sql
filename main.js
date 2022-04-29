@@ -1984,9 +1984,9 @@ function sortByTs(a, b) {
 function getOneCachedData(id, options, cache, addId) {
     addId = addId || options.addId;
 
+    adapter.log.debug(`getOneCachedData: ${id} ${JSON.stringify(sqlDPs[id])}`);
     if (sqlDPs[id]) {
         const res = sqlDPs[id].list;
-adapter.log.debug(`getOneCachedData: ${id} ${JSON.stringify(res)}`);
         // todo can be optimized
         if (res) {
             let iProblemCount = 0;
