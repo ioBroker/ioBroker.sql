@@ -2054,7 +2054,7 @@ function getCachedData(options, callback) {
         if (isNumber === null && cache[c].val !== null) {
             isNumber = parseFloat(cache[c].val) == cache[c].val;
         }
-        if (typeof rows[c].ts === 'string') {
+        if (typeof cache[c].ts === 'string') {
             cache[c].ts = parseInt(cache[c].ts, 10);
         }
 
@@ -2064,7 +2064,7 @@ function getCachedData(options, callback) {
         if (options.ack) {
             cache[c].ack = !!cache[c].ack;
         }
-        if (isNumber && adapter.config.round && rows[c].val !== null) {
+        if (isNumber && adapter.config.round && cache[c].val !== null) {
             cache[c].val = Math.round(cache[c].val * adapter.config.round) / adapter.config.round;
         }
         if (sqlDPs[options.index].type === 2) {
