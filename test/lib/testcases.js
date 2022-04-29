@@ -679,7 +679,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                     console.log(`Sample I1-1: ${JSON.stringify(result.result, null, 2)}`);
                     expect(result.result.length).to.be.equal(1);
                     if (assumeExistingData) {
-                        expect(result.result[0].val).to.be.within(3700, 3735);
+                        expect(result.result[0].val).to.be.within(3700, 3755);
                     } else {
                         expect(result.result[0].val).to.be.within(3700, 3800);
                     }
