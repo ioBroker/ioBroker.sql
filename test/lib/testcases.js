@@ -938,7 +938,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             }
         }, function (result) {
             console.log(JSON.stringify(result.result, null, 2));
-            expect(result.result.length).to.be.at.least((writeNulls? 3 + 0) + ((assumeExistingData+1) * 30));
+            expect(result.result.length).to.be.at.least((writeNulls? 3 : 0) + ((assumeExistingData + 1) * 30));
 
             done();
         });
