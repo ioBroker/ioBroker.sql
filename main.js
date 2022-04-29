@@ -347,12 +347,14 @@ function reInit(id, realId, formerAliasId, obj) {
     const writeNull = !sqlDPs[id];
     const state     = sqlDPs[id] ? sqlDPs[id].state   : null;
     const list      = sqlDPs[id] ? sqlDPs[id].list    : null;
+    const inFlight  = sqlDPs[id] ? sqlDPs[id].inFlight: null;
     const timeout   = sqlDPs[id] ? sqlDPs[id].timeout : null;
     const ts        = sqlDPs[id] ? sqlDPs[id].ts : null;
 
     sqlDPs[id]         = obj.common.custom;
     sqlDPs[id].state   = state;
     sqlDPs[id].list    = list || [];
+    sqlDPs[id].inFlight = inFlight || {};
     sqlDPs[id].timeout = timeout;
     sqlDPs[id].ts      = ts;
     sqlDPs[id].realId  = realId;
@@ -368,43 +370,6 @@ function reInit(id, realId, formerAliasId, obj) {
 
     adapter.log.info(`enabled logging of ${id}, Alias=${id !== realId}`);
 }
-
-function storeCached(isFinishing, onlyId) {
-    const now = Date.now();
-
-    for (const id in sqlDPs) {
-        if (!sqlDPs.hasOwnProperty(id) || (onlyId !== undefined && onlyId !== id)) {
-            continue;
-        }
-
-        if (isFinishing) {
-            if (sqlDPs[id].skipped && !(sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].disableSkippedValueLogging)) {
-                sqlDPs[id].list.push(sqlDPs[id].skipped);
-                sqlDPs[id].skipped = null;
-            }
-            if (adapter.config.writeNulls) {
-                const nullValue = {val: null, ts: now, lc: now, q: 0x40, from: 'system.adapter.' + adapter.namespace};
-                if (sqlDPs[id][adapter.namespace].changesOnly && sqlDPs[id].state && sqlDPs[id].state !== null) {
-                    const state = Object.assign({}, sqlDPs[id].state);
-                    state.ts   = now;
-                    state.from = 'system.adapter.' + adapter.namespace;
-                    sqlDPs[id].list.push(state);
-                    nullValue.ts += 1;
-                    nullValue.lc += 1;
-                }
-
-                // terminate values with null to indicate adapter stop.
-                sqlDPs[id].list.push(nullValue);
-            }
-        }
-
-        if (sqlDPs[id].list && sqlDPs[id].list.length) {
-            adapter.log.debug('Store the rest for ' + id);
-            appendFile(id, sqlDPs[id].list);
-        }
-    }
-}
-
 
 function setConnected(isConnected) {
     if (connected !== isConnected) {
@@ -1745,8 +1710,14 @@ function pushValueIntoDB(id, state, isCounter, storeInCacheOnly, cb) {
         const _settings = sqlDPs[id][adapter.namespace];
         if ((cb || _settings && sqlDPs[id].list.length > _settings.maxLength) && !storeInCacheOnly) {
             _settings.enableDebugLogs && adapter.log.debug(`inserting ${sqlDPs[id].list.length} entries from ${id} to DB`);
-            pushValuesIntoDB(id, sqlDPs[id].list, cb);
+            const inFlightId = `${id}_${Date.now()}_${Math.random()}`;
+            sqlDPs[id].inFlight = sqlDPs[id].inFlight || {};
+            sqlDPs[id].inFlight[inFlightId] = sqlDPs[id].list;
             sqlDPs[id].list = []
+            pushValuesIntoDB(id, sqlDPs[id].inFlight[inFlightId], err => {
+                delete sqlDPs[id].inFlight[inFlightId];
+                cb && cb(err);
+            });
         } else if (cb && storeInCacheOnly) {
             setImmediate(cb);
         }
@@ -1985,7 +1956,12 @@ function getOneCachedData(id, options, cache, addId) {
     addId = addId || options.addId;
 
     if (sqlDPs[id]) {
-        const res = sqlDPs[id].list;
+        let res = [];
+        for (let inFlight of sqlDPs[id].inFlight) {
+            adapter.log.debug(`getOneCachedData: add ${inFlight.length} inFlight datapoints for ${options.index || options.id}`);
+            res = res.concat(inFlight);
+        }
+        res = res.concat(sqlDPs[id].list);
         // todo can be optimized
         if (res) {
             let iProblemCount = 0;
@@ -2035,11 +2011,11 @@ function getOneCachedData(id, options, cache, addId) {
                 }
             }
 
-            iProblemCount && adapter.log.warn(`got null states ${iProblemCount} times for ${options.index || options.id}`);
+            iProblemCount && adapter.log.warn(`getOneCachedData: got null states ${iProblemCount} times for ${options.index || options.id}`);
 
-            adapter.log.debug(`got ${res.length} datapoints for ${options.index || options.id}`);
+            adapter.log.debug(`getOneCachedData: got ${res.length} datapoints for ${options.index || options.id}`);
         } else {
-            adapter.log.debug(`datapoints for ${options.index || options.id} do not yet exist`);
+            adapter.log.debug(`getOneCachedData: datapoints for ${options.index || options.id} do not yet exist`);
         }
     }
 }
@@ -2057,8 +2033,38 @@ function getCachedData(options, callback) {
         }
     }
 
+    let earliestTs = null;
+    let isNumber = null;
+    for (let c = 0; c < cache.length; c++) {
+        if (isNumber === null && cache[c].val !== null) {
+            isNumber = parseFloat(cache[c].val) == cache[c].val;
+        }
+        if (typeof rows[c].ts === 'string') {
+            cache[c].ts = parseInt(cache[c].ts, 10);
+        }
+
+        if (adapter.common.loglevel === 'debug') {
+            cache[c].date = new Date(parseInt(cache[c].ts, 10));
+        }
+        if (options.ack) {
+            cache[c].ack = !!cache[c].ack;
+        }
+        if (isNumber && adapter.config.round && rows[c].val !== null) {
+            cache[c].val = Math.round(cache[c].val * adapter.config.round) / adapter.config.round;
+        }
+        if (sqlDPs[options.index].type === 2) {
+            cache[c].val = !!cache[c].val;
+        }
+        if (options.addId && !cache[c].id && options.id) {
+            cache[c].id = options.index || options.id;
+        }
+        if (cache[c].ts < earliestTs || earliestTs === null) {
+            earliestTs = cache[c].ts;
+        }
+    }
+
     options.length = cache.length;
-    callback(cache, !options.start && options.count && cache.length >= options.count);
+    callback(cache, !options.start && options.count && cache.length >= options.count, !!Object.keys(sqlDPs[id].inFlight).length, earliestTs);
 }
 
 
@@ -2282,7 +2288,7 @@ function getHistory(msg) {
 
     // if specific id requested
     if (options.id) {
-        getCachedData(options, (cacheData, isFull) => {
+        getCachedData(options, (cacheData, isFull, includesInFlightData, earliestTs) => {
             debugLog && adapter.log.debug(`after getCachedData: length = ${cacheData.length}, isFull=${isFull}`);
 
             // if all data read
@@ -2300,6 +2306,9 @@ function getHistory(msg) {
                     error:  null
                 }, msg.callback);
             } else {
+                if (includesInFlightData) {
+                    options.end = earliestTs;
+                }
                 // if not all data read
                 getDataFromDB(dbNames[type], options, (err, data) => {
                     if ((!options.start && options.count) || (options.aggregate === 'none' && options.count && options.returnNewestEntries) ) {
@@ -2334,11 +2343,14 @@ function getHistory(msg) {
         // if all IDs requested
         let rows = [];
         let count = 0;
-        getCachedData(options, (cacheData, isFull) => {
+        getCachedData(options, (cacheData, isFull, includesInFlightData, earliestTs) => {
             if (isFull && cacheData.length) {
                 cacheData.sort(sortByTs);
                 commons.sendResponse(adapter, msg, options, cacheData, startTime);
             } else {
+                if (includesInFlightData) {
+                    options.end = earliestTs;
+                }
                 for (let db = 0; db < dbNames.length; db++) {
                     count++;
                     getDataFromDB(dbNames[db], options, (err, data) => {
@@ -3161,6 +3173,7 @@ function main() {
 
                                 sqlDPs[id].realId = realId;
                                 sqlDPs[id].list = sqlDPs[id].list || [];
+                                sqlDPs[id].inFlight = sqlDPs[id].inFlight || {};
                             }
                         }
                     }
