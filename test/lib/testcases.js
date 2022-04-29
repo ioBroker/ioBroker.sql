@@ -681,7 +681,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                     if (assumeExistingData) {
                         expect(result.result[0].val).to.be.within(3700, 3735);
                     } else {
-                        expect(result.result[0].val).to.be.within(700, 3736);
+                        expect(result.result[0].val).to.be.within(3700, 3800);
                     }
                     // Result Influxdb1 Doku = 3732.66
 
