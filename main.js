@@ -2321,11 +2321,13 @@ function getHistory(msg) {
                     error:  null
                 }, msg.callback);
             } else {
+                const origEnd = options.end;
                 if (includesInFlightData) {
                     options.end = earliestTs;
                 }
                 // if not all data read
                 getDataFromDB(dbNames[type], options, (err, data) => {
+                    options.end = origEnd;
                     if ((!options.start && options.count) || (options.aggregate === 'none' && options.count && options.returnNewestEntries) ) {
                         cacheData = cacheData.reverse()
                         data = cacheData.concat(data);
