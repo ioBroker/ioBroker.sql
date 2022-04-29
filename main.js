@@ -2079,7 +2079,7 @@ function getCachedData(options, callback) {
     }
 
     options.length = cache.length;
-    callback(cache, !options.start && options.count && cache.length >= options.count, !!Object.keys(sqlDPs[id].inFlight).length, earliestTs);
+    callback(cache, !options.start && options.count && cache.length >= options.count, !!Object.keys(sqlDPs[options.index || options.id].inFlight).length, earliestTs);
 }
 
 
