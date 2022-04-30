@@ -3140,7 +3140,7 @@ function main() {
                                         sqlDPs[id][adapter.namespace].round = Math.pow(10, parseInt(sqlDPs[id][adapter.namespace].round, 10));
                                     }
                                 } else {
-                                    obj.common.custom[adapter.namespace].round = adapter.config.round;
+                                    sqlDPs[id][adapter.namespace].round = adapter.config.round;
                                 }
 
                                 // ignoreAboveNumber
