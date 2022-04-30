@@ -188,7 +188,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                                                         console.log(err);
                                                     }
                                                     setTimeout(function () {
-                                                        states.setState(`${instanceName}.testValue`, {val: 3, ts: now + 19000}, function (err) {
+                                                        states.setState(`${instanceName}.testValue`, {val: '+003.00', ts: now + 19000}, function (err) {
                                                             if (err) {
                                                                 console.log(err);
                                                             }

@@ -1068,10 +1068,8 @@ function pushHistory(id, state, timerRelog) {
         adapter.log.debug(`new value received for ${id}, new-value=${state.val}, ts=${state.ts}, relog=${timerRelog}`);
 
         if (typeof state.val === 'string' && settings.storageType !== 'String') {
-            const f = parseFloat(state.val);
-            // do not use here === or find a better way to validate if string is a valid float
-            if (f == state.val) {
-                state.val = f;
+            if (Number.isFinite(state.val)) {
+                state.val = parseFloat(state.val);
             }
         }
 
@@ -1259,11 +1257,8 @@ function pushHelper(_id, state) {
 
             if (typeof state.val === 'string' && _settings.storageType !== 'String') {
                 _settings.enableDebugLogs && adapter.log.debug(`Do Automatic Datatype conversion for ${_id}`);
-                const f = parseFloat(state.val);
-
-                // do not use here === or find a better way to validate if string is valid float
-                if (f == state.val) {
-                    state.val = f;
+                if (Number.isFinite(state.val)) {
+                    state.val = parseFloat(state.val);
                 } else if (state.val === 'true') {
                     state.val = true;
                 } else if (state.val === 'false') {
@@ -2033,9 +2028,6 @@ function getCachedData(options, callback) {
     let earliestTs = null;
     let isNumber = null;
     for (let c = 0; c < cache.length; c++) {
-        if (isNumber === null && cache[c].val !== null) {
-            isNumber = parseFloat(cache[c].val) == cache[c].val;
-        }
         if (typeof cache[c].ts === 'string') {
             cache[c].ts = parseInt(cache[c].ts, 10);
         }
@@ -2046,7 +2038,7 @@ function getCachedData(options, callback) {
         if (options.ack) {
             cache[c].ack = !!cache[c].ack;
         }
-        if (isNumber && adapter.config.round && cache[c].val !== null) {
+        if (cache[c].val !== null && Number.isFinite(cache[c].val) && adapter.config.round) {
             cache[c].val = Math.round(cache[c].val * adapter.config.round) / adapter.config.round;
         }
         if (sqlDPs[options.index].type === 2) {
@@ -2078,11 +2070,7 @@ function _getDataFromDB(query, options, callback) {
             if (!err && rows && rows.rows) rows = rows.rows;
 
             if (!err && rows) {
-                let isNumber = null;
                 for (let c = 0; c < rows.length; c++) {
-                    if (isNumber === null && rows[c].val !== null) {
-                        isNumber = parseFloat(rows[c].val) == rows[c].val;
-                    }
                     if (typeof rows[c].ts === 'string') {
                         rows[c].ts = parseInt(rows[c].ts, 10);
                     }
@@ -2093,7 +2081,7 @@ function _getDataFromDB(query, options, callback) {
                     if (options.ack) {
                         rows[c].ack = !!rows[c].ack;
                     }
-                    if (isNumber && adapter.config.round && rows[c].val !== null) {
+                    if (rows[c].val !== null && isFinite(rows[c].val) && adapter.config.round) {
                         rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
                     }
                     if (sqlDPs[options.index].type === 2) {
@@ -3149,7 +3137,7 @@ function main() {
 
                                 // changesMinDelta
                                 if (sqlDPs[id][adapter.namespace].changesMinDelta !== undefined && sqlDPs[id][adapter.namespace].changesMinDelta !== null && sqlDPs[id][adapter.namespace].changesMinDelta !== '') {
-                                    sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta) || 0;
+                                    sqlDPs[id][adapter.namespace].changesMinDelta = parseFloat(sqlDPs[id][adapter.namespace].changesMinDelta.toString().replace(/,/g, '.')) || 0;
                                 } else {
                                     sqlDPs[id][adapter.namespace].changesMinDelta = adapter.config.changesMinDelta;
                                 }
