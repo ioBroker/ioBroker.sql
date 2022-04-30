@@ -242,7 +242,8 @@
         "blockTime": 0,
         "debounceTime": 0,
         "disableSkippedValueLogging": false,
-        "enableLogging": false
+        "enableLogging": false,
+        "rejectUnauthorized": false
     },
     "instanceObjects": [
         {

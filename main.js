@@ -428,14 +428,26 @@ function connect(callback) {
             return adapter.log.error(`SQL package "${clients[adapter.config.dbtype].name}" is not installed.`);
         }
 
-        if (adapter.config.dbtype !== 'postgresql') {
-            params.options = {
-                encrypt: !!adapter.config.encrypt
-            };
-        }
-
         if (adapter.config.dbtype === 'postgresql') {
             params.database = 'postgres';
+            if (adapter.config.encrypt) {
+                params.ssl = {
+                    rejectUnauthorized: !!adapter.config.rejectUnauthorized
+                };
+            }
+        } else if (adapter.config.dbtype === 'mssql') {
+            if (adapter.config.encrypt) {
+                params.options = {
+                    encrypt: !!adapter.config.encrypt,
+                    trustServerCertificate: !adapter.config.rejectUnauthorized
+                };
+            }
+        } else if (adapter.config.dbtype === 'mysql') {
+            if (adapter.config.encrypt) {
+                params.ssl = {
+                    rejectUnauthorized: !!adapter.config.rejectUnauthorized
+                };
+            }
         }
 
         if (adapter.config.dbtype === 'sqlite') {
@@ -444,7 +456,7 @@ function connect(callback) {
         // special solution for postgres. Connect first to Db "postgres", create new DB "iobroker" and then connect to "iobroker" DB.
         if (adapter.config.dbtype === 'postgresql' && !postgresDbCreated) {
             // connect first to DB postgres and create iobroker DB
-            adapter.log.info(`Postgres connection options: ${JSON.stringify(params)}`);
+            adapter.log.info(`Postgres connection options: ${JSON.stringify(params).replace(params.password, '****')}`);
             const _client = new SQL[clients[adapter.config.dbtype].name](params);
             _client.on && _client.on('error', err =>
                 adapter.log.warn(`SQL client error: ${err}`));
@@ -596,6 +608,27 @@ function testConnection(msg) {
         params.database = 'postgres';
     } else if (msg.message.config.dbtype === 'sqlite') {
         params = getSqlLiteDir(msg.message.config.fileName);
+    }
+
+    if (msg.message.config.dbtype === 'postgresql') {
+        if (msg.message.config.encrypt) {
+            params.ssl = {
+                rejectUnauthorized: !!msg.message.config.rejectUnauthorized
+            };
+        }
+    } else if (msg.message.config.dbtype === 'mssql') {
+        if (msg.message.config.encrypt) {
+            params.options = {
+                encrypt: !!msg.message.config.encrypt,
+                trustServerCertificate: !msg.message.config.rejectUnauthorized
+            };
+        }
+    } else if (msg.message.config.dbtype === 'mysql') {
+        if (msg.message.config.encrypt) {
+            params.ssl = {
+                rejectUnauthorized: !!msg.message.config.rejectUnauthorized
+            };
+        }
     }
 
     try {
@@ -990,7 +1023,7 @@ function processMessage(msg) {
         finish(() => {
             if (msg.callback) {
                 adapter.sendTo(msg.from, msg.command, 'stopped', msg.callback);
-                setTimeout(() => process.exit(0), 200);
+                setTimeout(() => adapter.stop(), 200);
             }
         });
     }
