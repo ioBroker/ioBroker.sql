@@ -436,11 +436,11 @@ function connect(callback) {
                 };
             }
         } else if (adapter.config.dbtype === 'mssql') {
+            params.options = {
+                encrypt: !!adapter.config.encrypt,
+            };
             if (adapter.config.encrypt) {
-                params.options = {
-                    encrypt: !!adapter.config.encrypt,
-                    trustServerCertificate: !adapter.config.rejectUnauthorized
-                };
+                params.options.trustServerCertificate = !adapter.config.rejectUnauthorized
             }
         } else if (adapter.config.dbtype === 'mysql') {
             if (adapter.config.encrypt) {
@@ -617,11 +617,11 @@ function testConnection(msg) {
             };
         }
     } else if (msg.message.config.dbtype === 'mssql') {
+        params.options = {
+            encrypt: !!msg.message.config.encrypt,
+        };
         if (msg.message.config.encrypt) {
-            params.options = {
-                encrypt: !!msg.message.config.encrypt,
-                trustServerCertificate: !msg.message.config.rejectUnauthorized
-            };
+            params.options. trustServerCertificate= !msg.message.config.rejectUnauthorized
         }
     } else if (msg.message.config.dbtype === 'mysql') {
         if (msg.message.config.encrypt) {
