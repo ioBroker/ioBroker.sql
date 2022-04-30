@@ -43,7 +43,7 @@
     "Password confirmation is not equal with password!": "Подтверждение пароля не совпадает с паролем!",
     "Port": "Порт",
     "Reset DB": "Очистить базу",
-    "Round real to": "Округлять до",
+    "Round real to": "По запросу округлить числа до",
     "SQL history adapter settings": "Настройки профайлера в SQL базу данных",
     "Start or enable adapter first": "Сначала надо запустить или активировать драйвер",
     "Storage retention": "Сохранять в файле",

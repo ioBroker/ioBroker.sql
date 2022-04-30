@@ -43,7 +43,7 @@
     "Password confirmation is not equal with password!": "Password confirmation is not equal with password!",
     "Port": "Port",
     "Reset DB": "Reset DB",
-    "Round real to": "Round real to",
+    "Round real to": "On query round numbers to",
     "SQL history adapter settings": "SQL history adapter settings",
     "Start or enable adapter first": "Start or enable adapter first",
     "Storage retention": "Storage retention",

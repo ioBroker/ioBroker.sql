@@ -97,16 +97,6 @@
           "md": 4,
           "lg": 3
         },
-        "round": {
-          "hidden": "data.dbtype === 'sqlite'",
-          "type": "number",
-          "label": "Round real to",
-          "sm": 12,
-          "md": 4,
-          "lg": 3
-        },
-
-
         "multiRequests": {
           "newLine": true,
           "type": "checkbox",
@@ -131,12 +121,6 @@
           "sm": 12,
           "md": 4,
           "lg": 6
-        },
-        "writeNulls": {
-          "newLine": true,
-          "type": "checkbox",
-          "label": "Write NULL values on start/stop boundaries",
-          "sm": 12
         },
         "_testConnection": {
           "newLine": true,
@@ -170,6 +154,23 @@
           },
           "command": "destroy",
           "label": "Reset DB"
+        },
+
+        "writeNulls": {
+          "newLine": true,
+          "type": "checkbox",
+          "label": "Write NULL values on start/stop boundaries",
+          "sm": 12
+        },
+        "round": {
+          "type": "number",
+          "label": "Round real to",
+          "sm": 12,
+          "md": 4,
+          "lg": 3,
+          "validator": "((data.round || '').toString().length === 0) || isFinite(data.round)",
+          "validatorErrorText": "Enter a number or leave the field empty",
+          "validatorNoSaveOnError": true
         }
       }
     },

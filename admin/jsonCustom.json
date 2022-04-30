@@ -55,7 +55,7 @@
       "label": "ignore values below x",
       "hidden": "!customObj || !customObj.common || customObj.common.type !== 'number'",
       "defaultFunc": "data.ignoreBelowZero ? '0' : ''",
-      "validator": "((data.ignoreBelowNumber || '').toString().length === 0) || (!isNaN(parseFloat(data.ignoreBelowNumber)) && parseFloat(data.ignoreBelowNumber).toString() == data.ignoreBelowNumber)",
+      "validator": "((data.ignoreBelowNumber || '').toString().length === 0) || isFinite(data.ignoreBelowNumber)",
       "validatorErrorText": "Enter a number or leave the field empty",
       "validatorNoSaveOnError": true,
       "sm": 6
@@ -64,7 +64,7 @@
       "type": "text",
       "label": "ignore values above x",
       "hidden": "!customObj || !customObj.common || customObj.common.type !== 'number'",
-      "validator": "((data.ignoreAboveNumber || '').toString().length === 0) || (!isNaN(parseFloat(data.ignoreAboveNumber)) && parseFloat(data.ignoreAboveNumber).toString() == data.ignoreAboveNumber)",
+      "validator": "((data.ignoreAboveNumber || '').toString().length === 0) || isFinite(data.ignoreAboveNumber)",
       "validatorErrorText": "Enter a number or leave the field empty",
       "validatorNoSaveOnError": true,
       "sm": 6
@@ -183,6 +183,18 @@
       "max": 100000,
       "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number' ? instanceObj.native.maxLength : 10",
       "sm": 6
+    },
+    "round": {
+      "newLine": true,
+      "type": "text",
+      "label": "Round real to",
+      "sm": 12,
+      "md": 4,
+      "lg": 3,
+      "validator": "((data.round || '').toString().length === 0) || isFinite(data.round)",
+      "validatorErrorText": "Enter a number or leave the field empty",
+      "validatorNoSaveOnError": true,
+      "hidden": "!customObj || !customObj.common || customObj.common.type !== 'number' || (data.storageType && data.storageType !== 'Number')"
     },
     "enableDebugLogs": {
       "newLine": true,

@@ -282,6 +282,18 @@ function reInit(id, realId, formerAliasId, obj) {
     // ignoreZero
     obj.common.custom[adapter.namespace].ignoreZero = obj.common.custom[adapter.namespace].ignoreZero === 'true' || obj.common.custom[adapter.namespace].ignoreZero === true;
 
+    // round
+    if (obj.common.custom[adapter.namespace].round !== null && obj.common.custom[adapter.namespace].round !== undefined && obj.common.custom[adapter.namespace] !== '') {
+        obj.common.custom[adapter.namespace].round = parseInt(obj.common.custom[adapter.namespace], 10);
+        if (!isFinite(obj.common.custom[adapter.namespace].round) || obj.common.custom[adapter.namespace].round < 0) {
+            obj.common.custom[adapter.namespace].round = adapter.config.round;
+        } else {
+            obj.common.custom[adapter.namespace].round = Math.pow(10, parseInt(obj.common.custom[adapter.namespace].round, 10));
+        }
+    } else {
+        obj.common.custom[adapter.namespace].round = adapter.config.round;
+    }
+
     // ignoreAboveNumber
     if (obj.common.custom[adapter.namespace].ignoreAboveNumber !== undefined && obj.common.custom[adapter.namespace].ignoreAboveNumber !== null && obj.common.custom[adapter.namespace].ignoreAboveNumber !== '') {
         obj.common.custom[adapter.namespace].ignoreAboveNumber = parseFloat(obj.common.custom[adapter.namespace].ignoreAboveNumber) || null;
@@ -2038,8 +2050,8 @@ function getCachedData(options, callback) {
         if (options.ack) {
             cache[c].ack = !!cache[c].ack;
         }
-        if (cache[c].val !== null && isFinite(cache[c].val) && adapter.config.round) {
-            cache[c].val = Math.round(cache[c].val * adapter.config.round) / adapter.config.round;
+        if (cache[c].val !== null && isFinite(cache[c].val) && options.round) {
+            cache[c].val = Math.round(cache[c].val * options.round) / options.round;
         }
         if (sqlDPs[options.index].type === 2) {
             cache[c].val = !!cache[c].val;
@@ -2081,8 +2093,8 @@ function _getDataFromDB(query, options, callback) {
                     if (options.ack) {
                         rows[c].ack = !!rows[c].ack;
                     }
-                    if (rows[c].val !== null && isFinite(rows[c].val) && adapter.config.round) {
-                        rows[c].val = Math.round(rows[c].val * adapter.config.round) / adapter.config.round;
+                    if (rows[c].val !== null && isFinite(rows[c].val) && options.round) {
+                        rows[c].val = Math.round(rows[c].val * options.round) / options.round;
                     }
                     if (sqlDPs[options.index].type === 2) {
                         rows[c].val = !!rows[c].val;
@@ -2181,11 +2193,22 @@ function getHistory(msg) {
         quantile: msg.message.options.aggregate === 'quantile' ? parseFloat(msg.message.options.quantile) || 0.5 : null,
         integralUnit: msg.message.options.aggregate === 'integral' ? parseInt(msg.message.options.integralUnit, 10) || 60 : null,
         integralInterpolation: msg.message.options.aggregate === 'integral' ? msg.message.options.integralInterpolation || 'none' : null,
-        removeBorderValues: msg.message.options.removeBorderValues || false
+        removeBorderValues: msg.message.options.removeBorderValues || false,
     };
 
     if (!options.start && options.count) {
         options.returnNewestEntries = true;
+    }
+
+    if (msg.message.options.round !== null && msg.message.options.round !== undefined && msg.message.options.round !== '') {
+        msg.message.options.round = parseInt(msg.message.options.round, 10);
+        if (!isFinite(msg.message.options.round) || msg.message.options.round < 0) {
+            options.round = adapter.config.round;
+        } else {
+            options.round = Math.pow(10, parseInt(msg.message.options.round, 10));
+        }
+    } else {
+        options.round = adapter.config.round;
     }
 
     adapter.log.debug(`getHistory call: ${JSON.stringify(options)}`);
@@ -2997,8 +3020,14 @@ function main() {
 
     adapter.config.port = parseInt(adapter.config.port, 10) || 0;
 
-    if (adapter.config.round !== null && adapter.config.round !== undefined) {
-        adapter.config.round = Math.pow(10, parseInt(adapter.config.round, 10));
+    if (adapter.config.round !== null && adapter.config.round !== undefined && adapter.config.round !== '') {
+        adapter.config.round = parseInt(adapter.config.round, 10);
+        if (!isFinite(adapter.config.round) || adapter.config.round < 0) {
+            adapter.config.round = null;
+            adapter.log.info(`Invalid round value: ${adapter.config.round} - ignore, do not round values`);
+        } else {
+            adapter.config.round = Math.pow(10, parseInt(adapter.config.round, 10));
+        }
     } else {
         adapter.config.round = null;
     }
@@ -3101,6 +3130,18 @@ function main() {
 
                                 // ignoreZero
                                 sqlDPs[id][adapter.namespace].ignoreZero = sqlDPs[id][adapter.namespace].ignoreZero === 'true' || sqlDPs[id][adapter.namespace].ignoreZero === true;
+
+                                // round
+                                if (sqlDPs[id][adapter.namespace].round !== null && sqlDPs[id][adapter.namespace].round !== undefined && sqlDPs[id][adapter.namespace] !== '') {
+                                    sqlDPs[id][adapter.namespace].round = parseInt(sqlDPs[id][adapter.namespace], 10);
+                                    if (!isFinite(sqlDPs[id][adapter.namespace].round) || sqlDPs[id][adapter.namespace].round < 0) {
+                                        sqlDPs[id][adapter.namespace].round = adapter.config.round;
+                                    } else {
+                                        sqlDPs[id][adapter.namespace].round = Math.pow(10, parseInt(sqlDPs[id][adapter.namespace].round, 10));
+                                    }
+                                } else {
+                                    obj.common.custom[adapter.namespace].round = adapter.config.round;
+                                }
 
                                 // ignoreAboveNumber
                                 if (sqlDPs[id][adapter.namespace].ignoreAboveNumber !== undefined && sqlDPs[id][adapter.namespace].ignoreAboveNumber !== null && sqlDPs[id][adapter.namespace].ignoreAboveNumber !== '') {

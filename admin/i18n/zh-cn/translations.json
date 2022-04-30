@@ -43,7 +43,7 @@
     "Password confirmation is not equal with password!": "密码确认不等于密码！",
     "Port": "港口",
     "Reset DB": "重置数据库",
-    "Round real to": "舍入为实",
+    "Round real to": "在查询轮数到",
     "SQL history adapter settings": "SQL历史记录适配器设置",
     "Start or enable adapter first": "首先启动或启用适配器",
     "Storage retention": "存储保留",

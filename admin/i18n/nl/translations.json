@@ -43,7 +43,7 @@
     "Password confirmation is not equal with password!": "Wachtwoordbevestiging is niet gelijk aan wachtwoord!",
     "Port": "Haven",
     "Reset DB": "Stel DB opnieuw in",
-    "Round real to": "Rond echt naar",
+    "Round real to": "Op query ronde getallen naar",
     "SQL history adapter settings": "Instellingen voor SQL-geschiedenisadapter",
     "Start or enable adapter first": "Start of schakel eerst de adapter in",
     "Storage retention": "Opslag retentie",

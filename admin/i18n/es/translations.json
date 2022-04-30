@@ -43,7 +43,7 @@
     "Password confirmation is not equal with password!": "La confirmación de la contraseña no es igual a la contraseña!",
     "Port": "Puerto",
     "Reset DB": "Restablecer DB",
-    "Round real to": "Redondo real para",
+    "Round real to": "En consulta números redondos a",
     "SQL history adapter settings": "Configuración del adaptador de historial SQL",
     "Start or enable adapter first": "Comience o habilite el adaptador primero",
     "Storage retention": "Retención de almacenamiento",
