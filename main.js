@@ -1987,12 +1987,6 @@ function getOneCachedData(id, options, cache, addId) {
                     continue;
                 }
                 if (options.start && res[i].state.ts < options.start) {
-                    if (options.ack) {
-                        res[i].state.ack = !!res[i].state.ack;
-                    }
-                    if (addId) {
-                        res[i].state.id = id;
-                    }
                     // add one before start
                     cache.unshift(res[i].state);
                     break;
@@ -2001,27 +1995,15 @@ function getOneCachedData(id, options, cache, addId) {
                     vLast = res[i].state;
                     continue;
                 }
-                if (options.ack) {
-                    res[i].state.ack = !!res[i].state.ack;
-                }
 
                 if (vLast) {
-                    if (options.ack) {
-                        vLast.ack = !!vLast.ack;
-                    }
-                    if (addId) {
-                        vLast.id = id;
-                    }
                     cache.unshift(vLast);
                     vLast = null;
                 }
 
-                if (addId) {
-                    res[i].state.id = id;
-                }
                 cache.unshift(res[i].state);
 
-                if (!options.start && cache.length >= options.count) {
+                if ((!options.start && options.count && cache.length >= options.count) && (options.aggregate === 'onchange' || options.aggregate === '' || options.aggregate === 'none')) {
                     break;
                 }
             }
