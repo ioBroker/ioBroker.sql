@@ -1066,12 +1066,12 @@ function pushHistory(id, state, timerRelog) {
         }
 
         if (typeof state.val === 'string' && settings.storageType !== 'String') {
-            if (Number.isFinite(state.val)) {
+            if (isFinite(state.val)) {
                 state.val = parseFloat(state.val);
             }
         }
 
-        adapter.log.debug(`new value received for ${id} (storageType ${settings.storageType}), new-value=${state.val}, ts=${state.ts}, relog=${timerRelog}`);
+        settings.enableDebugLogs && adapter.log.debug(`new value received for ${id} (storageType ${settings.storageType}), new-value=${state.val}, ts=${state.ts}, relog=${timerRelog}`);
 
         let ignoreDebonce = false;
 
@@ -1257,7 +1257,7 @@ function pushHelper(_id, state) {
 
             if (typeof state.val === 'string' && _settings.storageType !== 'String') {
                 _settings.enableDebugLogs && adapter.log.debug(`Do Automatic Datatype conversion for ${_id}`);
-                if (Number.isFinite(state.val)) {
+                if (isFinite(state.val)) {
                     state.val = parseFloat(state.val);
                 } else if (state.val === 'true') {
                     state.val = true;
@@ -2038,7 +2038,7 @@ function getCachedData(options, callback) {
         if (options.ack) {
             cache[c].ack = !!cache[c].ack;
         }
-        if (cache[c].val !== null && Number.isFinite(cache[c].val) && adapter.config.round) {
+        if (cache[c].val !== null && isFinite(cache[c].val) && adapter.config.round) {
             cache[c].val = Math.round(cache[c].val * adapter.config.round) / adapter.config.round;
         }
         if (sqlDPs[options.index].type === 2) {
