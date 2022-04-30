@@ -1065,13 +1065,13 @@ function pushHistory(id, state, timerRelog) {
             return adapter.log.warn(`state value undefined received for ${id} which is not allowed. Ignoring.`);
         }
 
-        adapter.log.debug(`new value received for ${id}, new-value=${state.val}, ts=${state.ts}, relog=${timerRelog}`);
-
         if (typeof state.val === 'string' && settings.storageType !== 'String') {
             if (Number.isFinite(state.val)) {
                 state.val = parseFloat(state.val);
             }
         }
+
+        adapter.log.debug(`new value received for ${id} (storageType ${settings.storageType}), new-value=${state.val}, ts=${state.ts}, relog=${timerRelog}`);
 
         let ignoreDebonce = false;
 
