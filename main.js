@@ -1995,7 +1995,7 @@ function getOneCachedData(id, options, cache, addId) {
                 }
                 if (options.start && res[i].state.ts < options.start) {
                     // add one before start
-                    cache.unshift(res[i].state);
+                    cache.unshift(Object.assign({}, res[i].state));
                     break;
                 } else if (res[i].state.ts > options.end) {
                     // add one after end
@@ -2004,11 +2004,11 @@ function getOneCachedData(id, options, cache, addId) {
                 }
 
                 if (vLast) {
-                    cache.unshift(vLast);
+                    cache.unshift(Object.assign({}, vLast));
                     vLast = null;
                 }
 
-                cache.unshift(res[i].state);
+                cache.unshift(Object.assign({}, res[i].state));
 
                 if ((!options.start && options.count && cache.length >= options.count) && (options.aggregate === 'onchange' || options.aggregate === '' || options.aggregate === 'none')) {
                     break;
