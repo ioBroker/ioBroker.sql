@@ -170,31 +170,42 @@ function startAdapter(options) {
                 tmpState = Object.assign({}, sqlDPs[id].state);
                 const state = sqlDPs[id].state ? tmpState : null;
 
-                if (sqlDPs[id][adapter.namespace] && adapter.config.writeNulls) {
+                if (sqlDPs[id][adapter.namespace]) {
+                    sqlDPs[id][adapter.namespace].enabled = false;
                     if (sqlDPs[id].skipped && !sqlDPs[id][adapter.namespace].disableSkippedValueLogging) {
                         pushValueIntoDB(id, sqlDPs[id].skipped, false, true);
                         sqlDPs[id].skipped = null;
                     }
 
-                    const nullValue = {val: null, ts: now, lc: now, q: 0x40, from: `system.adapter.${adapter.namespace}`};
+                    if (adapter.config.writeNulls) {
+                        const nullValue = {
+                            val: null,
+                            ts: now,
+                            lc: now,
+                            q: 0x40,
+                            from: `system.adapter.${adapter.namespace}`
+                        };
 
-                    if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
-                        (function (_id, _state, _nullValue) {
-                            _state.ts   = now;
-                            _state.from = `system.adapter.${adapter.namespace}`;
-                            nullValue.ts += 4;
-                            nullValue.lc += 4; // because of MS SQL
-                            adapter.log.debug(`Write 1/2 "${_state.val}" _id: ${_id}`);
-                            pushValueIntoDB(_id, _state, false, true,() => {
-                                // terminate values with null to indicate adapter stop. timestamp + 1
-                                adapter.log.debug(`Write 2/2 "null" _id: ${_id}`);
-                                pushValueIntoDB(_id, _nullValue, () => delete sqlDPs[id][adapter.namespace]);
-                            });
-                        })(id, state, nullValue);
+                        if (sqlDPs[id][adapter.namespace].changesOnly && state && state.val !== null) {
+                            (function (_id, _state, _nullValue) {
+                                _state.ts = now;
+                                _state.from = `system.adapter.${adapter.namespace}`;
+                                nullValue.ts += 4;
+                                nullValue.lc += 4; // because of MS SQL
+                                adapter.log.debug(`Write 1/2 "${_state.val}" _id: ${_id}`);
+                                pushValueIntoDB(_id, _state, false, true, () => {
+                                    // terminate values with null to indicate adapter stop. timestamp + 1
+                                    adapter.log.debug(`Write 2/2 "null" _id: ${_id}`);
+                                    pushValueIntoDB(_id, _nullValue, () => delete sqlDPs[id][adapter.namespace]);
+                                });
+                            })(id, state, nullValue);
+                        } else {
+                            // terminate values with null to indicate adapter stop. timestamp + 1
+                            adapter.log.debug(`Write 0 NULL _id: ${id}`);
+                            pushValueIntoDB(id, nullValue, () => delete sqlDPs[id][adapter.namespace]);
+                        }
                     } else {
-                        // terminate values with null to indicate adapter stop. timestamp + 1
-                        adapter.log.debug(`Write 0 NULL _id: ${id}`);
-                        pushValueIntoDB(id, nullValue, () => delete sqlDPs[id][adapter.namespace]);
+                        storeCached(id, () => delete sqlDPs[id][adapter.namespace]);
                     }
                 } else {
                     delete sqlDPs[id][adapter.namespace];
