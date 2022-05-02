@@ -2071,7 +2071,6 @@ function getCachedData(options, callback) {
     }
 
     let earliestTs = null;
-    let isNumber = null;
     for (let c = 0; c < cache.length; c++) {
         if (typeof cache[c].ts === 'string') {
             cache[c].ts = parseInt(cache[c].ts, 10);
