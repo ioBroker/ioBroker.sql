@@ -2043,7 +2043,7 @@ function getOneCachedData(id, options, cache, addId) {
 
                 cache.unshift(Object.assign({}, res[i].state));
 
-                if ((!options.start && options.count && cache.length >= options.count) && (options.aggregate === 'onchange' || options.aggregate === '' || options.aggregate === 'none')) {
+                if ((options.returnNewestEntries && options.count && cache.length >= options.count) && (options.aggregate === 'onchange' || options.aggregate === '' || options.aggregate === 'none')) {
                     break;
                 }
             }
@@ -2098,7 +2098,7 @@ function getCachedData(options, callback) {
     }
 
     options.length = cache.length;
-    callback(cache, !options.start && options.count && cache.length >= options.count, !!Object.keys(sqlDPs[options.index || options.id].inFlight).length, earliestTs);
+    callback(cache, options.returnNewestEntries && options.count && cache.length >= options.count, !!Object.keys(sqlDPs[options.index || options.id].inFlight).length, earliestTs);
 }
 
 
@@ -2285,7 +2285,7 @@ function getHistory(msg) {
     }
 
     if (!options.start && !options.count) {
-        options.start = Date.now() - 5030000; // - 1 year
+        options.start = Date.now() - 2592000000; // - 1 month
     }
 
     if (sqlDPs[options.id].type === undefined && sqlDPs[options.id].dbtype !== undefined) {
@@ -2333,7 +2333,7 @@ function getHistory(msg) {
             debugLog && adapter.log.debug(`after getCachedData: length = ${cacheData.length}, isFull=${isFull}`);
 
             // if all data read
-            if ((isFull && cacheData.length) && ((!options.start && options.count) || options.aggregate === 'onchange' || options.aggregate === '' || options.aggregate === 'none')) {
+            if ((isFull && cacheData.length) && (options.returnNewestEntries || options.aggregate === 'onchange' || options.aggregate === '' || options.aggregate === 'none')) {
                 cacheData = cacheData.sort(sortByTs);
                 if (options.count && cacheData.length > options.count && options.aggregate === 'none') {
                     cacheData = cacheData.slice(-options.count);
@@ -2354,7 +2354,7 @@ function getHistory(msg) {
                 // if not all data read
                 getDataFromDB(dbNames[type], options, (err, data) => {
                     options.end = origEnd;
-                    if ((!options.start && options.count) || (options.aggregate === 'none' && options.count && options.returnNewestEntries) ) {
+                    if (options.aggregate === 'none' && options.count && options.returnNewestEntries) {
                         cacheData = cacheData.reverse()
                         data = cacheData.concat(data);
                     } else {
