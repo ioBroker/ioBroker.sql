@@ -53,6 +53,7 @@ let clientPool;
 let reconnectTimeout = null;
 let testConnectTimeout = null;
 let dpOverviewTimeout = null;
+let bufferChecker = null;
 
 function isEqual(a, b) {
     //console.log('Compare ' + JSON.stringify(a) + ' with ' +  JSON.stringify(b));
@@ -939,6 +940,10 @@ function finish(callback) {
         clearTimeout(dpOverviewTimeout);
         dpOverviewTimeout = null;
     }
+    if (bufferChecker) {
+        clearInterval(bufferChecker);
+        bufferChecker = null;
+    }
 
     let count = 0;
     if (finished) {
@@ -1749,21 +1754,40 @@ function pushValueIntoDB(id, state, isCounter, storeInCacheOnly, cb) {
 
         const _settings = sqlDPs[id][adapter.namespace];
         if ((cb || _settings && sqlDPs[id].list.length > _settings.maxLength) && !storeInCacheOnly) {
-            _settings.enableDebugLogs && adapter.log.debug(`inserting ${sqlDPs[id].list.length} entries from ${id} to DB`);
-            const inFlightId = `${id}_${Date.now()}_${Math.random()}`;
-            sqlDPs[id].inFlight = sqlDPs[id].inFlight || {};
-            sqlDPs[id].inFlight[inFlightId] = sqlDPs[id].list;
-            sqlDPs[id].list = []
-            pushValuesIntoDB(id, sqlDPs[id].inFlight[inFlightId], err => {
-                delete sqlDPs[id].inFlight[inFlightId];
-                cb && cb(err);
-            });
+            storeCached(id, cb);
         } else if (cb && storeInCacheOnly) {
             setImmediate(cb);
         }
     });
 }
 
+function storeCached(onlyId, cb) {
+    let count = 0;
+    for (const id in sqlDPs) {
+        if (!sqlDPs.hasOwnProperty(id) || (onlyId !== undefined && onlyId !== id)) {
+            continue;
+        }
+
+        const _settings = sqlDPs[id][adapter.namespace];
+        if (_settings && sqlDPs[id].list && sqlDPs[id].list.length) {
+            _settings.enableDebugLogs && adapter.log.debug(`inserting ${sqlDPs[id].list.length} entries from ${id} to DB`);
+            const inFlightId = `${id}_${Date.now()}_${Math.random()}`;
+            sqlDPs[id].inFlight = sqlDPs[id].inFlight || {};
+            sqlDPs[id].inFlight[inFlightId] = sqlDPs[id].list;
+            sqlDPs[id].list = [];
+            count++;
+            pushValuesIntoDB(id, sqlDPs[id].inFlight[inFlightId], err => {
+                delete sqlDPs[id].inFlight[inFlightId];
+                if (!count--) {
+                    cb && cb(err);
+                }
+            });
+            if (onlyId !== undefined) {
+                break;
+            }
+        }
+    }
+}
 
 function pushValuesIntoDB(id, list, cb) {
     if (!list.length) {
@@ -3258,6 +3282,9 @@ function main() {
                 adapter.log.debug('Initialization done');
                 setConnected(true);
                 processStartValues();
+
+                // store all buffered data every 10 minutes to not lost the data
+                bufferChecker = setInterval(() => storeCached(), 10 * 60000);
             });
         });
     }
