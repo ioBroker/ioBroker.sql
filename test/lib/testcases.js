@@ -473,14 +473,14 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 }
             }, function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.at.least(13);
+                expect(result.result.length).to.be.at.least(12);
 
-                const expectedVals = [1, 2.5, 3, 4, 5, 5, 6, 7, 7, 7];
+                const expectedVals = [1, 2.5, 3, 4, 5, 5, 6, 7, 7];
                 let expectedId = 0;
                 for (let i = 0; i < result.result.length; i++) {
                     console.log(`${i}: check ${result.result[i].val} vs ${expectedVals[expectedId]} (${expectedId})`);
                     expect(result.result[i].val).to.be.lessThanOrEqual(expectedVals[expectedId]);
-                    if (result.result[i].val === expectedVals[expectedId]) {
+                    if (result.result[i].val === expectedVals[expectedId] && expectedId < expectedVals.length - 1) {
                         expectedId++;
                     }
                 }
