@@ -1726,9 +1726,6 @@ function pushValueIntoDB(id, state, isCounter, storeInCacheOnly, cb) {
 
     adapter.log.debug(`pushValueIntoDB called for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)}`);
 
-    // if it was not deleted in this time
-    sqlDPs[id].list = sqlDPs[id].list || [];
-
     prepareTaskCheckTypeAndDbId(id, state, isCounter, err => {
         adapter.log.debug(`pushValueIntoDB-prepareTaskCheckTypeAndDbId RESULT for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)}: ${err}`);
         if (err) {
@@ -1744,6 +1741,9 @@ function pushValueIntoDB(id, state, isCounter, storeInCacheOnly, cb) {
 
         // remember last timestamp
         sqlDPs[id].ts = state.ts;
+
+        // if it was not deleted in this time
+        sqlDPs[id].list = sqlDPs[id].list || [];
 
         sqlDPs[id].list.push({state, from: from[state.from] || 0, db: isCounter ? 'ts_counter' : dbNames[type]});
 
@@ -2333,7 +2333,7 @@ function getHistory(msg) {
             debugLog && adapter.log.debug(`after getCachedData: length = ${cacheData.length}, isFull=${isFull}`);
 
             // if all data read
-            if ((isFull && cacheData.length) && (options.returnNewestEntries || options.aggregate === 'onchange' || options.aggregate === '' || options.aggregate === 'none')) {
+            if ((isFull && cacheData.length) && (options.aggregate === 'onchange' || options.aggregate === '' || options.aggregate === 'none')) {
                 cacheData = cacheData.sort(sortByTs);
                 if (options.count && cacheData.length > options.count && options.aggregate === 'none') {
                     cacheData = cacheData.slice(-options.count);

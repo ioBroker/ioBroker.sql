@@ -474,19 +474,17 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             }, function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(13);
-                expect(result.result[0].val).to.be.equal(1);
-                expect(result.result[1].val).to.be.equal(2.5);
-                expect(result.result[2].val).to.be.below(3);
-                expect(result.result[3].val).to.be.equal(3);
-                expect(result.result[4].val).to.be.equal(4);
-                expect(result.result[5].val).to.be.below(5);
-                expect(result.result[6].val).to.be.equal(5);
-                expect(result.result[7].val).to.be.equal(5);
-                expect(result.result[8].val).to.be.equal(6);
-                expect(result.result[9].val).to.be.below(7);
-                expect(result.result[10].val).to.be.below(7);
-                expect(result.result[11].val).to.be.equal(7);
-                expect(result.result[12].val).to.be.equal(7);
+
+                const expectedVals = [1, 2.5, 3, 4, 5, 5, 6, 7, 7, 7];
+                let expectedId = 0;
+                for (let i = 0; i < result.result.length; i++) {
+                    console.log(`${i}: check ${result.result[i].val} vs ${expectedVals[expectedId]} (${expectedId})`);
+                    expect(result.result[i].val).to.be.lessThanOrEqual(expectedVals[expectedId]);
+                    if (result.result[i].val === expectedVals[expectedId]) {
+                        expectedId++;
+                    }
+                }
+                expect(expectedId).to.be.equal(expectedVals.length - 1);
 
                 resolve();
             });
