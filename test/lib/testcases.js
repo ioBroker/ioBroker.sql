@@ -202,7 +202,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                                                                             if (err) {
                                                                                 console.log(err);
                                                                             }
-                                                                            done();
+                                                                            setTimeout(done, 1000);
                                                                         });
                                                                     }, 100);
                                                                 });
