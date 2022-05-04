@@ -368,7 +368,7 @@ function reInit(id, realId, formerAliasId, obj) {
         sqlDPs[formerAliasId].relogTimeout = null;
     }
 
-    const writeNull = !sqlDPs[id][adapter.namespace];
+    const writeNull = !sqlDPs[id] || !sqlDPs[id][adapter.namespace];
     const state     = sqlDPs[id] ? sqlDPs[id].state   : null;
     const list      = sqlDPs[id] ? sqlDPs[id].list    : null;
     const inFlight  = sqlDPs[id] ? sqlDPs[id].inFlight: null;
