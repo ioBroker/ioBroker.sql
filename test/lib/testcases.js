@@ -898,6 +898,18 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
         });
     });
 
+    it(`Test ${adapterShortName}: Enable testValue Datapoint again`, function (done) {
+        this.timeout(5000);
+
+        sendTo(instanceName, 'enableHistory', {
+            id: `${instanceName}.testValue`
+        }, function (result) {
+            expect(result.error).to.be.undefined;
+            expect(result.success).to.be.true;
+            setTimeout(done, 2000);
+        });
+    });
+
     it(`Test ${adapterShortName}: Check for written Null values`, function (done) {
         this.timeout(25000);
 
@@ -916,7 +928,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 if (result.result[i].val === null) found++;
             }
             if (writeNulls) {
-                expect(found).to.be.equal(2);
+                expect(found).to.be.equal(3);
             } else {
                 expect(found).to.be.equal(0);
             }
