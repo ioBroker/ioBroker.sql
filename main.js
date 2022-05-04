@@ -111,7 +111,7 @@ function startAdapter(options) {
         const now = Date.now();
         const formerAliasId = aliasMap[id] ? aliasMap[id] : id;
 
-        if (obj && obj.common && obj.common.custom  && obj.common.custom[adapter.namespace] && typeof obj.common.custom[adapter.namespace] === 'object' && obj.common.custom[adapter.namespace].enabled) {
+        if (obj && obj.common && obj.common.custom && obj.common.custom[adapter.namespace] && typeof obj.common.custom[adapter.namespace] === 'object' && obj.common.custom[adapter.namespace].enabled) {
             const realId = id;
             let checkForRemove = true;
 
@@ -368,7 +368,7 @@ function reInit(id, realId, formerAliasId, obj) {
         sqlDPs[formerAliasId].relogTimeout = null;
     }
 
-    const writeNull = !sqlDPs[id];
+    const writeNull = !sqlDPs[id][adapter.namespace];
     const state     = sqlDPs[id] ? sqlDPs[id].state   : null;
     const list      = sqlDPs[id] ? sqlDPs[id].list    : null;
     const inFlight  = sqlDPs[id] ? sqlDPs[id].inFlight: null;
