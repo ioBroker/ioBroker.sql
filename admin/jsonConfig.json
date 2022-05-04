@@ -169,16 +169,6 @@
           "type": "checkbox",
           "label": "Write NULL values on start/stop boundaries",
           "sm": 12
-        },
-        "round": {
-          "type": "number",
-          "label": "Round real to",
-          "sm": 12,
-          "md": 4,
-          "lg": 3,
-          "validator": "((data.round || '').toString().length === 0) || isFinite(data.round)",
-          "validatorErrorText": "Enter a number or leave the field empty",
-          "validatorNoSaveOnError": true
         }
       }
     },
@@ -284,6 +274,17 @@
           "max": 100000,
           "sm": 12,
           "md": 4
+        },
+        "round": {
+          "newLine": true,
+          "type": "number",
+          "label": "Round real to",
+          "sm": 12,
+          "md": 4,
+          "lg": 3,
+          "validator": "((data.round || '').toString().length === 0) || isFinite(data.round)",
+          "validatorErrorText": "Enter a number or leave the field empty",
+          "validatorNoSaveOnError": true
         },
         "writeNulls": {
           "newLine": true,

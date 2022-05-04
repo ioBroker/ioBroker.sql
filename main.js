@@ -2308,7 +2308,7 @@ function getHistory(msg) {
         options.ignoreNull = false;
     }
 
-    if (!sqlDPs[options.id]) {
+    if (!sqlDPs[options.id] || !sqlDPs[options.id][adapter.namespace]) {
         return commons.sendResponse(adapter, msg, options, `Logging not activated for ${options.id}`, startTime);
     }
 
@@ -2319,7 +2319,7 @@ function getHistory(msg) {
     }
 
     if (!options.start && !options.count) {
-        options.start = Date.now() - 2592000000; // - 1 month
+        options.start = Date.now() - 86400000; // - 1 day
     }
 
     if (sqlDPs[options.id].type === undefined && sqlDPs[options.id].dbtype !== undefined) {
