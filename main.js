@@ -196,19 +196,19 @@ function startAdapter(options) {
                                 pushValueIntoDB(_id, _state, false, true, () => {
                                     // terminate values with null to indicate adapter stop. timestamp + 1
                                     adapter.log.debug(`Write 2/2 "null" _id: ${_id}`);
-                                    pushValueIntoDB(_id, _nullValue, () => delete sqlDPs[id][adapter.namespace]);
+                                    pushValueIntoDB(_id, _nullValue, () => delete sqlDPs[id]);
                                 });
                             })(id, state, nullValue);
                         } else {
                             // terminate values with null to indicate adapter stop. timestamp + 1
                             adapter.log.debug(`Write 0 NULL _id: ${id}`);
-                            pushValueIntoDB(id, nullValue, () => delete sqlDPs[id][adapter.namespace]);
+                            pushValueIntoDB(id, nullValue, () => delete sqlDPs[id]);
                         }
                     } else {
-                        storeCached(id, () => delete sqlDPs[id][adapter.namespace]);
+                        storeCached(id, () => delete sqlDPs[id]);
                     }
                 } else {
-                    delete sqlDPs[id][adapter.namespace];
+                    delete sqlDPs[id];
                 }
             }
         }
