@@ -1738,7 +1738,9 @@ function pushValueIntoDB(id, state, isCounter, storeInCacheOnly, cb) {
         isCounter = false;
     }
 
-    if (!sqlDPs[id] || !state) return;
+    if (!sqlDPs[id] || !state) {
+        return cb && cb()
+    }
 
     adapter.log.debug(`pushValueIntoDB called for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)}`);
 
@@ -1789,14 +1791,18 @@ function storeCached(onlyId, cb) {
             count++;
             pushValuesIntoDB(id, sqlDPs[id].inFlight[inFlightId], err => {
                 delete sqlDPs[id].inFlight[inFlightId];
-                if (!count--) {
-                    cb && cb(err);
+                if (!--count && cb) {
+                    cb(err);
+                    cb = null;
                 }
             });
             if (onlyId !== undefined) {
                 break;
             }
         }
+    }
+    if (!count && cb) {
+        cb();
     }
 }
 
