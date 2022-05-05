@@ -392,7 +392,7 @@ function reInit(id, realId, formerAliasId, obj) {
         writeNulls(id);
     }
 
-    adapter.log.info(`enabled logging of ${id}, Alias=${id !== realId}`);
+    adapter.log.info(`enabled logging of ${id}, Alias=${id !== realId}, WriteNulls=${writeNull}`);
 }
 
 function setConnected(isConnected) {
