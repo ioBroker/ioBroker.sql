@@ -510,6 +510,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (Apollon77) Add support to specify how to round numbers on query per datapoint
 * (Apollon77) Do not log passwords for Postgres connections
 * (Apollon77) Optimize SSL support for database connections including option to allow self signed certificates
+* (Apollon77) Allow to specify custom retention duration in days
 * (winnyschuster) Fix Insert statement for MSSQL ts_counter
 * (winnyschuster) type of ts in user queries corrected
 

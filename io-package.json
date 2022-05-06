@@ -243,7 +243,8 @@
         "debounceTime": 0,
         "disableSkippedValueLogging": false,
         "enableLogging": false,
-        "rejectUnauthorized": false
+        "rejectUnauthorized": false,
+        "customRetentionDuration": 365
     },
     "instanceObjects": [
         {

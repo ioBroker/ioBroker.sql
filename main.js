@@ -271,6 +271,15 @@ function reInit(id, realId, formerAliasId, obj) {
     } else {
         obj.common.custom[adapter.namespace].retention = adapter.config.retention;
     }
+    if (obj.common.custom[adapter.namespace].retention === -1) {
+        // customRetentionDuration
+        if (obj.common.custom[adapter.namespace].customRetentionDuration !== undefined && obj.common.custom[adapter.namespace].customRetentionDuration !== null && obj.common.custom[adapter.namespace].customRetentionDuration !== '') {
+            obj.common.custom[adapter.namespace].customRetentionDuration = parseInt(obj.common.custom[adapter.namespace].customRetentionDuration, 10) || 0;
+        } else {
+            obj.common.custom[adapter.namespace].customRetentionDuration = adapter.config.customRetentionDuration;
+        }
+        obj.common.custom[adapter.namespace].retention = obj.common.custom[adapter.namespace].customRetentionDuration * 24 * 60 * 60
+    }
 
     // debounceTime and debounce compatibility handling
     if (!obj.common.custom[adapter.namespace].blockTime && obj.common.custom[adapter.namespace].blockTime !== '0' && obj.common.custom[adapter.namespace].blockTime !== 0) {
@@ -3039,6 +3048,9 @@ function main() {
     }
 
     adapter.config.retention = parseInt(adapter.config.retention, 10) || 0;
+    if (adapter.config.retention === -1 ) { // Custom timeframe
+        adapter.config.retention = (parseInt(adapter.config.customRetentionDuration, 10) || 0) * 24 * 60 * 60;
+    }
     adapter.config.debounce  = parseInt(adapter.config.debounce,  10) || 0;
     adapter.config.requestInterval = (adapter.config.requestInterval === undefined || adapter.config.requestInterval === null  || adapter.config.requestInterval === '') ? 0 : parseInt(adapter.config.requestInterval, 10) || 0;
 
@@ -3180,6 +3192,15 @@ function main() {
                                     sqlDPs[id][adapter.namespace].retention = parseInt(sqlDPs[id][adapter.namespace].retention, 10) || 0;
                                 } else {
                                     sqlDPs[id][adapter.namespace].retention = adapter.config.retention;
+                                }
+                                if (sqlDPs[id][adapter.namespace].retention === -1) {
+                                    // customRetentionDuration
+                                    if (sqlDPs[id][adapter.namespace].customRetentionDuration !== undefined && sqlDPs[id][adapter.namespace].customRetentionDuration !== null && sqlDPs[id][adapter.namespace].customRetentionDuration !== '') {
+                                        sqlDPs[id][adapter.namespace].customRetentionDuration = parseInt(sqlDPs[id][adapter.namespace].customRetentionDuration, 10) || 0;
+                                    } else {
+                                        sqlDPs[id][adapter.namespace].customRetentionDuration = adapter.config.customRetentionDuration;
+                                    }
+                                    sqlDPs[id][adapter.namespace].retention = sqlDPs[id][adapter.namespace].customRetentionDuration * 24 * 60 * 60
                                 }
 
                                 // debounceTime and debounce compatibility handling

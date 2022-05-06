@@ -171,12 +171,27 @@
         {
           "value": 86400,
           "label": "1 day"
+        },
+        {
+          "value": -1,
+          "label": "Custom timeframe"
         }
       ],
       "defaultFunc": "instanceObj.native.retention",
       "sm": 6
     },
+    "customRetentionDuration": {
+      "type": "number",
+      "label": "Custom retention duration (days)",
+      "min": 1,
+      "sm": 12,
+      "md": 4,
+      "hidden": "(data.retention !== -1)",
+      "help": "Number of days to keep the data.",
+      "defaultFunc": "instanceObj.native.customRetentionDuration"
+    },
     "maxLength": {
+      "newLine": true,
       "type": "number",
       "label": "maximum datapoint count in RAM",
       "min": 0,
