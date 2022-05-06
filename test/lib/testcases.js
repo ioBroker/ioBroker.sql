@@ -113,7 +113,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
     if (assumeExistingData) adapterShortName += '-existing';
 
     it(`Test ${adapterShortName}: Setup test objects after start`, function(done) {
-        this.timeout(3000);
+        this.timeout(5000);
 
         objects.setObject(`${instanceName}.testValue2`, {
                 common: {
