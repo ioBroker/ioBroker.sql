@@ -2276,6 +2276,7 @@ function getHistory(msg) {
         integralUnit: msg.message.options.aggregate === 'integral' ? parseInt(msg.message.options.integralUnit, 10) || 60 : null,
         integralInterpolation: msg.message.options.aggregate === 'integral' ? msg.message.options.integralInterpolation || 'none' : null,
         removeBorderValues: msg.message.options.removeBorderValues || false,
+        logId:     (msg.message.id ? msg.message.id : 'all') + Date.now() + Math.random()
     };
 
     if (!options.start && options.count) {
@@ -2293,7 +2294,7 @@ function getHistory(msg) {
         options.round = adapter.config.round;
     }
 
-    adapter.log.debug(`getHistory call: ${JSON.stringify(options)}`);
+    adapter.log.debug(`${options.logId} getHistory call: ${JSON.stringify(options)}`);
 
     if (options.id && aliasMap[options.id]) {
         options.id = aliasMap[options.id];
@@ -2340,12 +2341,12 @@ function getHistory(msg) {
     if (sqlDPs[options.id].type === undefined && sqlDPs[options.id].dbtype !== undefined) {
         if (sqlDPs[options.id][adapter.namespace] && sqlDPs[options.id][adapter.namespace].storageType) {
             if (storageTypes.indexOf(sqlDPs[options.id][adapter.namespace].storageType) === sqlDPs[options.id].dbtype) {
-                debugLog && adapter.log.debug(`For getHistory for id ${options.id}: Type empty, use storageType dbtype ${sqlDPs[options.id].dbtype}`);
+                debugLog && adapter.log.debug(`${options.logId} For getHistory for id ${options.id}: Type empty, use storageType dbtype ${sqlDPs[options.id].dbtype}`);
                 sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
             }
         }
         else {
-            debugLog && adapter.log.debug(`For getHistory for id ${options.id}: Type empty, use dbtype ${sqlDPs[options.id].dbtype}`);
+            debugLog && adapter.log.debug(`${options.logId} For getHistory for id ${options.id}: Type empty, use dbtype ${sqlDPs[options.id].dbtype}`);
             sqlDPs[options.id].type = sqlDPs[options.id].dbtype;
         }
     }
@@ -2379,16 +2380,16 @@ function getHistory(msg) {
     // if specific id requested
     if (options.id) {
         getCachedData(options, (cacheData, isFull, includesInFlightData, earliestTs) => {
-            debugLog && adapter.log.debug(`after getCachedData: length = ${cacheData.length}, isFull=${isFull}`);
+            debugLog && adapter.log.debug(`${options.logId} after getCachedData: length = ${cacheData.length}, isFull=${isFull}`);
 
             // if all data read
             if ((isFull && cacheData.length) && (options.aggregate === 'onchange' || options.aggregate === '' || options.aggregate === 'none')) {
                 cacheData = cacheData.sort(sortByTs);
                 if (options.count && cacheData.length > options.count && options.aggregate === 'none') {
                     cacheData = cacheData.slice(-options.count);
-                    debugLog && adapter.log.debug(`cut cacheData to ${options.count} values`);
+                    debugLog && adapter.log.debug(`${options.logId} cut cacheData to ${options.count} values`);
                 }
-                adapter.log.debug(`Send: ${cacheData.length} values in: ${Date.now() - startTime}ms`);
+                adapter.log.debug(`${options.logId} Send: ${cacheData.length} values in: ${Date.now() - startTime}ms`);
 
                 adapter.sendTo(msg.from, msg.command, {
                     result: cacheData,
@@ -2409,7 +2410,7 @@ function getHistory(msg) {
                     } else {
                         data = data.concat(cacheData);
                     }
-                    debugLog && adapter.log.debug(`after getDataFromDB: length = ${data.length}`);
+                    debugLog && adapter.log.debug(`${options.logId} after getDataFromDB: length = ${data.length}`);
                     if (options.count && data.length > options.count && options.aggregate === 'none' && !options.returnNewestEntries) {
                         if (options.start) {
                             for (let i = 0; i < data.length; i++) {
@@ -2422,7 +2423,7 @@ function getHistory(msg) {
                             }
                         }
                         data = data.slice(0, options.count);
-                        options.debugLog && adapter.log.debug(`pre-cut data to ${options.count} oldest values`);
+                        options.debugLog && adapter.log.debug(`${options.logId} pre-cut data to ${options.count} oldest values`);
                     }
 
                     data.sort(sortByTs);
