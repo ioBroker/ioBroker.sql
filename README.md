@@ -516,7 +516,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### __WORK IN PROGRESS__
+### 2.0.2 (2022-05-11)
 * (Apollon77) BREAKING: Configuration is only working in the new Admin 5 UI!
 * (Apollon77) Did bigger adjustments to the recording logic and added a lot of new Features. Please refer to Changelog and Forum post for details.
 
