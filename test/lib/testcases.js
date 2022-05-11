@@ -649,7 +649,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
     });
 
     it(`Test ${adapterShortName}: Tests with more sample data`, async function () {
-        this.timeout(45000);
+        this.timeout(60000);
         const nowSampleI1 = Date.now() - 29 * 60 * 60 * 1000;
         const nowSampleI21 = Date.now() - 28 * 60 * 60 * 1000;
         const nowSampleI22 = Date.now() - 27 * 60 * 60 * 1000;
