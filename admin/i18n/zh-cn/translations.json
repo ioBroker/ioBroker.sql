@@ -1,5 +1,5 @@
 {
-    "0 = disable": "0 =禁用",
+    "0 = disable": "0 = 禁用",
     "0 = disable delta check": "0 =禁用增量检查",
     "1 day": "1天",
     "1 months": "1个月",
@@ -29,7 +29,7 @@
     "Password": "密码",
     "Password confirm": "确认密码",
     "Password confirmation is not equal with password!": "密码确认不等于密码！",
-    "Port": "港口",
+    "Port": "端口",
     "Reset DB": "重置数据库",
     "Round real to": "舍入为实",
     "SQL history adapter settings": "SQL历史记录适配器设置",
