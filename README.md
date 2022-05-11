@@ -267,7 +267,7 @@ sendTo('sql.0', 'getHistory', {
 Possible options:
 - **start** - (optional) time in ms - *Date.now()*'
 - **end** - (optional) time in ms - *Date.now()*', by default is (now + 5000 seconds)
-- **step** - (optional) used in aggregate (m4, max, min, average, total) step in ms of intervals
+- **step** - (optional) used in aggregate (max, min, average, total, ...) step in ms of intervals
 - **count** - number of values if aggregate is 'onchange' or number of intervals if other aggregate method. Count will be ignored if step is set, else default is 500 if not set
 - **from** - if *from* field should be included in answer
 - **ack** - if *ack* field should be included in answer
@@ -367,11 +367,37 @@ This function can also be used to convert data from other History adapters like 
 The given IDs are not checked against the ioBroker database and do not need to be set up there, but can only be accessed directly.
 
 The Message can have one of the following three formats:
-* one ID and one state object: `{id: 'adapter.0.device.counter', state: {val: 1, ts: 10239499}}`
-* one ID and array of state objects: `{id: 'adapter.0.device.counter', state: [{val: 1, ts: 10239499}, {val: 2, ts: 10239599}, {val: 3, ts: 10239699}]}`
-* array of multiple IDs with state objects `[{id: 'adapter.0.device.counter1', state: {val: 1, ts: 10239499}, {id: 'adapter.0.device.counter2', state: {val: 2, ts: 10239599}]`
+* one ID and one state object
 
-Additionally, you can add attribute `rules: true` to activate all rules, like `counter`, `changesOnly`, `de-bounce` and so on: `{id: 'adapter.0.device.counter', rules: true, state: [{val: 1, ts: 10239499}, {val: 2, ts: 10239599}, {val: 3, ts: 10239699}]}` 
+```
+sendTo('history.0', 'storeState', [
+    id: 'mbus.0.counter.xxx',
+    state: {ts: 1589458809352, val: 123, ack: false, from: 'system.adapter.whatever.0', ...}
+], result => console.log('added'));
+```
+
+* one ID and array of state objects
+
+```
+sendTo('history.0', 'storeState', {
+    id: 'mbus.0.counter.xxx',
+    state: [
+      {ts: 1589458809352, val: 123, ack: false, from: 'system.adapter.whatever.0', ...}, 
+      {ts: 1589458809353, val: 123, ack: false, from: 'system.adapter.whatever.0', ...}
+    ]
+}, result => console.log('added'));
+```
+
+* array of multiple IDs with one state object each
+
+```
+sendTo('history.0', 'storeState', [
+    {id: 'mbus.0.counter.xxx', state: {ts: 1589458809352, val: 123, ack: false, from: 'system.adapter.whatever.0', ...}}, 
+    {id: 'mbus.0.counter.yyy', state: {ts: 1589458809353, val: 123, ack: false, from: 'system.adapter.whatever.0', ...}}
+], result => console.log('added'));
+```
+
+Additionally, you can add attribute `rules: true` in message to activate all rules, like `counter`, `changesOnly`, `de-bounce` and so on.
 
 ## delete state
 If you want to delete entry from the Database you can use the build in system function **delete**:
@@ -492,6 +518,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ## Changelog
 
 ### __WORK IN PROGRESS__
+* (Apollon77) BREAKING: Configuration is only working in the new Admin 5 UI!
+* (Apollon77) Did bigger adjustments to the recording logic and added a lot of new Features. Please refer to Changelog and Forum post for details.
+
+### 2.0.0 (2022-05-11)
 * (Apollon77) Breaking: Configuration is only working in the new Admin 5 UI!
 * (Apollon77) Breaking! Did bigger adjustments to the recording logic. Debounce is refined and blockTime is added to differentiate between the two checks
 * (Apollon77) Breaking! GetHistory requests now need to deliver the ts in milliseconds! Make sure to use up to date scripts and Charting UIs

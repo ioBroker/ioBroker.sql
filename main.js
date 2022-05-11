@@ -1307,7 +1307,7 @@ function reLogHelper(_id) {
 }
 
 function pushHelper(_id, state) {
-    if (!sqlDPs[_id] || (!sqlDPs[_id].state&& !state)) {
+    if (!sqlDPs[_id] || (!sqlDPs[_id].state && !state)) {
         return;
     }
     if (!state) {
@@ -2772,9 +2772,9 @@ function storeState(msg) {
         }, msg.callback);
     }
 
-    let pushFunc = pushValueIntoDB;
+    let pushFunc = pushHelper;
     if (msg.message.rules) {
-        pushFunc = pushHistory;
+        pushFunc = pushValueIntoDB;
     }
 
     let id;
