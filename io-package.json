@@ -28,18 +28,6 @@
     },
     "version": "2.0.1",
     "news": {
-      "2.0.1": {
-        "en": "BREAKING: Configuration is only working in the new Admin 5 UI!\nDid bigger adjustments to the recording logic and added a lot of new Features. Please refer to Changelog and Forum post for details.",
-        "de": "BREAKING: Die Konfiguration funktioniert nur in der neuen Admin 5-Benutzeroberfläche!\nGrößere Anpassungen an der Aufnahmelogik vorgenommen und viele neue Features hinzugefügt. Einzelheiten finden Sie im Änderungsprotokoll und im Forumsbeitrag.",
-        "ru": "НАРУШЕНИЕ: Конфигурация работает только в новом пользовательском интерфейсе Admin 5!\nВнесены большие коррективы в логику записи и добавлено много новых функций. Пожалуйста, обратитесь к журналу изменений и сообщению на форуме для получения подробной информации.",
-        "pt": "URGENTE: a configuração está funcionando apenas na nova interface do usuário do Admin 5!\nFez ajustes maiores na lógica de gravação e adicionou muitos novos recursos. Consulte o Changelog e a postagem do fórum para obter detalhes.",
-        "nl": "BREAKING: Configuratie werkt alleen in de nieuwe Admin 5 UI!\nGrotere aanpassingen gedaan aan de opnamelogica en veel nieuwe functies toegevoegd. Raadpleeg de Changelog en Forumpost voor details.",
-        "fr": "RUPTURE : La configuration ne fonctionne que dans la nouvelle interface utilisateur d'Admin 5 !\nA apporté de plus grands ajustements à la logique d'enregistrement et ajouté de nombreuses nouvelles fonctionnalités. Veuillez vous référer au changelog et au post du forum pour plus de détails.",
-        "it": "ROTTURA: la configurazione funziona solo nella nuova interfaccia utente di Admin 5!\nHa apportato maggiori modifiche alla logica di registrazione e aggiunto molte nuove funzionalità. Si prega di fare riferimento a Changelog e post sul forum per i dettagli.",
-        "es": "ÚLTIMA HORA: ¡La configuración solo funciona en la nueva interfaz de usuario de Admin 5!\nHizo ajustes más grandes a la lógica de grabación y agregó muchas características nuevas. Consulte el registro de cambios y la publicación del foro para obtener más detalles.",
-        "pl": "ŁAMANIE: Konfiguracja działa tylko w nowym interfejsie użytkownika Admin 5!\nWprowadziłem większe poprawki w logice nagrywania i dodałem wiele nowych funkcji. Więcej informacji można znaleźć w dzienniku zmian i poście na forum.",
-        "zh-cn": "突破：配置仅在新的 Admin 5 UI 中有效！\n对录制逻辑进行了更大的调整，并添加了许多新功能。有关详细信息，请参阅变更日志和论坛帖子。"
-      },
       "1.16.2": {
         "en": "Marked interpolated data with `i=true`",
         "de": "Markierte interpolierte Daten mit `i=true`",
