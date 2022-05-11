@@ -1,273 +1,273 @@
 {
-    "common": {
-        "name": "sql",
-        "title": "SQL History",
-        "titleLang": {
-            "en": "SQL logging",
-            "de": "SQL-Protokollierung",
-            "ru": "Ведение журнала SQL",
-            "pt": "Log de SQL",
-            "nl": "SQL logging",
-            "fr": "Journalisation SQL",
-            "it": "Registrazione SQL",
-            "es": "Registro de SQL",
-            "pl": "Rejestrowanie SQL",
-            "zh-cn": "SQL记录"
-        },
-        "desc": {
-            "en": "Logging of states into SQL DB",
-            "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
-            "ru": "Сохраняет историю событий для отдельных состояний в SQL DB",
-            "pt": "Registro de estados em SQL DB",
-            "nl": "Logging van toestanden in SQL DB",
-            "fr": "Journalisation des états dans la base de données SQL",
-            "it": "Registrazione degli stati nel DB SQL",
-            "es": "Registro de estados en SQL DB",
-            "pl": "Rejestrowanie stanów w SQL DB",
-            "zh-cn": "将状态记录到SQL DB"
-        },
-        "version": "2.0.0",
-        "news": {
-            "1.16.2": {
-                "en": "Marked interpolated data with `i=true`",
-                "de": "Markierte interpolierte Daten mit `i=true`",
-                "ru": "Помеченные интерполированные данные с `i=true`",
-                "pt": "Dados interpolados marcados com `i=true`",
-                "nl": "Gemarkeerde geïnterpoleerde gegevens met `i=true`",
-                "fr": "Données interpolées marquées avec `i=true`",
-                "it": "Dati interpolati contrassegnati con `i=true`",
-                "es": "Datos interpolados marcados con `i=true`",
-                "pl": "Oznaczono dane interpolowane za pomocą `i=true`",
-                "zh-cn": "用 `i=true` 标记插值数据"
-            },
-            "1.16.1": {
-                "en": "Hide settings not relevant when \"log changes only\" is not used\nAllow all number values for debounce again",
-                "de": "Nicht relevante Einstellungen ausblenden, wenn \"Nur Änderungen protokollieren\" nicht verwendet wird\nAlle Zahlenwerte wieder für die Entprellung zulassen",
-                "ru": "Скрыть настройки, не актуальные, если не используется \"только изменения журнала\"\nРазрешить все числовые значения для устранения дребезга снова",
-                "pt": "Ocultar configurações irrelevantes quando \"apenas registro de alterações\" não é usado\nPermitir todos os valores numéricos para debounce novamente",
-                "nl": "Instellingen verbergen die niet relevant zijn wanneer \"alleen logboekwijzigingen\" niet wordt gebruikt\nSta alle getalwaarden opnieuw toe voor debounce",
-                "fr": "Masquer les paramètres non pertinents lorsque \"log changes only\" n'est pas utilisé\nAutoriser à nouveau toutes les valeurs numériques pour l'anti-rebond",
-                "it": "Nascondi le impostazioni non rilevanti quando \"solo modifiche al registro\" non viene utilizzato\nConsenti di nuovo l'antirimbalzo di tutti i valori numerici",
-                "es": "Ocultar la configuración que no es relevante cuando no se utiliza \"solo cambios de registro\"\nPermitir todos los valores numéricos para antirrebote nuevamente",
-                "pl": "Ukryj ustawienia nieistotne, gdy nie używasz opcji „tylko rejestruj zmiany”\nZezwól ponownie na odrzucenie wszystkich wartości liczbowych",
-                "zh-cn": "不使用“仅记录更改”时隐藏不相关的设置\n再次允许所有数值去抖动"
-            },
-            "1.16.0": {
-                "en": "Support only `js-controller` 3.3.x+\nUsed system/custom view for collecting the objects\nImplemented option to ignore zero- or/and below zero- values",
-                "de": "Unterstützt nur `js-controller` 3.3.x+\nVerwendete Systemansicht/benutzerdefinierte Ansicht zum Sammeln der Objekte\nImplementierte Option zum Ignorieren von Null- oder/und Unter-Null-Werten",
-                "ru": "Поддерживает только `js-controller` 3.3.x+\nИспользуемый системный / пользовательский вид для сбора объектов\nРеализована возможность игнорировать нулевые и / или отрицательные значения.",
-                "pt": "Suporte apenas `js-controller` 3.3.x+\nSistema usado / visão personalizada para coletar os objetos\nOpção implementada para ignorar valores zero ou / e abaixo de zero",
-                "nl": "Ondersteuning alleen `js-controller` 3.3.x+\nGebruikt systeem/aangepaste weergave voor het verzamelen van de objecten\nGeïmplementeerde optie om nul- of/en onder nul-waarden te negeren",
-                "fr": "Supporte uniquement `js-controller` 3.3.x+\nSystème utilisé/vue personnalisée pour la collecte des objets\nOption implémentée pour ignorer les valeurs zéro ou/et inférieures à zéro",
-                "it": "Supporta solo `js-controller` 3.3.x+\nSistema utilizzato/vista personalizzata per la raccolta degli oggetti\nOpzione implementata per ignorare i valori zero o/o inferiori a zero",
-                "es": "Admite solo `js-controller` 3.3.x+\nSistema usado / vista personalizada para recolectar los objetos.\nOpción implementada para ignorar valores cero o inferiores a cero",
-                "pl": "Obsługuje tylko `js-controller` 3.3.x+\nWykorzystany widok systemowy/niestandardowy do zbierania obiektów\nZaimplementowana opcja ignorowania wartości zerowych lub/i poniżej zera",
-                "zh-cn": "仅支持 `js-controller` 3.3.x+\n用于收集对象的系统/自定义视图\n已实现忽略零或/和低于零值的选项"
-            },
-            "1.15.7": {
-                "en": "fixed the support of Admin5",
-                "de": "Die Unterstützung von Admin5 wurde behoben",
-                "ru": "исправлена поддержка Admin5",
-                "pt": "consertou o suporte do Admin5",
-                "nl": "de ondersteuning van Admin5 opgelost",
-                "fr": "correction du support d'Admin5",
-                "it": "risolto il supporto di Admin5",
-                "es": "arreglado el soporte de Admin5",
-                "pl": "naprawiono obsługę Admin5",
-                "zh-cn": "修复了对Admin5的支持"
-            },
-            "1.15.6": {
-                "en": "added support of Admin5",
-                "de": "Unterstützung von Admin5 hinzugefügt",
-                "ru": "добавлена поддержка Admin5",
-                "pt": "adicionado suporte de Admin5",
-                "nl": "toegevoegde ondersteuning van Admin5",
-                "fr": "ajout de la prise en charge d'Admin5",
-                "it": "aggiunto il supporto di Admin5",
-                "es": "soporte agregado de Admin5",
-                "pl": "dodana obsługa Admin5",
-                "zh-cn": "增加了对Admin5的支持"
-            },
-            "1.15.5": {
-                "en": "make sure message query is a string (Sentry)",
-                "de": "Stellen Sie sicher, dass die Nachrichtenabfrage eine Zeichenfolge ist (Sentry).",
-                "ru": "убедитесь, что запрос сообщения является строкой (Sentry)",
-                "pt": "certifique-se de que a consulta da mensagem é uma string (Sentry)",
-                "nl": "zorg ervoor dat de berichtvraag een tekenreeks is (Sentry)",
-                "fr": "assurez-vous que la requête de message est une chaîne (Sentry)",
-                "it": "assicurati che la query del messaggio sia una stringa (Sentry)",
-                "es": "asegúrese de que la consulta del mensaje sea una cadena (Sentry)",
-                "pl": "upewnij się, że zapytanie o wiadomość jest ciągiem (Sentry)",
-                "zh-cn": "确保消息查询是字符串（Sentry）"
-            },
-            "1.15.4": {
-                "en": "Optimize stop handling",
-                "de": "Optimieren Sie das Stop-Handling",
-                "ru": "Оптимизировать обработку остановок",
-                "pt": "Otimize o manuseio de parada",
-                "nl": "Optimaliseer het afhandelen van stops",
-                "fr": "Optimiser la gestion des arrêts",
-                "it": "Ottimizza la gestione delle fermate",
-                "es": "Optimizar el manejo de paradas",
-                "pl": "Zoptymalizuj obsługę zatrzymania",
-                "zh-cn": "优化停止处理"
-            }
-        },
-        "mode": "daemon",
-        "platform": "Javascript/Node.js",
-        "loglevel": "info",
-        "messagebox": true,
-        "subscribe": "messagebox",
-        "keywords": [
-            "charts",
-            "sql",
-            "logging",
-            "graphs",
-            "archive"
-        ],
-        "preserveSettings": "custom",
-        "supportCustoms": true,
-        "getHistory": true,
-        "enabled": true,
-        "stopBeforeUpdate": true,
-        "compact": true,
-        "authors": [
-            "bluefox <dogafox@gmail.com>",
-            "Apollon77 <ingo@fischer-ka.de>"
-        ],
-        "license": "MIT",
-        "readme": "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
-        "icon": "sql.png",
-        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
-        "type": "storage",
-        "dependencies": [
-            {
-                "js-controller": ">=3.3.0"
-            }
-        ],
-        "globalDependencies": [
-            {
-                "admin": ">=5.1.28"
-            }
-        ],
-        "supportStopInstance": 10000,
-        "stopTimeout": 10000,
-        "plugins": {
-            "sentry": {
-                "dsn": "https://c30462d3e0834993b0aa29824346701e@sentry.iobroker.net/45"
-            }
-        },
-        "adminUI": {
-            "config": "json",
-            "custom": "json"
-        },
-        "tier": 1,
-        "connectionType": "none",
-        "dataSource": "push",
-        "messages": [
-            {
-                "condition": {
-                    "operand": "and",
-                    "rules": [
-                        "oldVersion<2.0.0",
-                        "newVersion>=2.0.0"
-                    ]
-                },
-                "title": {
-                    "en": "Important notice!",
-                    "de": "Wichtiger Hinweis!",
-                    "ru": "Важное замечание!",
-                    "pt": "Notícia importante!",
-                    "nl": "Belangrijke mededeling!",
-                    "fr": "Avis important!",
-                    "it": "Avviso IMPORTANTE!",
-                    "es": "Noticia importante!",
-                    "pl": "Ważna uwaga!",
-                    "zh-cn": "重要通知!"
-                },
-                "text": {
-                    "en": "This new version introduces several changes how values are logged because we fixed several issues and added new features. Please especially check the defined \"debounce\" and \"block time\" settings in your datapoints if values are not logged as expected and make sure the settings make sense. For more details please refer to the changelog and Readme.",
-                    "de": "Diese neue Version führt mehrere Änderungen ein, wie Werte protokolliert werden, da wir mehrere Probleme behoben und neue Funktionen hinzugefügt haben. Bitte überprüfen Sie insbesondere die definierten „Entprellen“- und „Sperrzeit“-Einstellungen in Ihren Datenpunkten, wenn Werte nicht wie erwartet protokolliert werden, und stellen Sie sicher, dass die Einstellungen sinnvoll sind. Weitere Details finden Sie im Changelog und in der Readme.",
-                    "ru": "В этой новой версии внесено несколько изменений в регистрацию значений, поскольку мы исправили несколько проблем и добавили новые функции. Пожалуйста, особенно проверьте определенные настройки «debounce» и «block time» в ваших точках данных, если значения не регистрируются должным образом, и убедитесь, что настройки имеют смысл. Для получения более подробной информации, пожалуйста, обратитесь к журналу изменений и Readme.",
-                    "pt": "Esta nova versão apresenta várias alterações na forma como os valores são registrados, pois corrigimos vários problemas e adicionamos novos recursos. Verifique especialmente as configurações definidas de \"debounce\" e \"block time\" em seus pontos de dados se os valores não forem registrados conforme o esperado e verifique se as configurações fazem sentido. Para obter mais detalhes, consulte o log de alterações e o Leiame.",
-                    "nl": "Deze nieuwe versie introduceert verschillende wijzigingen in de manier waarop waarden worden geregistreerd, omdat we verschillende problemen hebben opgelost en nieuwe functies hebben toegevoegd. Controleer vooral de gedefinieerde \"debounce\" en \"block time\" instellingen in uw datapunten als de waarden niet zijn vastgelegd zoals verwacht en zorg ervoor dat de instellingen kloppen. Raadpleeg de changelog en Readme voor meer informatie.",
-                    "fr": "Cette nouvelle version introduit plusieurs changements dans la journalisation des valeurs car nous avons corrigé plusieurs problèmes et ajouté de nouvelles fonctionnalités. Veuillez vérifier en particulier les paramètres \"anti-rebond\" et \"temps de blocage\" définis dans vos points de données si les valeurs ne sont pas enregistrées comme prévu et assurez-vous que les paramètres ont un sens. Pour plus de détails, veuillez consulter le journal des modifications et le fichier Lisez-moi.",
-                    "it": "Questa nuova versione introduce diverse modifiche al modo in cui i valori vengono registrati perché abbiamo risolto diversi problemi e aggiunto nuove funzionalità. Controllare in particolare le impostazioni definite \"debounce\" e \"block time\" nei propri datapoint se i valori non sono registrati come previsto e assicurarsi che le impostazioni abbiano un senso. Per maggiori dettagli, fare riferimento al log delle modifiche e al Leggimi.",
-                    "es": "Esta nueva versión introduce varios cambios en la forma en que se registran los valores porque solucionamos varios problemas y agregamos nuevas funciones. Verifique especialmente la configuración definida de \"antirrebote\" y \"tiempo de bloqueo\" en sus puntos de datos si los valores no se registran como se esperaba y asegúrese de que la configuración tenga sentido. Para obtener más detalles, consulte el registro de cambios y el archivo Léame.",
-                    "pl": "Ta nowa wersja wprowadza kilka zmian w sposobie rejestrowania wartości, ponieważ naprawiliśmy kilka problemów i dodaliśmy nowe funkcje. W szczególności sprawdź zdefiniowane ustawienia „odbicia” i „czasu blokowania” w punktach danych, jeśli wartości nie są rejestrowane zgodnie z oczekiwaniami i upewnij się, że ustawienia mają sens. Aby uzyskać więcej informacji, zapoznaj się z dziennikiem zmian i Readme.",
-                    "zh-cn": "这个新版本引入了一些更改值的记录方式，因为我们修复了几个问题并添加了新功能。如果未按预期记录值，请特别检查数据点中定义的“去抖动”和“阻塞时间”设置，并确保设置有意义。有关更多详细信息，请参阅更改日志和自述文件。"
-                },
-                "link": "https://github.com/ioBroker/ioBroker.sql/blob/master/docs/en/README.md#settings",
-                "level": "warn",
-                "linkText": {
-                    "en": "Readme",
-                    "de": "Liesmich",
-                    "ru": "Прочти меня",
-                    "pt": "Leia-me",
-                    "nl": "Leesmij",
-                    "fr": "Lisez-moi",
-                    "it": "Leggimi",
-                    "es": "Léame",
-                    "pl": "Readme",
-                    "zh-cn": "自述文件"
-                },
-                "buttons": [
-                    "agree",
-                    "cancel"
-                ]
-            }
-        ]
+  "common": {
+    "name": "sql",
+    "title": "SQL History",
+    "titleLang": {
+      "en": "SQL logging",
+      "de": "SQL-Protokollierung",
+      "ru": "Ведение журнала SQL",
+      "pt": "Log de SQL",
+      "nl": "SQL logging",
+      "fr": "Journalisation SQL",
+      "it": "Registrazione SQL",
+      "es": "Registro de SQL",
+      "pl": "Rejestrowanie SQL",
+      "zh-cn": "SQL记录"
     },
-    "native": {
-        "connLink": "",
-        "debounce": 1000,
-        "retention": 31536000,
-        "host": "localhost",
-        "port": 0,
-        "user": "",
-        "password": "",
-        "dbtype": "sqlite",
-        "fileName": "sqlite.db",
-        "requestInterval": 0,
-        "encrypt": false,
-        "round": 4,
-        "dbname": "iobroker",
-        "multiRequests": true,
-        "maxConnections": 100,
-        "changesRelogInterval": 0,
-        "changesMinDelta": 0,
-        "writeNulls": true,
-        "doNotCreateDatabase": false,
-        "maxLength": 0,
-        "blockTime": 0,
-        "debounceTime": 0,
-        "disableSkippedValueLogging": false,
-        "enableLogging": false,
-        "rejectUnauthorized": false,
-        "customRetentionDuration": 365
+    "desc": {
+      "en": "Logging of states into SQL DB",
+      "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
+      "ru": "Сохраняет историю событий для отдельных состояний в SQL DB",
+      "pt": "Registro de estados em SQL DB",
+      "nl": "Logging van toestanden in SQL DB",
+      "fr": "Journalisation des états dans la base de données SQL",
+      "it": "Registrazione degli stati nel DB SQL",
+      "es": "Registro de estados en SQL DB",
+      "pl": "Rejestrowanie stanów w SQL DB",
+      "zh-cn": "将状态记录到SQL DB"
     },
-    "instanceObjects": [
-        {
-            "_id": "info",
-            "type": "channel",
-            "common": {
-                "name": "Information"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info.connection",
-            "type": "state",
-            "common": {
-                "role": "indicator.connected",
-                "name": "If connected to DB",
-                "type": "boolean",
-                "read": true,
-                "write": false,
-                "def": false
-            },
-            "native": {}
-        }
+    "version": "2.0.1",
+    "news": {
+      "2.0.1": {
+        "en": "BREAKING: Configuration is only working in the new Admin 5 UI!\nDid bigger adjustments to the recording logic and added a lot of new Features. Please refer to Changelog and Forum post for details.",
+        "de": "BREAKING: Die Konfiguration funktioniert nur in der neuen Admin 5-Benutzeroberfläche!\nGrößere Anpassungen an der Aufnahmelogik vorgenommen und viele neue Features hinzugefügt. Einzelheiten finden Sie im Änderungsprotokoll und im Forumsbeitrag.",
+        "ru": "НАРУШЕНИЕ: Конфигурация работает только в новом пользовательском интерфейсе Admin 5!\nВнесены большие коррективы в логику записи и добавлено много новых функций. Пожалуйста, обратитесь к журналу изменений и сообщению на форуме для получения подробной информации.",
+        "pt": "URGENTE: a configuração está funcionando apenas na nova interface do usuário do Admin 5!\nFez ajustes maiores na lógica de gravação e adicionou muitos novos recursos. Consulte o Changelog e a postagem do fórum para obter detalhes.",
+        "nl": "BREAKING: Configuratie werkt alleen in de nieuwe Admin 5 UI!\nGrotere aanpassingen gedaan aan de opnamelogica en veel nieuwe functies toegevoegd. Raadpleeg de Changelog en Forumpost voor details.",
+        "fr": "RUPTURE : La configuration ne fonctionne que dans la nouvelle interface utilisateur d'Admin 5 !\nA apporté de plus grands ajustements à la logique d'enregistrement et ajouté de nombreuses nouvelles fonctionnalités. Veuillez vous référer au changelog et au post du forum pour plus de détails.",
+        "it": "ROTTURA: la configurazione funziona solo nella nuova interfaccia utente di Admin 5!\nHa apportato maggiori modifiche alla logica di registrazione e aggiunto molte nuove funzionalità. Si prega di fare riferimento a Changelog e post sul forum per i dettagli.",
+        "es": "ÚLTIMA HORA: ¡La configuración solo funciona en la nueva interfaz de usuario de Admin 5!\nHizo ajustes más grandes a la lógica de grabación y agregó muchas características nuevas. Consulte el registro de cambios y la publicación del foro para obtener más detalles.",
+        "pl": "ŁAMANIE: Konfiguracja działa tylko w nowym interfejsie użytkownika Admin 5!\nWprowadziłem większe poprawki w logice nagrywania i dodałem wiele nowych funkcji. Więcej informacji można znaleźć w dzienniku zmian i poście na forum.",
+        "zh-cn": "突破：配置仅在新的 Admin 5 UI 中有效！\n对录制逻辑进行了更大的调整，并添加了许多新功能。有关详细信息，请参阅变更日志和论坛帖子。"
+      },
+      "1.16.2": {
+        "en": "Marked interpolated data with `i=true`",
+        "de": "Markierte interpolierte Daten mit `i=true`",
+        "ru": "Помеченные интерполированные данные с `i=true`",
+        "pt": "Dados interpolados marcados com `i=true`",
+        "nl": "Gemarkeerde geïnterpoleerde gegevens met `i=true`",
+        "fr": "Données interpolées marquées avec `i=true`",
+        "it": "Dati interpolati contrassegnati con `i=true`",
+        "es": "Datos interpolados marcados con `i=true`",
+        "pl": "Oznaczono dane interpolowane za pomocą `i=true`",
+        "zh-cn": "用 `i=true` 标记插值数据"
+      },
+      "1.16.1": {
+        "en": "Hide settings not relevant when \"log changes only\" is not used\nAllow all number values for debounce again",
+        "de": "Nicht relevante Einstellungen ausblenden, wenn \"Nur Änderungen protokollieren\" nicht verwendet wird\nAlle Zahlenwerte wieder für die Entprellung zulassen",
+        "ru": "Скрыть настройки, не актуальные, если не используется \"только изменения журнала\"\nРазрешить все числовые значения для устранения дребезга снова",
+        "pt": "Ocultar configurações irrelevantes quando \"apenas registro de alterações\" não é usado\nPermitir todos os valores numéricos para debounce novamente",
+        "nl": "Instellingen verbergen die niet relevant zijn wanneer \"alleen logboekwijzigingen\" niet wordt gebruikt\nSta alle getalwaarden opnieuw toe voor debounce",
+        "fr": "Masquer les paramètres non pertinents lorsque \"log changes only\" n'est pas utilisé\nAutoriser à nouveau toutes les valeurs numériques pour l'anti-rebond",
+        "it": "Nascondi le impostazioni non rilevanti quando \"solo modifiche al registro\" non viene utilizzato\nConsenti di nuovo l'antirimbalzo di tutti i valori numerici",
+        "es": "Ocultar la configuración que no es relevante cuando no se utiliza \"solo cambios de registro\"\nPermitir todos los valores numéricos para antirrebote nuevamente",
+        "pl": "Ukryj ustawienia nieistotne, gdy nie używasz opcji „tylko rejestruj zmiany”\nZezwól ponownie na odrzucenie wszystkich wartości liczbowych",
+        "zh-cn": "不使用“仅记录更改”时隐藏不相关的设置\n再次允许所有数值去抖动"
+      },
+      "1.16.0": {
+        "en": "Support only `js-controller` 3.3.x+\nUsed system/custom view for collecting the objects\nImplemented option to ignore zero- or/and below zero- values",
+        "de": "Unterstützt nur `js-controller` 3.3.x+\nVerwendete Systemansicht/benutzerdefinierte Ansicht zum Sammeln der Objekte\nImplementierte Option zum Ignorieren von Null- oder/und Unter-Null-Werten",
+        "ru": "Поддерживает только `js-controller` 3.3.x+\nИспользуемый системный / пользовательский вид для сбора объектов\nРеализована возможность игнорировать нулевые и / или отрицательные значения.",
+        "pt": "Suporte apenas `js-controller` 3.3.x+\nSistema usado / visão personalizada para coletar os objetos\nOpção implementada para ignorar valores zero ou / e abaixo de zero",
+        "nl": "Ondersteuning alleen `js-controller` 3.3.x+\nGebruikt systeem/aangepaste weergave voor het verzamelen van de objecten\nGeïmplementeerde optie om nul- of/en onder nul-waarden te negeren",
+        "fr": "Supporte uniquement `js-controller` 3.3.x+\nSystème utilisé/vue personnalisée pour la collecte des objets\nOption implémentée pour ignorer les valeurs zéro ou/et inférieures à zéro",
+        "it": "Supporta solo `js-controller` 3.3.x+\nSistema utilizzato/vista personalizzata per la raccolta degli oggetti\nOpzione implementata per ignorare i valori zero o/o inferiori a zero",
+        "es": "Admite solo `js-controller` 3.3.x+\nSistema usado / vista personalizada para recolectar los objetos.\nOpción implementada para ignorar valores cero o inferiores a cero",
+        "pl": "Obsługuje tylko `js-controller` 3.3.x+\nWykorzystany widok systemowy/niestandardowy do zbierania obiektów\nZaimplementowana opcja ignorowania wartości zerowych lub/i poniżej zera",
+        "zh-cn": "仅支持 `js-controller` 3.3.x+\n用于收集对象的系统/自定义视图\n已实现忽略零或/和低于零值的选项"
+      },
+      "1.15.7": {
+        "en": "fixed the support of Admin5",
+        "de": "Die Unterstützung von Admin5 wurde behoben",
+        "ru": "исправлена поддержка Admin5",
+        "pt": "consertou o suporte do Admin5",
+        "nl": "de ondersteuning van Admin5 opgelost",
+        "fr": "correction du support d'Admin5",
+        "it": "risolto il supporto di Admin5",
+        "es": "arreglado el soporte de Admin5",
+        "pl": "naprawiono obsługę Admin5",
+        "zh-cn": "修复了对Admin5的支持"
+      },
+      "1.15.6": {
+        "en": "added support of Admin5",
+        "de": "Unterstützung von Admin5 hinzugefügt",
+        "ru": "добавлена поддержка Admin5",
+        "pt": "adicionado suporte de Admin5",
+        "nl": "toegevoegde ondersteuning van Admin5",
+        "fr": "ajout de la prise en charge d'Admin5",
+        "it": "aggiunto il supporto di Admin5",
+        "es": "soporte agregado de Admin5",
+        "pl": "dodana obsługa Admin5",
+        "zh-cn": "增加了对Admin5的支持"
+      },
+      "1.15.5": {
+        "en": "make sure message query is a string (Sentry)",
+        "de": "Stellen Sie sicher, dass die Nachrichtenabfrage eine Zeichenfolge ist (Sentry).",
+        "ru": "убедитесь, что запрос сообщения является строкой (Sentry)",
+        "pt": "certifique-se de que a consulta da mensagem é uma string (Sentry)",
+        "nl": "zorg ervoor dat de berichtvraag een tekenreeks is (Sentry)",
+        "fr": "assurez-vous que la requête de message est une chaîne (Sentry)",
+        "it": "assicurati che la query del messaggio sia una stringa (Sentry)",
+        "es": "asegúrese de que la consulta del mensaje sea una cadena (Sentry)",
+        "pl": "upewnij się, że zapytanie o wiadomość jest ciągiem (Sentry)",
+        "zh-cn": "确保消息查询是字符串（Sentry）"
+      }
+    },
+    "mode": "daemon",
+    "platform": "Javascript/Node.js",
+    "loglevel": "info",
+    "messagebox": true,
+    "subscribe": "messagebox",
+    "keywords": [
+      "charts",
+      "sql",
+      "logging",
+      "graphs",
+      "archive"
     ],
-    "objects": []
+    "preserveSettings": "custom",
+    "supportCustoms": true,
+    "getHistory": true,
+    "enabled": true,
+    "stopBeforeUpdate": true,
+    "compact": true,
+    "authors": [
+      "bluefox <dogafox@gmail.com>",
+      "Apollon77 <ingo@fischer-ka.de>"
+    ],
+    "license": "MIT",
+    "readme": "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
+    "icon": "sql.png",
+    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
+    "type": "storage",
+    "dependencies": [
+      {
+        "js-controller": ">=3.3.0"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=5.1.28"
+      }
+    ],
+    "supportStopInstance": 10000,
+    "stopTimeout": 10000,
+    "plugins": {
+      "sentry": {
+        "dsn": "https://c30462d3e0834993b0aa29824346701e@sentry.iobroker.net/45"
+      }
+    },
+    "adminUI": {
+      "config": "json",
+      "custom": "json"
+    },
+    "tier": 1,
+    "connectionType": "none",
+    "dataSource": "push",
+    "messages": [
+      {
+        "condition": {
+          "operand": "and",
+          "rules": [
+            "oldVersion<2.0.0",
+            "newVersion>=2.0.0"
+          ]
+        },
+        "title": {
+          "en": "Important notice!",
+          "de": "Wichtiger Hinweis!",
+          "ru": "Важное замечание!",
+          "pt": "Notícia importante!",
+          "nl": "Belangrijke mededeling!",
+          "fr": "Avis important!",
+          "it": "Avviso IMPORTANTE!",
+          "es": "Noticia importante!",
+          "pl": "Ważna uwaga!",
+          "zh-cn": "重要通知!"
+        },
+        "text": {
+          "en": "This new version introduces several changes how values are logged because we fixed several issues and added new features. Please especially check the defined \"debounce\" and \"block time\" settings in your datapoints if values are not logged as expected and make sure the settings make sense. For more details please refer to the changelog and Readme.",
+          "de": "Diese neue Version führt mehrere Änderungen ein, wie Werte protokolliert werden, da wir mehrere Probleme behoben und neue Funktionen hinzugefügt haben. Bitte überprüfen Sie insbesondere die definierten „Entprellen“- und „Sperrzeit“-Einstellungen in Ihren Datenpunkten, wenn Werte nicht wie erwartet protokolliert werden, und stellen Sie sicher, dass die Einstellungen sinnvoll sind. Weitere Details finden Sie im Changelog und in der Readme.",
+          "ru": "В этой новой версии внесено несколько изменений в регистрацию значений, поскольку мы исправили несколько проблем и добавили новые функции. Пожалуйста, особенно проверьте определенные настройки «debounce» и «block time» в ваших точках данных, если значения не регистрируются должным образом, и убедитесь, что настройки имеют смысл. Для получения более подробной информации, пожалуйста, обратитесь к журналу изменений и Readme.",
+          "pt": "Esta nova versão apresenta várias alterações na forma como os valores são registrados, pois corrigimos vários problemas e adicionamos novos recursos. Verifique especialmente as configurações definidas de \"debounce\" e \"block time\" em seus pontos de dados se os valores não forem registrados conforme o esperado e verifique se as configurações fazem sentido. Para obter mais detalhes, consulte o log de alterações e o Leiame.",
+          "nl": "Deze nieuwe versie introduceert verschillende wijzigingen in de manier waarop waarden worden geregistreerd, omdat we verschillende problemen hebben opgelost en nieuwe functies hebben toegevoegd. Controleer vooral de gedefinieerde \"debounce\" en \"block time\" instellingen in uw datapunten als de waarden niet zijn vastgelegd zoals verwacht en zorg ervoor dat de instellingen kloppen. Raadpleeg de changelog en Readme voor meer informatie.",
+          "fr": "Cette nouvelle version introduit plusieurs changements dans la journalisation des valeurs car nous avons corrigé plusieurs problèmes et ajouté de nouvelles fonctionnalités. Veuillez vérifier en particulier les paramètres \"anti-rebond\" et \"temps de blocage\" définis dans vos points de données si les valeurs ne sont pas enregistrées comme prévu et assurez-vous que les paramètres ont un sens. Pour plus de détails, veuillez consulter le journal des modifications et le fichier Lisez-moi.",
+          "it": "Questa nuova versione introduce diverse modifiche al modo in cui i valori vengono registrati perché abbiamo risolto diversi problemi e aggiunto nuove funzionalità. Controllare in particolare le impostazioni definite \"debounce\" e \"block time\" nei propri datapoint se i valori non sono registrati come previsto e assicurarsi che le impostazioni abbiano un senso. Per maggiori dettagli, fare riferimento al log delle modifiche e al Leggimi.",
+          "es": "Esta nueva versión introduce varios cambios en la forma en que se registran los valores porque solucionamos varios problemas y agregamos nuevas funciones. Verifique especialmente la configuración definida de \"antirrebote\" y \"tiempo de bloqueo\" en sus puntos de datos si los valores no se registran como se esperaba y asegúrese de que la configuración tenga sentido. Para obtener más detalles, consulte el registro de cambios y el archivo Léame.",
+          "pl": "Ta nowa wersja wprowadza kilka zmian w sposobie rejestrowania wartości, ponieważ naprawiliśmy kilka problemów i dodaliśmy nowe funkcje. W szczególności sprawdź zdefiniowane ustawienia „odbicia” i „czasu blokowania” w punktach danych, jeśli wartości nie są rejestrowane zgodnie z oczekiwaniami i upewnij się, że ustawienia mają sens. Aby uzyskać więcej informacji, zapoznaj się z dziennikiem zmian i Readme.",
+          "zh-cn": "这个新版本引入了一些更改值的记录方式，因为我们修复了几个问题并添加了新功能。如果未按预期记录值，请特别检查数据点中定义的“去抖动”和“阻塞时间”设置，并确保设置有意义。有关更多详细信息，请参阅更改日志和自述文件。"
+        },
+        "link": "https://github.com/ioBroker/ioBroker.sql/blob/master/docs/en/README.md#settings",
+        "level": "warn",
+        "linkText": {
+          "en": "Readme",
+          "de": "Liesmich",
+          "ru": "Прочти меня",
+          "pt": "Leia-me",
+          "nl": "Leesmij",
+          "fr": "Lisez-moi",
+          "it": "Leggimi",
+          "es": "Léame",
+          "pl": "Readme",
+          "zh-cn": "自述文件"
+        },
+        "buttons": [
+          "agree",
+          "cancel"
+        ]
+      }
+    ]
+  },
+  "native": {
+    "connLink": "",
+    "debounce": 1000,
+    "retention": 31536000,
+    "host": "localhost",
+    "port": 0,
+    "user": "",
+    "password": "",
+    "dbtype": "sqlite",
+    "fileName": "sqlite.db",
+    "requestInterval": 0,
+    "encrypt": false,
+    "round": 4,
+    "dbname": "iobroker",
+    "multiRequests": true,
+    "maxConnections": 100,
+    "changesRelogInterval": 0,
+    "changesMinDelta": 0,
+    "writeNulls": true,
+    "doNotCreateDatabase": false,
+    "maxLength": 0,
+    "blockTime": 0,
+    "debounceTime": 0,
+    "disableSkippedValueLogging": false,
+    "enableLogging": false,
+    "rejectUnauthorized": false,
+    "customRetentionDuration": 365
+  },
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "role": "indicator.connected",
+        "name": "If connected to DB",
+        "type": "boolean",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    }
+  ],
+  "objects": []
 }
