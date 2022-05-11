@@ -168,7 +168,7 @@ describe(`Test ${__filename}`, function() {
     });
 
     after(`Test ${__filename} Stop js-controller`, function (done) {
-        this.timeout(6000);
+        this.timeout(16000);
 
         setup.stopController(function (normalTerminated) {
             console.log(`MySQL: Adapter normal terminated: ${normalTerminated}`);
