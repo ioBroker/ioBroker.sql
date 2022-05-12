@@ -1462,7 +1462,7 @@ function checkRetention(id) {
                 } else {
                     _checkRetention(query, () => {
                         // delete counters too
-                        if (sqlDPs[id].type === 'number') {
+                        if (sqlDPs[id] && sqlDPs[id].type === 'number') {
                             const query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, 'ts_counter', sqlDPs[id][adapter.namespace].retention);
                             _checkRetention(query);
                         }
