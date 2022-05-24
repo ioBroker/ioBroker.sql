@@ -242,8 +242,8 @@ function borrowClientFromPool(callback) {
     }
     setConnected(true);
 
-    if ((activeConnections + 1)  > adapter.config.maxConnections) {
-        logConnectionUsage && adapter.log.debug(`Borrow connection not possible: ${activeConnections + 1} === Max - Store for Later`);
+    if (activeConnections >= adapter.config.maxConnections) {
+        logConnectionUsage && adapter.log.debug(`Borrow connection not possible: ${activeConnections} >= Max - Store for Later`);
         poolBorrowGuard.push(callback);
         return;
     }
