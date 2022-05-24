@@ -259,7 +259,7 @@ function borrowClientFromPool(callback) {
 function returnClientToPool(client) {
     activeConnections--;
     logConnectionUsage && adapter.log.debug(`Return connection to pool: ${activeConnections} now`);
-    return clientPool && clientPool.return(client);
+    return clientPool && client && clientPool.return(client);
 }
 
 function reInit(id, realId, formerAliasId, obj) {
