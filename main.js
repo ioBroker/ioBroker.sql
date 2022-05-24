@@ -55,6 +55,7 @@ let testConnectTimeout = null;
 let dpOverviewTimeout = null;
 let bufferChecker = null;
 let activeConnections = 0;
+let poolBorrowGuard =  []; // required until https://github.com/intellinote/sql-client/issues/7 is fixed
 const logConnectionUsage = true;
 
 function isEqual(a, b) {
@@ -241,8 +242,14 @@ function borrowClientFromPool(callback) {
     }
     setConnected(true);
 
+    activeConnections++;
+    if (activeConnections > adapter.config.maxConnections) {
+        activeConnections--;
+        logConnectionUsage && adapter.log.debug(`Borrow connection not possible: ${activeConnections} === Max - Store for Later`);
+        poolBorrowGuard.push(callback);
+        return;
+    }
     clientPool.borrow((err, client) => {
-        activeConnections++;
         logConnectionUsage && adapter.log.debug(`Borrow connection from pool: ${activeConnections} now`);
         if (!err && client) {
             // make sure we always have at least one error listener to prevent crashes
@@ -250,6 +257,8 @@ function borrowClientFromPool(callback) {
                 client.on('error', err =>
                     adapter.log.warn(`SQL client error: ${err}`));
             }
+        } else if (!client) {
+            activeConnections--;
         }
 
         callback(err, client);
@@ -257,9 +266,20 @@ function borrowClientFromPool(callback) {
 }
 
 function returnClientToPool(client) {
-    activeConnections--;
+    if (client) {
+        activeConnections--;
+    }
     logConnectionUsage && adapter.log.debug(`Return connection to pool: ${activeConnections} now`);
-    return clientPool && client && clientPool.return(client);
+    if (clientPool && client) {
+        if (poolBorrowGuard.length) {
+            activeConnections++;
+            logConnectionUsage && adapter.log.debug(`Borrow returned connection directly: ${activeConnections} now`);
+            const callback = poolBorrowGuard.shift();
+            callback(null, client);
+        } else {
+            clientPool.return(client);
+        }
+    }
 }
 
 function reInit(id, realId, formerAliasId, obj) {

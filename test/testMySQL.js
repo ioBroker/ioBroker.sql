@@ -87,6 +87,7 @@ describe(`Test ${__filename}`, function() {
             config.common.enabled  = true;
             config.common.loglevel = 'debug';
 
+            config.native.maxConnections = 1;
             config.native.enableDebugLogs = true;
             config.native.dbtype   = 'mysql';
             config.native.user     = 'root';
