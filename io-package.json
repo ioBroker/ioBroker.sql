@@ -197,7 +197,7 @@
           "pl": "Ta nowa wersja wprowadza kilka zmian w sposobie rejestrowania wartości, ponieważ naprawiliśmy kilka problemów i dodaliśmy nowe funkcje. W szczególności sprawdź zdefiniowane ustawienia „odbicia” i „czasu blokowania” w punktach danych, jeśli wartości nie są rejestrowane zgodnie z oczekiwaniami i upewnij się, że ustawienia mają sens. Aby uzyskać więcej informacji, zapoznaj się z dziennikiem zmian i Readme.",
           "zh-cn": "这个新版本引入了一些更改值的记录方式，因为我们修复了几个问题并添加了新功能。如果未按预期记录值，请特别检查数据点中定义的“去抖动”和“阻塞时间”设置，并确保设置有意义。有关更多详细信息，请参阅更改日志和自述文件。"
         },
-        "link": "https://github.com/ioBroker/ioBroker.sql/blob/master/docs/en/README.md#settings",
+        "link": "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md#settings",
         "level": "warn",
         "linkText": {
           "en": "Readme",

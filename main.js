@@ -54,6 +54,8 @@ let reconnectTimeout = null;
 let testConnectTimeout = null;
 let dpOverviewTimeout = null;
 let bufferChecker = null;
+let activeConnections = 0;
+const logConnectionUsage = true;
 
 function isEqual(a, b) {
     //console.log('Compare ' + JSON.stringify(a) + ' with ' +  JSON.stringify(b));
@@ -240,6 +242,8 @@ function borrowClientFromPool(callback) {
     setConnected(true);
 
     clientPool.borrow((err, client) => {
+        activeConnections++;
+        logConnectionUsage && adapter.log.debug(`Borrow connection from pool: ${activeConnections} now`);
         if (!err && client) {
             // make sure we always have at least one error listener to prevent crashes
             if (client.on && client.listenerCount && client.listenerCount('error') === 0) {
@@ -253,6 +257,8 @@ function borrowClientFromPool(callback) {
 }
 
 function returnClientToPool(client) {
+    activeConnections--;
+    logConnectionUsage && adapter.log.debug(`Return connection to pool: ${activeConnections} now`);
     return clientPool && clientPool.return(client);
 }
 
@@ -526,6 +532,7 @@ function connect(callback) {
                 clientPool = new SQL[`${clients[adapter.config.dbtype].name}Pool`](params);
 
                 return clientPool.open(err => {
+                    activeConnections = 0;
                     if (err) {
                         clientPool = null;
                         setConnected(false);
@@ -546,6 +553,7 @@ function connect(callback) {
                 adapter.log.error(ex.stack);
             }
             clientPool = null;
+            activeConnections = 0;
             setConnected(false);
             reconnectTimeout && clearTimeout(reconnectTimeout);
             reconnectTimeout = setTimeout(() => connect(callback), 30000);
@@ -729,6 +737,7 @@ function _userQuery(msg, callback) {
         borrowClientFromPool((err, client) => {
             if (err) {
                 adapter.sendTo(msg.from, msg.command, {error: err.toString()}, msg.callback);
+                returnClientToPool(client);
                 callback && callback();
             } else {
                 client.execute(msg.message, (err, rows /* , fields */) => {
@@ -773,6 +782,7 @@ function oneScript(script, cb) {
         borrowClientFromPool((err, client) => {
             if (err || !client) {
                 clientPool && clientPool.close();
+                activeConnections = 0;
                 clientPool = null;
                 setConnected(false);
                 adapter.log.error(err);
@@ -859,6 +869,7 @@ function finish(callback) {
     function allFinished() {
         if (clientPool) {
             clientPool.close();
+            activeConnections = 0;
             clientPool = null;
             setConnected(false);
         }
@@ -992,6 +1003,7 @@ function finish(callback) {
     if (!dpcount && callback) {
         if (clientPool) {
             clientPool.close();
+            activeConnections = 0;
             clientPool = null;
             setConnected(false);
         }
@@ -1361,6 +1373,7 @@ function getAllIds(cb) {
 
     borrowClientFromPool((err, client) => {
         if (err) {
+            returnClientToPool(client);
             return cb && cb(err);
         }
 
@@ -1392,6 +1405,7 @@ function getAllFroms(cb) {
 
     borrowClientFromPool((err, client) => {
         if (err) {
+            returnClientToPool(client);
             return cb && cb(err);
         }
 
@@ -1419,6 +1433,7 @@ function _checkRetention(query, cb) {
 
     borrowClientFromPool((err, client) => {
         if (err) {
+            returnClientToPool(client);
             adapter.log.error(err);
             cb && cb();
         } else {
@@ -1478,6 +1493,7 @@ function _insertValueIntoDB(query, id, cb) {
 
     borrowClientFromPool((err, client) => {
         if (err) {
+            returnClientToPool(client);
             adapter.log.error(err);
             cb && cb(); // BF asked (2021.12.14): may be return here err?
         } else {
@@ -1499,6 +1515,7 @@ function _executeQuery(query, id, cb) {
 
     borrowClientFromPool((err, client) => {
         if (err) {
+            returnClientToPool(client);
             adapter.log.error(err);
             cb && cb();
         } else {
@@ -1603,6 +1620,7 @@ function processVerifyTypes(task) {
 
         return borrowClientFromPool((err, client) => {
             if (err) {
+                returnClientToPool(client);
                 return processVerifyTypes(task);
             }
 
@@ -1912,6 +1930,7 @@ function getId(id, type, cb) {
 
     borrowClientFromPool((err, client) => {
         if (err) {
+            returnClientToPool(client);
             return cb && cb(err, id);
         }
 
@@ -2004,6 +2023,7 @@ function getFrom(_from, cb) {
 
     borrowClientFromPool((err, client) => {
         if (err) {
+            returnClientToPool(client);
             return cb && cb(err, _from);
         }
         client.execute(query, (err, rows /* , fields */) => {
@@ -2132,7 +2152,7 @@ function getCachedData(options, callback) {
         if (options.ack) {
             cache[c].ack = !!cache[c].ack;
         }
-        if (cache[c].val !== null && isFinite(cache[c].val) && options.round) {
+        if (typeof cache[c].val === 'number' && isFinite(cache[c].val) && options.round) {
             cache[c].val = Math.round(cache[c].val * options.round) / options.round;
         }
         if (sqlDPs[options.index].type === 2) {
@@ -2156,6 +2176,7 @@ function _getDataFromDB(query, options, callback) {
 
     borrowClientFromPool((err, client) => {
         if (err) {
+            returnClientToPool(client);
             return callback && callback(err);
         }
         client.execute(query, (err, rows /* , fields */) => {
@@ -2175,7 +2196,7 @@ function _getDataFromDB(query, options, callback) {
                     if (options.ack) {
                         rows[c].ack = !!rows[c].ack;
                     }
-                    if (rows[c].val !== null && isFinite(rows[c].val) && options.round) {
+                    if (typeof rows[c].val === 'number' && isFinite(rows[c].val) && options.round) {
                         rows[c].val = Math.round(rows[c].val * options.round) / options.round;
                     }
                     if (sqlDPs[options.index].type === 2) {
@@ -2822,6 +2843,7 @@ function getDpOverview(msg) {
 
     borrowClientFromPool((err, client) => {
         if (err) {
+            returnClientToPool(client);
             return adapter.sendTo(msg.from, msg.command, {
                 error: `Cannot select ${query}: ${err}`
             }, msg.callback);
