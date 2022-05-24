@@ -408,6 +408,7 @@ function reInit(id, realId, formerAliasId, obj) {
     const inFlight  = sqlDPs[id] ? sqlDPs[id].inFlight: null;
     const timeout   = sqlDPs[id] ? sqlDPs[id].timeout : null;
     const ts        = sqlDPs[id] ? sqlDPs[id].ts : null;
+    const lastCheck = sqlDPs[id] ? sqlDPs[id].lastCheck : null;
 
     sqlDPs[id]         = obj.common.custom;
     sqlDPs[id].state   = state;
@@ -416,6 +417,8 @@ function reInit(id, realId, formerAliasId, obj) {
     sqlDPs[id].timeout = timeout;
     sqlDPs[id].ts      = ts;
     sqlDPs[id].realId  = realId;
+    sqlDPs[id].lastCheck = lastCheck || new Date.now() - Math.floor(Math.random() * 21600000/* 6 hours */); // randomize lastCheck to avoid all datapoints to be checked at same timepoint
+    ;
 
     // changesRelogInterval
     if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
@@ -3338,6 +3341,9 @@ function main() {
                                 sqlDPs[id].realId = realId;
                                 sqlDPs[id].list = sqlDPs[id].list || [];
                                 sqlDPs[id].inFlight = sqlDPs[id].inFlight || {};
+
+                                // randomize lastCheck to avoid all datapoints to be checked at same timepoint
+                                sqlDPs[id].lastCheck = new Date.now() - Math.floor(Math.random() * 21600000/* 6 hours */);
                             }
                         }
                     }
