@@ -242,15 +242,14 @@ function borrowClientFromPool(callback) {
     }
     setConnected(true);
 
-    activeConnections++;
-    if (activeConnections > adapter.config.maxConnections) {
-        activeConnections--;
-        logConnectionUsage && adapter.log.debug(`Borrow connection not possible: ${activeConnections} === Max - Store for Later`);
+    if ((activeConnections + 1)  > adapter.config.maxConnections) {
+        logConnectionUsage && adapter.log.debug(`Borrow connection not possible: ${activeConnections + 1} === Max - Store for Later`);
         poolBorrowGuard.push(callback);
         return;
     }
+    activeConnections++;
+    logConnectionUsage && adapter.log.debug(`Borrow connection from pool: ${activeConnections} now`);
     clientPool.borrow((err, client) => {
-        logConnectionUsage && adapter.log.debug(`Borrow connection from pool: ${activeConnections} now`);
         if (!err && client) {
             // make sure we always have at least one error listener to prevent crashes
             if (client.on && client.listenerCount && client.listenerCount('error') === 0) {
@@ -3116,7 +3115,7 @@ function main() {
             adapter.config.maxConnections = 100;
         }
     } else {
-        adapter.config.maxConnections = null;
+        adapter.config.maxConnections = 1; // SQLite does not support multiple connections
     }
 
     if (adapter.config.changesMinDelta !== null && adapter.config.changesMinDelta !== undefined) {
