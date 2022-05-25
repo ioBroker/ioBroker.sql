@@ -417,7 +417,7 @@ function reInit(id, realId, formerAliasId, obj) {
     sqlDPs[id].timeout = timeout;
     sqlDPs[id].ts      = ts;
     sqlDPs[id].realId  = realId;
-    sqlDPs[id].lastCheck = lastCheck || new Date.now() - Math.floor(Math.random() * 21600000/* 6 hours */); // randomize lastCheck to avoid all datapoints to be checked at same timepoint
+    sqlDPs[id].lastCheck = lastCheck || Date.now() - Math.floor(Math.random() * 21600000/* 6 hours */); // randomize lastCheck to avoid all datapoints to be checked at same timepoint
     ;
 
     // changesRelogInterval
@@ -1114,10 +1114,11 @@ function processStartValues(callback) {
             });
         }
         else {
+            const now = Date.now();
             pushHistory(task.id, {
                 val:  null,
-                ts:   task.now || Date.now(),
-                lc:   task.now || Date.now(),
+                ts:   task.now || now,
+                lc:   task.now || now,
                 ack:  true,
                 q:    0x40,
                 from: `system.adapter.${adapter.namespace}`
@@ -1470,8 +1471,7 @@ function _checkRetention(query, cb) {
 
 function checkRetention(id) {
     if (sqlDPs[id] && sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].retention) {
-        const d = new Date();
-        const dt = d.getTime();
+        const dt = Date.now();
         // check every 6 hours
         if (!sqlDPs[id].lastCheck || dt - sqlDPs[id].lastCheck >= 21600000/* 6 hours */) {
             sqlDPs[id].lastCheck = dt;
@@ -3343,7 +3343,7 @@ function main() {
                                 sqlDPs[id].inFlight = sqlDPs[id].inFlight || {};
 
                                 // randomize lastCheck to avoid all datapoints to be checked at same timepoint
-                                sqlDPs[id].lastCheck = new Date.now() - Math.floor(Math.random() * 21600000/* 6 hours */);
+                                sqlDPs[id].lastCheck = Date.now() - Math.floor(Math.random() * 21600000/* 6 hours */);
                             }
                         }
                     }
