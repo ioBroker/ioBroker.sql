@@ -522,6 +522,8 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (Apollon77) Fix several places where pooled connections might have not been returned to pool correctly and add logging for it
 * (Apollon77) Work around an issue in used Pooling library that potentially gave out too many connections
 * (Apollon77) Optimize retention check to better spread the first checks over time
+* (Apollon77) Default to not use datapoint buffering as in 1.x when set to 0
+* (Apollon77) Fix several crash cases reported by Sentry
 
 ### 2.0.2 (2022-05-11)
 * (Apollon77) BREAKING: Configuration is only working in the new Admin 5 UI!

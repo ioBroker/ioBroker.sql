@@ -276,7 +276,11 @@ function returnClientToPool(client) {
             const callback = poolBorrowGuard.shift();
             callback(null, client);
         } else {
-            clientPool.return(client);
+            try {
+                clientPool.return(client);
+            } catch (err) {
+                // Ignore
+            }
         }
     }
 }
@@ -285,7 +289,7 @@ function reInit(id, realId, formerAliasId, obj) {
 
     // maxLength
     if (!obj.common.custom[adapter.namespace].maxLength && obj.common.custom[adapter.namespace].maxLength !== '0' && obj.common.custom[adapter.namespace].maxLength !== 0) {
-        obj.common.custom[adapter.namespace].maxLength = parseInt(adapter.config.maxLength, 10) || 960;
+        obj.common.custom[adapter.namespace].maxLength = parseInt(adapter.config.maxLength, 10) || 0;
     } else {
         obj.common.custom[adapter.namespace].maxLength = parseInt(obj.common.custom[adapter.namespace].maxLength, 10);
     }
@@ -1490,7 +1494,7 @@ function checkRetention(id) {
                     tasks.push({operation: 'delete', query});
 
                     // delete counters too
-                    if (sqlDPs[id].type === 'number') {
+                    if (sqlDPs[id] && sqlDPs[id].type === 0) { // 0 === number
                         const query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, 'ts_counter', sqlDPs[id][adapter.namespace].retention);
                         tasks.push({operation: 'delete', query});
                     }
@@ -1499,7 +1503,7 @@ function checkRetention(id) {
                 } else {
                     _checkRetention(query, () => {
                         // delete counters too
-                        if (sqlDPs[id] && sqlDPs[id].type === 'number') {
+                        if (sqlDPs[id] && sqlDPs[id].type === 0) { // 0 === number
                             const query = SQLFuncs.retention(adapter.config.dbname, sqlDPs[id].index, 'ts_counter', sqlDPs[id][adapter.namespace].retention);
                             _checkRetention(query);
                         }
@@ -1668,6 +1672,9 @@ function processVerifyTypes(task) {
 }
 
 function prepareTaskReadDbId(id, state, isCounter, cb) {
+    if (!sqlDPs[id]) {
+        return cb && cb(`${id} not active any more`);
+    }
     const type = sqlDPs[id].type;
 
     if (type === undefined) { // Can not happen anymore
@@ -1770,7 +1777,12 @@ function prepareTaskCheckTypeAndDbId(id, state, isCounter, cb) {
         prepareTaskReadDbId(id, state, isCounter, cb)
     } else {
         // read type from DB
-        tasksReadType.push({id, state, cb: () => prepareTaskReadDbId(id, state, isCounter, cb)});
+        tasksReadType.push({id, state, cb: err => {
+            if (err) {
+                return cb && cb(err);
+            }
+            prepareTaskReadDbId(id, state, isCounter, cb);
+        }});
 
         tasksReadType.length === 1 && processReadTypes();
     }
@@ -1957,6 +1969,10 @@ function getId(id, type, cb) {
         }
 
         client.execute(query, (err, rows /* , fields */) => {
+            if (!sqlDPs[id]) {
+                returnClientToPool(client);
+                return cb && cb(new Error(`ID ${id} no longer active`), id);
+            }
             if (rows && rows.rows) {
                 rows = rows.rows;
             }
@@ -2177,7 +2193,7 @@ function getCachedData(options, callback) {
         if (typeof cache[c].val === 'number' && isFinite(cache[c].val) && options.round) {
             cache[c].val = Math.round(cache[c].val * options.round) / options.round;
         }
-        if (sqlDPs[options.index].type === 2) {
+        if (sqlDPs[options.index || options.id] && sqlDPs[options.index || options.id].type === 2) { // 2 === boolean
             cache[c].val = !!cache[c].val;
         }
         if (options.addId && !cache[c].id && options.id) {
@@ -2221,7 +2237,7 @@ function _getDataFromDB(query, options, callback) {
                     if (typeof rows[c].val === 'number' && isFinite(rows[c].val) && options.round) {
                         rows[c].val = Math.round(rows[c].val * options.round) / options.round;
                     }
-                    if (sqlDPs[options.index].type === 2) {
+                    if (sqlDPs[options.index || options.id] && sqlDPs[options.index || options.id].type === 2) { // 2 === boolean
                         rows[c].val = !!rows[c].val;
                     }
                     if (options.addId && !rows[c].id && options.id) {
@@ -2321,6 +2337,26 @@ function getHistory(msg) {
         removeBorderValues: msg.message.options.removeBorderValues || false,
         logId:     (msg.message.id ? msg.message.id : 'all') + Date.now() + Math.random()
     };
+
+    try {
+        if (options.start && typeof options.start !== 'number') {
+            options.start = new Date(options.start).getTime();
+        }
+    } catch (err) {
+        return adapter.sendTo(msg.from, msg.command, {
+            error:  'Invalid call. Start date ' + JSON.stringify(options.start) + ' is not a valid date'
+        }, msg.callback);
+    }
+
+    try {
+        if (options.end && typeof options.end !== 'number') {
+            options.end = new Date(options.end).getTime();
+        }
+    } catch (err) {
+        return adapter.sendTo(msg.from, msg.command, {
+            error:  'Invalid call. End date ' + JSON.stringify(options.end) + ' is not a valid date'
+        }, msg.callback);
+    }
 
     if (!options.start && options.count) {
         options.returnNewestEntries = true;
@@ -2446,31 +2482,32 @@ function getHistory(msg) {
                 }
                 // if not all data read
                 getDataFromDB(dbNames[type], options, (err, data) => {
-                    options.end = origEnd;
-                    if (options.aggregate === 'none' && options.count && options.returnNewestEntries) {
-                        cacheData = cacheData.reverse()
-                        data = cacheData.concat(data);
-                    } else {
-                        data = data.concat(cacheData);
-                    }
-                    debugLog && adapter.log.debug(`${options.logId} after getDataFromDB: length = ${data.length}`);
-                    if (options.count && data.length > options.count && options.aggregate === 'none' && !options.returnNewestEntries) {
-                        if (options.start) {
-                            for (let i = 0; i < data.length; i++) {
-                                if (data[i].ts < options.start) {
-                                    data.splice(i, 1);
-                                    i--;
-                                } else {
-                                    break;
+                    if (!err && data) {
+                        options.end = origEnd;
+                        if (options.aggregate === 'none' && options.count && options.returnNewestEntries) {
+                            cacheData = cacheData.reverse()
+                            data = cacheData.concat(data);
+                        } else {
+                            data = data.concat(cacheData);
+                        }
+                        debugLog && adapter.log.debug(`${options.logId} after getDataFromDB: length = ${data.length}`);
+                        if (options.count && data.length > options.count && options.aggregate === 'none' && !options.returnNewestEntries) {
+                            if (options.start) {
+                                for (let i = 0; i < data.length; i++) {
+                                    if (data[i].ts < options.start) {
+                                        data.splice(i, 1);
+                                        i--;
+                                    } else {
+                                        break;
+                                    }
                                 }
                             }
+                            data = data.slice(0, options.count);
+                            options.debugLog && adapter.log.debug(`${options.logId} pre-cut data to ${options.count} oldest values`);
                         }
-                        data = data.slice(0, options.count);
-                        options.debugLog && adapter.log.debug(`${options.logId} pre-cut data to ${options.count} oldest values`);
+
+                        data.sort(sortByTs);
                     }
-
-                    data.sort(sortByTs);
-
                     commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || data, startTime)
                 });
             }
@@ -3227,7 +3264,7 @@ function main() {
 
                                 // maxLength
                                 if (!sqlDPs[id][adapter.namespace].maxLength && sqlDPs[id][adapter.namespace].maxLength !== '0' && sqlDPs[id][adapter.namespace].maxLength !== 0) {
-                                    sqlDPs[id][adapter.namespace].maxLength = parseInt(adapter.config.maxLength, 10) || 960;
+                                    sqlDPs[id][adapter.namespace].maxLength = parseInt(adapter.config.maxLength, 10) || 0;
                                 } else {
                                     sqlDPs[id][adapter.namespace].maxLength = parseInt(sqlDPs[id][adapter.namespace].maxLength, 10);
                                 }
