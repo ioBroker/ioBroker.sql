@@ -58,7 +58,7 @@
     "Write NULL values on start/stop boundaries": "Schreibe NULL-Werte an Start-/Stop-Grenzen",
     "aliasId": "Alias-ID",
     "blockTime": "Alle neuen Werte für X ms nach dem letzten protokollierten Wert ignorieren",
-    "debounce": "Entprellzeit(ms)",
+    "debounce": "Änderungen ignorieren, bis der Wert für X Millisekunden unverändert bleibt",
     "ignore values above x": "Ignoriere Werte größer als",
     "ignore values below x": "IgnoriereWerte kleiner als",
     "ignore values below zero": "Werte unter 0 ignorieren (<0)",
@@ -68,6 +68,6 @@
     "log changes minimal delta": "Minimale Differenz zum letzten Wert",
     "log changes only": "Nur Änderungen aufzeichnen",
     "note": "History Einstellungen müssen für jeden State einzeln gemacht werden, im Tab \"States\" und nur wenn die Adapter Instanz aktiv ist",
-    "requestInterval": "Intervall zwischen DB Anfragen(ms)",
+    "requestInterval": "Wartezeit zwischen DB Anfragen(ms)",
     "retention": "Storage Vorhaltezeit"
 }
