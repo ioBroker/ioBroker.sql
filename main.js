@@ -458,7 +458,7 @@ function connect(callback) {
         };
 
         if (adapter.config.maxConnections) {
-            params.max_active = adapter.config.maxConnections;
+            params.max_active = adapter.config.maxConnections + 1; // we use our own Pool limiter logic, so let library have one more to not block us too early
             params.max_wait = 10000; // hard code for now
             params.when_exhausted = 'block';
         }
