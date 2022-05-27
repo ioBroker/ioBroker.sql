@@ -1580,7 +1580,7 @@ function processReadTypes() {
             processVerifyTypes(task);
         } else {
             adapter.getForeignObject(sqlDPs[task.id].realId, (err, obj) => {
-                err && adapter.log.warn(`Error while get Object for Def: ${err}`);
+                err && adapter.log.warn(`Error while get Object for Def for ${sqlDPs[task.id].realId}: ${err}`);
 
                 if (!sqlDPs[task.id]) {
                     adapter.log.warn(`Ignore type lookup for ${task.id} because not enabled anymore`);

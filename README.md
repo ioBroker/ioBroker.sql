@@ -527,9 +527,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (Apollon77) Work around an issue in used Pooling library that potentially gave out too many connections
 * (Apollon77) Optimize retention check to better spread the first checks over time
 * (Apollon77) Default to not use datapoint buffering as in 1.x when set to 0
-* (Apollon77) Fix several crash cases reported by Sentry
 * (Apollon77) Make sure disabling "Log changes only" also really do not log the changes anymore
 * (Apollon77) Allow storeState and GetHistory also to be called for "unknown ids"
+* (Apollon77) Adjust the fallback logic for type detection to use the type of the state value to log as last fallback
+* (Apollon77) Fix storing booleans on MSSQL
 
 ### 2.0.2 (2022-05-11)
 * (Apollon77) BREAKING: Configuration is only working in the new Admin 5 UI!
