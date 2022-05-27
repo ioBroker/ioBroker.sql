@@ -1612,10 +1612,11 @@ function processReadTypes() {
                             });
                         }
 
-                        if (err) {
-                            adapter.log.warn(`Store data for ${task.id} as string because no other valid type found`);
-                            sqlDPs[task.id].type = 1; // string
-                        } else if (state && state.val !== null && state.val !== undefined && types[typeof state.val] !== undefined) {
+                        if (err && task.state) {
+                            adapter.log.warn(`Fallback to type of current state value because no other valid type found`);
+                            state = task.state;
+                        }
+                        if (state && state.val !== null && state.val !== undefined && types[typeof state.val] !== undefined) {
                             sqlDPs[task.id].type = types[typeof state.val];
                             if (sqlDPs[task.id][adapter.namespace]) {
                                 sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
