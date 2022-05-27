@@ -520,8 +520,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 2.1.0 (2022-05-27)
 * (Apollon77) Fix crash cases reported by Sentry
 * (Apollon77) Fix several places where pooled connections might have not been returned to pool correctly and add logging for it
 * (Apollon77) Work around an issue in used Pooling library that potentially gave out too many connections
