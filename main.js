@@ -1555,7 +1555,7 @@ function processReadTypes() {
     if (tasksReadType && tasksReadType.length) {
         const task = tasksReadType[0];
 
-        if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
+        if (!sqlDPs[task.id]) {
             adapter.log.warn(`Ignore type lookup for ${task.id} because not enabled anymore`);
             task.cb && task.cb(`Ignore type lookup for ${task.id} because not enabled anymore`)
             task.cb = null;
@@ -1565,22 +1565,24 @@ function processReadTypes() {
             });
         }
 
-        adapter.log.debug(`Type set in Def for ${task.id}: ${sqlDPs[task.id][adapter.namespace].storageType}`);
+        adapter.log.debug(`Type set in Def for ${task.id}: ${sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].storageType}`);
 
-        if (sqlDPs[task.id][adapter.namespace].storageType) {
+        if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].storageType) {
             sqlDPs[task.id].type = types[sqlDPs[task.id][adapter.namespace].storageType.toLowerCase()];
             adapter.log.debug(`Type (from Def) for ${task.id}: ${sqlDPs[task.id].type}`);
             processVerifyTypes(task);
         } else if (sqlDPs[task.id].dbtype !== undefined) {
             sqlDPs[task.id].type = sqlDPs[task.id].dbtype;
-            sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
+            if (sqlDPs[task.id][adapter.namespace]) {
+                sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
+            }
             adapter.log.debug(`Type (from DB-Type) for ${task.id}: ${sqlDPs[task.id].type}`);
             processVerifyTypes(task);
         } else {
             adapter.getForeignObject(sqlDPs[task.id].realId, (err, obj) => {
                 err && adapter.log.warn(`Error while get Object for Def: ${err}`);
 
-                if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
+                if (!sqlDPs[task.id]) {
                     adapter.log.warn(`Ignore type lookup for ${task.id} because not enabled anymore`);
                     task.cb && task.cb(`Ignore type lookup for ${task.id} because not enabled anymore`)
                     task.cb = null;
@@ -1593,12 +1595,14 @@ function processReadTypes() {
                 if (obj && obj.common && obj.common.type && types[obj.common.type.toLowerCase()] !== undefined) {
                     adapter.log.debug(`${obj.common.type.toLowerCase()} / ${types[obj.common.type.toLowerCase()]} / ${JSON.stringify(obj.common)}`);
                     sqlDPs[task.id].type = types[obj.common.type.toLowerCase()];
-                    sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
+                    if (sqlDPs[task.id][adapter.namespace]) {
+                        sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
+                    }
                     adapter.log.debug(`Type (from Obj) for ${task.id}: ${sqlDPs[task.id].type}`);
                     processVerifyTypes(task);
                 } else if (sqlDPs[task.id].type === undefined) {
                     adapter.getForeignState(sqlDPs[task.id].realId, (err, state) => {
-                        if (!sqlDPs[task.id] || !sqlDPs[task.id][adapter.namespace]) {
+                        if (!sqlDPs[task.id]) {
                             adapter.log.warn(`Ignore type lookup for ${task.id} because not enabled anymore`);
                             task.cb && task.cb(`Ignore type lookup for ${task.id} because not enabled anymore`)
                             task.cb = null;
@@ -1613,7 +1617,9 @@ function processReadTypes() {
                             sqlDPs[task.id].type = 1; // string
                         } else if (state && state.val !== null && state.val !== undefined && types[typeof state.val] !== undefined) {
                             sqlDPs[task.id].type = types[typeof state.val];
-                            sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
+                            if (sqlDPs[task.id][adapter.namespace]) {
+                                sqlDPs[task.id][adapter.namespace].storageType = storageTypes[sqlDPs[task.id].type];
+                            }
                         } else {
                             adapter.log.warn(`Store data for ${task.id} as string because no other valid type found (${state ? (typeof state.val) : 'state not existing'})`);
                             sqlDPs[task.id].type = 1; // string
@@ -1803,6 +1809,9 @@ function pushValueIntoDB(id, state, isCounter, storeInCacheOnly, cb) {
     adapter.log.debug(`pushValueIntoDB called for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)}`);
 
     prepareTaskCheckTypeAndDbId(id, state, isCounter, err => {
+        if (!sqlDPs[id]) {
+            return cb && cb()
+        }
         adapter.log.debug(`pushValueIntoDB-prepareTaskCheckTypeAndDbId RESULT for ${id} (type: ${sqlDPs[id].type}, ID: ${sqlDPs[id].index}) and state: ${JSON.stringify(state)}: ${err}`);
         if (err) {
             return cb && cb(err);
