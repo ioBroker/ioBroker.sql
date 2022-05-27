@@ -425,7 +425,7 @@ function reInit(id, realId, formerAliasId, obj) {
     ;
 
     // changesRelogInterval
-    if (sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+    if (sqlDPs[id][adapter.namespace].changesOnly && sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
         sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
     }
 
@@ -1130,7 +1130,7 @@ function processStartValues(callback) {
 
             setImmediate(processStartValues);
         }
-        if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
+        if (sqlDPs[task.id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesOnly && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
             sqlDPs[task.id].relogTimeout && clearTimeout(sqlDPs[task.id].relogTimeout);
             sqlDPs[task.id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500, task.id);
         }
@@ -1301,7 +1301,7 @@ function pushHistory(id, state, timerRelog) {
                 sqlDPs[id].lastLogTime = state.ts;
                 settings.enableDebugLogs && adapter.log.debug(`Value logged ${id}, value=${sqlDPs[id].state.val}, ts=${sqlDPs[id].state.ts}`);
                 pushHelper(id);
-                if (settings.changesRelogInterval > 0) {
+                if (settings.changesOnly && settings.changesRelogInterval > 0) {
                     sqlDPs[id].relogTimeout = setTimeout(reLogHelper, settings.changesRelogInterval * 1000, id);
                 }
             }, settings.debounceTime, id, state);
@@ -1313,7 +1313,7 @@ function pushHistory(id, state, timerRelog) {
 
             settings.enableDebugLogs && adapter.log.debug(`Value logged ${id}, value=${sqlDPs[id].state.val}, ts=${sqlDPs[id].state.ts}`);
             pushHelper(id, state);
-            if (settings.changesRelogInterval > 0) {
+            if (settings.changesOnly && settings.changesRelogInterval > 0) {
                 sqlDPs[id].relogTimeout = setTimeout(reLogHelper, settings.changesRelogInterval * 1000, id);
             }
         }
@@ -1345,7 +1345,7 @@ function reLogHelper(_id) {
     }
 }
 
-function pushHelper(_id, state) {
+function pushHelper(_id, state, cb) {
     if (!sqlDPs[_id] || (!sqlDPs[_id].state && !state)) {
         return;
     }
@@ -1353,45 +1353,42 @@ function pushHelper(_id, state) {
         state = sqlDPs[_id].state;
     }
 
-    const _settings = sqlDPs[_id][adapter.namespace];
+    const _settings = sqlDPs[_id] && sqlDPs[_id][adapter.namespace] || {};
 
-    // if it was not deleted in this time
-    if (_settings) {
-        if (state.val !== null && (typeof state.val === 'object' || typeof state.val === 'undefined')) {
-            state.val = JSON.stringify(state.val);
-        }
-
-        if (state.val !== null && state.val !== undefined) {
-            _settings.enableDebugLogs && adapter.log.debug(`Datatype ${_id}: Currently: ${typeof state.val}, StorageType: ${_settings.storageType}`);
-
-            if (typeof state.val === 'string' && _settings.storageType !== 'String') {
-                _settings.enableDebugLogs && adapter.log.debug(`Do Automatic Datatype conversion for ${_id}`);
-                if (isFinite(state.val)) {
-                    state.val = parseFloat(state.val);
-                } else if (state.val === 'true') {
-                    state.val = true;
-                } else if (state.val === 'false') {
-                    state.val = false;
-                }
-            }
-
-            if (_settings.storageType === 'String' && typeof state.val !== 'string') {
-                state.val = state.val.toString();
-            } else if (_settings.storageType === 'Number' && typeof state.val !== 'number') {
-                if (typeof state.val === 'boolean') {
-                    state.val = state.val ? 1 : 0;
-                } else {
-                    return adapter.log.info(`Do not store value "${state.val}" for ${_id} because no number`);
-                }
-            } else if (_settings.storageType === 'Boolean' && typeof state.val !== 'boolean') {
-                state.val = !!state.val;
-            }
-        } else {
-            _settings.enableDebugLogs && adapter.log.debug(`Datatype ${_id}: Currently: null`);
-        }
-
-        pushValueIntoDB(_id, state);
+    if (state.val !== null && (typeof state.val === 'object' || typeof state.val === 'undefined')) {
+        state.val = JSON.stringify(state.val);
     }
+
+    if (state.val !== null && state.val !== undefined) {
+        _settings.enableDebugLogs && adapter.log.debug(`Datatype ${_id}: Currently: ${typeof state.val}, StorageType: ${_settings.storageType}`);
+
+        if (typeof state.val === 'string' && _settings.storageType !== 'String') {
+            _settings.enableDebugLogs && adapter.log.debug(`Do Automatic Datatype conversion for ${_id}`);
+            if (isFinite(state.val)) {
+                state.val = parseFloat(state.val);
+            } else if (state.val === 'true') {
+                state.val = true;
+            } else if (state.val === 'false') {
+                state.val = false;
+            }
+        }
+
+        if (_settings.storageType === 'String' && typeof state.val !== 'string') {
+            state.val = state.val.toString();
+        } else if (_settings.storageType === 'Number' && typeof state.val !== 'number') {
+            if (typeof state.val === 'boolean') {
+                state.val = state.val ? 1 : 0;
+            } else {
+                return adapter.log.info(`Do not store value "${state.val}" for ${_id} because no number`);
+            }
+        } else if (_settings.storageType === 'Boolean' && typeof state.val !== 'boolean') {
+            state.val = !!state.val;
+        }
+    } else {
+        _settings.enableDebugLogs && adapter.log.debug(`Datatype ${_id}: Currently: null`);
+    }
+
+    pushValueIntoDB(_id, state, cb);
 }
 
 function getAllIds(cb) {
@@ -1826,8 +1823,9 @@ function pushValueIntoDB(id, state, isCounter, storeInCacheOnly, cb) {
 
         sqlDPs[id].list.push({state, from: from[state.from] || 0, db: isCounter ? 'ts_counter' : dbNames[type]});
 
-        const _settings = sqlDPs[id][adapter.namespace];
-        if ((cb || _settings && sqlDPs[id].list.length > _settings.maxLength) && !storeInCacheOnly) {
+        const _settings = sqlDPs[id][adapter.namespace] || {};
+        const maxLength = _settings.maxLength !== undefined ? _settings.maxLength : parseInt(adapter.config.maxLength, 10) || 0;
+        if ((cb || _settings && sqlDPs[id].list.length > maxLength) && !storeInCacheOnly) {
             storeCached(id, cb);
         } else if (cb && storeInCacheOnly) {
             setImmediate(cb);
@@ -1842,7 +1840,7 @@ function storeCached(onlyId, cb) {
             continue;
         }
 
-        const _settings = sqlDPs[id][adapter.namespace];
+        const _settings = sqlDPs[id][adapter.namespace] || {};
         if (_settings && sqlDPs[id].list && sqlDPs[id].list.length) {
             _settings.enableDebugLogs && adapter.log.debug(`inserting ${sqlDPs[id].list.length} entries from ${id} to DB`);
             const inFlightId = `${id}_${Date.now()}_${Math.random()}`;
@@ -2394,6 +2392,7 @@ function getHistory(msg) {
         options.integralUnit = 60;
     }
 
+    sqlDPs[options.id] = sqlDPs[options.id] || {};
     const debugLog = options.debugLog = !!(sqlDPs[options.id] && sqlDPs[options.id][adapter.namespace] && sqlDPs[options.id][adapter.namespace].enableDebugLogs);
 
     if (options.ignoreNull === 'true')  options.ignoreNull = true;  // include nulls and replace them with last value
@@ -2401,10 +2400,6 @@ function getHistory(msg) {
     if (options.ignoreNull === '0')     options.ignoreNull = 0;     // include nulls and replace them with 0
     if (options.ignoreNull !== true && options.ignoreNull !== false && options.ignoreNull !== 0) {
         options.ignoreNull = false;
-    }
-
-    if (!sqlDPs[options.id] || !sqlDPs[options.id][adapter.namespace]) {
-        return commons.sendResponse(adapter, msg, options, `Logging not activated for ${options.id}`, startTime);
     }
 
     if (options.start > options.end) {
@@ -2844,7 +2839,30 @@ function deleteStateAll(msg) {
     }, msg.callback);
 }
 
-function storeState(msg) {
+function storeStatePushData(adapter, id, state, applyRules) {
+    if (!state || typeof state !== 'object') {
+        throw new Error(`State ${JSON.stringify(state)} for ${id} is not valid`);
+    }
+
+    let pushFunc = applyRules ? pushHistory : pushHelper;
+    if (!sqlDPs[id] || !sqlDPs[id][adapter.namespace]) {
+        if (applyRules) {
+            throw new Error(`history not enabled for ${id}, so can not apply the rules as requested`);
+        }
+        sqlDPs[id] = sqlDPs[id] || {};
+    }
+    return new Promise((resolve, reject) => {
+        pushFunc(adapter, id, state , err => {
+            if (err) {
+                reject(new Error(`Error writing state for ${id}: ${err.message}, Data: ${JSON.stringify(state)}`));
+            } else {
+                resolve(true);
+            }
+        });
+    });
+}
+
+async function storeState(msg) {
     if (!msg.message) {
         adapter.log.error('storeState called with invalid data');
         return adapter.sendTo(msg.from, msg.command, {
@@ -2852,45 +2870,59 @@ function storeState(msg) {
         }, msg.callback);
     }
 
-    let pushFunc = pushHelper;
-    if (msg.message.rules) {
-        pushFunc = pushValueIntoDB;
-    }
-
-    let id;
+    let errors = [];
+    let successCount = 0;
     if (Array.isArray(msg.message)) {
         adapter.log.debug(`storeState ${msg.message.length} items`);
         for (let i = 0; i < msg.message.length; i++) {
-            id = aliasMap[msg.message[i].id] ? aliasMap[msg.message[i].id] : msg.message[i].id;
-            if (msg.message[i].state && typeof msg.message[i].state === 'object') {
-                pushFunc(id, msg.message[i].state);
-            } else {
-                adapter.log.warn(`Invalid state for ${JSON.stringify(msg.message[i])}`);
+            const id = aliasMap[msg.message[i].id] ? aliasMap[msg.message[i].id] : msg.message[i].id;
+            try {
+                await storeStatePushData(adapter, id, msg.message[i].state, msg.message.rules);
+                successCount++;
+            } catch (err) {
+                errors.push(err.message);
             }
         }
-    } else if (msg.message.state && Array.isArray(msg.message.state)) {
+    } else if (msg.message.id && Array.isArray(msg.message.state)) {
         adapter.log.debug(`storeState ${msg.message.state.length} items`);
-        id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
+        const id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
         for (let j = 0; j < msg.message.state.length; j++) {
-            if (msg.message.state[j] && typeof msg.message.state[j] === 'object') {
-                pushFunc(id, msg.message.state[j]);
-            } else {
-                adapter.log.warn(`Invalid state for ${JSON.stringify(msg.message.state[j])}`);
+            try {
+                await storeStatePushData(adapter, id, msg.message.state[j], msg.message.rules);
+                successCount++;
+            } catch (err) {
+                errors.push(err.message);
             }
         }
-    } else if (msg.message.id && msg.message.state && typeof msg.message.state === 'object') {
+    } else if (msg.message.id && msg.message.state) {
         adapter.log.debug('storeState 1 item');
-        id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
-        pushFunc(id, msg.message.state);
+        const id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
+        try {
+            await storeStatePushData(adapter, id, msg.message.state, msg.message.rules);
+            successCount++;
+        } catch (err) {
+            errors.push(err.message);
+        }
     } else {
         adapter.log.error('storeState called with invalid data');
         return adapter.sendTo(msg.from, msg.command, {
             error: `Invalid call: ${JSON.stringify(msg)}`
         }, msg.callback);
     }
+    if (errors.length) {
+        adapter.log.warn(`storeState executed with ${errors.length} errors: ${errors.join(', ')}`);
+        return adapter.sendTo(msg.from, msg.command, {
+            error:  `${errors.length} errors happened while storing data`,
+            errors: errors,
+            successCount
+        }, msg.callback);
+    }
+
+    adapter.log.debug(`storeState executed with ${successCount} states successfully`);
 
     adapter.sendTo(msg.from, msg.command, {
         success:    true,
+        successCount,
         connected:  !!clientPool
     }, msg.callback);
 }
@@ -3370,7 +3402,7 @@ function main() {
                                 }
 
                                 // relogTimeout
-                                if (sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
+                                if (sqlDPs[id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesOnly && sqlDPs[id][adapter.namespace].changesRelogInterval > 0) {
                                     sqlDPs[id].relogTimeout && clearTimeout(sqlDPs[id].relogTimeout);
                                     sqlDPs[id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[id][adapter.namespace].changesRelogInterval * 500, id);
                                 }

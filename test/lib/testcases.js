@@ -1057,6 +1057,63 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             done();
         });
     });
+
+    it(`Test ${adapterShortName}: storeState and getHistory for unknown Id`, function (done) {
+        this.timeout(25000);
+
+        const customNow = Date.now();
+        sendTo(instanceName, 'storeState', {
+            id: `my.own.unknown.value-${customNow}`,
+            state: [
+                {val: 1, ack: true, ts: customNow - 5000},
+                {val: 2, ack: true, ts: customNow - 4000},
+                {val: 3, ack: true, ts: customNow - 3000}
+            ]
+        }, function (result) {
+            expect(result.success).to.be.true;
+            expect(result.successCount).to.be.equal(3);
+
+            setTimeout( () =>  {
+                sendTo(instanceName, 'getHistory', {
+                    id: `my.own.unknown.value-${customNow}`,
+                    options: {
+                        start:     customNow - 10000,
+                        count: 500,
+                        aggregate: 'none'
+                    }
+                }, function (result) {
+                    console.log(JSON.stringify(result.result, null, 2));
+                    expect(result.result.length).to.be.equal(3);
+
+                    done();
+                });
+            }, 1000);
+        });
+    });
+
+    it(`Test ${adapterShortName}: storeState error for unknown Id with rules parameter`, function (done) {
+        this.timeout(25000);
+
+        const customNow2 = Date.now();
+        sendTo(instanceName, 'storeState', {
+            id: `my.own.unknown.value-${customNow2}`,
+            rules: true,
+            state: [
+                {val: 1, ack: true, ts: customNow2 - 5000},
+                {val: 2, ack: true, ts: customNow2 - 4000},
+                '37'
+            ]
+        }, function (result) {
+            expect(result.success).to.be.not.ok;
+            expect(result.successCount).to.be.equal(0);
+            expect(result.error).to.be.equal('3 errors happened while storing data');
+            expect(Array.isArray(result.errors)).to.be.true;
+            expect(result.errors[0]).to.be.equal(`history not enabled for my.own.unknown.value-${customNow2}, so can not apply the rules as requested`);
+            expect(result.errors[2]).to.be.equal(`State "37" for my.own.unknown.value-${customNow2} is not valid`);
+
+            done();
+        });
+    });
 }
 
 module.exports.register = register;

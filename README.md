@@ -364,7 +364,9 @@ Example if your database is called 'iobroker':
 If you want to write other data into the InfluxDB/SQL you can use the build in system function **storeState**.
 This function can also be used to convert data from other History adapters like History or SQL.
 
-The given IDs are not checked against the ioBroker database and do not need to be set up there, but can only be accessed directly.
+A successful response do not mean that the data are really written out to the disk. It just means that they were processed.
+
+The given ids are not checked against the ioBroker database and do not need to be set up or enabled there. If own IDs are used without settings then the "rules" parameter is not supported and will result in an error. The default "Maximal number of stored in RAM values" is used for such IDs.
 
 The Message can have one of the following three formats:
 * one ID and one state object
@@ -398,6 +400,8 @@ sendTo('history.0', 'storeState', [
 ```
 
 Additionally, you can add attribute `rules: true` in message to activate all rules, like `counter`, `changesOnly`, `de-bounce` and so on.
+
+In case of errors an array with all single error messages is returned and also a successCount to see how many entries were stored successfully.
 
 ## delete state
 If you want to delete entry from the Database you can use the build in system function **delete**:
@@ -524,6 +528,8 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (Apollon77) Optimize retention check to better spread the first checks over time
 * (Apollon77) Default to not use datapoint buffering as in 1.x when set to 0
 * (Apollon77) Fix several crash cases reported by Sentry
+* (Apollon77) Make sure disabling "Log changes only" also really do not log the changes anymore
+* (Apollon77) Allow storeState and GetHistory also to be called for "unknown ids"
 
 ### 2.0.2 (2022-05-11)
 * (Apollon77) BREAKING: Configuration is only working in the new Admin 5 UI!
