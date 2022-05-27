@@ -2839,7 +2839,7 @@ function deleteStateAll(msg) {
     }, msg.callback);
 }
 
-function storeStatePushData(adapter, id, state, applyRules) {
+function storeStatePushData(id, state, applyRules) {
     if (!state || typeof state !== 'object') {
         throw new Error(`State ${JSON.stringify(state)} for ${id} is not valid`);
     }
@@ -2852,7 +2852,7 @@ function storeStatePushData(adapter, id, state, applyRules) {
         sqlDPs[id] = sqlDPs[id] || {};
     }
     return new Promise((resolve, reject) => {
-        pushFunc(adapter, id, state , err => {
+        pushFunc(id, state , err => {
             if (err) {
                 reject(new Error(`Error writing state for ${id}: ${err.message}, Data: ${JSON.stringify(state)}`));
             } else {
@@ -2877,7 +2877,7 @@ async function storeState(msg) {
         for (let i = 0; i < msg.message.length; i++) {
             const id = aliasMap[msg.message[i].id] ? aliasMap[msg.message[i].id] : msg.message[i].id;
             try {
-                await storeStatePushData(adapter, id, msg.message[i].state, msg.message.rules);
+                await storeStatePushData(id, msg.message[i].state, msg.message.rules);
                 successCount++;
             } catch (err) {
                 errors.push(err.message);
@@ -2888,7 +2888,7 @@ async function storeState(msg) {
         const id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
         for (let j = 0; j < msg.message.state.length; j++) {
             try {
-                await storeStatePushData(adapter, id, msg.message.state[j], msg.message.rules);
+                await storeStatePushData(id, msg.message.state[j], msg.message.rules);
                 successCount++;
             } catch (err) {
                 errors.push(err.message);
@@ -2898,7 +2898,7 @@ async function storeState(msg) {
         adapter.log.debug('storeState 1 item');
         const id = aliasMap[msg.message.id] ? aliasMap[msg.message.id] : msg.message.id;
         try {
-            await storeStatePushData(adapter, id, msg.message.state, msg.message.rules);
+            await storeStatePushData(id, msg.message.state, msg.message.rules);
             successCount++;
         } catch (err) {
             errors.push(err.message);
