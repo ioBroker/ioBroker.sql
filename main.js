@@ -1130,7 +1130,7 @@ function processStartValues(callback) {
 
             setImmediate(processStartValues);
         }
-        if (sqlDPs[task.id][adapter.namespace] && sqlDPs[id][adapter.namespace].changesOnly && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
+        if (sqlDPs[task.id][adapter.namespace] && sqlDPs[task.id][adapter.namespace].changesOnly && sqlDPs[task.id][adapter.namespace].changesRelogInterval > 0) {
             sqlDPs[task.id].relogTimeout && clearTimeout(sqlDPs[task.id].relogTimeout);
             sqlDPs[task.id].relogTimeout = setTimeout(reLogHelper, (sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500 * Math.random()) + sqlDPs[task.id][adapter.namespace].changesRelogInterval * 500, task.id);
         }
