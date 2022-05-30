@@ -2213,7 +2213,7 @@ function getCachedData(options, callback) {
     }
 
     options.length = cache.length;
-    callback(cache, options.returnNewestEntries && options.count && cache.length >= options.count, !!Object.keys(sqlDPs[options.index || options.id].inFlight).length, earliestTs);
+    callback(cache, options.returnNewestEntries && options.count && cache.length >= options.count, !!(sqlDPs[options.index || options.id] && sqlDPs[options.index || options.id].inFlight && Object.keys(sqlDPs[options.index || options.id].inFlight).length()), earliestTs);
 }
 
 
