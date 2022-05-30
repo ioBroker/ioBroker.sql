@@ -144,7 +144,7 @@ describe(`Test ${__filename}`, function() {
     tests.register(it, expect, sendTo, adapterShortName, false, 0, 2);
 
     it(`Test ${__filename}: Check Datapoint Types`, function (done) {
-        this.timeout(5000);
+        this.timeout(10000);
 
         sendTo('sql.0', 'query', "SELECT name, type FROM datapoints", function (result) {
             console.log(`SQLite: ${JSON.stringify(result.result, null, 2)}`);
@@ -163,16 +163,16 @@ describe(`Test ${__filename}`, function() {
 
             setTimeout(function () {
                 done();
-            }, 3000);
+            }, 5000);
         });
     });
 
     after(`Test ${__filename} Stop js-controller`, function (done) {
-        this.timeout(16000);
+        this.timeout(30000);
 
         setup.stopController(function (normalTerminated) {
             console.log(`SQLite: Adapter normal terminated: ${normalTerminated}`);
-            setTimeout(done, 2000);
+            setTimeout(done, 3000);
         });
     });
 });
