@@ -26,8 +26,20 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "2.1.0",
+    "version": "2.1.1",
     "news": {
+      "2.1.1": {
+        "en": "Fix crash cases reported by Sentry",
+        "de": "Von Sentry gemeldete Absturzfälle beheben",
+        "ru": "Исправить случаи сбоев, о которых сообщил Sentry",
+        "pt": "Corrigir casos de travamento relatados pelo Sentinela",
+        "nl": "Herstel crashgevallen gemeld door Sentry",
+        "fr": "Correction des cas de plantage signalés par Sentry",
+        "it": "Risolvi i casi di crash segnalati da Sentry",
+        "es": "Solucionar casos de fallas informados por Sentry",
+        "pl": "Napraw przypadki awarii zgłoszone przez Sentry",
+        "zh-cn": "修复 Sentry 报告的崩溃案例"
+      },
       "2.1.0": {
         "en": "Fix crash cases reported by Sentry\nFix several places where pooled connections might have not been returned to pool correctly and add logging for it\nWork around an issue in used Pooling library that potentially gave out too many connections\nOptimize retention check to better spread the first checks over time\nDefault to not use datapoint buffering as in 1.x when set to 0\nMake sure disabling \"Log changes only\" also really do not log the changes anymore\nAllow storeState and GetHistory also to be called for \"unknown ids\"\nAdjust the fallback logic for type detection to use the type of the state value to log as last fallback\nFix storing booleans on MSSQL",
         "de": "Von Sentry gemeldete Absturzfälle beheben\nBeheben Sie mehrere Stellen, an denen gepoolte Verbindungen möglicherweise nicht korrekt an den Pool zurückgegeben wurden, und fügen Sie die Protokollierung dafür hinzu\nUmgehung eines Problems in der verwendeten Pooling-Bibliothek, das möglicherweise zu viele Verbindungen ausgegeben hat\nOptimieren Sie die Aufbewahrungsprüfung, um die ersten Prüfungen besser über die Zeit zu verteilen\nStandardmäßig keine Datenpunktpufferung wie in 1.x verwenden, wenn auf 0 gesetzt\nStellen Sie sicher, dass durch Deaktivieren von \"Nur Änderungen protokollieren\" die Änderungen auch wirklich nicht mehr protokolliert werden\nAufruf von storeState und GetHistory auch für \"unbekannte IDs\" zulassen\nPassen Sie die Fallback-Logik für die Typerkennung so an, dass der Typ des Statuswerts als letzter Fallback protokolliert wird\nFehler beim Speichern von booleschen Werten in MSSQL behoben",
@@ -99,18 +111,6 @@
         "es": "arreglado el soporte de Admin5",
         "pl": "naprawiono obsługę Admin5",
         "zh-cn": "修复了对Admin5的支持"
-      },
-      "1.15.6": {
-        "en": "added support of Admin5",
-        "de": "Unterstützung von Admin5 hinzugefügt",
-        "ru": "добавлена поддержка Admin5",
-        "pt": "adicionado suporte de Admin5",
-        "nl": "toegevoegde ondersteuning van Admin5",
-        "fr": "ajout de la prise en charge d'Admin5",
-        "it": "aggiunto il supporto di Admin5",
-        "es": "soporte agregado de Admin5",
-        "pl": "dodana obsługa Admin5",
-        "zh-cn": "增加了对Admin5的支持"
       }
     },
     "mode": "daemon",
