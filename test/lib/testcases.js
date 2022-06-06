@@ -1058,6 +1058,27 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
         });
     });
 
+    it(`Test ${adapterShortName}: Read minmax values from DB using GetHistory with 1mio slices`, function (done) {
+        this.timeout(20000);
+
+        sendTo(instanceName, 'getHistory', {
+            id: `${instanceName}.testValue`,
+            options: {
+                start:     Date.now() - 7 * 24 * 60 * 60 * 1000,
+                end:       Date.now(),
+                count:     1000000,
+                limit:     1000000,
+                aggregate: 'minmax',
+                addId: true
+            }
+        }, result => {
+            console.log(JSON.stringify(result.result, null, 2));
+            expect(result.result.length).to.be.at.least(4);
+            expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
+            done();
+        });
+    });
+
     it(`Test ${adapterShortName}: storeState and getHistory for unknown Id`, function (done) {
         this.timeout(25000);
 
