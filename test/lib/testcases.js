@@ -499,7 +499,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
     });
 
     it(`Test ${adapterShortName}: Read percentile 50+95 values from DB using GetHistory`, function (done) {
-        this.timeout(10000);
+        this.timeout(15000);
 
         sendTo(instanceName, 'getHistory', {
             id: `${instanceName}.testValueDebounce alias`,
