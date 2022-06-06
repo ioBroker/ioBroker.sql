@@ -2470,7 +2470,7 @@ function getHistory(msg) {
             if ((isFull && cacheData.length) && (options.aggregate === 'onchange' || options.aggregate === '' || options.aggregate === 'none')) {
                 cacheData = cacheData.sort(sortByTs);
                 if (options.count && cacheData.length > options.count && options.aggregate === 'none') {
-                    cacheData = cacheData.slice(-options.count);
+                    cacheData.splice(0, cacheData.length - options.count);
                     debugLog && adapter.log.debug(`${options.logId} cut cacheData to ${options.count} values`);
                 }
                 adapter.log.debug(`${options.logId} Send: ${cacheData.length} values in: ${Date.now() - startTime}ms`);
@@ -2507,7 +2507,7 @@ function getHistory(msg) {
                                     }
                                 }
                             }
-                            data = data.slice(0, options.count);
+                            data.splice(options.count);
                             options.debugLog && adapter.log.debug(`${options.logId} pre-cut data to ${options.count} oldest values`);
                         }
 

@@ -520,6 +520,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (Apollon77) Huge performance optimizations for GetHistory calls
+
 ### 2.1.1 (2022-05-30)
 * (Apollon77) Fix crash cases reported by Sentry
 

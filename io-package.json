@@ -162,6 +162,7 @@
       "custom": "json"
     },
     "tier": 1,
+    "eraseOnUpload": true,
     "connectionType": "none",
     "dataSource": "push",
     "messages": [
