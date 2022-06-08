@@ -26,8 +26,20 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "2.1.1",
+    "version": "2.1.2",
     "news": {
+      "2.1.2": {
+        "en": "Huge performance optimizations for GetHistory calls",
+        "de": "Riesige Leistungsoptimierungen für GetHistory-Anrufe",
+        "ru": "Огромная оптимизация производительности для звонков GetHistory",
+        "pt": "Otimizações de desempenho enormes para chamadas GetHistory",
+        "nl": "Grote prestaties voor GetHistory",
+        "fr": "Des optimisations de performance énormes pour les appels GetHistory",
+        "it": "Ottimizzazione delle prestazioni enormi per le chiamate GetHistory",
+        "es": "Amplias optimizaciones de rendimiento para llamadas GetHistory",
+        "pl": "Optymalizacja wyników Huge'a dla GetHistory'ego nawołuje się do optymalizacji wydajności",
+        "zh-cn": "GetHistory呼声的优越性"
+      },
       "2.1.1": {
         "en": "Fix crash cases reported by Sentry",
         "de": "Von Sentry gemeldete Absturzfälle beheben",
@@ -99,18 +111,6 @@
         "es": "Admite solo `js-controller` 3.3.x+\nSistema usado / vista personalizada para recolectar los objetos.\nOpción implementada para ignorar valores cero o inferiores a cero",
         "pl": "Obsługuje tylko `js-controller` 3.3.x+\nWykorzystany widok systemowy/niestandardowy do zbierania obiektów\nZaimplementowana opcja ignorowania wartości zerowych lub/i poniżej zera",
         "zh-cn": "仅支持 `js-controller` 3.3.x+\n用于收集对象的系统/自定义视图\n已实现忽略零或/和低于零值的选项"
-      },
-      "1.15.7": {
-        "en": "fixed the support of Admin5",
-        "de": "Die Unterstützung von Admin5 wurde behoben",
-        "ru": "исправлена поддержка Admin5",
-        "pt": "consertou o suporte do Admin5",
-        "nl": "de ondersteuning van Admin5 opgelost",
-        "fr": "correction du support d'Admin5",
-        "it": "risolto il supporto di Admin5",
-        "es": "arreglado el soporte de Admin5",
-        "pl": "naprawiono obsługę Admin5",
-        "zh-cn": "修复了对Admin5的支持"
       }
     },
     "mode": "daemon",

@@ -520,8 +520,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 2.1.2 (2022-06-08)
 * (Apollon77) Huge performance optimizations for GetHistory calls
 
 ### 2.1.1 (2022-05-30)
