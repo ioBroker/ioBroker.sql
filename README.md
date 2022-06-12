@@ -520,7 +520,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### __WORK IN PROGRESS__
+### 2.1.3 (2022-06-12)
 * (Apollon77) Make sure debug log is active according to the settings
 
 ### 2.1.2 (2022-06-08)

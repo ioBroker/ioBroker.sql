@@ -26,8 +26,20 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "2.1.2",
+    "version": "2.1.3",
     "news": {
+      "2.1.3": {
+        "en": "Make sure debug log is active according to the settings",
+        "de": "Stellen Sie sicher, dass das Debug-Log gemäß den Einstellungen aktiv ist",
+        "ru": "Убедитесь, что журнал debug активен в соответствии с настройками",
+        "pt": "Certifique-se de que o log de depuração está ativo de acordo com as configurações",
+        "nl": "Zorg ervoor dat het logboek actief is volgens de instellingen",
+        "fr": "Assurez-vous que le journal debug est actif selon les paramètres",
+        "it": "Assicurarsi che il registro di debug sia attivo in base alle impostazioni",
+        "es": "Asegúrese de que el registro de depuración está activo según la configuración",
+        "pl": "Umożliwia to, że log debug jest aktywny zgodnie z ustawieniami",
+        "zh-cn": "B. 根据环境,确保有色色逻辑积极。"
+      },
       "2.1.2": {
         "en": "Huge performance optimizations for GetHistory calls",
         "de": "Riesige Leistungsoptimierungen für GetHistory-Anrufe",
@@ -99,18 +111,6 @@
         "es": "Ocultar la configuración que no es relevante cuando no se utiliza \"solo cambios de registro\"\nPermitir todos los valores numéricos para antirrebote nuevamente",
         "pl": "Ukryj ustawienia nieistotne, gdy nie używasz opcji „tylko rejestruj zmiany”\nZezwól ponownie na odrzucenie wszystkich wartości liczbowych",
         "zh-cn": "不使用“仅记录更改”时隐藏不相关的设置\n再次允许所有数值去抖动"
-      },
-      "1.16.0": {
-        "en": "Support only `js-controller` 3.3.x+\nUsed system/custom view for collecting the objects\nImplemented option to ignore zero- or/and below zero- values",
-        "de": "Unterstützt nur `js-controller` 3.3.x+\nVerwendete Systemansicht/benutzerdefinierte Ansicht zum Sammeln der Objekte\nImplementierte Option zum Ignorieren von Null- oder/und Unter-Null-Werten",
-        "ru": "Поддерживает только `js-controller` 3.3.x+\nИспользуемый системный / пользовательский вид для сбора объектов\nРеализована возможность игнорировать нулевые и / или отрицательные значения.",
-        "pt": "Suporte apenas `js-controller` 3.3.x+\nSistema usado / visão personalizada para coletar os objetos\nOpção implementada para ignorar valores zero ou / e abaixo de zero",
-        "nl": "Ondersteuning alleen `js-controller` 3.3.x+\nGebruikt systeem/aangepaste weergave voor het verzamelen van de objecten\nGeïmplementeerde optie om nul- of/en onder nul-waarden te negeren",
-        "fr": "Supporte uniquement `js-controller` 3.3.x+\nSystème utilisé/vue personnalisée pour la collecte des objets\nOption implémentée pour ignorer les valeurs zéro ou/et inférieures à zéro",
-        "it": "Supporta solo `js-controller` 3.3.x+\nSistema utilizzato/vista personalizzata per la raccolta degli oggetti\nOpzione implementata per ignorare i valori zero o/o inferiori a zero",
-        "es": "Admite solo `js-controller` 3.3.x+\nSistema usado / vista personalizada para recolectar los objetos.\nOpción implementada para ignorar valores cero o inferiores a cero",
-        "pl": "Obsługuje tylko `js-controller` 3.3.x+\nWykorzystany widok systemowy/niestandardowy do zbierania obiektów\nZaimplementowana opcja ignorowania wartości zerowych lub/i poniżej zera",
-        "zh-cn": "仅支持 `js-controller` 3.3.x+\n用于收集对象的系统/自定义视图\n已实现忽略零或/和低于零值的选项"
       }
     },
     "mode": "daemon",
