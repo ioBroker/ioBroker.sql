@@ -2403,7 +2403,7 @@ function getHistory(msg) {
     }
 
     sqlDPs[options.id] = sqlDPs[options.id] || {};
-    const debugLog = options.debugLog = !!(sqlDPs[options.id] && sqlDPs[options.id][adapter.namespace] && sqlDPs[options.id][adapter.namespace].enableDebugLogs);
+    const debugLog = options.debugLog = !!((sqlDPs[options.id] && sqlDPs[options.id][adapter.namespace] && sqlDPs[options.id][adapter.namespace].enableDebugLogs) || adapter.config.enableDebugLogs);
 
     if (options.ignoreNull === 'true')  options.ignoreNull = true;  // include nulls and replace them with last value
     if (options.ignoreNull === 'false') options.ignoreNull = false; // include nulls

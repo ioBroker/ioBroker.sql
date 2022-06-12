@@ -519,10 +519,11 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 expect(result.result[0].val).to.be.equal(5);
                 expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
             } else {
-                expect(result.result.length).to.be.within(1,2);
                 if (process.env.INFLUXDB2) {
+                    expect(result.result.length).to.be.within(1,3);
                     expect(result.result[1] ? result.result[1].val : result.result[0].val).to.be.within(5, 7);
                 } else {
+                    expect(result.result.length).to.be.within(1,2);
                     expect(result.result[1] ? result.result[1].val : result.result[0].val).to.be.within(5, 7);
                 }
                 expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
@@ -545,8 +546,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                     expect(result.result.length).to.be.equal(1);
                     expect(result.result[0].val).to.be.equal(7);
                 } else {
-                    expect(result.result.length).to.be.within(1,2);
-                    expect(result.result[1] ? result.result[1].val : result.result[0].val).to.be.equal(7);
+                    expect(result.result.length).to.be.within(1,3);
+                    expect(result.result[result.result.length - 1].val).to.be.equal(7);
                     expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
                 }
 
@@ -602,7 +603,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             if (instanceName !== 'influxdb.0') {
                 expect(result.result.length).to.be.equal(5);
             } else {
-                expect(result.result.length).to.be.within(3, 5);
+                expect(result.result.length).to.be.within(3, 6);
             }
             expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
             done();

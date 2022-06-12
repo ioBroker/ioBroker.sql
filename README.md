@@ -520,6 +520,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### __WORK IN PROGRESS__
+* (Apollon77) Make sure debug log is active according to the settings
+
 ### 2.1.2 (2022-06-08)
 * (Apollon77) Huge performance optimizations for GetHistory calls
 
