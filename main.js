@@ -1557,7 +1557,7 @@ function processReadTypes() {
 
         if (!sqlDPs[task.id]) {
             adapter.log.warn(`Ignore type lookup for ${task.id} because not enabled anymore`);
-            task.cb && task.cb(`Ignore type lookup for ${task.id} because not enabled anymore`)
+            task.cb && task.cb(`Ignore type lookup for ${task.id} because not enabled anymore`);
             task.cb = null;
             return setImmediate(() => {
                 tasksReadType.shift();
@@ -1634,6 +1634,7 @@ function processReadTypes() {
                     task.cb && task.cb();
                     task.cb = null;
                     tasksReadType.shift();
+                    processReadTypes();
                 }
             });
         }
