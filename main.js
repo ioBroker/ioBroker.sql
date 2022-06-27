@@ -1859,7 +1859,7 @@ function storeCached(onlyId, cb) {
             sqlDPs[id].list = [];
             count++;
             pushValuesIntoDB(id, sqlDPs[id].inFlight[inFlightId], err => {
-                delete sqlDPs[id].inFlight[inFlightId];
+                sqlDPs[id].inFlight && sqlDPs[id].inFlight[inFlightId] && delete sqlDPs[id].inFlight[inFlightId];
                 if (!--count && cb) {
                     cb(err);
                     cb = null;
@@ -2523,7 +2523,11 @@ function getHistory(msg) {
 
                         data.sort(sortByTs);
                     }
-                    commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || data, startTime)
+                    try {
+                        commons.sendResponse(adapter, msg, options, (err ? err.toString() : null) || data, startTime)
+                    } catch (e) {
+                        commons.sendResponse(adapter, msg, options, e.toString(), startTime);
+                    }
                 });
             }
         });
@@ -2547,7 +2551,11 @@ function getHistory(msg) {
                         }
                         if (!--count) {
                             rows.sort(sortByTs);
-                            commons.sendResponse(adapter, msg, options, rows, startTime);
+                            try {
+                                commons.sendResponse(adapter, msg, options, rows, startTime);
+                            } catch (e) {
+                                commons.sendResponse(adapter, msg, options, e.toString(), startTime);
+                            }
                         }
                     });
                 }
