@@ -88,6 +88,7 @@ describe(`Test ${__filename}`, function() {
             config.common.loglevel = 'debug';
 
             config.native.enableDebugLogs = true;
+            config.native.host = '127.0.0.1';
             config.native.dbtype   = 'mssql';
             config.native.user     = 'sa';
             config.native.password = 'Password12!';
