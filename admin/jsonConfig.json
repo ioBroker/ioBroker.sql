@@ -291,7 +291,7 @@
         },
         "round": {
           "newLine": true,
-          "type": "number",
+          "type": "text",
           "label": "Round real to",
           "sm": 12,
           "md": 4,
