@@ -28,18 +28,6 @@
     },
     "version": "2.1.4",
     "news": {
-      "2.1.4": {
-        "en": "When not count is provided for aggregate \"none\" or \"onchange\" then the limit (default 2000) is used as count to define the number of data to return.",
-        "de": "Wenn für die Aggregate keine oder Onchange keine Zählung vorgesehen ist, wird die Grenze (Standard 2000) als Zählung verwendet, um die Anzahl der Daten zu definieren, um zurückzukehren.",
-        "ru": "Когда не считать предоставляется для агрегата ни один или онмен, то предел (по умолчанию 2000) используется как считать, чтобы определить количество данных для возврата.",
-        "pt": "Quando não a contagem é fornecida para agregar nenhum ou onchange, então o limite (padrão 2000) é usado como contagem para definir o número de dados para retornar.",
-        "nl": "Als de tel niet wordt toegewezen voor aggregate noch onchange, dan wordt de limiet 2000 gebruikt om het aantal data te definiëren om terug te keren.",
-        "fr": "Lorsqu'il n'y a pas de comptage pour l'agrégat ou le changement, la limite (par défaut 2000) est utilisée pour définir le nombre de données à retourner.",
-        "it": "Quando il conteggio non viene fornito per aggregato nessuno o cambio, il limite (default 2000) viene utilizzato come conteggio per definire il numero di dati da restituire.",
-        "es": "Cuando no se cuenta se proporciona para agregado ninguno o cambio entonces el límite (por defecto 2000) se utiliza como cuenta para definir el número de datos para regresar.",
-        "pl": "Jeśli nieliczanie jest dostarczane dla agregacji ani zmian, to limit (default 2000) jest używany jako określenie liczby danych do powrotu.",
-        "zh-cn": "当没有计算总额时,或当时的汇率(2000年)用来确定返回的数据数量。."
-      },
       "2.1.3": {
         "en": "Make sure debug log is active according to the settings",
         "de": "Stellen Sie sicher, dass das Debug-Log gemäß den Einstellungen aktiv ist",
