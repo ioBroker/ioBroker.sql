@@ -2327,7 +2327,7 @@ function getHistory(msg) {
         start:      msg.message.options.start,
         end:        msg.message.options.end || (Date.now() + 5000000),
         step:       parseInt(msg.message.options.step, 10)  || null,
-        count:      parseInt(msg.message.options.count, 10) || 500,
+        count:      parseInt(msg.message.options.count, 10),
         ignoreNull: msg.message.options.ignoreNull,
         aggregate:  msg.message.options.aggregate || 'average', // One of: max, min, average, total, none, on-change
         limit:      parseInt(msg.message.options.limit, 10) || parseInt(msg.message.options.count, 10) || adapter.config.limit || 2000,
@@ -2345,6 +2345,16 @@ function getHistory(msg) {
         removeBorderValues: msg.message.options.removeBorderValues || false,
         logId:     (msg.message.id ? msg.message.id : 'all') + Date.now() + Math.random()
     };
+
+    adapter.log.debug(`${options.logId} getHistory message: ${JSON.stringify(msg.message)}`);
+
+    if (!options.count || isNaN(options.count)) {
+        if (options.aggregate === 'none' || options.aggregate === 'onchange') {
+            options.count = options.limit;
+        } else {
+            options.count = 500;
+        }
+    }
 
     try {
         if (options.start && typeof options.start !== 'number') {
@@ -2380,8 +2390,6 @@ function getHistory(msg) {
     } else {
         options.round = adapter.config.round;
     }
-
-    adapter.log.debug(`${options.logId} getHistory call: ${JSON.stringify(options)}`);
 
     if (options.id && aliasMap[options.id]) {
         options.id = aliasMap[options.id];
@@ -2421,6 +2429,8 @@ function getHistory(msg) {
     if (!options.start && !options.count) {
         options.start = Date.now() - 86400000; // - 1 day
     }
+
+    debugLog && adapter.log.debug(`${options.logId} getHistory options final: ${JSON.stringify(options)}`);
 
     if (sqlDPs[options.id].type === undefined && sqlDPs[options.id].dbtype !== undefined) {
         if (sqlDPs[options.id][adapter.namespace] && sqlDPs[options.id][adapter.namespace].storageType) {
