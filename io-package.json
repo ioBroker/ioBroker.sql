@@ -26,8 +26,20 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "2.1.4",
+    "version": "2.1.5",
     "news": {
+      "2.1.5": {
+        "en": "When no count is provided for aggregate \"none\" or \"onchange\" then the limit (default 2000) is used as count to define the number of data to return.\nFix the initialization of types and IDs for some cases.",
+        "de": "Wenn keine Zählung für die Aggregate keine oder Änderung vorgesehen ist, wird die Grenze (Standard 2000) als Zählung verwendet, um die Anzahl der Daten zu definieren, um zurückzukehren.\nBeheben Sie die Initialisierung von Typen und IDs für einige Fälle.",
+        "ru": "Когда никакое число не предусмотрено для агрегировать никакое или онмен после этого предел (по умолчанию 2000) использован как считать для того чтобы определить количество данных для возвращения.\nИсправьте инициализацию типов и идентификаторов для некоторых случаев.",
+        "pt": "Quando nenhuma contagem é fornecida para agregar nenhum ou onchange, então o limite (padrão 2000) é usado como contagem para definir o número de dados para retornar.\nCorrigir a inicialização de tipos e IDs para alguns casos.",
+        "nl": "Als er geen tel is voor aggregate noch onchange dan wordt de limiet (default 2000) gebruikt om het aantal data te definiëren om terug te keren.\nMaak de initialisatie van types en ID's voor sommige gevallen.",
+        "fr": "Si aucun compte n'est fourni pour l'agrégat aucun ou le changement, la limite (par défaut 2000) est utilisée comme compte pour définir le nombre de données à retourner.\nFixer l'initialisation des types et des ID pour certains cas.",
+        "it": "Quando non è previsto alcun conteggio per aggregato nessuno o per il cambiamento, il limite (default 2000) viene utilizzato come conteggio per definire il numero di dati da restituire.\nFissare l'inizializzazione di tipi e ID per alcuni casi.",
+        "es": "Cuando no se proporciona ningún recuento para agregado ninguno o cambio entonces el límite (por defecto 2000) se utiliza como recuento para definir el número de datos para regresar.\nArreglar la inicialización de tipos e identificaciones para algunos casos.",
+        "pl": "Jeśli nie jest liczona dla agregacji ani zmian, to limit (default 2000) jest używany jako określenie liczby danych do powrotu.\nW niektórych przypadkach inicjacja typów i ID.",
+        "zh-cn": "当时没有对总数据或换算进行计算(2000年12月)用于确定返回的数据数量。.\n确定某些案例的类型和研发。."
+      },
       "2.1.3": {
         "en": "Make sure debug log is active according to the settings",
         "de": "Stellen Sie sicher, dass das Debug-Log gemäß den Einstellungen aktiv ist",

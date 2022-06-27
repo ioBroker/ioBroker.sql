@@ -520,9 +520,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-
-
-### __WORK IN PROGRESS__
+### 2.1.5 (2022-06-27)
 * (Apollon77) When no count is provided for aggregate "none" or "onchange" then the limit (default 2000) is used as count to define the number of data to return.
 * (Apollon77) Fix the initialization of types and IDs for some cases.
 
