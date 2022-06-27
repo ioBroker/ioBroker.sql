@@ -1,7 +1,7 @@
 {
   "name": "iobroker.sql",
   "description": "Log state sql in a two-stages process (first to Redis, then to CouchDB)",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "author": "bluefox <dogafox@gmail.com>",
   "contributors": [
     "bluefox <dogafox@gmail.com>",
