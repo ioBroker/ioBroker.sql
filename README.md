@@ -520,7 +520,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### __WORK IN PROGRESS__
+### 2.1.6 (2022-06-27)
 * (Apollon77) Allow to remove a configuration value for "round" in config again
 
 ### 2.1.5 (2022-06-27)

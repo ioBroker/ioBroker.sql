@@ -26,8 +26,20 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "2.1.5",
+    "version": "2.1.6",
     "news": {
+      "2.1.6": {
+        "en": "Allow to remove a configuration value for \"round\" in config again",
+        "de": "Lassen Sie einen Konfigurationswert für Runde in config wieder entfernen",
+        "ru": "Разрешить удалить конфигурационную ценность для раунда в config снова",
+        "pt": "Permitir remover um valor de configuração para round em config novamente",
+        "nl": "Sta toe om weer een configuratiewaarde te verwijderen voor ronde in het leger",
+        "fr": "Permettre de supprimer une valeur de configuration pour round in config à nouveau",
+        "it": "Permette di rimuovere un valore di configurazione per round in config di nuovo",
+        "es": "Permitir eliminar de nuevo un valor de configuración para redondear en configuración",
+        "pl": "Allow, aby usunąć wartość konfiguracyjna w zakręcie ponownie w konfigunie",
+        "zh-cn": "允许再次取消一轮谈判的组合价值"
+      },
       "2.1.5": {
         "en": "When no count is provided for aggregate \"none\" or \"onchange\" then the limit (default 2000) is used as count to define the number of data to return.\nFix the initialization of types and IDs for some cases.",
         "de": "Wenn keine Zählung für die Aggregate keine oder Änderung vorgesehen ist, wird die Grenze (Standard 2000) als Zählung verwendet, um die Anzahl der Daten zu definieren, um zurückzukehren.\nBeheben Sie die Initialisierung von Typen und IDs für einige Fälle.",
@@ -99,18 +111,6 @@
         "es": "ÚLTIMA HORA: ¡La configuración solo funciona en la nueva interfaz de usuario de Admin 5!\nHizo ajustes más grandes a la lógica de grabación y agregó muchas características nuevas. Consulte el registro de cambios y la publicación del foro para obtener más detalles.",
         "pl": "ŁAMANIE: Konfiguracja działa tylko w nowym interfejsie użytkownika Admin 5!\nWprowadziłem większe poprawki w logice nagrywania i dodałem wiele nowych funkcji. Więcej informacji można znaleźć w dzienniku zmian i poście na forum.",
         "zh-cn": "突破：配置仅在新的 Admin 5 UI 中有效！\n对录制逻辑进行了更大的调整，并添加了许多新功能。有关详细信息，请参阅变更日志和论坛帖子。"
-      },
-      "1.16.2": {
-        "en": "Marked interpolated data with `i=true`",
-        "de": "Markierte interpolierte Daten mit `i=true`",
-        "ru": "Помеченные интерполированные данные с `i=true`",
-        "pt": "Dados interpolados marcados com `i=true`",
-        "nl": "Gemarkeerde geïnterpoleerde gegevens met `i=true`",
-        "fr": "Données interpolées marquées avec `i=true`",
-        "it": "Dati interpolati contrassegnati con `i=true`",
-        "es": "Datos interpolados marcados con `i=true`",
-        "pl": "Oznaczono dane interpolowane za pomocą `i=true`",
-        "zh-cn": "用 `i=true` 标记插值数据"
       }
     },
     "mode": "daemon",
