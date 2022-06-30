@@ -1860,7 +1860,7 @@ function storeCached(onlyId, cb) {
             sqlDPs[id].list = [];
             count++;
             pushValuesIntoDB(id, sqlDPs[id].inFlight[inFlightId], err => {
-                sqlDPs[id].inFlight && sqlDPs[id].inFlight[inFlightId] && delete sqlDPs[id].inFlight[inFlightId];
+                sqlDPs[id] && sqlDPs[id].inFlight && sqlDPs[id].inFlight[inFlightId] && delete sqlDPs[id].inFlight[inFlightId];
                 if (!--count && cb) {
                     cb(err);
                     cb = null;

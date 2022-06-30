@@ -520,6 +520,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### __WORK IN PROGRESS__
+* (Apollon77) Fix crash cases reported by Sentry
+
 ### 2.1.6 (2022-06-27)
 * (Apollon77) Allow to remove a configuration value for "round" in config again
 
