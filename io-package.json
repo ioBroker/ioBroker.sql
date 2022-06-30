@@ -26,8 +26,20 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "2.1.6",
+    "version": "2.1.7",
     "news": {
+      "2.1.7": {
+        "en": "Fix crash cases reported by Sentry",
+        "de": "Reparieren Crashfälle gemeldet von Sentry",
+        "ru": "Исправление случаев аварии, описанных Sentry",
+        "pt": "Corrigir casos de acidente relatados por Sentry",
+        "nl": "Vertaling:",
+        "fr": "Troubles de crash signalés par Sentry",
+        "it": "Correzione dei casi di crash segnalati da Sentry",
+        "es": "Casos de accidente fijo reportados por Sentry",
+        "pl": "Sprawy katastrofy Fix podane przez Sentry’a",
+        "zh-cn": "Sentry所报告的六例事故"
+      },
       "2.1.6": {
         "en": "Allow to remove a configuration value for \"round\" in config again",
         "de": "Lassen Sie einen Konfigurationswert für Runde in config wieder entfernen",
@@ -99,18 +111,6 @@
         "es": "Solucionar casos de fallas informados por Sentry\nCorrija varios lugares donde las conexiones agrupadas podrían no haber regresado al grupo correctamente y agregue el registro para ello\nSolucione un problema en la biblioteca de agrupación utilizada que potencialmente proporcionó demasiadas conexiones\nOptimice el control de retención para distribuir mejor los primeros controles a lo largo del tiempo\nPredeterminado para no usar el almacenamiento en búfer de puntos de datos como en 1.x cuando se establece en 0\nAsegúrese de deshabilitar \"Registrar solo cambios\" y realmente no registre más los cambios\nPermitir que storeState y GetHistory también se llamen para \"identificadores desconocidos\"\nAjuste la lógica de respaldo para la detección de tipo para usar el tipo del valor de estado para registrar como último respaldo\nArreglar el almacenamiento de booleanos en MSSQL",
         "pl": "Napraw przypadki awarii zgłoszone przez Sentry\nNapraw kilka miejsc, w których połączenia z puli mogły nie zostać poprawnie zwrócone do puli i dodaj dla tego logowanie\nObejdź problem w używanej bibliotece Pooling, który potencjalnie powodował zbyt wiele połączeń\nZoptymalizuj kontrolę retencji, aby lepiej rozłożyć pierwsze kontrole w czasie\nDomyślnie nie używa buforowania punktu danych, jak w 1.x, gdy jest ustawione na 0\nUpewnij się, że wyłączenie opcji „Zapisuj tylko zmiany” również naprawdę nie powoduje już rejestrowania zmian\nZezwalaj na wywoływanie storeState i GetHistory również dla „nieznanych identyfikatorów”\nDostosuj logikę rezerwy dla wykrywania typu, aby użyć typu wartości stanu do zalogowania jako ostatniej rezerwy\nNapraw przechowywanie wartości logicznych w MSSQL",
         "zh-cn": "修复 Sentry 报告的崩溃案例\n修复池连接可能未正确返回池的几个地方并为其添加日志记录\n解决使用过的池库中可能给出过多连接的问题\n优化保留检查，以便随着时间的推移更好地传播第一次检查\n默认设置为 0 时不使用 1.x 中的数据点缓冲\n确保禁用“仅记录更改”也不再记录更改\n还允许为“未知 ID”调用 storeState 和 GetHistory\n调整类型检测的回退逻辑以使用状态值的类型记录为最后一个回退\n修复在 MSSQL 上存储布尔值"
-      },
-      "2.0.2": {
-        "en": "BREAKING: Configuration is only working in the new Admin 5 UI!\nDid bigger adjustments to the recording logic and added a lot of new Features. Please refer to Changelog and Forum post for details.",
-        "de": "BREAKING: Die Konfiguration funktioniert nur in der neuen Admin 5-Benutzeroberfläche!\nGrößere Anpassungen an der Aufnahmelogik vorgenommen und viele neue Features hinzugefügt. Einzelheiten finden Sie im Änderungsprotokoll und im Forumsbeitrag.",
-        "ru": "НАРУШЕНИЕ: Конфигурация работает только в новом пользовательском интерфейсе Admin 5!\nВнесены большие коррективы в логику записи и добавлено много новых функций. Пожалуйста, обратитесь к журналу изменений и сообщению на форуме для получения подробной информации.",
-        "pt": "URGENTE: a configuração está funcionando apenas na nova interface do usuário do Admin 5!\nFez ajustes maiores na lógica de gravação e adicionou muitos novos recursos. Consulte o Changelog e a postagem do fórum para obter detalhes.",
-        "nl": "BREAKING: Configuratie werkt alleen in de nieuwe Admin 5 UI!\nGrotere aanpassingen gedaan aan de opnamelogica en veel nieuwe functies toegevoegd. Raadpleeg de Changelog en Forumpost voor details.",
-        "fr": "RUPTURE : La configuration ne fonctionne que dans la nouvelle interface utilisateur d'Admin 5 !\nA apporté de plus grands ajustements à la logique d'enregistrement et ajouté de nombreuses nouvelles fonctionnalités. Veuillez vous référer au changelog et au post du forum pour plus de détails.",
-        "it": "ROTTURA: la configurazione funziona solo nella nuova interfaccia utente di Admin 5!\nHa apportato maggiori modifiche alla logica di registrazione e aggiunto molte nuove funzionalità. Si prega di fare riferimento a Changelog e post sul forum per i dettagli.",
-        "es": "ÚLTIMA HORA: ¡La configuración solo funciona en la nueva interfaz de usuario de Admin 5!\nHizo ajustes más grandes a la lógica de grabación y agregó muchas características nuevas. Consulte el registro de cambios y la publicación del foro para obtener más detalles.",
-        "pl": "ŁAMANIE: Konfiguracja działa tylko w nowym interfejsie użytkownika Admin 5!\nWprowadziłem większe poprawki w logice nagrywania i dodałem wiele nowych funkcji. Więcej informacji można znaleźć w dzienniku zmian i poście na forum.",
-        "zh-cn": "突破：配置仅在新的 Admin 5 UI 中有效！\n对录制逻辑进行了更大的调整，并添加了许多新功能。有关详细信息，请参阅变更日志和论坛帖子。"
       }
     },
     "mode": "daemon",

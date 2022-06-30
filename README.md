@@ -520,7 +520,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### __WORK IN PROGRESS__
+### 2.1.7 (2022-06-30)
 * (Apollon77) Fix crash cases reported by Sentry
 
 ### 2.1.6 (2022-06-27)
