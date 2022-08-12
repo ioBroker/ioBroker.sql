@@ -520,6 +520,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (riversource/Apollon77) Optimize getHistory query by using "UNION ALL"
+
 ### 2.1.7 (2022-06-30)
 * (Apollon77) Fix crash cases reported by Sentry
 
