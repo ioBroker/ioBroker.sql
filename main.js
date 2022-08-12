@@ -1296,6 +1296,7 @@ function pushHistory(id, state, timerRelog) {
             // Discard changes in de-bounce time to store last stable value
             sqlDPs[id].timeout && clearTimeout(sqlDPs[id].timeout);
             sqlDPs[id].timeout = setTimeout((id, state) => {
+                if (!sqlDPs[id]) return;
                 sqlDPs[id].timeout = null;
                 sqlDPs[id].state = state;
                 sqlDPs[id].lastLogTime = state.ts;
@@ -3051,9 +3052,9 @@ function getFirstTsForIds(dbClient, typeId, resultData, msg) {
                 }
 
                 adapter.log.info(`enhanced result (${typeId}): ${JSON.stringify(resultData)}`);
-                dpOverviewTimeout = setTimeout(() => {
+                dpOverviewTimeout = setTimeout((dbClient, typeId, resultData, msg) => {
                     dpOverviewTimeout = null;
-                    getFirstTsForIds();
+                    getFirstTsForIds(dbClient, typeId, resultData, msg);
                 }, 5000, dbClient, typeId + 1, resultData, msg);
             });
         }
