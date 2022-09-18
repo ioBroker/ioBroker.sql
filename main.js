@@ -2877,9 +2877,10 @@ function storeStatePushData(id, state, applyRules) {
     let pushFunc = applyRules ? pushHistory : pushHelper;
     if (!sqlDPs[id] || !sqlDPs[id][adapter.namespace]) {
         if (applyRules) {
-            throw new Error(`history not enabled for ${id}, so can not apply the rules as requested`);
+            throw new Error(`sql not enabled for ${id}, so can not apply the rules as requested`);
         }
         sqlDPs[id] = sqlDPs[id] || {};
+        sqlDPs[id].realId = id;
     }
     return new Promise((resolve, reject) => {
         pushFunc(id, state , err => {
