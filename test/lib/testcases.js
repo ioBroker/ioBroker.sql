@@ -1130,7 +1130,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             expect(result.successCount).to.be.equal(0);
             expect(result.error).to.be.equal('3 errors happened while storing data');
             expect(Array.isArray(result.errors)).to.be.true;
-            expect(result.errors[0]).to.be.equal(`history not enabled for my.own.unknown.value-${customNow2}, so can not apply the rules as requested`);
+            expect(result.errors[0].endsWith(` not enabled for my.own.unknown.value-${customNow2}, so can not apply the rules as requested`)).to.be.true;
             expect(result.errors[2]).to.be.equal(`State "37" for my.own.unknown.value-${customNow2} is not valid`);
 
             done();
