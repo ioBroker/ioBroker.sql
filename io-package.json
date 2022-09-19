@@ -26,8 +26,20 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "2.1.8",
+    "version": "2.2.0",
     "news": {
+      "2.2.0": {
+        "en": "IMPORTANT: Node.js 14.x is now needed at minimum!\nFix potential crash cases with upcoming js-controller versions",
+        "de": "WICHTIG: Node.js 14.x wird jetzt mindestens benötigt!\nBeheben Sie mögliche Crash-Fälle mit anstehenden js-Controller-Versionen",
+        "ru": "ВАЖНО: Node.js 14.x теперь нужен минимум!\nИсправление потенциальных кейсов с предстоящими версиями js-controller",
+        "pt": "IMPORTANTE: Node.js 14.x é agora necessário no mínimo!\nCorrigir casos potenciais de acidente com versões js-controller",
+        "nl": "Node is 14.x is nu nodig op minimum!\nVertaling:",
+        "fr": "IMPORTANT: Node.js 14.x est maintenant nécessaire au minimum!\nRéparer les cas de crash potentiels avec les versions de js-controller à venir",
+        "it": "IMPORTANTE: Node.js 14.x è ora necessario al minimo!\nRisolvere potenziali casi di crash con le prossime versioni js-controller",
+        "es": "IMPORTANTE: Node.js 14.x ahora es necesario al mínimo!\nFijar posibles casos de choque con las próximas versiones js-controller",
+        "pl": "IMPORTANT: Nodejs 14.x jest obecnie potrzebny na minimum!\nFix ma problemy z nadchodzącymi wersjami js-controllerowymi",
+        "zh-cn": "IMPORTANT: Nodejs 14x现在至少需要!\n九件潜在的事故,即将出版的丛书控制字"
+      },
       "2.1.8": {
         "en": "Optimize getHistory query by using \"UNION ALL\"\nFix crash cases reported by Sentry",
         "de": "Optimieren Sie Geschichte Anfrage mit \"UNION ALL\"\nReparieren Crashfälle gemeldet von Sentry",
@@ -99,18 +111,6 @@
         "es": "Amplias optimizaciones de rendimiento para llamadas GetHistory",
         "pl": "Optymalizacja wyników Huge'a dla GetHistory'ego nawołuje się do optymalizacji wydajności",
         "zh-cn": "GetHistory呼声的优越性"
-      },
-      "2.1.1": {
-        "en": "Fix crash cases reported by Sentry",
-        "de": "Von Sentry gemeldete Absturzfälle beheben",
-        "ru": "Исправить случаи сбоев, о которых сообщил Sentry",
-        "pt": "Corrigir casos de travamento relatados pelo Sentinela",
-        "nl": "Herstel crashgevallen gemeld door Sentry",
-        "fr": "Correction des cas de plantage signalés par Sentry",
-        "it": "Risolvi i casi di crash segnalati da Sentry",
-        "es": "Solucionar casos de fallas informados por Sentry",
-        "pl": "Napraw przypadki awarii zgłoszone przez Sentry",
-        "zh-cn": "修复 Sentry 报告的崩溃案例"
       }
     },
     "mode": "daemon",
