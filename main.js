@@ -8,6 +8,7 @@ const adapterName = require('./package.json').name.split('.').pop();
 const SQL         = require('sql-client');
 const commons     = require('./lib/aggregate');
 const fs          = require('fs');
+const path        = require('path');
 let   SQLFuncs    = null;
 
 const clients = {
@@ -610,18 +611,14 @@ function getSqlLiteDir(fileName) {
     } else {
         // normally /opt/iobroker/node_modules/iobroker.js-controller
         // but can be /example/ioBroker.js-controller
-        const tools = require(`${utils.controllerDir}/lib/tools`);
-        let config = tools.getConfigFileName().replace(/\\/g, '/');
-        const parts = config.split('/');
-        parts.pop();
-        config = `${parts.join('/')}/sqlite`;
+        let config = path.join(utils.getAbsoluteDefaultDataDir(), 'sqlite');
 
         // create sqlite directory
         if (!fs.existsSync(config)) {
             fs.mkdirSync(config);
         }
 
-        return `${config}/${fileName}`;
+        return path.normalize(path.join(config, fileName));
     }
 }
 

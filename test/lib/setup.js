@@ -675,6 +675,7 @@ function startAdapter(objects, states, callback) {
     }
     adapterStarted = true;
     console.log('startAdapter...');
+    fs.mkdirSync(rootDir + 'tmp/node_modules/iobroker-data');
     if (fs.existsSync(rootDir + 'tmp/node_modules/' + pkg.name + '/' + pkg.main)) {
         try {
             if (debug) {
