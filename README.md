@@ -522,7 +522,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ## Changelog
 
 ### __WORK IN PROGRESS__
-* IMPORTANT: Node.js 14.x is not needed at minimum!
+* IMPORTANT: Node.js 14.x is now needed at minimum!
 * (Apollon77) Fix potential crash cases with upcoming js-controller versions
 
 ### 2.1.8 (2022-08-13)
