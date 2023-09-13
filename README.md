@@ -520,7 +520,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 3.0.0 (2023-09-13)
 * IMPORTANT: Node.js 16.x is now needed at a minimum!
 * (bluefox) Allowed setting port 0 as default
 * (bluefox) Checked if a string is written into the number table

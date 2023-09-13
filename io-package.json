@@ -26,8 +26,21 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "2.2.0",
+    "version": "3.0.0",
     "news": {
+      "3.0.0": {
+        "en": "IMPORTANT: Node.js 16.x is now needed at a minimum!\nAllowed setting port 0 as default\nChecked if a string is written into the number table",
+        "de": "WICHTIG: Node.js 16.x wird jetzt auf ein Minimum benötigt!\nErlaubte Einstellung Port 0 als Standard\nGeprüft, ob ein String in die Nummerntabelle geschrieben wird",
+        "ru": "ВАЖНО: Node.js 16.x теперь нужен минимум!\nДопустимый порт установки 0 как по умолчанию\nПроверено, если строка написана в таблице номера",
+        "pt": "IMPORTANTE: Node.js 16.x é agora necessário no mínimo!\nConfiguração permitida da porta 0 como padrão\nVerificado se uma string é escrita na tabela de números",
+        "nl": "De 16.x is nu nodig op een minimum!\nVertaling:\nControleer of er een touw in de tafel is geschreven",
+        "fr": "IMPORTANT: Node.js 16.x est maintenant nécessaire au minimum!\nRéglage autorisé port 0 par défaut\nVérifié si une chaîne est écrite dans la table numéro",
+        "it": "IMPORTANTE: Node.js 16.x è ora necessario al minimo!\nImpostare la porta 0 come predefinito\nControllato se una stringa è scritta nella tabella numerica",
+        "es": "IMPORTANTE: Node.js 16.x ahora es necesario como mínimo!\nPuerto de configuración 0 como predeterminado\nRevisado si una cadena está escrita en la tabla número",
+        "pl": "IMPORTANT: Node.js 16.x jest obecnie potrzebny przy minimalnej cenie!\nAllowed Port 0 jako domyślny\nUwaga, czy struna jest zapisywana w tabeli liczbowej",
+        "uk": "ВАЖЛИВО: Node.js 16.x тепер потрібен мінімум!\nУсього налаштування порту 0 як за замовчуванням\nПеревірити, якщо рядок записано в номер таблиці",
+        "zh-cn": "IMPORTANT: Nodejs 16x现在至少需要!\n允许将港口建为零\n如果在表格编号上写一包,则标示"
+      },
       "2.2.0": {
         "en": "IMPORTANT: Node.js 14.x is now needed at minimum!\nFix potential crash cases with upcoming js-controller versions",
         "de": "WICHTIG: Node.js 14.x wird jetzt mindestens benötigt!\nBeheben Sie mögliche Crash-Fälle mit anstehenden js-Controller-Versionen",
@@ -99,18 +112,6 @@
         "es": "Asegúrese de que el registro de depuración está activo según la configuración",
         "pl": "Umożliwia to, że log debug jest aktywny zgodnie z ustawieniami",
         "zh-cn": "B. 根据环境,确保有色色逻辑积极。"
-      },
-      "2.1.2": {
-        "en": "Huge performance optimizations for GetHistory calls",
-        "de": "Riesige Leistungsoptimierungen für GetHistory-Anrufe",
-        "ru": "Огромная оптимизация производительности для звонков GetHistory",
-        "pt": "Otimizações de desempenho enormes para chamadas GetHistory",
-        "nl": "Grote prestaties voor GetHistory",
-        "fr": "Des optimisations de performance énormes pour les appels GetHistory",
-        "it": "Ottimizzazione delle prestazioni enormi per le chiamate GetHistory",
-        "es": "Amplias optimizaciones de rendimiento para llamadas GetHistory",
-        "pl": "Optymalizacja wyników Huge'a dla GetHistory'ego nawołuje się do optymalizacji wydajności",
-        "zh-cn": "GetHistory呼声的优越性"
       }
     },
     "mode": "daemon",
