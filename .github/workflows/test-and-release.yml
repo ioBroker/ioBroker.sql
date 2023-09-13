@@ -28,16 +28,12 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [14.x]
-
     steps:
       - uses: actions/checkout@v3
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js 18.x
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 18.x
 
 
       - name: Install Dependencies
@@ -61,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x]
+        node-version: [16.x, 18.x, 20.x]
 
     steps:
       - uses: actions/checkout@v3
@@ -98,7 +94,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x]
+        node-version: [16.x, 18.x, 20.x]
 
     # Service containers to run with `container-job`
     services:
@@ -150,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x]
+        node-version: [16.x, 18.x, 20.x]
 
     # Service containers to run with `container-job`
     services:
@@ -194,7 +190,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x]
+        node-version: [16.x, 18.x, 20.x]
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
@@ -277,7 +273,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release v${{ steps.extract_release.outputs.VERSION }}
           draft: false
-          # Prerelease versions create prereleases on Github
+          # Prerelease versions create pre-releases on GitHub
           prerelease: ${{ contains(steps.extract_release.outputs.VERSION, '-') }}
           body: ${{ steps.extract_release.outputs.BODY }}
 

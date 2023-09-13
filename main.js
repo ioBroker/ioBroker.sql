@@ -13,7 +13,7 @@ let   SQLFuncs    = null;
 
 const clients = {
     postgresql: {name: 'PostgreSQLClient',  multiRequests: true},
-    mysql:      {name: 'MySQL2Client',       multiRequests: true},
+    mysql:      {name: 'MySQL2Client',      multiRequests: true},
     sqlite:     {name: 'SQLite3Client',     multiRequests: false},
     mssql:      {name: 'MSSQLClient',       multiRequests: true}
 };
@@ -22,19 +22,19 @@ const types   = {
     number:  0,
     string:  1,
     boolean: 2,
-    object:  1
+    object:  1,
 };
 
 const dbNames = [
     'ts_number',
     'ts_string',
-    'ts_bool'
+    'ts_bool',
 ];
 
 const storageTypes = [
     'Number',
     'String',
-    'Boolean'
+    'Boolean',
 ];
 
 const sqlDPs        = {};

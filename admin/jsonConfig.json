@@ -34,7 +34,7 @@
           "type": "number",
           "label": "Port",
           "hidden": "data.dbtype === 'sqlite'",
-          "min": 1,
+          "min": 0,
           "max": 65565,
           "sm": 12,
           "md": 4,
