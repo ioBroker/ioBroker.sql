@@ -135,7 +135,7 @@ describe(`Test ${__filename}`, function() {
                 }, function (result) {
                     expect(result.error).to.be.undefined;
                     expect(result.success).to.be.true;
-                    // wait till adapter receives the new settings
+                    // wait till the adapter receives the new settings
                     setTimeout(function () {
                         done();
                     }, 10000);
