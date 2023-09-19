@@ -524,6 +524,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * IMPORTANT: Node.js 16.x is now needed at a minimum!
 * (bluefox) Allowed setting port 0 as default
 * (bluefox) Checked if a string is written into the number table
+* (bluefox) Added support for `count` aggregate type on getHistory
 
 ### 2.2.0 (2022-09-19)
 * IMPORTANT: Node.js 14.x is now needed at a minimum!
