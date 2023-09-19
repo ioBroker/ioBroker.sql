@@ -1040,44 +1040,31 @@ function processMessage(msg) {
     } else
     if (msg.command === 'getHistory') {
         getHistory(msg);
-    }
-    else if (msg.command === 'getCounter') {
+    } else if (msg.command === 'getCounter') {
         getCounterDiff(msg);
-    }
-    else if (msg.command === 'test') {
+    } else if (msg.command === 'test') {
         testConnection(msg);
-    }
-    else if (msg.command === 'destroy') {
+    } else if (msg.command === 'destroy') {
         destroyDB(msg);
-    }
-    else if (msg.command === 'query') {
+    } else if (msg.command === 'query') {
         query(msg);
-    }
-    else if (msg.command === 'update') {
+    } else if (msg.command === 'update') {
         updateState(msg);
-    }
-    else if (msg.command === 'delete') {
+    } else if (msg.command === 'delete') {
         deleteState(msg);
-    }
-    else if (msg.command === 'deleteAll') {
+    } else if (msg.command === 'deleteAll') {
         deleteStateAll(msg);
-    }
-    else if (msg.command === 'deleteRange') {
+    } else if (msg.command === 'deleteRange') {
         deleteState(msg);
-    }
-    else if (msg.command === 'storeState') {
+    } else if (msg.command === 'storeState') {
         storeState(msg);
-    }
-    else if (msg.command === 'getDpOverview') {
+    } else if (msg.command === 'getDpOverview') {
         getDpOverview(msg);
-    }
-    else if (msg.command === 'enableHistory') {
+    } else if (msg.command === 'enableHistory') {
         enableHistory(msg);
-    }
-    else if (msg.command === 'disableHistory') {
+    } else if (msg.command === 'disableHistory') {
         disableHistory(msg);
-    }
-    else if (msg.command === 'getEnabledDPs') {
+    } else if (msg.command === 'getEnabledDPs') {
         getEnabledDPs(msg);
     } else if (msg.command === 'stopInstance') {
         finish(() => {
@@ -1101,7 +1088,7 @@ function processStartValues(callback) {
                     lc:   state ? now - 4 : now, // 4 is because of MS SQL
                     ack:  true,
                     q:    0x40,
-                    from: `system.adapter.${adapter.namespace}`
+                    from: `system.adapter.${adapter.namespace}`,
                 });
 
                 if (state) {
@@ -1259,7 +1246,7 @@ function pushHistory(id, state, timerRelog) {
             if (sqlDPs[id].type !== types.number) {
                 adapter.log.error('Counter must have type "number"!');
             } else if (state.val < sqlDPs[id].state.val) {
-                // if actual value is less then last seen counter, store both values
+                // if the actual value is less then last seen counter, store both values
                 pushValueIntoDB(id, sqlDPs[id].state, true);
                 pushValueIntoDB(id, state, true);
             }
@@ -1290,7 +1277,7 @@ function pushHistory(id, state, timerRelog) {
         }
 
         if (settings.debounceTime && !ignoreDebonce && !timerRelog) {
-            // Discard changes in de-bounce time to store last stable value
+            // Discard changes in the debounce time to store last stable value
             sqlDPs[id].timeout && clearTimeout(sqlDPs[id].timeout);
             sqlDPs[id].timeout = setTimeout((id, state) => {
                 if (!sqlDPs[id]) return;
@@ -2361,7 +2348,7 @@ function getHistory(msg) {
         }
     } catch (err) {
         return adapter.sendTo(msg.from, msg.command, {
-            error:  'Invalid call. Start date ' + JSON.stringify(options.start) + ' is not a valid date'
+            error:  `Invalid call. Start date ${JSON.stringify(options.start)} is not a valid date`
         }, msg.callback);
     }
 
@@ -2371,7 +2358,7 @@ function getHistory(msg) {
         }
     } catch (err) {
         return adapter.sendTo(msg.from, msg.command, {
-            error:  'Invalid call. End date ' + JSON.stringify(options.end) + ' is not a valid date'
+            error:  `Invalid call. End date ${JSON.stringify(options.end)} is not a valid date`
         }, msg.callback);
     }
 
