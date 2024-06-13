@@ -26,8 +26,21 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "3.0.0",
+    "version": "3.0.1",
     "news": {
+      "3.0.1": {
+        "en": "(foxriver76) upgraded dependencies",
+        "de": "(foxriver76) verbesserte abhängigkeiten",
+        "ru": "(foxriver76) повышенные зависимости",
+        "pt": "(foxriver76) dependências atualizadas",
+        "nl": "(foxriver76) verbeterde afhankelijkheden",
+        "fr": "(foxriver76) dépendances améliorées",
+        "it": "(foxriver76) dipendenze aggiornate",
+        "es": "(foxriver76)",
+        "pl": "(foxriver76) zmodernizowane zależności",
+        "uk": "(foxriver76) оновлені залежності",
+        "zh-cn": "(foxriver76) 升级的依赖性"
+      },
       "3.0.0": {
         "en": "IMPORTANT: Node.js 16.x is now needed at a minimum!\nAllowed setting port 0 as default\nChecked if a string is written into the number table",
         "de": "WICHTIG: Node.js 16.x wird jetzt auf ein Minimum benötigt!\nErlaubte Einstellung Port 0 als Standard\nGeprüft, ob ein String in die Nummerntabelle geschrieben wird",
@@ -100,18 +113,6 @@
         "es": "Cuando no se proporciona ningún recuento para agregado ninguno o cambio entonces el límite (por defecto 2000) se utiliza como recuento para definir el número de datos para regresar.\nArreglar la inicialización de tipos e identificaciones para algunos casos.",
         "pl": "Jeśli nie jest liczona dla agregacji ani zmian, to limit (default 2000) jest używany jako określenie liczby danych do powrotu.\nW niektórych przypadkach inicjacja typów i ID.",
         "zh-cn": "当时没有对总数据或换算进行计算(2000年12月)用于确定返回的数据数量。.\n确定某些案例的类型和研发。."
-      },
-      "2.1.3": {
-        "en": "Make sure debug log is active according to the settings",
-        "de": "Stellen Sie sicher, dass das Debug-Log gemäß den Einstellungen aktiv ist",
-        "ru": "Убедитесь, что журнал debug активен в соответствии с настройками",
-        "pt": "Certifique-se de que o log de depuração está ativo de acordo com as configurações",
-        "nl": "Zorg ervoor dat het logboek actief is volgens de instellingen",
-        "fr": "Assurez-vous que le journal debug est actif selon les paramètres",
-        "it": "Assicurarsi che il registro di debug sia attivo in base alle impostazioni",
-        "es": "Asegúrese de que el registro de depuración está activo según la configuración",
-        "pl": "Umożliwia to, że log debug jest aktywny zgodnie z ustawieniami",
-        "zh-cn": "B. 根据环境,确保有色色逻辑积极。"
       }
     },
     "mode": "daemon",
