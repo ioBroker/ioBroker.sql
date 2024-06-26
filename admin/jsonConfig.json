@@ -135,7 +135,7 @@
           "variant": "contained",
           "color": "primary",
           "disabled": "!_alive",
-          "type": "sendto",
+          "type": "sendTo",
           "error": {
             "connect timeout": "Connection timeout"
           },
@@ -146,7 +146,7 @@
         },
 
         "_resetDB": {
-          "type": "sendto",
+          "type": "sendTo",
           "variant": "outlined",
           "color": "primary",
           "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSIjODAxMTExIiBkPSJNNiAxOWMwIDEuMS45IDIgMiAyaDhjMS4xIDAgMi0uOSAyLTJWN0g2djEyek0xOSA0aC0zLjVsLTEtMWgtNWwtMSAxSDV2MmgxNFY0eiIvPjwvc3ZnPgkJCQkJCQkJ",
