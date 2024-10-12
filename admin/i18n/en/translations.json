@@ -14,7 +14,7 @@
     "6 months": "6 months",
     "Alias Info": "if Alias-ID is set, the data will be logged as this ID in database",
     "Allow parallel requests": "Allow parallel requests",
-    "Are you sure? All data will be dropped.": "All data will be dropped. Are you sure? ",
+    "Are you sure? All data will be dropped.": "All data will be dropped. Are you sure?",
     "Automatic": "Automatic",
     "Block time": "Blocktime",
     "Boolean": "Boolean",
