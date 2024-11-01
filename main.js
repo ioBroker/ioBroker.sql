@@ -1872,7 +1872,7 @@ function pushValuesIntoDB(id, list, cb) {
             adapter.log.error(error);
             cb && cb(error);
         } else {
-            tasks.push({operation: 'insert ignore', index: sqlDPs[id].index, list, id, callback: cb});
+            tasks.push({operation: 'insert', index: sqlDPs[id].index, list, id, callback: cb});
             tasks.length === 1 && processTasks();
         }
     } else {
