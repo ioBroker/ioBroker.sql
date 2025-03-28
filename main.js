@@ -1180,7 +1180,7 @@ function pushHistory(id, state, timerRelog) {
                 sqlDPs[id].timeout = null;
             }
 
-            if (!valueUnstable && settings.blockTime && sqlDPs[id].state && (sqlDPs[id].state.ts + settings.blockTime) > state.ts) {
+            if (!valueUnstable && settings.blockTime && sqlDPs[id].state && (sqlDPs[id].state.ts + settings.blockTime) > state.ts && state.val !== 0) {
                 settings.enableDebugLogs && adapter.log.debug(`value ignored blockTime ${id}, value=${state.val}, ts=${state.ts}, lastState.ts=${sqlDPs[id].state.ts}, blockTime=${settings.blockTime}`);
                 return;
             }
@@ -1226,7 +1226,8 @@ function pushHistory(id, state, timerRelog) {
                     if (
                         sqlDPs[id].state.val !== null &&
                         settings.changesMinDelta !== 0 &&
-                        Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta
+                        Math.abs(sqlDPs[id].state.val - state.val) < settings.changesMinDelta  &&
+						state.val !== 0
                     ) {
                         if (!valueUnstable && !settings.disableSkippedValueLogging) {
                             sqlDPs[id].skipped = state;
