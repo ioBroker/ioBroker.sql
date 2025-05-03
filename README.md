@@ -520,6 +520,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (simatec) Responsive Design added
+
 ### 3.0.1 (2024-06-13)
 * (foxriver76) upgraded dependencies
 
