@@ -32,6 +32,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SqlAdapter = void 0;
 const adapter_core_1 = require("@iobroker/adapter-core"); // Get common adapter utils
@@ -46,6 +49,7 @@ const mssql_client_1 = require("./lib/mssql-client");
 const mysql_client_1 = require("./lib/mysql-client");
 const postgresql_client_1 = require("./lib/postgresql-client");
 const sqlite3_client_1 = require("./lib/sqlite3-client");
+const DockerManager_1 = __importDefault(require("./lib/DockerManager"));
 const SQLFuncs = {
     mssql: {
         init: MSSQL.init,
@@ -193,6 +197,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
     postgresDbCreated = false;
     lockTasks = false;
     sqlFuncs = null;
+    dockerManager = null;
     constructor(options = {}) {
         super({
             ...options,
@@ -3318,23 +3323,87 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
         this.sendTo(msg.from, msg.command, data, msg.callback);
     }
-    main() {
-        this.setConnected(false);
-        // set default history if not yet set
-        void this.getForeignObject('system.config', (err, obj) => {
-            if (obj?.common && !obj.common.defaultHistory) {
-                obj.common.defaultHistory = this.namespace;
-                this.setForeignObject('system.config', obj, err => {
-                    if (err) {
-                        this.log.error(`Cannot set default history instance: ${err}`);
-                    }
-                    else {
-                        this.log.info(`Set default history instance to "${this.namespace}"`);
-                    }
-                });
-            }
-        });
-        const config = this.config;
+    getDockerConfigMySQL(config, dockerAutoImageUpdate) {
+        config.dockerMysql ||= {
+            enabled: false,
+        };
+        config.dbtype = 'mysql';
+        config.dbname = 'iobroker';
+        config.user = 'iobroker';
+        config.password = 'iobroker';
+        config.dockerMysql.port = parseInt(config.dockerMysql.port || '3306', 10) || 3306;
+        config.port = config.dockerMysql.port;
+        return {
+            iobEnabled: true,
+            iobMonitoringEnabled: true,
+            iobAutoImageUpdate: !!dockerAutoImageUpdate,
+            iobStopOnUnload: config.dockerMysql.stopIfInstanceStopped || false,
+            // influxdb image: https://hub.docker.com/_/influxdb. Only version 2 is supported
+            image: 'mysql:lts',
+            ports: [
+                {
+                    hostPort: config.dockerMysql.port,
+                    containerPort: 3306,
+                    hostIP: config.dockerMysql.bind || '127.0.0.1', // only localhost to disable authentication and https safely
+                },
+            ],
+            mounts: [
+                {
+                    source: 'mysql_data',
+                    target: '/var/lib/mysql',
+                    type: 'volume',
+                    iobBackup: true,
+                },
+                {
+                    source: 'mysql_config',
+                    target: '/etc/mysql/conf.d',
+                    type: 'volume',
+                },
+            ],
+            networkMode: true, // take default name iob_influxdb_<instance>
+            // influxdb v2 requires some environment variables to be set on first start
+            environment: {
+                MYSQL_ROOT_PASSWORD: config.dockerMysql.rootPassword || 'root_iobroker',
+                MYSQL_DATABASE: 'iobroker',
+                MYSQL_USER: 'iobroker',
+                MYSQL_PASSWORD: 'iobroker',
+                MYSQL_ALLOW_EMPTY_PASSWORD: 'false',
+            },
+        };
+    }
+    getDockerConfigPhpMyAdmin(config) {
+        config.dockerPhpMyAdmin ||= {
+            enabled: false,
+        };
+        config.dockerPhpMyAdmin.port = parseInt(config.dockerPhpMyAdmin.port || '8080', 10) || 8080;
+        return {
+            iobEnabled: config.dockerPhpMyAdmin.enabled !== false,
+            iobMonitoringEnabled: true,
+            iobAutoImageUpdate: !!config.dockerPhpMyAdmin.autoImageUpdate,
+            // Stop docker too if influxdb is stopped
+            iobStopOnUnload: config.dockerMysql?.stopIfInstanceStopped || config.dockerPhpMyAdmin.stopIfInstanceStopped || false,
+            // influxdb image: https://hub.docker.com/_/influxdb. Only version 2 is supported
+            image: 'phpmyadmin/latest',
+            name: 'phpmyadmin',
+            ports: [
+                {
+                    hostPort: config.dockerPhpMyAdmin.port,
+                    containerPort: 8080,
+                    hostIP: config.dockerPhpMyAdmin.bind || '0.0.0.0', // only localhost to disable authentication and https safely
+                },
+            ],
+            networkMode: true, // take default name iob_influxdb_<instance>
+            environment: {
+                MYSQL_ROOT_PASSWORD: config.dockerMysql.rootPassword || 'root_iobroker',
+                MYSQL_USER: 'iobroker',
+                MYSQL_PASSWORD: 'iobroker',
+                PMA_ABSOLUTE_URI: config.dockerPhpMyAdmin.absoluteUri || '',
+                PMA_PORT: (config.dockerMysql.port || 3306).toString(),
+                PMA_HOST: `iob_${this.namespace.replace(/[-.]/g, '_')}`,
+            },
+        };
+    }
+    normalizeAdapterConfig(config) {
         config.dbname ||= 'iobroker';
         if (config.writeNulls === undefined) {
             config.writeNulls = true;
@@ -3418,7 +3487,35 @@ class SqlAdapter extends adapter_core_1.Adapter {
         else {
             config.round = null;
         }
+        return config;
+    }
+    async main() {
+        this.setConnected(false);
+        // set default history if not yet set
+        try {
+            const obj = await this.getForeignObjectAsync('system.config');
+            if (obj?.common && !obj.common.defaultHistory) {
+                obj.common.defaultHistory = this.namespace;
+                await this.setForeignObjectAsync('system.config', obj);
+                this.log.info(`Set default history instance to "${this.namespace}"`);
+            }
+        }
+        catch (e) {
+            this.log.error(`Cannot get system config: ${e}`);
+        }
+        // Normalize adapter config
+        const config = this.normalizeAdapterConfig(this.config);
         this.sqlFuncs = SQLFuncs[config.dbtype];
+        // Start docker if configured
+        if (this.config.dockerMysql?.enabled) {
+            const containerConfigs = [];
+            containerConfigs.push(this.getDockerConfigMySQL(this.config, this.config.dockerMysql?.autoImageUpdate));
+            if (this.config.dockerPhpMyAdmin) {
+                containerConfigs.push(this.getDockerConfigPhpMyAdmin(this.config));
+            }
+            this.dockerManager = new DockerManager_1.default(this, undefined, containerConfigs);
+            await this.dockerManager.allOwnContainersChecked();
+        }
         if (config.dbtype === 'sqlite' || this.config.host) {
             this.connect(() => {
                 // read all custom settings

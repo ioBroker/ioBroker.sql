@@ -71,6 +71,22 @@ export interface SqlAdapterConfigTyped {
     enableDebugLogs: boolean;
     rejectUnauthorized: boolean;
     customRetentionDuration: number;
+    dockerMysql: {
+        enabled?: boolean;
+        bind?: string;
+        stopIfInstanceStopped?: true;
+        port?: string | number;
+        autoImageUpdate?: boolean;
+        rootPassword?: string;
+    };
+    dockerPhpMyAdmin: {
+        enabled?: boolean;
+        bind?: string;
+        stopIfInstanceStopped?: boolean;
+        port?: string | number;
+        autoImageUpdate?: boolean;
+        absoluteUri?: string;
+    };
 }
 
 export interface SqlAdapterConfig extends SqlAdapterConfigTyped {
@@ -101,4 +117,3 @@ export interface SqlAdapterConfig extends SqlAdapterConfigTyped {
     rejectUnauthorized: boolean;
     customRetentionDuration: number | string;
 }
-
