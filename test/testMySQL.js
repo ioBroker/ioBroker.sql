@@ -1,4 +1,4 @@
-/* jshint -W097 */// jshint strict:false
+/* jshint -W097 */ // jshint strict:false
 /*jslint node: true */
 /*jshint expr: true*/
 const expect = require('chai').expect;
@@ -45,8 +45,7 @@ function checkValueOfState(id, value, cb, counter) {
         if (err) console.error(`MySQL: ${err}`);
         if (value === null && !state) {
             cb && cb();
-        } else
-        if (state && (value === undefined || state.val === value)) {
+        } else if (state && (value === undefined || state.val === value)) {
             cb && cb();
         } else {
             setTimeout(function () {
@@ -64,19 +63,19 @@ function sendTo(target, command, message, callback) {
     };
 
     states.pushMessage(`system.adapter.${target}`, {
-        command:    command,
-        message:    message,
-        from:       'system.adapter.test.0',
+        command: command,
+        message: message,
+        from: 'system.adapter.test.0',
         callback: {
             message: message,
-            id:      sendToID++,
-            ack:     false,
-            time:    (new Date()).getTime()
-        }
+            id: sendToID++,
+            ack: false,
+            time: new Date().getTime(),
+        },
     });
 }
 
-describe(`Test ${__filename}`, function() {
+describe(`Test ${__filename}`, function () {
     before(`Test ${__filename}: Start js-controller`, function (_done) {
         this.timeout(600000); // because of first install from npm
         setup.adapterStarted = false;
@@ -84,27 +83,31 @@ describe(`Test ${__filename}`, function() {
         setup.setupController(async function () {
             var config = await setup.getAdapterConfig();
             // enable adapter
-            config.common.enabled  = true;
+            config.common.enabled = true;
             config.common.loglevel = 'debug';
 
             config.native.maxConnections = 1;
             config.native.enableDebugLogs = true;
             config.native.host = '127.0.0.1';
-            config.native.dbtype   = 'mysql';
-            config.native.user     = 'root';
+            config.native.dbtype = 'mysql';
+            config.native.user = 'root';
             config.native.password = process.env.SQL_PASS || '';
 
             await setup.setAdapterConfig(config.common, config.native);
 
-            setup.startController(true, (id, obj) => {}, (id, state) => onStateChanged && onStateChanged(id, state),
+            setup.startController(
+                true,
+                (id, obj) => {},
+                (id, state) => onStateChanged && onStateChanged(id, state),
                 async (_objects, _states) => {
                     objects = _objects;
-                    states  = _states;
+                    states = _states;
 
                     await tests.preInit(objects, states, sendTo, adapterShortName);
 
                     _done();
-                });
+                },
+            );
         });
     });
 
@@ -112,34 +115,44 @@ describe(`Test ${__filename}`, function() {
         this.timeout(60000);
         checkConnectionOfAdapter(function () {
             now = new Date().getTime();
-            sendTo('sql.0', 'enableHistory', {
-                id: 'system.adapter.sql.0.memHeapTotal',
-                options: {
-                    changesOnly:  false,
-                    debounce:     0,
-                    retention:    31536000,
-                    storageType: 'String'
-                }
-            }, function (result) {
-                expect(result.error).to.be.undefined;
-                expect(result.success).to.be.true;
-                sendTo('sql.0', 'enableHistory', {
-                    id: 'system.adapter.sql.0.uptime',
+            sendTo(
+                'sql.0',
+                'enableHistory',
+                {
+                    id: 'system.adapter.sql.0.memHeapTotal',
                     options: {
-                        changesOnly:  false,
-                        debounce:     0,
-                        retention:    31536000,
-                        storageType: 'Boolean'
-                    }
-                }, function (result) {
+                        changesOnly: false,
+                        debounce: 0,
+                        retention: 31536000,
+                        storageType: 'String',
+                    },
+                },
+                function (result) {
                     expect(result.error).to.be.undefined;
                     expect(result.success).to.be.true;
-                    // wait till adapter receives the new settings
-                    setTimeout(function () {
-                        done();
-                    }, 10000);
-                });
-            });
+                    sendTo(
+                        'sql.0',
+                        'enableHistory',
+                        {
+                            id: 'system.adapter.sql.0.uptime',
+                            options: {
+                                changesOnly: false,
+                                debounce: 0,
+                                retention: 31536000,
+                                storageType: 'Boolean',
+                            },
+                        },
+                        function (result) {
+                            expect(result.error).to.be.undefined;
+                            expect(result.success).to.be.true;
+                            // wait till adapter receives the new settings
+                            setTimeout(function () {
+                                done();
+                            }, 10000);
+                        },
+                    );
+                },
+            );
         });
     });
 
@@ -148,7 +161,7 @@ describe(`Test ${__filename}`, function() {
     it(`Test ${__filename}: Check Datapoint Types`, function (done) {
         this.timeout(5000);
 
-        sendTo('sql.0', 'query', "SELECT id, name, type FROM iobroker.datapoints", function (result) {
+        sendTo('sql.0', 'query', 'SELECT id, name, type FROM iobroker.datapoints', function (result) {
             console.log(`MySQL: ${JSON.stringify(result.result, null, 2)}`);
             expect(result.result.length).to.least(3);
             for (var i = 0; i < result.result.length; i++) {

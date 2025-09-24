@@ -1,63 +1,69 @@
 {
-  "name": "iobroker.sql",
-  "description": "Log states into SQL database",
-  "version": "3.0.1",
-  "author": "bluefox <dogafox@gmail.com>",
-  "contributors": [
-    "bluefox <dogafox@gmail.com>",
-    "Apollon77"
-  ],
-  "homepage": "https://github.com/ioBroker/ioBroker.sql",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ioBroker/ioBroker.sql"
-  },
-  "engines": {
-    "node": ">=16.0.0"
-  },
-  "keywords": [
-    "ioBroker",
-    "log data",
-    "home automation"
-  ],
-  "optionalDependencies": {
-    "mysql2": "^3.6.5",
-    "pg": "^8.11.3",
-    "sqlite3": "^5.1.6",
-    "mssql": "^10.0.1"
-  },
-  "dependencies": {
-    "sql-client": "^3.0.0",
-    "@iobroker/adapter-core": "^3.1.6"
-  },
-  "devDependencies": {
-    "@alcalzone/release-script": "^3.7.0",
-    "@alcalzone/release-script-plugin-iobroker": "^3.7.0",
-    "@alcalzone/release-script-plugin-license": "^3.7.0",
-    "axios": "^1.11.0",
-    "gulp": "^4.0.2",
-    "mocha": "^10.8.2",
-    "chai": "^4.3.8"
-  },
-  "bugs": {
-    "url": "https://github.com/ioBroker/ioBroker.sql/issues"
-  },
-  "main": "main.js",
-  "files": [
-    "admin/",
-    "img/",
-    "lib/",
-    "io-package.json",
-    "LICENSE",
-    "main.js"
-  ],
-  "scripts": {
-    "test": "node node_modules/mocha/bin/mocha --exit",
-    "release": "release-script",
-    "release-patch": "release-script patch --yes",
-    "release-minor": "release-script minor --yes",
-    "release-major": "release-script major --yes",
-    "update-packages": "ncu --upgrade"
-  },
-  "license": "MIT"
+    "name": "iobroker.sql",
+    "description": "Log states into SQL database",
+    "version": "3.0.1",
+    "author": "bluefox <dogafox@gmail.com>",
+    "contributors": [
+        "bluefox <dogafox@gmail.com>",
+        "Apollon77"
+    ],
+    "homepage": "https://github.com/ioBroker/ioBroker.sql",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ioBroker/ioBroker.sql"
+    },
+    "engines": {
+        "node": ">=16.0.0"
+    },
+    "keywords": [
+        "ioBroker",
+        "log data",
+        "home automation"
+    ],
+    "optionalDependencies": {
+        "mssql": "^11.0.1",
+        "mysql2": "^3.15.0",
+        "pg": "^8.16.3",
+        "sqlite3": "^5.1.7"
+    },
+    "dependencies": {
+        "@iobroker/adapter-core": "^3.3.2",
+        "dockerode": "^4.0.8",
+        "tar-fs": "^3.1.1"
+    },
+    "devDependencies": {
+        "@iobroker/eslint-config": "^2.0.2",
+        "@types/mssql": "^9.1.8",
+        "@types/pg": "^8.15.5",
+        "@types/sqlite3": "^5.1.0",
+        "@types/tar-fs": "^2.0.4",
+        "@alcalzone/release-script": "^3.8.0",
+        "@alcalzone/release-script-plugin-iobroker": "^3.7.2",
+        "@alcalzone/release-script-plugin-license": "^3.7.0",
+        "axios": "^1.12.2",
+        "chai": "^4.5.0",
+        "mocha": "^11.7.2"
+    },
+    "bugs": {
+        "url": "https://github.com/ioBroker/ioBroker.sql/issues"
+    },
+    "main": "build/main.js",
+    "files": [
+        "admin/",
+        "img/",
+        "build/",
+        "io-package.json",
+        "LICENSE"
+    ],
+    "scripts": {
+        "test": "node node_modules/mocha/bin/mocha --exit",
+        "build": "tsc -p tsconfig.build.json",
+        "prepublishOnly": "npm run build",
+        "release": "release-script",
+        "release-patch": "release-script patch --yes",
+        "release-minor": "release-script minor --yes",
+        "release-major": "release-script major --yes",
+        "update-packages": "ncu --upgrade"
+    },
+    "license": "MIT"
 }
