@@ -34,7 +34,7 @@ class PostgreSQLConnectionFactory extends connection_factory_1.ConnectionFactory
             if (err) {
                 return callback(err);
             }
-            return callback(null, results.rows);
+            return callback(null, results?.rows);
         });
     }
 }

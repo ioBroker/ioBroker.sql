@@ -148,8 +148,12 @@
         "plugins": {
             "sentry": {
                 "dsn": "https://c30462d3e0834993b0aa29824346701e@sentry.iobroker.net/45"
-            }
+            },
+            "docker": [
+
+            ]
         },
+
         "adminUI": {
             "config": "json",
             "custom": "json"
@@ -238,7 +242,8 @@
             "bind": "127.0.0.1",
             "stopIfInstanceStopped": true,
             "port": "3306",
-            "autoImageUpdate": true
+            "autoImageUpdate": true,
+            "rootPassword": "root_iobroker"
         },
         "dockerPhpMyAdmin": {
             "enabled": false,

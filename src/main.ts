@@ -218,7 +218,7 @@ type SQLPointConfig = {
     timeout: NodeJS.Timeout | null;
     type: 0 | 1 | 2;
     index: number;
-    dbtype: 0 | 1 | 2;
+    dbType: 0 | 1 | 2;
     config: SqlCustomConfigTyped;
     state: IobDataEntryEx | null;
     skipped: IobDataEntryEx | undefined | null;
@@ -355,7 +355,7 @@ export class SqlAdapter extends Adapter {
                     }
 
                     if (this.sqlDPs[id] && this.sqlDPs[id].index === undefined) {
-                        this.getId(id, this.sqlDPs[id].dbtype, () =>
+                        this.getId(id, this.sqlDPs[id].dbType, () =>
                             this.reInit(id, realId, formerAliasId, obj as ioBroker.StateObject),
                         );
                     } else {
@@ -647,28 +647,26 @@ export class SqlAdapter extends Adapter {
             this.sqlDPs[formerAliasId].relogTimeout = null;
         }
 
-        const writeNull = !(this.sqlDPs[id] && this.sqlDPs[id].config);
-        const state = this.sqlDPs[id] ? this.sqlDPs[id].state : null;
-        const list = this.sqlDPs[id] ? this.sqlDPs[id].list : null;
-        const inFlight = this.sqlDPs[id] ? this.sqlDPs[id].inFlight : null;
-        const timeout = this.sqlDPs[id] ? this.sqlDPs[id].timeout : null;
-        const ts = this.sqlDPs[id] ? this.sqlDPs[id].ts : null;
-        const lastCheck = this.sqlDPs[id] ? this.sqlDPs[id].lastCheck : null;
+        const writeNull = !this.sqlDPs[id]?.config;
 
-        this.sqlDPs[id].config = customConfig;
-        this.sqlDPs[id].state = state;
-        this.sqlDPs[id].list = list || [];
-        this.sqlDPs[id].inFlight = inFlight || {};
-        this.sqlDPs[id].timeout = timeout;
-        this.sqlDPs[id].ts = ts;
-        this.sqlDPs[id].realId = realId;
-        this.sqlDPs[id].lastCheck = lastCheck || Date.now() - Math.floor(Math.random() * 21600000 /* 6 hours */); // randomize lastCheck to avoid all datapoints to be checked at same timepoint
+        this.sqlDPs[id] = {
+            config: customConfig,
+            state: this.sqlDPs[id]?.state || null,
+            list: this.sqlDPs[id]?.list || [],
+            inFlight: this.sqlDPs[id]?.inFlight || {},
+            timeout: this.sqlDPs[id]?.timeout || null,
+            ts: this.sqlDPs[id]?.ts || null,
+            lastLogTime: 0,
+            relogTimeout: null,
+            realId: realId,
+            lastCheck: this.sqlDPs[id]?.lastCheck || Date.now() - Math.floor(Math.random() * 21600000 /* 6 hours */), // randomize lastCheck to avoid all datapoints to be checked at same timepoint
+        } as SQLPointConfig;
+
         // changesRelogInterval
         if (this.sqlDPs[id].config.changesOnly && this.sqlDPs[id].config.changesRelogInterval > 0) {
             this.sqlDPs[id].relogTimeout = setTimeout(
                 (_id: string) => this.reLogHelper(_id),
-                this.sqlDPs[id].config.changesRelogInterval * 500 * Math.random() +
-                    this.sqlDPs[id].config.changesRelogInterval * 500,
+                this.sqlDPs[id].config.changesRelogInterval * 500 * (1 + Math.random()),
                 id,
             );
         }
@@ -917,58 +915,59 @@ export class SqlAdapter extends Adapter {
         let mySQLOptions: MySQLOptions | undefined;
         let postgreSQLOptions: PostgreSQLOptions | undefined;
 
-        msg.message.config.port = parseInt(msg.message.config.port, 10) || 0;
+        const config: SqlAdapterConfig = msg.message.config;
 
-        if (this.config.dbtype === 'postgresql') {
+        config.port = parseInt(config.port as string, 10) || 0;
+
+        if (config.dbtype === 'postgresql') {
             postgreSQLOptions = {
-                host: msg.message.host,
-                user: msg.message.user || '',
-                password: msg.message.password || '',
-                port: msg.message.port || undefined,
+                host: config.host,
+                user: config.user || '',
+                password: config.password || '',
+                port: config.port || undefined,
                 database: 'postgres',
-                ssl: msg.message.encrypt
+                ssl: config.encrypt
                     ? {
-                          rejectUnauthorized: !!msg.message.rejectUnauthorized,
+                          rejectUnauthorized: !!config.rejectUnauthorized,
                       }
                     : undefined,
             };
-        } else if (msg.message.dbtype === 'mssql') {
+        } else if (config.dbtype === 'mssql') {
             msSQLOptions = {
-                server: msg.message.host, // needed for MSSQL
-                user: msg.message.user || '',
-                password: msg.message.password || '',
-                port: msg.message.port || undefined,
+                server: config.host, // needed for MSSQL
+                user: config.user || '',
+                password: config.password || '',
+                port: config.port || undefined,
                 options: {
-                    encrypt: !!msg.message.encrypt,
-                    trustServerCertificate: !msg.message.rejectUnauthorized,
+                    encrypt: !!config.encrypt,
+                    trustServerCertificate: !config.rejectUnauthorized,
                 },
             };
-        } else if (msg.message.dbtype === 'mysql') {
+        } else if (config.dbtype === 'mysql') {
             mySQLOptions = {
-                host: msg.message.host, // needed for PostgreSQL , MySQL
-                user: msg.message.user || '',
-                password: msg.message.password || '',
-                port: msg.message.port || undefined,
-                ssl: msg.message.encrypt
+                host: config.host, // needed for PostgreSQL , MySQL
+                user: config.user || '',
+                password: config.password || '',
+                port: config.port || undefined,
+                ssl: config.encrypt
                     ? {
-                          rejectUnauthorized: !!msg.message.rejectUnauthorized,
+                          rejectUnauthorized: !!config.rejectUnauthorized,
                       }
                     : undefined,
             };
-        } else if (msg.message.dbtype === 'sqlite') {
-            sqLiteOptions = { fileName: this.getSqlLiteDir(msg.message.fileName) };
+        } else if (config.dbtype === 'sqlite') {
+            sqLiteOptions = { fileName: this.getSqlLiteDir(config.fileName) };
         }
-        const dbType: 'postgresql' | 'mssql' | 'mysql' | 'sqlite' = msg.message.config.dbtype;
 
         try {
             let client: SQLClient | undefined;
-            if (dbType === 'postgresql' && postgreSQLOptions) {
+            if (config.dbtype === 'postgresql' && postgreSQLOptions) {
                 client = new PostgreSQLClient(postgreSQLOptions);
-            } else if (dbType === 'mssql' && msSQLOptions) {
+            } else if (config.dbtype === 'mssql' && msSQLOptions) {
                 client = new MSSQLClient(msSQLOptions);
-            } else if (dbType === 'mysql' && mySQLOptions) {
+            } else if (config.dbtype === 'mysql' && mySQLOptions) {
                 client = new MySQL2Client(mySQLOptions);
-            } else if (dbType === 'sqlite' && sqLiteOptions) {
+            } else if (config.dbtype === 'sqlite' && sqLiteOptions) {
                 client = new SQLite3Client(sqLiteOptions);
             } else {
                 this.sendTo(msg.from, msg.command, { error: 'Unknown DB type' }, msg.callback);
@@ -987,7 +986,12 @@ export class SqlAdapter extends Adapter {
                         clearTimeout(this.testConnectTimeout);
                         this.testConnectTimeout = null;
                     }
-                    this.sendTo(msg.from, msg.command, { error: err.toString() }, msg.callback);
+                    this.sendTo(
+                        msg.from,
+                        msg.command,
+                        { error: `${(err as any).code} ${err.toString()}` },
+                        msg.callback,
+                    );
                     return;
                 }
 
@@ -1840,7 +1844,7 @@ export class SqlAdapter extends Adapter {
                             this.sqlDPs[id] ||= {} as SQLPointConfig;
                             this.sqlDPs[id].index = rows[r].id;
                             if (rows[r].type !== null) {
-                                this.sqlDPs[id].dbtype = rows[r].type;
+                                this.sqlDPs[id].dbType = rows[r].type;
                             }
                         }
                     }
@@ -2022,8 +2026,8 @@ export class SqlAdapter extends Adapter {
                 sqlDP.type = types[sqlDP.config.storageType.toLowerCase()];
                 this.log.debug(`Type (from Def) for ${task.id}: ${sqlDP.type}`);
                 this.processVerifyTypes(task);
-            } else if (sqlDP.dbtype !== undefined) {
-                sqlDP.type = sqlDP.dbtype;
+            } else if (sqlDP.dbType !== undefined) {
+                sqlDP.type = sqlDP.dbType;
                 if (sqlDP.config) {
                     sqlDP.config.storageType = storageTypes[sqlDP.type];
                 }
@@ -2108,9 +2112,9 @@ export class SqlAdapter extends Adapter {
         if (
             this.sqlDPs[task.id].index !== undefined &&
             this.sqlDPs[task.id].type !== undefined &&
-            this.sqlDPs[task.id].type !== this.sqlDPs[task.id].dbtype
+            this.sqlDPs[task.id].type !== this.sqlDPs[task.id].dbType
         ) {
-            this.sqlDPs[task.id].dbtype = this.sqlDPs[task.id].type;
+            this.sqlDPs[task.id].dbType = this.sqlDPs[task.id].type;
 
             const query = this.sqlFuncs!.getIdUpdate(
                 this.config.dbname,
@@ -3075,24 +3079,24 @@ export class SqlAdapter extends Adapter {
             this.log.debug(`${logId} getHistory options final: ${JSON.stringify(options)}`);
         }
 
-        if (options.id && this.sqlDPs[options.id].type === undefined && this.sqlDPs[options.id].dbtype !== undefined) {
+        if (options.id && this.sqlDPs[options.id].type === undefined && this.sqlDPs[options.id].dbType !== undefined) {
             const storageType = this.sqlDPs[options.id].config?.storageType;
             if (storageType) {
-                if (storageTypes.indexOf(storageType) === this.sqlDPs[options.id].dbtype) {
+                if (storageTypes.indexOf(storageType) === this.sqlDPs[options.id].dbType) {
                     if (debugLog) {
                         this.log.debug(
-                            `${logId} For getHistory for id ${options.id}: Type empty, use storageType dbtype ${this.sqlDPs[options.id].dbtype}`,
+                            `${logId} For getHistory for id ${options.id}: Type empty, use storageType dbType ${this.sqlDPs[options.id].dbType}`,
                         );
                     }
-                    this.sqlDPs[options.id].type = this.sqlDPs[options.id].dbtype;
+                    this.sqlDPs[options.id].type = this.sqlDPs[options.id].dbType;
                 }
             } else {
                 if (debugLog) {
                     this.log.debug(
-                        `${logId} For getHistory for id ${options.id}: Type empty, use dbtype ${this.sqlDPs[options.id].dbtype}`,
+                        `${logId} For getHistory for id ${options.id}: Type empty, use dbType ${this.sqlDPs[options.id].dbType}`,
                     );
                 }
-                this.sqlDPs[options.id].type = this.sqlDPs[options.id].dbtype;
+                this.sqlDPs[options.id].type = this.sqlDPs[options.id].dbType;
             }
         }
         if (options.id && this.sqlDPs[options.id].index === undefined) {
@@ -4043,6 +4047,8 @@ export class SqlAdapter extends Adapter {
         config.password = 'iobroker';
         config.dockerMysql.port = parseInt((config.dockerMysql.port as string) || '3306', 10) || 3306;
         config.port = config.dockerMysql.port;
+        config.multiRequests = true;
+        config.maxConnections = 100;
         return {
             iobEnabled: true,
             iobMonitoringEnabled: true,
@@ -4208,6 +4214,33 @@ export class SqlAdapter extends Adapter {
         return config as SqlAdapterConfigTyped;
     }
 
+    async createUserInDocker(): Promise<void> {
+        const mySQLOptions: MySQLOptions = {
+            host: this.config.host, // needed for PostgreSQL , MySQL
+            user: 'root',
+            password: this.config.dockerMysql.rootPassword || 'root_iobroker',
+            port: this.config.port || undefined,
+            ssl: this.config.encrypt
+                ? {
+                      rejectUnauthorized: !!this.config.rejectUnauthorized,
+                  }
+                : undefined,
+        };
+        const client = new MySQL2Client(mySQLOptions);
+        await client.connectAsync();
+        // Show all users
+        const exists = await client.executeAsync<{ ex: 0 | 1 }>(
+            `SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = 'iobroker') as "ex";`,
+        );
+        if (exists?.[0]?.ex !== 1) {
+            // create user
+            await client.executeAsync(`CREATE USER 'iobroker'@'%' IDENTIFIED BY 'iobroker';`);
+            await client.executeAsync(`GRANT ALL PRIVILEGES ON * . * TO 'iobroker'@'%';`);
+            await client.executeAsync(`FLUSH PRIVILEGES;`);
+        }
+        await client.disconnectAsync();
+    }
+
     async main(): Promise<void> {
         this.setConnected(false);
 
@@ -4237,6 +4270,9 @@ export class SqlAdapter extends Adapter {
             }
             this.dockerManager = new DockerManager(this, undefined, containerConfigs);
             await this.dockerManager.allOwnContainersChecked();
+
+            // Todo: Check that the user 'iobroker' exists
+            await this.createUserInDocker();
         }
 
         if (config.dbtype === 'sqlite' || this.config.host) {
@@ -4247,7 +4283,7 @@ export class SqlAdapter extends Adapter {
                     if (doc?.rows) {
                         for (let i = 0, l = doc.rows.length; i < l; i++) {
                             if (doc.rows[i].value?.[this.namespace]) {
-                                let id = doc.rows[i].id;
+                                let id: string = doc.rows[i].id;
                                 const realId = id;
                                 if (doc.rows[i].value[this.namespace] && doc.rows[i].value[this.namespace].aliasId) {
                                     this.aliasMap[id] = doc.rows[i].value[this.namespace].aliasId;
@@ -4256,12 +4292,12 @@ export class SqlAdapter extends Adapter {
                                 }
 
                                 let storedIndex: number | null = null;
-                                let storedType = null;
+                                let storedType: 0 | 1 | 2 | null = null;
                                 if (this.sqlDPs[id] && this.sqlDPs[id].index !== undefined) {
                                     storedIndex = this.sqlDPs[id].index;
                                 }
-                                if (this.sqlDPs[id] && this.sqlDPs[id].dbtype !== undefined) {
-                                    storedType = this.sqlDPs[id].dbtype;
+                                if (this.sqlDPs[id] && this.sqlDPs[id].dbType !== undefined) {
+                                    storedType = this.sqlDPs[id].dbType;
                                 }
                                 const config = this.normalizeCustomConfig(doc.rows[i].value as SqlCustomConfig);
 
@@ -4272,7 +4308,7 @@ export class SqlAdapter extends Adapter {
                                     sqlDP.index = storedIndex;
                                 }
                                 if (storedType !== null) {
-                                    sqlDP.dbtype = storedType;
+                                    sqlDP.dbType = storedType;
                                 }
 
                                 if (!config || typeof config !== 'object' || config.enabled === false) {
@@ -4285,14 +4321,15 @@ export class SqlAdapter extends Adapter {
 
                                     // relogTimeout
                                     if (config.changesOnly && config.changesRelogInterval > 0) {
-                                        sqlDP.relogTimeout && clearTimeout(sqlDP.relogTimeout);
+                                        if (sqlDP.relogTimeout) {
+                                            clearTimeout(sqlDP.relogTimeout);
+                                        }
                                         sqlDP.relogTimeout = setTimeout(
                                             _id => {
                                                 this.sqlDPs[_id].relogTimeout = null;
                                                 this.reLogHelper(_id);
                                             },
-                                            sqlDP.config.changesRelogInterval * 500 * Math.random() +
-                                                sqlDP.config.changesRelogInterval * 500,
+                                            sqlDP.config.changesRelogInterval * 500 * (1 + Math.random()),
                                             id,
                                         );
                                     }

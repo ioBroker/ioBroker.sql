@@ -127,7 +127,7 @@ function getCounterDiff(_dbName, options) {
         `ORDER BY ts) a;`);
 }
 function getHistory(_dbName, table, options) {
-    let query = `SELECT ts, val${!options.index ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM ${table}`;
+    let query = `SELECT ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM ${table}`;
     if (options.from) {
         query += ` INNER JOIN sources ON sources.id=${table}._from`;
     }

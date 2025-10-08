@@ -39,7 +39,7 @@ class PostgreSQLConnectionFactory extends ConnectionFactory {
             if (err) {
                 return callback(err);
             }
-            return callback(null, results.rows);
+            return callback(null, results?.rows);
         });
     }
 }

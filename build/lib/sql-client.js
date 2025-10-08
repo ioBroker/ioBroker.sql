@@ -22,16 +22,31 @@ class SQLClient extends node_events_1.EventEmitter {
                 }
                 this.connection = connection;
                 this.connected_at = Date.now();
-                return callback?.();
+                callback?.();
             });
         }
-        return callback?.();
+        callback?.();
+    }
+    connectAsync() {
+        if (!this.connection) {
+            return new Promise((resolve, reject) => this.factory.openConnection(this.options, (err, connection) => {
+                if (err) {
+                    reject(err);
+                }
+                else {
+                    this.connection = connection;
+                    this.connected_at = Date.now();
+                    resolve();
+                }
+            }));
+        }
+        return Promise.resolve();
     }
     disconnect(callback) {
         if (this.connection) {
             this.factory.closeConnection(this.connection, err => {
                 if (err) {
-                    callback?.(err, this.connection);
+                    callback?.(err);
                     return;
                 }
                 this.connection = null;
@@ -41,6 +56,21 @@ class SQLClient extends node_events_1.EventEmitter {
             return;
         }
         return callback?.();
+    }
+    disconnectAsync() {
+        if (this.connection) {
+            return new Promise((resolve, reject) => this.factory.closeConnection(this.connection, err => {
+                if (err) {
+                    reject(err);
+                }
+                else {
+                    this.connection = null;
+                    this.connected_at = null;
+                    resolve();
+                }
+            }));
+        }
+        return Promise.resolve();
     }
     execute(sql, callback) {
         if (!this.connection) {
@@ -61,6 +91,19 @@ class SQLClient extends node_events_1.EventEmitter {
                 callback(null, result);
             }
         });
+    }
+    async executeAsync(sql) {
+        if (!this.connection) {
+            await this.connectAsync();
+        }
+        return new Promise((resolve, reject) => this.factory.execute(this.connection, sql, (err, result) => {
+            if (err) {
+                reject(err);
+            }
+            else {
+                resolve(result);
+            }
+        }));
     }
 }
 exports.default = SQLClient;

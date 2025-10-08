@@ -24,17 +24,34 @@ export default class SQLClient extends EventEmitter {
                 }
                 this.connection = connection;
                 this.connected_at = Date.now();
-                return callback?.();
+                callback?.();
             });
         }
-        return callback?.();
+        callback?.();
     }
 
-    disconnect(callback?: (err?: Error, connection?: SQLConnection) => void): void {
+    connectAsync(): Promise<void> {
+        if (!this.connection) {
+            return new Promise<void>((resolve, reject) =>
+                this.factory.openConnection(this.options, (err, connection) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        this.connection = connection;
+                        this.connected_at = Date.now();
+                        resolve();
+                    }
+                }),
+            );
+        }
+        return Promise.resolve();
+    }
+
+    disconnect(callback?: (err?: Error) => void): void {
         if (this.connection) {
             this.factory.closeConnection(this.connection, err => {
                 if (err) {
-                    callback?.(err, this.connection);
+                    callback?.(err);
                     return;
                 }
                 this.connection = null;
@@ -44,6 +61,23 @@ export default class SQLClient extends EventEmitter {
             return;
         }
         return callback?.();
+    }
+
+    disconnectAsync(): Promise<void> {
+        if (this.connection) {
+            return new Promise<void>((resolve, reject) =>
+                this.factory.closeConnection(this.connection, err => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        this.connection = null;
+                        this.connected_at = null;
+                        resolve();
+                    }
+                }),
+            );
+        }
+        return Promise.resolve();
     }
 
     execute<T>(sql: string, callback: (err: Error | null, result?: Array<T>) => void): void {
@@ -63,5 +97,20 @@ export default class SQLClient extends EventEmitter {
                 callback(null, result);
             }
         });
+    }
+
+    async executeAsync<T>(sql: string): Promise<Array<T> | undefined> {
+        if (!this.connection) {
+            await this.connectAsync();
+        }
+        return new Promise<Array<T> | undefined>((resolve, reject) =>
+            this.factory.execute(this.connection, sql, (err?: Error | null, result?: Array<T>): void => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            }),
+        );
     }
 }

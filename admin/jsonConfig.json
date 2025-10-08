@@ -6,9 +6,25 @@
             "type": "panel",
             "label": "DB settings",
             "items": {
+                "dockerMysql.enabled": {
+                    "newLine": true,
+                    "type": "checkDocker",
+                    "label": "Use self-hosted MySQL in Docker",
+                    "help": "docker_explanation",
+                    "xs": 12
+                },
+                "dockerPhpMyAdmin.enabled": {
+                    "newLine": true,
+                    "type": "checkDocker",
+                    "hideVersion": true,
+                    "hidden": "!data.dockerMysql?.enabled",
+                    "label": "Use self-hosted PhpMyAdmin in Docker",
+                    "xs": 12
+                },
                 "dbtype": {
                     "type": "select",
                     "noTranslation": true,
+                    "hidden": "!!data.dockerMysql?.enabled",
                     "options": [
                         { "label": "MySQL", "value": "mysql" },
                         { "label": "PostgreSQL", "value": "postgresql" },
@@ -25,7 +41,7 @@
                     "newLine": true,
                     "type": "text",
                     "label": "Host",
-                    "hidden": "data.dbtype === 'sqlite'",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
                     "sm": 12,
                     "md": 4,
                     "lg": 3
@@ -33,7 +49,7 @@
                 "port": {
                     "type": "number",
                     "label": "Port",
-                    "hidden": "data.dbtype === 'sqlite'",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
                     "min": 0,
                     "max": 65565,
                     "sm": 12,
@@ -43,7 +59,7 @@
                 "dbname": {
                     "type": "text",
                     "label": "DB Name",
-                    "hidden": "data.dbtype === 'sqlite'",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
                     "sm": 12,
                     "md": 4,
                     "lg": 3
@@ -53,7 +69,7 @@
                     "newLine": true,
                     "type": "text",
                     "label": "User",
-                    "hidden": "data.dbtype === 'sqlite'",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
                     "sm": 12,
                     "md": 4,
                     "lg": 3
@@ -62,7 +78,7 @@
                     "type": "password",
                     "label": "Password",
                     "repeat": true,
-                    "hidden": "data.dbtype === 'sqlite'",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
                     "sm": 12,
                     "md": 8,
                     "lg": 6
@@ -72,7 +88,7 @@
                     "newLine": true,
                     "type": "text",
                     "label": "File for sqlite",
-                    "hidden": "data.dbtype !== 'sqlite'",
+                    "hidden": "data.dbtype !== 'sqlite' || !!data.dockerMysql?.enabled",
                     "help": "Input path with the file name.",
                     "sm": 12,
                     "md": 4,
@@ -90,7 +106,7 @@
                 "encrypt": {
                     "newLine": true,
                     "type": "checkbox",
-                    "hidden": "data.dbtype === 'sqlite'",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
                     "label": "Encrypt",
                     "sm": 12,
                     "md": 4,
@@ -98,7 +114,7 @@
                 },
                 "rejectUnauthorized": {
                     "type": "checkbox",
-                    "hidden": "data.dbtype === 'sqlite'",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
                     "label": "Reject on SSL errors",
                     "sm": 12,
                     "md": 4,
@@ -107,7 +123,7 @@
                 "multiRequests": {
                     "newLine": true,
                     "type": "checkbox",
-                    "hidden": "data.dbtype === 'sqlite'",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
                     "label": "Allow parallel requests",
                     "sm": 12,
                     "md": 4,
@@ -115,7 +131,7 @@
                 },
                 "maxConnections": {
                     "type": "number",
-                    "hidden": "data.dbtype === 'sqlite'",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
                     "label": "Maximum concurrent connections",
                     "sm": 12,
                     "md": 4,
@@ -123,7 +139,7 @@
                 },
                 "doNotCreateDatabase": {
                     "type": "checkbox",
-                    "hidden": "data.dbtype === 'sqlite'",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
                     "label": "Do not create database (already created)",
                     "sm": 12,
                     "md": 4,
@@ -408,31 +424,11 @@
                     "sm": 12,
                     "md": 6
                 },
-                "dockerPhpMyAdmin.adminSecurityPassword": {
+                "dockerPhpMyAdmin.absoluteUri": {
                     "newLine": true,
-                    "type": "password",
-                    "label": "Admin security password",
-                    "help": "Only by first start",
-                    "xs": 12
-                },
-                "dockerPhpMyAdmin.serverRootUrl": {
-                    "newLine": true,
-                    "type": "string",
-                    "label": "Server root URL",
-                    "help": "Defines the root URL, useful when Grafana is behind a reverse proxy.",
-                    "xs": 12
-                },
-                "dockerPhpMyAdmin.plugins": {
-                    "newLine": true,
-                    "type": "chips",
-                    "label": "Plugins",
-                    "help": "Auto-installs plugins at startup",
-                    "xs": 12
-                },
-                "dockerPhpMyAdmin.usersAllowSignUp": {
-                    "newLine": true,
-                    "type": "checkbox",
-                    "label": "Enable user sign-ups",
+                    "type": "text",
+                    "label": "Root URL",
+                    "help": "Defines the root URL, useful when PhpMyAdmin is behind a reverse proxy.",
                     "xs": 12
                 }
             }

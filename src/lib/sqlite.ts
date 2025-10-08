@@ -151,7 +151,7 @@ export function getHistory(
     table: string,
     options: ioBroker.GetHistoryOptions & { index: number | null },
 ): string {
-    let query = `SELECT ts, val${!options.index ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${
+    let query = `SELECT ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${
         options.from ? `, sources.name as 'from'` : ''
     }${options.q ? ', q' : ''} FROM ${table}`;
 
