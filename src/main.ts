@@ -2,6 +2,8 @@ import { Adapter, type AdapterOptions, getAbsoluteDefaultDataDir } from '@iobrok
 import { sendResponseCounter, sendResponse } from './lib/aggregate';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join, normalize } from 'node:path';
+import { DockerManagerOfOwnContainers, type ContainerConfig } from '@iobroker/plugin-docker';
+
 import type {
     DbType,
     SqlAdapterConfig,
@@ -23,8 +25,6 @@ import { SQLite3ClientPool, SQLite3Client, type SQLite3Options } from './lib/sql
 import type { SQLClientPool, PoolConfig } from './lib/sql-client-pool';
 import type SQLClient from './lib/sql-client';
 import type { IobDataEntry } from './lib/types';
-import type { ContainerConfig } from './lib/dockerManager.types';
-import DockerManager from './lib/DockerManager';
 
 export interface IobDataEntryEx extends Omit<IobDataEntry, 'val'> {
     val: string | boolean | number | null;
@@ -298,7 +298,6 @@ export class SqlAdapter extends Adapter {
     private postgresDbCreated = false;
     private lockTasks = false;
     private sqlFuncs: SQLFunc | null = null;
-    private dockerManager: DockerManager | null = null;
 
     public constructor(options: Partial<AdapterOptions> = {}) {
         super({
@@ -681,7 +680,7 @@ export class SqlAdapter extends Adapter {
     setConnected(isConnected: boolean): void {
         if (this.sqlConnected !== isConnected) {
             this.sqlConnected = isConnected;
-            this.setState('info.connection', this.sqlConnected, true);
+            void this.setState('info.connection', this.sqlConnected, true);
         }
     }
 
@@ -903,8 +902,8 @@ export class SqlAdapter extends Adapter {
         return normalize(join(config, fileName));
     }
 
-    testConnection(msg: ioBroker.Message): void {
-        if (!msg.message.config) {
+    async testConnection(msg: ioBroker.Message): Promise<void> {
+        if (!msg?.message?.config) {
             if (msg.callback) {
                 this.sendTo(msg.from, msg.command, { error: 'invalid config' }, msg.callback);
             }
@@ -915,9 +914,36 @@ export class SqlAdapter extends Adapter {
         let mySQLOptions: MySQLOptions | undefined;
         let postgreSQLOptions: PostgreSQLOptions | undefined;
 
-        const config: SqlAdapterConfig = msg.message.config;
+        const config: SqlAdapterConfigTyped = msg.message.config;
 
-        config.port = parseInt(config.port as string, 10) || 0;
+        config.port = parseInt(config.port as unknown as string, 10) || 0;
+
+        let dockerCreated = false;
+        let dockerManager: DockerManagerOfOwnContainers | undefined;
+        if (config.dockerMysql?.enabled) {
+            // Start docker container if not running and then stop it
+            const mysqlDockerConfig: ContainerConfig = this.getDockerConfigMySQL(config);
+            dockerManager = this.getPluginInstance('docker')?.getDockerManager();
+            if (!dockerManager) {
+                dockerCreated = true;
+                mysqlDockerConfig.removeOnExit = true;
+                dockerManager = new DockerManagerOfOwnContainers(
+                    {
+                        logger: {
+                            level: 'silly',
+                            silly: this.log.silly.bind(this.log),
+                            debug: this.log.debug.bind(this.log),
+                            info: this.log.info.bind(this.log),
+                            warn: this.log.warn.bind(this.log),
+                            error: this.log.error.bind(this.log),
+                        },
+                        namespace: this.namespace,
+                        adapterDir: `${__dirname}/../`,
+                    },
+                    [mysqlDockerConfig],
+                );
+            }
+        }
 
         if (config.dbtype === 'postgresql') {
             postgreSQLOptions = {
@@ -980,36 +1006,55 @@ export class SqlAdapter extends Adapter {
                 this.sendTo(msg.from, msg.command, { error: 'connect timeout' }, msg.callback);
             }, 5000);
 
-            client.connect((err?: Error | null): void => {
-                if (err) {
-                    if (this.testConnectTimeout) {
-                        clearTimeout(this.testConnectTimeout);
-                        this.testConnectTimeout = null;
-                    }
-                    this.sendTo(
-                        msg.from,
-                        msg.command,
-                        { error: `${(err as any).code} ${err.toString()}` },
-                        msg.callback,
-                    );
-                    return;
-                }
-
-                client.execute('SELECT 2 + 3 AS x', (err?: Error | null /* , rows, fields */) => {
-                    client.disconnect();
-
-                    if (this.testConnectTimeout) {
-                        clearTimeout(this.testConnectTimeout);
-                        this.testConnectTimeout = null;
-                        this.sendTo(msg.from, msg.command, { error: err?.toString() || null }, msg.callback);
+            const err = await new Promise<Error | null | undefined>(resolve =>
+                client.connect((err?: Error | null): void => {
+                    if (err) {
+                        if (this.testConnectTimeout) {
+                            clearTimeout(this.testConnectTimeout);
+                            this.testConnectTimeout = null;
+                        }
+                        this.sendTo(
+                            msg.from,
+                            msg.command,
+                            { error: `${(err as any).code} ${err.toString()}` },
+                            msg.callback,
+                        );
                         return;
                     }
-                });
-            });
+
+                    client.execute('SELECT 2 + 3 AS x', (err?: Error | null /* , rows, fields */): void => {
+                        client.disconnect();
+                        resolve(err);
+                    });
+                }),
+            );
+
+            if (dockerCreated && dockerManager) {
+                try {
+                    await dockerManager.destroy();
+                    dockerManager = undefined;
+                    dockerCreated = false;
+                } catch (e) {
+                    this.log.error(`Cannot stop docker container: ${e}`);
+                }
+            }
+            if (this.testConnectTimeout) {
+                clearTimeout(this.testConnectTimeout);
+                this.testConnectTimeout = null;
+                this.sendTo(msg.from, msg.command, { error: err?.toString() || null }, msg.callback);
+                return;
+            }
         } catch (ex) {
             if (this.testConnectTimeout) {
                 clearTimeout(this.testConnectTimeout);
                 this.testConnectTimeout = null;
+            }
+            if (dockerCreated && dockerManager) {
+                try {
+                    await dockerManager.destroy();
+                } catch (e) {
+                    this.log.error(`Cannot stop docker container: ${e}`);
+                }
             }
             if (ex.toString() === 'TypeError: undefined is not a function') {
                 this.sendTo(
@@ -1374,7 +1419,7 @@ export class SqlAdapter extends Adapter {
         } else if (msg.command === 'getCounter') {
             this.getCounterDiff(msg);
         } else if (msg.command === 'test') {
-            this.testConnection(msg);
+            void this.testConnection(msg);
         } else if (msg.command === 'destroy') {
             this.destroyDB(msg);
         } else if (msg.command === 'query') {
@@ -1412,7 +1457,7 @@ export class SqlAdapter extends Adapter {
             const task = this.tasksStart.shift()!;
             const sqlDP = this.sqlDPs[task.id];
             if (sqlDP.config.changesOnly) {
-                this.getForeignState(sqlDP.realId, (err, state) => {
+                void this.getForeignState(sqlDP.realId, (err, state) => {
                     const now = task.now || Date.now();
                     this.pushHistory(task.id, {
                         val: null,
@@ -1750,7 +1795,7 @@ export class SqlAdapter extends Adapter {
             } else if (this.sqlDPs[_id].state) {
                 this.pushHistory(_id, this.sqlDPs[_id].state, true);
             } else {
-                this.getForeignState(this.sqlDPs[_id].realId, (err, state) => {
+                void this.getForeignState(this.sqlDPs[_id].realId, (err, state) => {
                     if (err) {
                         this.log.info(`init timed Relog: can not get State for ${_id} : ${err}`);
                     } else if (!state) {
@@ -4037,7 +4082,7 @@ export class SqlAdapter extends Adapter {
         this.sendTo(msg.from, msg.command, data, msg.callback);
     }
 
-    getDockerConfigMySQL(config: SqlAdapterConfigTyped, dockerAutoImageUpdate?: boolean): ContainerConfig {
+    getDockerConfigMySQL(config: SqlAdapterConfigTyped): ContainerConfig {
         config.dockerMysql ||= {
             enabled: false,
         };
@@ -4051,9 +4096,8 @@ export class SqlAdapter extends Adapter {
         config.maxConnections = 100;
         return {
             iobEnabled: true,
-            iobMonitoringEnabled: true,
-            iobAutoImageUpdate: !!dockerAutoImageUpdate,
             iobStopOnUnload: config.dockerMysql.stopIfInstanceStopped || false,
+            removeOnExit: true,
 
             // influxdb image: https://hub.docker.com/_/influxdb. Only version 2 is supported
             image: 'mysql:lts',
@@ -4089,41 +4133,6 @@ export class SqlAdapter extends Adapter {
         };
     }
 
-    getDockerConfigPhpMyAdmin(config: SqlAdapterConfigTyped): ContainerConfig {
-        config.dockerPhpMyAdmin ||= {
-            enabled: false,
-        };
-        config.dockerPhpMyAdmin.port = parseInt((config.dockerPhpMyAdmin.port as string) || '8080', 10) || 8080;
-        return {
-            iobEnabled: config.dockerPhpMyAdmin.enabled !== false,
-            iobMonitoringEnabled: true,
-            iobAutoImageUpdate: !!config.dockerPhpMyAdmin.autoImageUpdate,
-            // Stop docker too if influxdb is stopped
-            iobStopOnUnload:
-                config.dockerMysql?.stopIfInstanceStopped || config.dockerPhpMyAdmin.stopIfInstanceStopped || false,
-
-            // influxdb image: https://hub.docker.com/_/influxdb. Only version 2 is supported
-            image: 'phpmyadmin/latest',
-            name: 'phpmyadmin',
-            ports: [
-                {
-                    hostPort: config.dockerPhpMyAdmin.port,
-                    containerPort: 8080,
-                    hostIP: config.dockerPhpMyAdmin.bind || '0.0.0.0', // only localhost to disable authentication and https safely
-                },
-            ],
-            networkMode: true, // take default name iob_influxdb_<instance>
-            environment: {
-                MYSQL_ROOT_PASSWORD: config.dockerMysql.rootPassword || 'root_iobroker',
-                MYSQL_USER: 'iobroker',
-                MYSQL_PASSWORD: 'iobroker',
-                PMA_ABSOLUTE_URI: config.dockerPhpMyAdmin.absoluteUri || '',
-                PMA_PORT: (config.dockerMysql.port || 3306).toString(),
-                PMA_HOST: `iob_${this.namespace.replace(/[-.]/g, '_')}`,
-            },
-        };
-    }
-
     normalizeAdapterConfig(config: SqlAdapterConfig): SqlAdapterConfigTyped {
         config.dbname ||= 'iobroker';
 
@@ -4150,7 +4159,7 @@ export class SqlAdapter extends Adapter {
 
         if (!clients[config.dbtype]) {
             this.log.error(`Unknown DB type: ${config.dbtype}`);
-            this.stop?.();
+            void this.stop?.();
         }
         if (config.multiRequests !== undefined && config.dbtype !== 'sqlite') {
             clients[config.dbtype].multiRequests = config.multiRequests;
@@ -4262,16 +4271,21 @@ export class SqlAdapter extends Adapter {
 
         // Start docker if configured
         if (this.config.dockerMysql?.enabled) {
-            const containerConfigs: ContainerConfig[] = [];
-            containerConfigs.push(this.getDockerConfigMySQL(this.config, this.config.dockerMysql?.autoImageUpdate));
+            this.config.dbtype = 'mysql';
+            this.config.dbname = 'iobroker';
+            this.config.user = 'iobroker';
+            this.config.password = 'iobroker';
+            this.config.dockerMysql.port = parseInt((this.config.dockerMysql.port as string) || '3306', 10) || 3306;
+            this.config.port = this.config.dockerMysql.port;
+            this.config.multiRequests = true;
+            this.config.maxConnections = 100;
 
             if (this.config.dockerPhpMyAdmin) {
-                containerConfigs.push(this.getDockerConfigPhpMyAdmin(this.config));
+                this.config.dockerPhpMyAdmin.port =
+                    parseInt((this.config.dockerPhpMyAdmin.port as string) || '8080', 10) || 8080;
             }
-            this.dockerManager = new DockerManager(this, undefined, containerConfigs);
-            await this.dockerManager.allOwnContainersChecked();
 
-            // Todo: Check that the user 'iobroker' exists
+            // Check that the user 'iobroker' exists
             await this.createUserInDocker();
         }
 

@@ -1,7 +1,6 @@
 {
     "common": {
         "name": "sql",
-        "title": "SQL History",
         "titleLang": {
             "en": "SQL logging",
             "de": "SQL-Protokollierung",
@@ -143,17 +142,20 @@
                 "admin": ">=5.1.28"
             }
         ],
+        "licenseInformation": {
+            "license": "MIT",
+            "type": "free"
+        },
         "supportStopInstance": 10000,
         "stopTimeout": 10000,
         "plugins": {
             "sentry": {
                 "dsn": "https://c30462d3e0834993b0aa29824346701e@sentry.iobroker.net/45"
             },
-            "docker": [
-
-            ]
+            "docker": {
+                "iobDockerComposeFiles": ["docker-compose.yaml"]
+            }
         },
-
         "adminUI": {
             "config": "json",
             "custom": "json"

@@ -28,11 +28,11 @@
     },
     "dependencies": {
         "@iobroker/adapter-core": "^3.3.2",
-        "dockerode": "^4.0.9"
+        "dockerode": "^4.0.9",
+        "@iobroker/plugin-docker": "^0.1.5"
     },
     "devDependencies": {
         "@iobroker/eslint-config": "^2.2.0",
-        "@types/dockerode": "^3.3.44",
         "@types/mssql": "^9.1.8",
         "@types/pg": "^8.15.5",
         "@types/sqlite3": "^5.1.0",
@@ -57,6 +57,7 @@
     ],
     "scripts": {
         "test": "node node_modules/mocha/bin/mocha --exit",
+        "lint": "eslint -c eslint.config.mjs",
         "build": "tsc -p tsconfig.build.json",
         "prepublishOnly": "npm run build",
         "release": "release-script",
