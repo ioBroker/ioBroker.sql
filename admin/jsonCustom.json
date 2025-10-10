@@ -5,6 +5,7 @@
     "debounceTime": {
       "newLine": true,
       "type": "number",
+      "xs": 12,
       "sm": 6,
       "min": 0,
       "max": 86400000,
@@ -14,6 +15,7 @@
     },
     "blockTime": {
       "type": "number",
+      "xs": 12,
       "sm": 6,
       "min": 0,
       "max": 86400000,
@@ -26,6 +28,7 @@
       "type": "checkbox",
       "label": "log changes only",
       "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number'",
+      "xs": 12,
       "sm": 6
     },
     "changesRelogInterval": {
@@ -36,6 +39,7 @@
       "max": 86400000,
       "help": "0 = disabled",
       "defaultFunc": "instanceObj.native.changesRelogInterval",
+      "xs": 12,
       "sm": 6,
       "disabled": "!data.changesOnly"
     },
@@ -45,6 +49,7 @@
       "min": 0,
       "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number' ? instanceObj.native.changesMinDelta : 0",
       "default": 0,
+      "xs": 12,
       "sm": 6,
       "help": "0 = disable delta check",
       "disabled": "!data.changesOnly"
@@ -58,6 +63,7 @@
       "validator": "((data.ignoreBelowNumber || '').toString().length === 0) || isFinite(data.ignoreBelowNumber)",
       "validatorErrorText": "Enter a number or leave the field empty",
       "validatorNoSaveOnError": true,
+      "xs": 12,
       "sm": 6
     },
     "ignoreAboveNumber": {
@@ -67,18 +73,21 @@
       "validator": "((data.ignoreAboveNumber || '').toString().length === 0) || isFinite(data.ignoreAboveNumber)",
       "validatorErrorText": "Enter a number or leave the field empty",
       "validatorNoSaveOnError": true,
+      "xs": 12,
       "sm": 6
     },
     "ignoreZero": {
       "newLine": true,
       "type": "checkbox",
       "label": "ignore zero or null values",
+      "xs": 12,
       "sm": 6
     },
     "disableSkippedValueLogging": {
       "newLine": true,
       "label": "Disable charting optimized logging of skipped values",
       "type": "checkbox",
+      "xs": 12,
       "sm": 12,
       "defaultFunc": "instanceObj.native.disableSkippedValueLogging || false"
     },
@@ -105,6 +114,7 @@
         }
       ],
       "default": "",
+      "xs": 12,
       "sm": 6
     },
     "counter": {
@@ -112,6 +122,7 @@
       "label": "Counter",
       "default": false,
       "hidden": "data.storageType !== 'Number'",
+      "xs": 12,
       "sm": 6
     },
     "aliasId": {
@@ -120,6 +131,7 @@
       "label": "aliasId",
       "maxLength": 255,
       "default": "",
+      "xs": 12,
       "sm": 12,
       "help": "Alias Info"
     },
@@ -178,12 +190,14 @@
         }
       ],
       "defaultFunc": "instanceObj.native.retention",
+      "xs": 12,
       "sm": 6
     },
     "customRetentionDuration": {
       "type": "number",
       "label": "Custom retention duration (days)",
       "min": 1,
+      "xs": 12,
       "sm": 12,
       "md": 4,
       "hidden": "(data.retention !== -1)",
@@ -197,12 +211,14 @@
       "min": 0,
       "max": 100000,
       "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number' ? instanceObj.native.maxLength : 10",
+      "xs": 12,
       "sm": 6
     },
     "round": {
       "newLine": true,
       "type": "text",
       "label": "Round real to",
+      "xs": 12,
       "sm": 6,
       "validator": "((data.round || '').toString().length === 0) || isFinite(data.round)",
       "validatorErrorText": "Enter a number or leave the field empty",
@@ -213,6 +229,7 @@
       "newLine": true,
       "label": "Enable enhanced debug logs for the datapoint",
       "type": "checkbox",
+      "xs": 12,
       "sm": 12,
       "defaultFunc": "instanceObj.native.enableDebugLogs || false"
     },
@@ -224,12 +241,14 @@
       "max": 86400000,
       "defaultFunc": "customObj && customObj.common && customObj.common.type === 'number' ? instanceObj.native.debounce : 0",
       "hidden": "true",
+      "xs": 12,
       "sm": 6
     },
     "ignoreBelowZero": {
       "type": "checkbox",
       "label": "ignore values below zero",
       "hidden": "true",
+      "xs": 12,
       "sm": 6
     }
   }

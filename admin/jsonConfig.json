@@ -16,6 +16,7 @@
             {"label": "MS-SQL",     "value": "mssql"}
           ],
           "label": "DB Type",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3
@@ -26,6 +27,7 @@
           "type": "text",
           "label": "Host",
           "hidden": "data.dbtype === 'sqlite'",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3
@@ -36,6 +38,7 @@
           "hidden": "data.dbtype === 'sqlite'",
           "min": 0,
           "max": 65565,
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3
@@ -44,6 +47,7 @@
           "type": "text",
           "label": "DB Name",
           "hidden": "data.dbtype === 'sqlite'",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3
@@ -54,6 +58,7 @@
           "type": "text",
           "label": "User",
           "hidden": "data.dbtype === 'sqlite'",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3
@@ -63,6 +68,7 @@
           "label": "Password",
           "repeat": true,
           "hidden": "data.dbtype === 'sqlite'",
+          "xs": 12,
           "sm": 12,
           "md": 8,
           "lg": 6
@@ -75,6 +81,7 @@
           "label": "File for sqlite",
           "hidden": "data.dbtype !== 'sqlite'",
           "help": "Input path with the file name.",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3
@@ -83,6 +90,7 @@
           "type": "number",
           "label": "requestInterval",
           "hidden": "data.dbtype !== 'sqlite'",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3
@@ -93,6 +101,7 @@
           "type": "checkbox",
           "hidden": "data.dbtype === 'sqlite'",
           "label": "Encrypt",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3
@@ -101,6 +110,7 @@
           "type": "checkbox",
           "hidden": "data.dbtype === 'sqlite'",
           "label": "Reject on SSL errors",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3
@@ -110,6 +120,7 @@
           "type": "checkbox",
           "hidden": "data.dbtype === 'sqlite'",
           "label": "Allow parallel requests",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3
@@ -118,6 +129,7 @@
           "type": "number",
           "hidden": "data.dbtype === 'sqlite'",
           "label": "Maximum concurrent connections",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3
@@ -126,6 +138,7 @@
           "type": "checkbox",
           "hidden": "data.dbtype === 'sqlite'",
           "label": "Do not create database (already created)",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 6
@@ -168,6 +181,7 @@
           "newLine": true,
           "type": "checkbox",
           "label": "Write NULL values on start/stop boundaries",
+          "xs": 12,
           "sm": 12
         }
       }
@@ -179,6 +193,7 @@
         "debounceTime": {
           "newLine": true,
           "type": "number",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "min": 0,
@@ -188,6 +203,7 @@
         },
         "blockTime": {
           "type": "number",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "min": 0,
@@ -201,6 +217,7 @@
           "type": "number",
           "label": "log changes interval(s)",
           "help": "0 = disable",
+          "xs": 12,
           "sm": 12,
           "md": 6,
           "lg": 4
@@ -209,6 +226,7 @@
           "type": "number",
           "label": "log changes minimal delta",
           "help": "0 = disable delta check",
+          "xs": 12,
           "sm": 12,
           "md": 6,
           "lg": 4
@@ -267,6 +285,7 @@
               "label": "Custom timeframe"
             }
           ],
+          "xs": 12,
           "sm": 12,
           "md": 6,
           "lg": 4
@@ -275,6 +294,7 @@
           "type": "number",
           "label": "Custom retention duration (days)",
           "min": 1,
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "hidden": "(data.retention !== -1)",
@@ -286,6 +306,7 @@
           "label": "maximum datapoint count in RAM",
           "min": 0,
           "max": 100000,
+          "xs": 12,
           "sm": 12,
           "md": 4
         },
@@ -293,6 +314,7 @@
           "newLine": true,
           "type": "text",
           "label": "Round real to",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "lg": 3,
@@ -304,12 +326,14 @@
           "newLine": true,
           "label": "Write NULL values on start/stop boundaries",
           "type": "checkbox",
+          "xs": 12,
           "sm": 12,
           "md": 4
         },
         "disableSkippedValueLogging": {
           "label": "Disable charting optimized logging of skipped values",
           "type": "checkbox",
+          "xs": 12,
           "sm": 12,
           "md": 4
         },
@@ -317,11 +341,13 @@
           "newLine": true,
           "label": "Enable enhanced debug logs for the datapoint",
           "type": "checkbox",
+          "xs": 12,
           "sm": 12,
           "md": 4
         },
         "debounce": {
           "type": "number",
+          "xs": 12,
           "sm": 12,
           "md": 4,
           "min": 0,
