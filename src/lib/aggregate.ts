@@ -474,7 +474,6 @@ function finishAggregationForIntegralEx(options: InternalHistoryOptions): void {
     // All intervals have start and end point, so calculate it
     for (let i = 0; i < options.timeIntervals!.length; i++) {
         workDP = options.integralDataPoints![i + 1];
-        workTi = options.timeIntervals![i];
         if (!workDP) {
             continue;
         }
