@@ -640,7 +640,7 @@ function setupController(cb) {
 }
 
 async function getSecret() {
-    var dataDir = rootDir + 'tmp/' + appName + '-data/';
+    const dataDir = `${rootDir}tmp/${appName}-data/`;
 
     if (systemConfig) {
         return systemConfig.native.secret;
@@ -676,8 +676,8 @@ async function getSecret() {
 }
 
 function encrypt(key, value) {
-    var result = '';
-    for (var i = 0; i < value.length; ++i) {
+    let result = '';
+    for (let i = 0; i < value.length; ++i) {
         result += String.fromCharCode(key[i % key.length].charCodeAt(0) ^ value.charCodeAt(i));
     }
     return result;

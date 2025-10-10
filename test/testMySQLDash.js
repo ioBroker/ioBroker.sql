@@ -8,7 +8,6 @@ const tests = require('./lib/testcases');
 let objects = null;
 let states = null;
 let onStateChanged = null;
-let onObjectChanged = null;
 let sendToID = 1;
 
 const adapterShortName = setup.adapterName.substring(setup.adapterName.indexOf('.') + 1);
@@ -16,39 +15,20 @@ const adapterShortName = setup.adapterName.substring(setup.adapterName.indexOf('
 let now = new Date().getTime();
 
 function checkConnectionOfAdapter(cb, counter) {
-    counter = counter || 0;
+    counter ||= 0;
     if (counter > 20) {
-        cb && cb('Cannot check connection');
+        cb?.('Cannot check connection');
         return;
     }
 
     states.getState(`system.adapter.${adapterShortName}.0.alive`, (err, state) => {
-        err && console.error(`MySQL-with-dash: ${err}`);
-        if (state && state.val) {
-            cb && cb();
+        if (err) {
+            console.error(`SQLite:${err}`);
+        }
+        if (state?.val) {
+            cb?.();
         } else {
             setTimeout(() => checkConnectionOfAdapter(cb, counter + 1), 1000);
-        }
-    });
-}
-
-function checkValueOfState(id, value, cb, counter) {
-    counter = counter || 0;
-    if (counter > 20) {
-        cb && cb(`Cannot check value Of State ${id}`);
-        return;
-    }
-
-    states.getState(id, function (err, state) {
-        if (err) console.error(`MySQL-with-dash: ${err}`);
-        if (value === null && !state) {
-            cb && cb();
-        } else if (state && (value === undefined || state.val === value)) {
-            cb && cb();
-        } else {
-            setTimeout(function () {
-                checkValueOfState(id, value, cb, counter + 1);
-            }, 500);
         }
     });
 }
@@ -79,7 +59,7 @@ describe(`Test ${__filename}`, function () {
         setup.adapterStarted = false;
 
         setup.setupController(async function () {
-            var config = await setup.getAdapterConfig();
+            const config = await setup.getAdapterConfig();
             // enable adapter
             config.common.enabled = true;
             config.common.loglevel = 'debug';
@@ -164,7 +144,7 @@ describe(`Test ${__filename}`, function () {
         sendTo('sql.0', 'query', 'SELECT id, name, type FROM iobroker.datapoints', function (result) {
             console.log(`MySQL: ${JSON.stringify(result.result, null, 2)}`);
             expect(result.result.length).to.least(3);
-            for (var i = 0; i < result.result.length; i++) {
+            for (let i = 0; i < result.result.length; i++) {
                 if (result.result[i].name === 'sql.0.testValue') {
                     expect(result.result[i].type).to.be.equal(0);
                 } else if (result.result[i].name === 'sql.0.testValueDebounce') {

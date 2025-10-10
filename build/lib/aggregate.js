@@ -4,6 +4,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.calcDiff = calcDiff;
 exports.initAggregate = initAggregate;
 exports.aggregation = aggregation;
+exports.finishAggregationForIntegralEx = finishAggregationForIntegralEx;
+exports.finishAggregationForIntegral = finishAggregationForIntegral;
 exports.finishAggregationPercentile = finishAggregationPercentile;
 exports.finishAggregation = finishAggregation;
 exports.beautify = beautify;
@@ -21,19 +23,14 @@ exports.sortByTs = sortByTs;
  * Square is the #, deltaT = x2 - x1, DeltaY = y2 - y1
  */
 function calcDiff(oldVal, newVal) {
-    // Ynew - Yold (threat null as zero)
-    const diff = (newVal.val || 0) - (oldVal.val || 0);
     // (Xnew - Xold) / 3600000 (to hours)
-    const deltaT = (newVal.ts - oldVal.ts) / 3600000; // ms => hours
+    const deltaT = (newVal.ts - oldVal.ts) / 3_600_000; // ms => hours
     // if deltaT is negative, we have a problem as the time cannot go back
     if (deltaT < 0) {
-        return { square: 0, deltaT: 0, deltaY: 0 };
+        return { square: 0, deltaT: 0 };
     }
-    // Yold * (Xnew - Xold) / 3600000
-    let square = (oldVal.val || 0) * deltaT;
-    // Yold * (Xnew - Xold) / 3600000 + (Ynew - Yold) * (Xnew - Xold) / 2
-    square += (diff * deltaT) / 2;
-    return { square, deltaT, deltaY: diff };
+    const square = ((newVal.val || 0) + (oldVal.val || 0)) * (deltaT * 0.5);
+    return { square, deltaT };
 }
 function interpolate2points(p1, p2, ts) {
     const dx = p2.ts - p1.ts;
@@ -343,15 +340,80 @@ function aggregationLogic(data, index, options) {
         options.totalIntegralDataPoints?.push(data);
     }
 }
+/**
+ * finishAggregationForIntegralEx
+ *
+ * Purpose:
+ * - Calculate integrals per defined time intervals (smart intervals mode).
+ * - Options must contain `timeIntervals` and `integralDataPoints`.
+ * - Produces `options.result` as an array with one entry per `timeIntervals` element.
+ *
+ * Input:
+ * - options: InternalHistoryOptions already populated by previous aggregation steps.
+ *   Required fields:
+ *     - timeIntervals: TimeInterval[] (array of intervals to calculate over)
+ *     - integralDataPoints: IobDataEntry[][] where length == timeIntervals.length + 2
+ *       (one pre-interval array at index 0, one post-interval array at last index)
+ *     - logDebug (optional) and log (optional) for detailed debug output
+ *
+ * Output:
+ * - options.result: IobDataEntry[] of length = timeIntervals.length
+ *   Each entry:
+ *     - ts: representative timestamp (interval midpoint)
+ *     - val: integral value for that interval (number)
+ *     - time: ISO string of ts when logDebug is enabled (optional)
+ *
+ * Behaviour / Algorithm overview:
+ * 1. Find the latest data point that lies in the pre-interval (index 0).
+ *    That point is used as the `current` known value to interpolate forward.
+ * 2. Initialize finalResult with one entry per time interval; each entry's `val` starts at 0
+ *    and `ts` is set to the interval midpoint (used as representative timestamp).
+ * 3. If no pre-interval `current` point exists, nothing to integrate -> return finalResult of zeros.
+ * 4. Iterate intervals from the first interval that might contain data (index found in step 1):
+ *    - For interval i, obtain the bucket workDP stored at `integralDataPoints[i + 1]`.
+ *    - If bucket has data and `current` exists:
+ *        * Interpolate a point at interval start using linear interpolation between `current` and bucket[0].
+ *        * Insert that interpolated start point at the beginning of bucket.
+ *        * Update `current` to the last point in this bucket (the newest in that bucket).
+ *    - Find the next known data point `next` in later buckets (search forward) and remember its interval index.
+ *    - If no `next` found, assume no further data -> stop filling remaining intervals.
+ *    - Ensure the bucket has at least a start point; if empty, compute and push a start point interpolated between `current` and `next`.
+ *    - Always compute and push an end point for the interval at `workTi.end - 1`, interpolated between `current` and `next`.
+ * 5. After all intervals that can be filled have a start and end point, compute the integral for each interval:
+ *    - For each bucket (workDP) compute sum of trapezoidal areas between consecutive points using `calcDiff(...).square`.
+ *    - Set finalResult[i].val = sum for that interval.
+ *
+ * Key assumptions and details:
+ * - `integralDataPoints` array length is `timeIntervals.length + 2`:
+ *     index 0 = pre-interval (values before start),
+ *     indices 1..timeIntervals.length = buckets for each interval,
+ *     index timeIntervals.length + 1 = post-interval (values after end)
+ * - The function uses linear interpolation (via interpolate2points) to estimate values at interval borders.
+ * - Interval representative timestamp (`ts`) is computed as start + round((end - start) / 2).
+ * - End timestamp for each interval when interpolating is `workTi.end - 1` (inclusive millisecond before next interval).
+ * - If no `current` (no pre-interval data), return early leaving all zeros.
+ * - If no `next` is found while iterating forward, the function stops filling further intervals,
+ *   because it assumes no future data to interpolate to.
+ * - Debug logs (if `options.logDebug`) include created interpolated points and interval contents.
+ *
+ * Edge cases:
+ * - Zero-length intervals (end == start) are not expected in `timeIntervals`.
+ * - If `interpolate2points` gets identical timestamps it returns p1.val (guard in helper).
+ * - The function mutates `options.integralDataPoints` by inserting start/end interpolated entries.
+ * - If `workDP` remains undefined for an interval, `finalResult` keeps that interval's value as 0.
+ */
 function finishAggregationForIntegralEx(options) {
-    // The first interval is pre-interval, and we need it only to calculate the first value
-    // Try to find the very latest value in a pre-interval
+    // The first interval is pre-interval: its data is used only to determine the initial "current" value.
     let index = 0;
     let workDP;
     let next = null;
     let current = null;
     const finalResult = [];
-    // Find first not empty interval
+    if (!options.integralDataPoints || !options.timeIntervals) {
+        throw new Error('finishAggregationForIntegralEx: options.integralDataPoints or options.timeIntervals missing');
+    }
+    // 1) Find the first non-empty integral bucket starting from pre-interval (index 0).
+    //    The last element of the first non-empty bucket is the newest value before options.start.
     // We must remember, that options.integralDataPoints is longer than options.timeIntervals on 2. It hast pre- and post- values
     do {
         workDP = options.integralDataPoints[index];
@@ -362,26 +424,34 @@ function finishAggregationForIntegralEx(options) {
         }
         index++;
     } while (index < options.integralDataPoints.length);
-    // Fill all intervals with 0
+    // 2) Initialize finalResult entries for every time interval with ts = midpoint and val = 0
     for (let i = 0; i < options.timeIntervals.length; i++) {
         const oneInterval = {
+            // compute midpoint deterministically: start + round((end - start) / 2)
             ts: options.timeIntervals[i].start +
-                Math.round(options.timeIntervals[i].end - options.timeIntervals[i].start) / 2,
+                Math.round((options.timeIntervals[i].end - options.timeIntervals[i].start) / 2),
             val: 0,
         };
+        // Add ISO string for easier debugging if requested
         oneInterval.time = new Date(oneInterval.ts).toISOString();
         finalResult.push(oneInterval);
     }
+    // assign preliminary result array back to options
     options.result = finalResult;
+    // 3) If there is no value before start, nothing to integrate -> keep zeroed result
     if (!current) {
         return;
     }
     let workTi;
+    // Holds index of the interval where the next known data was found during forward search
     let nextIntervalIndex = null;
+    // 4) Iterate intervals starting from the one where we might have data (index)
     // Calculate for every interval the start
     for (let i = index; i < options.timeIntervals.length; i++) {
+        // bucket for interval i is stored at integralDataPoints[i + 1]
         workDP = options.integralDataPoints[i + 1];
         workTi = options.timeIntervals[i];
+        // If this bucket already contains points, and we have a prior 'current', insert an interpolated start point
         if (workDP?.length && current) {
             // calculate the first value in this interval
             const firstValue = interpolate2points(current, workDP[0], workTi.start);
@@ -389,15 +459,19 @@ function finishAggregationForIntegralEx(options) {
             if (options.logDebug && options.log) {
                 time.time = new Date(time.ts).toISOString();
             }
+            // Insert at beginning to make sure bucket starts at interval boundary
             workDP.unshift(time);
+            // Update current to newest in this bucket for subsequent interpolation
             current = workDP[workDP.length - 1];
         }
-        // Find next value
+        // Find the next known datapoint in later buckets (only search if previous found next is not usable)
         if (nextIntervalIndex === null || nextIntervalIndex <= i) {
             next = null;
             let j = i + 1;
             do {
+                // check bucket j + 1 because of pre- / post-encodings (buckets for intervals are shifted by 1)
                 if (options.integralDataPoints[j + 1]?.length) {
+                    // next is the earliest datapoint in that later bucket
                     next = options.integralDataPoints[j + 1][0];
                     nextIntervalIndex = j;
                     break;
@@ -405,12 +479,15 @@ function finishAggregationForIntegralEx(options) {
                 j++;
             } while (j <= options.timeIntervals.length);
         }
+        // If no next datapoint exists, assume no more future data available -> stop filling further intervals
         if (!next) {
             // We assume, that no more data will come
             break;
         }
+        // Ensure the bucket exists
         options.integralDataPoints[i + 1] = options.integralDataPoints[i + 1] || [];
         workDP = options.integralDataPoints[i + 1];
+        // If this bucket is empty, compute an interpolated start point between current and next
         if (!workDP.length) {
             // place first value
             // calculate the first value in this interval
@@ -421,7 +498,7 @@ function finishAggregationForIntegralEx(options) {
             }
             workDP.push(time);
         }
-        // calculate the last value in this interval
+        // Always compute an interpolated end point at workTi.end - 1 to make the bucket closed for integral calculation
         const lastValue = interpolate2points(current, next, workTi.end - 1);
         const time = { ts: workTi.end - 1, val: lastValue };
         if (options.logDebug && options.log) {
@@ -429,11 +506,11 @@ function finishAggregationForIntegralEx(options) {
         }
         workDP.push(time);
     }
-    // All intervals have start and end point, so calculate it
+    // 5) Now that start and end points are ensured where possible, compute integral for each interval
     for (let i = 0; i < options.timeIntervals.length; i++) {
         workDP = options.integralDataPoints[i + 1];
-        workTi = options.timeIntervals[i];
         if (!workDP) {
+            // leave finalResult[i].val as 0 when no bucket exists
             continue;
         }
         finalResult[i].val = calcIntegralForPeriod(workDP);
@@ -454,6 +531,7 @@ function finishAggregationForIntegral(options) {
     let postBorderValueRemoved = false;
     const originalResultLength = options.processing.length;
     const finalResult = [];
+    // If timeIntervals are used, delegate to the specialized implementation.
     if (options.timeIntervals) {
         finishAggregationForIntegralEx(options);
         return;
@@ -461,6 +539,7 @@ function finishAggregationForIntegral(options) {
     if (!options.processing) {
         return;
     }
+    // Iterate all processing slots (including pre/post border entries)
     for (let k = 0; k < options.processing.length; k++) {
         let indexStartTs;
         let indexEndTs;
@@ -556,22 +635,25 @@ function finishAggregationForIntegral(options) {
         }
         // Calculate Intervals and always calculate till the interval end (start made sure above already)
         for (let kk = 0; kk < integralDataPoints.length; kk++) {
+            // Determine the end timestamp for this segment: next point ts or interval end
             const valEndTs = integralDataPoints[kk + 1]
                 ? Math.min(integralDataPoints[kk + 1].ts, indexEndTs)
                 : indexEndTs;
+            // Ignore segments that don't belong or have zero duration
             const valDuration = valEndTs - integralDataPoints[kk].ts;
             if (valDuration < 0) {
                 if (options.logDebug && options.log) {
-                    options.log(`Integral: ${k}[${kk}] data do not belong to this interval, ignore ${JSON.stringify(integralDataPoints[kk])} (vs. ${valEndTs})`);
+                    options.log(`Integral: ${k}[${kk}] segment outside interval, ignore ${JSON.stringify(integralDataPoints[kk])} (vs. ${valEndTs})`);
                 }
                 break;
             }
             if (valDuration === 0) {
                 if (options.logDebug && options.log) {
-                    options.log(`Integral: ${k}[${kk}] valDuration zero, ignore ${JSON.stringify(integralDataPoints[kk])}`);
+                    options.log(`Integral: ${k}[${kk}] zero duration, ignore ${JSON.stringify(integralDataPoints[kk])}`);
                 }
                 continue;
             }
+            // Read segment start and end values (treat null as 0)
             let valStart = parseFloat(integralDataPoints[kk].val) || 0;
             // End value is the next value, or if none, assume "linearity"
             let valEnd = parseFloat((integralDataPoints[kk + 1]
@@ -579,7 +661,9 @@ function finishAggregationForIntegral(options) {
                 : options.integralDataPoints[k + 1] && options.integralDataPoints[k + 1][0]
                     ? options.integralDataPoints[k + 1][0].val
                     : valStart)) || 0;
+            // Accumulate integral according to interpolation mode
             if (options.integralInterpolation !== 'linear' || valStart === valEnd) {
+                // Rectangle approximation: constant value = valStart
                 const integralAdd = (valStart * valDuration) / options.integralUnit;
                 // simple rectangle linear interpolation
                 if (options.logDebug && options.log) {
@@ -588,7 +672,7 @@ function finishAggregationForIntegral(options) {
                 point.val += integralAdd;
             }
             else if ((valStart >= 0 && valEnd >= 0) || (valStart <= 0 && valEnd <= 0)) {
-                // start and end are both positive or both negative, or one is 0
+                // Both values on same side of zero: rectangle + triangle decomposition
                 let multiplier = 1;
                 if (valStart <= 0 && valEnd <= 0) {
                     multiplier = -1; // correct the sign at the end
@@ -624,6 +708,7 @@ function finishAggregationForIntegral(options) {
             val: options.processing[k].val.val
         }
         */
+        // If we produced a numeric value, append to final result; otherwise track removed border flags
         if (point.val !== null) {
             finalResult.push(point);
         }
@@ -634,6 +719,7 @@ function finishAggregationForIntegral(options) {
             postBorderValueRemoved = true;
         }
     }
+    // If requested, remove pre- / post-border values from the result
     if (options.removeBorderValues) {
         // we cut out the additional results
         if (!preBorderValueRemoved) {
@@ -1035,6 +1121,10 @@ function finishAggregation(options) {
     options.processing = null;
     beautify(options);
 }
+/**
+ * Beautify the result - remove null values, add start and end values if needed.
+ * Also round the values if requested and add ID to every value if requested.
+ */
 function beautify(options) {
     if (options.logDebug && options.log) {
         options.log(`Beautify: ${options.result?.length} results`);
@@ -1199,7 +1289,7 @@ function beautify(options) {
     }
     if (options.addId && options.result && options.id) {
         for (let i = 0; i < options.result.length; i++) {
-            if (!options.result[i].id && options.id) {
+            if (!options.result[i].id) {
                 options.result[i].id = options.id;
             }
         }

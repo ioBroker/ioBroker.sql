@@ -278,11 +278,11 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(4);
-                var found = 0;
-                for (var i = 0; i < result.result.length; i++) {
+                let found = 0;
+                for (let i = 0; i < result.result.length; i++) {
                     if (result.result[i].val >= 1 && result.result[i].val <= 3) found++;
                 }
-                expect(found).to.be.equal(5); // additionally null value by start of adapter.
+                expect(found).to.be.equal(5); // additionally, null value by start of adapter.
 
                 sendTo(
                     instanceName,
@@ -299,8 +299,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                     function (result) {
                         console.log(JSON.stringify(result.result, null, 2));
                         expect(result.result.length).to.be.equal(2);
-                        var found = 0;
-                        for (var i = 0; i < result.result.length; i++) {
+                        let found = 0;
+                        for (let i = 0; i < result.result.length; i++) {
                             if (result.result[i].val >= 1 && result.result[i].val <= 3) found++;
                         }
                         expect(found).to.be.equal(2);
@@ -325,8 +325,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                             function (result) {
                                 console.log(JSON.stringify(result.result, null, 2));
                                 expect(result.result.length).to.be.equal(2);
-                                var found = 0;
-                                for (var i = 0; i < result.result.length; i++) {
+                                let found = 0;
+                                for (let i = 0; i < result.result.length; i++) {
                                     if (result.result[i].val >= 2.5 && result.result[i].val <= 3) found++;
                                 }
                                 expect(found).to.be.equal(2);
@@ -436,7 +436,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                     function (result2) {
                         console.log(JSON.stringify(result2.result, null, 2));
                         expect(result2.result.length).to.be.equal(2);
-                        for (var i = 0; i < result2.result.length; i++) {
+                        for (let i = 0; i < result2.result.length; i++) {
                             expect(result2.result[i].val).to.be.equal(result.result[i].val);
                         }
 
@@ -1254,8 +1254,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
                 expect(result.result.length).to.be.at.least(5);
-                var found = 0;
-                for (var i = 0; i < result.result.length; i++) {
+                let found = 0;
+                for (let i = 0; i < result.result.length; i++) {
                     if (result.result[i].val === null) found++;
                 }
                 if (writeNulls) {
