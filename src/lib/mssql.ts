@@ -305,7 +305,7 @@ export function update(
         vals.push(`ack=${state.ack ? 1 : 0}`);
     }
     query += vals.join(', ');
-    query += ' WHERE id=${index} AND ts=${state.ts};';
+    query += ` WHERE id=${index} AND ts=${state.ts};`;
 
     return query;
 }
