@@ -1,4 +1,4 @@
-/* jshint -W097 */// jshint strict:false
+/* jshint -W097 */ // jshint strict:false
 /*jslint node: true */
 /*jshint expr: true*/
 const expect = require('chai').expect;
@@ -8,7 +8,6 @@ const tests = require('./lib/testcases');
 let objects = null;
 let states = null;
 let onStateChanged = null;
-let onObjectChanged = null;
 let sendToID = 1;
 
 const adapterShortName = setup.adapterName.substring(setup.adapterName.indexOf('.') + 1);
@@ -16,42 +15,20 @@ const adapterShortName = setup.adapterName.substring(setup.adapterName.indexOf('
 let now = new Date().getTime();
 
 function checkConnectionOfAdapter(cb, counter) {
-    counter = counter || 0;
+    counter ||= 0;
     if (counter > 20) {
-        cb && cb('Cannot check connection');
+        cb?.('Cannot check connection');
         return;
     }
 
-    states.getState(`system.adapter.${adapterShortName}.0.alive`, function (err, state) {
-        if (err) console.error(`MSSQL: ${err}`);
-        if (state && state.val) {
-            cb && cb();
-        } else {
-            setTimeout(function () {
-                checkConnectionOfAdapter(cb, counter + 1);
-            }, 1000);
+    states.getState(`system.adapter.${adapterShortName}.0.alive`, (err, state) => {
+        if (err) {
+            console.error(`SQLite:${err}`);
         }
-    });
-}
-
-function checkValueOfState(id, value, cb, counter) {
-    counter = counter || 0;
-    if (counter > 20) {
-        cb && cb(`Cannot check value Of State ${id}`);
-        return;
-    }
-
-    states.getState(id, function (err, state) {
-        if (err) console.error(`MSSQL: ${err}`);
-        if (value === null && !state) {
-            cb && cb();
-        } else
-        if (state && (value === undefined || state.val === value)) {
-            cb && cb();
+        if (state?.val) {
+            cb?.();
         } else {
-            setTimeout(function () {
-                checkValueOfState(id, value, cb, counter + 1);
-            }, 500);
+            setTimeout(() => checkConnectionOfAdapter(cb, counter + 1), 1000);
         }
     });
 }
@@ -64,48 +41,52 @@ function sendTo(target, command, message, callback) {
     };
 
     states.pushMessage(`system.adapter.${target}`, {
-        command:    command,
-        message:    message,
-        from:       'system.adapter.test.0',
+        command: command,
+        message: message,
+        from: 'system.adapter.test.0',
         callback: {
             message: message,
-            id:      sendToID++,
-            ack:     false,
-            time:    (new Date()).getTime()
-        }
+            id: sendToID++,
+            ack: false,
+            time: new Date().getTime(),
+        },
     });
 }
 
-describe(`Test ${__filename}`, function() {
+describe(`Test ${__filename}`, function () {
     before(`Test ${__filename}: Start js-controller`, function (_done) {
         this.timeout(600000); // because of first install from npm
         setup.adapterStarted = false;
 
         setup.setupController(async function () {
-            var config = await setup.getAdapterConfig();
+            const config = await setup.getAdapterConfig();
             // enable adapter
-            config.common.enabled  = true;
+            config.common.enabled = true;
             config.common.loglevel = 'debug';
 
             config.native.enableDebugLogs = true;
             config.native.host = '127.0.0.1';
-            config.native.dbtype   = 'mssql';
-            config.native.user     = 'sa';
+            config.native.dbtype = 'mssql';
+            config.native.user = 'sa';
             config.native.password = 'Password12!';
 
             await setup.setAdapterConfig(config.common, config.native);
 
-            setup.startController(true, function(id, obj) {}, function (id, state) {
+            setup.startController(
+                true,
+                function (id, obj) {},
+                function (id, state) {
                     if (onStateChanged) onStateChanged(id, state);
                 },
                 async (_objects, _states) => {
                     objects = _objects;
-                    states  = _states;
+                    states = _states;
 
                     await tests.preInit(objects, states, sendTo, adapterShortName);
 
                     _done();
-                });
+                },
+            );
         });
     });
 
@@ -113,34 +94,44 @@ describe(`Test ${__filename}`, function() {
         this.timeout(60000);
         checkConnectionOfAdapter(function () {
             now = new Date().getTime();
-            sendTo('sql.0', 'enableHistory', {
-                id: 'system.adapter.sql.0.memHeapTotal',
-                options: {
-                    changesOnly:  false,
-                    debounce:     0,
-                    retention:    31536000,
-                    storageType: 'String'
-                }
-            }, function (result) {
-                expect(result.error).to.be.undefined;
-                expect(result.success).to.be.true;
-                sendTo('sql.0', 'enableHistory', {
-                    id: 'system.adapter.sql.0.uptime',
+            sendTo(
+                'sql.0',
+                'enableHistory',
+                {
+                    id: 'system.adapter.sql.0.memHeapTotal',
                     options: {
-                        changesOnly:  false,
-                        debounce:     0,
-                        retention:    31536000,
-                        storageType: 'Boolean'
-                    }
-                }, function (result) {
+                        changesOnly: false,
+                        debounce: 0,
+                        retention: 31536000,
+                        storageType: 'String',
+                    },
+                },
+                function (result) {
                     expect(result.error).to.be.undefined;
                     expect(result.success).to.be.true;
-                    // wait till the adapter receives the new settings
-                    setTimeout(function () {
-                        done();
-                    }, 10000);
-                });
-            });
+                    sendTo(
+                        'sql.0',
+                        'enableHistory',
+                        {
+                            id: 'system.adapter.sql.0.uptime',
+                            options: {
+                                changesOnly: false,
+                                debounce: 0,
+                                retention: 31536000,
+                                storageType: 'Boolean',
+                            },
+                        },
+                        function (result) {
+                            expect(result.error).to.be.undefined;
+                            expect(result.success).to.be.true;
+                            // wait till the adapter receives the new settings
+                            setTimeout(function () {
+                                done();
+                            }, 10000);
+                        },
+                    );
+                },
+            );
         });
     });
 
@@ -149,10 +140,10 @@ describe(`Test ${__filename}`, function() {
     it(`Test ${__filename}: Check Datapoint Types`, function (done) {
         this.timeout(5000);
 
-        sendTo('sql.0', 'query', "SELECT name, type FROM iobroker.dbo.datapoints", function (result) {
+        sendTo('sql.0', 'query', 'SELECT name, type FROM iobroker.dbo.datapoints', function (result) {
             console.log(`MSSQL: ${JSON.stringify(result.result, null, 2)}`);
             expect(result.result.length).to.least(3);
-            for (var i = 0; i < result.result.length; i++) {
+            for (let i = 0; i < result.result.length; i++) {
                 if (result.result[i].name === 'sql.0.testValue') {
                     expect(result.result[i].type).to.be.equal(0);
                 } else if (result.result[i].name === 'sql.0.testValueDebounce') {

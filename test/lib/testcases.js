@@ -19,90 +19,88 @@ async function preInit(_objects, _states, sendTo, adapterShortName) {
         common: {
             type: 'number',
             role: 'state',
-            custom: {}
+            custom: {},
         },
-        type: 'state'
+        type: 'state',
     };
     obj.common.custom[instanceName] = {
         enabled: true,
-        changesOnly:  true,
-        debounce:     0,
-        retention:    31536000,
-        maxLength:    3,
-        changesMinDelta: 0.5
+        changesOnly: true,
+        debounce: 0,
+        retention: 31536000,
+        maxLength: 3,
+        changesMinDelta: 0.5,
     };
     await objects.setObjectAsync(`${instanceName}.testValue`, obj);
     obj = {
         common: {
             type: 'number',
             role: 'state',
-            custom: {}
+            custom: {},
         },
-        type: 'state'
+        type: 'state',
     };
     obj.common.custom[instanceName] = {
         enabled: true,
-        changesOnly:  true,
+        changesOnly: true,
         changesRelogInterval: 10,
-        debounceTime:     500,
-        retention:    31536000,
-        maxLength:    3,
+        debounceTime: 500,
+        retention: 31536000,
+        maxLength: 3,
         changesMinDelta: 0.5,
         ignoreBelowNumber: -1,
         ignoreAboveNumber: 100,
-        ignoreZero:   true,
-        aliasId: `${instanceName}.testValueDebounce alias`
+        ignoreZero: true,
+        aliasId: `${instanceName}.testValueDebounce alias`,
     };
     await objects.setObjectAsync(`${instanceName}.testValueDebounce`, obj);
     obj = {
         common: {
             type: 'number',
             role: 'state',
-            custom: {}
+            custom: {},
         },
-        type: 'state'
+        type: 'state',
     };
     obj.common.custom[instanceName] = {
         enabled: true,
-        changesOnly:  true,
+        changesOnly: true,
         changesRelogInterval: 10,
-        debounceTime:     500,
-        retention:    31536000,
-        maxLength:    0,
+        debounceTime: 500,
+        retention: 31536000,
+        maxLength: 0,
         changesMinDelta: 0.5,
         disableSkippedValueLogging: true,
         ignoreBelowZero: true,
         ignoreAboveNumber: 100,
-        storageType: 'Number'
+        storageType: 'Number',
     };
     await objects.setObjectAsync(`${instanceName}.testValueDebounceRaw`, obj);
     obj = {
         common: {
             type: 'number',
             role: 'state',
-            custom: {}
+            custom: {},
         },
-        type: 'state'
+        type: 'state',
     };
     obj.common.custom[instanceName] = {
         enabled: true,
-        changesOnly:  true,
+        changesOnly: true,
         changesRelogInterval: 10,
-        debounceTime:     0,
-        blockTime:        1500,
-        retention:        31536000,
-        maxLength:        3,
-        changesMinDelta:  0.5,
+        debounceTime: 0,
+        blockTime: 1500,
+        retention: 31536000,
+        maxLength: 3,
+        changesMinDelta: 0.5,
         ignoreBelowNumber: -1,
-        ignoreAboveNumber: 100
+        ignoreAboveNumber: 100,
     };
     await objects.setObjectAsync(`${instanceName}.testValueBlocked`, obj);
 
     await objects.setObjectAsync('system.adapter.test.0', {
-        common: {
-
-        },
-        type: 'instance'
+        common: {},
+        type: 'instance',
     });
     states.subscribeMessage('system.adapter.test.0');
 }
@@ -112,36 +110,44 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
     if (writeNulls) adapterShortName += '-writeNulls';
     if (assumeExistingData) adapterShortName += '-existing';
 
-    it(`Test ${adapterShortName}: Setup test objects after start`, function(done) {
+    it(`Test ${adapterShortName}: Setup test objects after start`, function (done) {
         this.timeout(5000);
 
-        objects.setObject(`${instanceName}.testValue2`, {
+        objects.setObject(
+            `${instanceName}.testValue2`,
+            {
                 common: {
                     type: 'number',
-                    role: 'state'
+                    role: 'state',
                 },
-                type: 'state'
+                type: 'state',
             },
             function () {
-                sendTo(instanceName, 'enableHistory', {
-                    id: `${instanceName}.testValue2`,
-                    options: {
-                        changesOnly:  true,
-                        debounce:     0,
-                        retention:    31536000,
-                        maxLength:    0,
-                        changesMinDelta: 0.5,
-                        aliasId: `${instanceName}.testValue2-alias`
-                    }
-                }, function (result) {
-                    expect(result.error).to.be.undefined;
-                    expect(result.success).to.be.true;
-                    // wait till adapter receives the new settings
-                    setTimeout(function () {
-                        done();
-                    }, 2000);
-                });
-            });
+                sendTo(
+                    instanceName,
+                    'enableHistory',
+                    {
+                        id: `${instanceName}.testValue2`,
+                        options: {
+                            changesOnly: true,
+                            debounce: 0,
+                            retention: 31536000,
+                            maxLength: 0,
+                            changesMinDelta: 0.5,
+                            aliasId: `${instanceName}.testValue2-alias`,
+                        },
+                    },
+                    function (result) {
+                        expect(result.error).to.be.undefined;
+                        expect(result.success).to.be.true;
+                        // wait till adapter receives the new settings
+                        setTimeout(function () {
+                            done();
+                        }, 2000);
+                    },
+                );
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Check Enabled Points after Enable`, function (done) {
@@ -158,62 +164,94 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
         this.timeout(25000);
         now = Date.now();
 
-        states.setState(`${instanceName}.testValue`, {val: 1, ts: now + 1000}, function (err) {
+        states.setState(`${instanceName}.testValue`, { val: 1, ts: now + 1000 }, function (err) {
             if (err) {
                 console.log(err);
             }
             setTimeout(function () {
-                states.setState(`${instanceName}.testValue`, {val: 2, ts: now + 10000}, function (err) {
+                states.setState(`${instanceName}.testValue`, { val: 2, ts: now + 10000 }, function (err) {
                     if (err) {
                         console.log(err);
                     }
                     setTimeout(function () {
-                        states.setState(`${instanceName}.testValue`, {val: 2, ts: now + 13000}, function (err) {
+                        states.setState(`${instanceName}.testValue`, { val: 2, ts: now + 13000 }, function (err) {
                             if (err) {
                                 console.log(err);
                             }
                             setTimeout(function () {
-                                states.setState(`${instanceName}.testValue`, {val: 2, ts: now + 15000}, function (err) {
-                                    if (err) {
-                                        console.log(err);
-                                    }
-                                    setTimeout(function () {
-                                        states.setState(`${instanceName}.testValue`, {val: 2.2, ts: now + 16000}, function (err) {
-                                            if (err) {
-                                                console.log(err);
-                                            }
-                                            setTimeout(function () {
-                                                states.setState(`${instanceName}.testValue`, {val: 2.5, ts: now + 17000}, function (err) {
+                                states.setState(
+                                    `${instanceName}.testValue`,
+                                    { val: 2, ts: now + 15000 },
+                                    function (err) {
+                                        if (err) {
+                                            console.log(err);
+                                        }
+                                        setTimeout(function () {
+                                            states.setState(
+                                                `${instanceName}.testValue`,
+                                                { val: 2.2, ts: now + 16000 },
+                                                function (err) {
                                                     if (err) {
                                                         console.log(err);
                                                     }
                                                     setTimeout(function () {
-                                                        states.setState(`${instanceName}.testValue`, {val: '+003.00', ts: now + 19000}, function (err) {
-                                                            if (err) {
-                                                                console.log(err);
-                                                            }
-                                                            setTimeout(function () {
-                                                                states.setState(`${instanceName}.testValue2`, {val: 1, ts: now + 12000}, function (err) {
-                                                                    if (err) {
-                                                                        console.log(err);
-                                                                    }
-                                                                    setTimeout(function () {
-                                                                        states.setState(`${instanceName}.testValue2`, {val: 3, ts: now + 19000}, function (err) {
+                                                        states.setState(
+                                                            `${instanceName}.testValue`,
+                                                            { val: 2.5, ts: now + 17000 },
+                                                            function (err) {
+                                                                if (err) {
+                                                                    console.log(err);
+                                                                }
+                                                                setTimeout(function () {
+                                                                    states.setState(
+                                                                        `${instanceName}.testValue`,
+                                                                        { val: '+003.00', ts: now + 19000 },
+                                                                        function (err) {
                                                                             if (err) {
                                                                                 console.log(err);
                                                                             }
-                                                                            setTimeout(done, 1000);
-                                                                        });
-                                                                    }, 100);
-                                                                });
-                                                            }, 100);
-                                                        });
+                                                                            setTimeout(function () {
+                                                                                states.setState(
+                                                                                    `${instanceName}.testValue2`,
+                                                                                    { val: 1, ts: now + 12000 },
+                                                                                    function (err) {
+                                                                                        if (err) {
+                                                                                            console.log(err);
+                                                                                        }
+                                                                                        setTimeout(function () {
+                                                                                            states.setState(
+                                                                                                `${instanceName}.testValue2`,
+                                                                                                {
+                                                                                                    val: 3,
+                                                                                                    ts: now + 19000,
+                                                                                                },
+                                                                                                function (err) {
+                                                                                                    if (err) {
+                                                                                                        console.log(
+                                                                                                            err,
+                                                                                                        );
+                                                                                                    }
+                                                                                                    setTimeout(
+                                                                                                        done,
+                                                                                                        1000,
+                                                                                                    );
+                                                                                                },
+                                                                                            );
+                                                                                        }, 100);
+                                                                                    },
+                                                                                );
+                                                                            }, 100);
+                                                                        },
+                                                                    );
+                                                                }, 100);
+                                                            },
+                                                        );
                                                     }, 100);
-                                                });
-                                            }, 100);
-                                        });
-                                    }, 100);
-                                });
+                                                },
+                                            );
+                                        }, 100);
+                                    },
+                                );
                             }, 100);
                         });
                     }, 100);
@@ -225,153 +263,188 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
     it(`Test ${adapterShortName}: Read values from DB using GetHistory`, function (done) {
         this.timeout(25000);
 
-        sendTo(instanceName, 'getHistory', {
-            id: `${instanceName}.testValue`,
-            options: {
-                start:     now,
-                end:       now + 30000,
-                count:     50,
-                aggregate: 'none'
-            }
-        }, function (result) {
-            console.log(JSON.stringify(result.result, null, 2));
-            expect(result.result.length).to.be.at.least(4);
-            var found = 0;
-            for (var i = 0; i < result.result.length; i++) {
-                if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
-            }
-            expect(found).to.be.equal(5); // additionally null value by start of adapter.
-
-            sendTo(instanceName, 'getHistory', {
+        sendTo(
+            instanceName,
+            'getHistory',
+            {
                 id: `${instanceName}.testValue`,
                 options: {
-                    start:     now,
-                    end:       now + 30000,
-                    count:     2,
-                    aggregate: 'none'
-                }
-            }, function (result) {
+                    start: now,
+                    end: now + 30000,
+                    count: 50,
+                    aggregate: 'none',
+                },
+            },
+            function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.equal(2);
-                var found = 0;
-                for (var i = 0; i < result.result.length; i++) {
-                    if (result.result[i].val >= 1 && result.result[i].val <= 3) found ++;
+                expect(result.result.length).to.be.at.least(4);
+                let found = 0;
+                for (let i = 0; i < result.result.length; i++) {
+                    if (result.result[i].val >= 1 && result.result[i].val <= 3) found++;
                 }
-                expect(found).to.be.equal(2);
-                expect(result.result[0].id).to.be.undefined;
+                expect(found).to.be.equal(5); // additionally, null value by start of adapter.
 
-                const latestTs = result.result[result.result.length - 1].ts;
+                sendTo(
+                    instanceName,
+                    'getHistory',
+                    {
+                        id: `${instanceName}.testValue`,
+                        options: {
+                            start: now,
+                            end: now + 30000,
+                            count: 2,
+                            aggregate: 'none',
+                        },
+                    },
+                    function (result) {
+                        console.log(JSON.stringify(result.result, null, 2));
+                        expect(result.result.length).to.be.equal(2);
+                        let found = 0;
+                        for (let i = 0; i < result.result.length; i++) {
+                            if (result.result[i].val >= 1 && result.result[i].val <= 3) found++;
+                        }
+                        expect(found).to.be.equal(2);
+                        expect(result.result[0].id).to.be.undefined;
 
-                sendTo(instanceName, 'getHistory', {
-                    id: `${instanceName}.testValue`,
-                    options: {
-                        start:     now,
-                        end:       now + 30000,
-                        count:     2,
-                        aggregate: 'none',
-                        addId: true,
-                        returnNewestEntries: true
-                    }
-                }, function (result) {
-                    console.log(JSON.stringify(result.result, null, 2));
-                    expect(result.result.length).to.be.equal(2);
-                    var found = 0;
-                    for (var i = 0; i < result.result.length; i++) {
-                        if (result.result[i].val >= 2.5 && result.result[i].val <= 3) found ++;
-                    }
-                    expect(found).to.be.equal(2);
-                    expect(result.result[0].ts >= latestTs).to.be.true;
-                    expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
-                    done();
-                });
-            });
-        });
+                        const latestTs = result.result[result.result.length - 1].ts;
+
+                        sendTo(
+                            instanceName,
+                            'getHistory',
+                            {
+                                id: `${instanceName}.testValue`,
+                                options: {
+                                    start: now,
+                                    end: now + 30000,
+                                    count: 2,
+                                    aggregate: 'none',
+                                    addId: true,
+                                    returnNewestEntries: true,
+                                },
+                            },
+                            function (result) {
+                                console.log(JSON.stringify(result.result, null, 2));
+                                expect(result.result.length).to.be.equal(2);
+                                let found = 0;
+                                for (let i = 0; i < result.result.length; i++) {
+                                    if (result.result[i].val >= 2.5 && result.result[i].val <= 3) found++;
+                                }
+                                expect(found).to.be.equal(2);
+                                expect(result.result[0].ts >= latestTs).to.be.true;
+                                expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
+                                done();
+                            },
+                        );
+                    },
+                );
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Read average from DB using GetHistory`, function (done) {
         this.timeout(25000);
 
-        sendTo(instanceName, 'getHistory', {
-            id: `${instanceName}.testValue`,
-            options: {
-                start:     now + 100,
-                end:       now + 30001,
-                count:     2,
-                aggregate: 'average',
-                ignoreNull: true,
-                addId: true
-            }
-        }, function (result) {
-            console.log(JSON.stringify(result.result, null, 2));
-            if (instanceName !== 'influxdb.0') {
-                expect(result.result.length).to.be.equal(4);
-                expect(result.result[1].val).to.be.equal(1.5);
-                expect(result.result[2].val).to.be.equal(2.57);
-                expect(result.result[3].val).to.be.equal(2.57);
-            } else {
-                expect(result.result.length).to.be.within(4,5);
-                expect(result.result[1].val).to.be.within(1, 1.5);
-                expect(result.result[2].val).to.be.within(2, 3);
-                expect(result.result[3].val).to.be.within(2, 3);
-            }
-            expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
-            done();
-        });
+        sendTo(
+            instanceName,
+            'getHistory',
+            {
+                id: `${instanceName}.testValue`,
+                options: {
+                    start: now + 100,
+                    end: now + 30001,
+                    count: 2,
+                    aggregate: 'average',
+                    ignoreNull: true,
+                    addId: true,
+                },
+            },
+            function (result) {
+                console.log(JSON.stringify(result.result, null, 2));
+                if (instanceName !== 'influxdb.0') {
+                    expect(result.result.length).to.be.equal(4);
+                    expect(result.result[1].val).to.be.equal(1.5);
+                    expect(result.result[2].val).to.be.equal(2.57);
+                    expect(result.result[3].val).to.be.equal(2.57);
+                } else {
+                    expect(result.result.length).to.be.within(4, 5);
+                    expect(result.result[1].val).to.be.within(1, 1.5);
+                    expect(result.result[2].val).to.be.within(2, 3);
+                    expect(result.result[3].val).to.be.within(2, 3);
+                }
+                expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
+                done();
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Read minmax values from DB using GetHistory`, function (done) {
         this.timeout(10000);
 
-        sendTo(instanceName, 'getHistory', {
-            id: `${instanceName}.testValue`,
-            options: {
-                start:     now - 30000,
-                end:       now + 30000,
-                count:     4,
-                aggregate: 'minmax',
-                addId: true
-            }
-        }, result => {
-            console.log(JSON.stringify(result.result, null, 2));
-            expect(result.result.length).to.be.at.least(4);
-            expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
-            done();
-        });
+        sendTo(
+            instanceName,
+            'getHistory',
+            {
+                id: `${instanceName}.testValue`,
+                options: {
+                    start: now - 30000,
+                    end: now + 30000,
+                    count: 4,
+                    aggregate: 'minmax',
+                    addId: true,
+                },
+            },
+            result => {
+                console.log(JSON.stringify(result.result, null, 2));
+                expect(result.result.length).to.be.at.least(4);
+                expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
+                done();
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Read values from DB using GetHistory for aliased testValue2`, function (done) {
         this.timeout(25000);
 
-        sendTo(instanceName, 'getHistory', {
-            id: `${instanceName}.testValue2`,
-            options: {
-                start:     now,
-                end:       now + 30000,
-                count:     50,
-                aggregate: 'none'
-            }
-        }, function (result) {
-            console.log(JSON.stringify(result.result, null, 2));
-            expect(result.result.length).to.be.equal(2);
-
-            sendTo(instanceName, 'getHistory', {
-                id: `${instanceName}.testValue2-alias`,
+        sendTo(
+            instanceName,
+            'getHistory',
+            {
+                id: `${instanceName}.testValue2`,
                 options: {
-                    start:     now,
-                    end:       now + 30000,
-                    count:     50,
-                    aggregate: 'none'
-                }
-            }, function (result2) {
-                console.log(JSON.stringify(result2.result, null, 2));
-                expect(result2.result.length).to.be.equal(2);
-                for (var i = 0; i < result2.result.length; i++) {
-                    expect(result2.result[i].val).to.be.equal(result.result[i].val);
-                }
+                    start: now,
+                    end: now + 30000,
+                    count: 50,
+                    aggregate: 'none',
+                },
+            },
+            function (result) {
+                console.log(JSON.stringify(result.result, null, 2));
+                expect(result.result.length).to.be.equal(2);
 
-                done();
-            });
-        });
+                sendTo(
+                    instanceName,
+                    'getHistory',
+                    {
+                        id: `${instanceName}.testValue2-alias`,
+                        options: {
+                            start: now,
+                            end: now + 30000,
+                            count: 50,
+                            aggregate: 'none',
+                        },
+                    },
+                    function (result2) {
+                        console.log(JSON.stringify(result2.result, null, 2));
+                        expect(result2.result.length).to.be.equal(2);
+                        for (let i = 0; i < result2.result.length; i++) {
+                            expect(result2.result[i].val).to.be.equal(result.result[i].val);
+                        }
+
+                        done();
+                    },
+                );
+            },
+        );
     });
 
     function delay(ms) {
@@ -380,42 +453,42 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
 
     async function logSampleData(stateId, waitMultiplier) {
         if (!waitMultiplier) waitMultiplier = 1;
-        await states.setStateAsync(stateId, {val: 1}); // expect logged
+        await states.setStateAsync(stateId, { val: 1 }); // expect logged
         await delay(600 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 2}); // Expect not logged debounce
+        await states.setStateAsync(stateId, { val: 2 }); // Expect not logged debounce
         await delay(20 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 2.1}); // Expect not logged debounce
+        await states.setStateAsync(stateId, { val: 2.1 }); // Expect not logged debounce
         await delay(20 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 1.5}); // Expect not logged debounce
+        await states.setStateAsync(stateId, { val: 1.5 }); // Expect not logged debounce
         await delay(20 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 2.3}); // Expect not logged debounce
+        await states.setStateAsync(stateId, { val: 2.3 }); // Expect not logged debounce
         await delay(20 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 2.5}); // Expect not logged debounce
+        await states.setStateAsync(stateId, { val: 2.5 }); // Expect not logged debounce
         await delay(600 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 2.9}); // Expect logged skipped
+        await states.setStateAsync(stateId, { val: 2.9 }); // Expect logged skipped
         await delay(600 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 3.0}); // Expect logged
+        await states.setStateAsync(stateId, { val: 3.0 }); // Expect logged
         await delay(600 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 4}); // Expect logged
+        await states.setStateAsync(stateId, { val: 4 }); // Expect logged
         await delay(600 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 4.4}); // expect logged skipped
+        await states.setStateAsync(stateId, { val: 4.4 }); // expect logged skipped
         await delay(600 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 5});  // expect logged
+        await states.setStateAsync(stateId, { val: 5 }); // expect logged
         await delay(20 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 5});  // expect not logged debounce
+        await states.setStateAsync(stateId, { val: 5 }); // expect not logged debounce
         await delay(600 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 5});  // expect logged skipped
+        await states.setStateAsync(stateId, { val: 5 }); // expect logged skipped
         await delay(600 * waitMultiplier);
-        await states.setStateAsync(stateId, {val: 6});  // expect logged
+        await states.setStateAsync(stateId, { val: 6 }); // expect logged
         await delay(10100);
         for (let i = 1; i < 10; i++) {
-            await states.setStateAsync(stateId, {val: 6 + i * 0.05});  // expect logged skipped
+            await states.setStateAsync(stateId, { val: 6 + i * 0.05 }); // expect logged skipped
             await delay(70 * waitMultiplier);
         }
-        await states.setStateAsync(stateId, {val: 7});  // expect logged
+        await states.setStateAsync(stateId, { val: 7 }); // expect logged
         await delay(5000);
-        await states.setStateAsync(stateId, {val: -5});  // expect not logged, too low
-        await states.setStateAsync(stateId, {val: 101}); // expect not logged, too high
+        await states.setStateAsync(stateId, { val: -5 }); // expect not logged, too low
+        await states.setStateAsync(stateId, { val: 101 }); // expect not logged, too high
         await delay(7000);
     }
 
@@ -431,29 +504,34 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
         }
 
         return new Promise(resolve => {
-            sendTo(instanceName, 'getHistory', {
-                id: `${instanceName}.testValueDebounceRaw`,
-                options: {
-                    start:     now,
-                    end:       Date.now(),
-                    count:     50,
-                    aggregate: 'none'
-                }
-            }, function (result) {
-                console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.at.least(9);
-                expect(result.result[0].val).to.be.equal(1);
-                expect(result.result[1].val).to.be.equal(2.5);
-                expect(result.result[2].val).to.be.equal(3.0);
-                expect(result.result[3].val).to.be.equal(4);
-                expect(result.result[4].val).to.be.equal(5);
-                expect(result.result[5].val).to.be.equal(6);
-                expect(result.result[6].val).to.be.equal(6);
-                expect(result.result[7].val).to.be.equal(7);
-                expect(result.result[8].val).to.be.equal(7);
+            sendTo(
+                instanceName,
+                'getHistory',
+                {
+                    id: `${instanceName}.testValueDebounceRaw`,
+                    options: {
+                        start: now,
+                        end: Date.now(),
+                        count: 50,
+                        aggregate: 'none',
+                    },
+                },
+                function (result) {
+                    console.log(JSON.stringify(result.result, null, 2));
+                    expect(result.result.length).to.be.at.least(9);
+                    expect(result.result[0].val).to.be.equal(1);
+                    expect(result.result[1].val).to.be.equal(2.5);
+                    expect(result.result[2].val).to.be.equal(3.0);
+                    expect(result.result[3].val).to.be.equal(4);
+                    expect(result.result[4].val).to.be.equal(5);
+                    expect(result.result[5].val).to.be.equal(6);
+                    expect(result.result[6].val).to.be.equal(6);
+                    expect(result.result[7].val).to.be.equal(7);
+                    expect(result.result[8].val).to.be.equal(7);
 
-                setTimeout(resolve, 2000);
-            });
+                    setTimeout(resolve, 2000);
+                },
+            );
         });
     });
 
@@ -469,145 +547,171 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
         }
 
         return new Promise(resolve => {
+            sendTo(
+                instanceName,
+                'getHistory',
+                {
+                    id: `${instanceName}.testValueDebounce alias`,
+                    options: {
+                        start: now,
+                        end: Date.now(),
+                        count: 50,
+                        aggregate: 'none',
+                    },
+                },
+                function (result) {
+                    console.log(JSON.stringify(result.result, null, 2));
+                    expect(result.result.length).to.be.at.least(12);
 
-            sendTo(instanceName, 'getHistory', {
-                id: `${instanceName}.testValueDebounce alias`,
-                options: {
-                    start:     now,
-                    end:       Date.now(),
-                    count:     50,
-                    aggregate: 'none'
-                }
-            }, function (result) {
-                console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.at.least(12);
-
-                const expectedVals = [1, 2.5, 3, 4, 5, 5, 6, 7, 7];
-                let expectedId = 0;
-                for (let i = 0; i < result.result.length; i++) {
-                    console.log(`${i}: check ${result.result[i].val} vs ${expectedVals[expectedId]} (${expectedId})`);
-                    expect(result.result[i].val).to.be.lessThanOrEqual(expectedVals[expectedId]);
-                    if (result.result[i].val === expectedVals[expectedId] && expectedId < expectedVals.length - 1) {
-                        expectedId++;
+                    const expectedVals = [1, 2.5, 3, 4, 5, 5, 6, 7, 7];
+                    let expectedId = 0;
+                    for (let i = 0; i < result.result.length; i++) {
+                        console.log(
+                            `${i}: check ${result.result[i].val} vs ${expectedVals[expectedId]} (${expectedId})`,
+                        );
+                        expect(result.result[i].val).to.be.lessThanOrEqual(expectedVals[expectedId]);
+                        if (result.result[i].val === expectedVals[expectedId] && expectedId < expectedVals.length - 1) {
+                            expectedId++;
+                        }
                     }
-                }
-                expect(expectedId).to.be.equal(expectedVals.length - 1);
+                    expect(expectedId).to.be.equal(expectedVals.length - 1);
 
-                resolve();
-            });
+                    resolve();
+                },
+            );
         });
     });
 
     it(`Test ${adapterShortName}: Read percentile 50+95 values from DB using GetHistory`, function (done) {
         this.timeout(15000);
 
-        sendTo(instanceName, 'getHistory', {
-            id: `${instanceName}.testValueDebounce alias`,
-            options: {
-                start:     now,
-                end:       Date.now(),
-                count:     1,
-                aggregate: 'percentile',
-                percentile: 50,
-                removeBorderValues: true,
-                addId: true
-            }
-        }, result => {
-            console.log(JSON.stringify(result.result, null, 2));
-            if (instanceName !== 'influxdb.0') {
-                expect(result.result.length).to.be.equal(1);
-                expect(result.result[0].val).to.be.equal(5);
-                expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
-            } else {
-                if (process.env.INFLUXDB2) {
-                    expect(result.result.length).to.be.within(1,3);
-                    expect(result.result[1] ? result.result[1].val : result.result[0].val).to.be.within(5, 7);
-                } else {
-                    expect(result.result.length).to.be.within(1,2);
-                    expect(result.result[1] ? result.result[1].val : result.result[0].val).to.be.within(5, 7);
-                }
-                expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
-            }
-
-            sendTo(instanceName, 'getHistory', {
+        sendTo(
+            instanceName,
+            'getHistory',
+            {
                 id: `${instanceName}.testValueDebounce alias`,
                 options: {
-                    start:     now,
-                    end:       Date.now(),
-                    count:     1,
+                    start: now,
+                    end: Date.now(),
+                    count: 1,
                     aggregate: 'percentile',
-                    percentile: 95,
+                    percentile: 50,
                     removeBorderValues: true,
-                    addId: true
-                }
-            }, result => {
+                    addId: true,
+                },
+            },
+            result => {
                 console.log(JSON.stringify(result.result, null, 2));
                 if (instanceName !== 'influxdb.0') {
                     expect(result.result.length).to.be.equal(1);
-                    expect(result.result[0].val).to.be.equal(7);
+                    expect(result.result[0].val).to.be.equal(5);
+                    expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
                 } else {
-                    expect(result.result.length).to.be.within(1,3);
-                    expect(result.result[result.result.length - 1].val).to.be.equal(7);
+                    if (process.env.INFLUXDB2) {
+                        expect(result.result.length).to.be.within(1, 3);
+                        expect(result.result[1] ? result.result[1].val : result.result[0].val).to.be.within(5, 7);
+                    } else {
+                        expect(result.result.length).to.be.within(1, 2);
+                        expect(result.result[1] ? result.result[1].val : result.result[0].val).to.be.within(5, 7);
+                    }
                     expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
                 }
 
-                expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
-                done();
-            });
-        });
+                sendTo(
+                    instanceName,
+                    'getHistory',
+                    {
+                        id: `${instanceName}.testValueDebounce alias`,
+                        options: {
+                            start: now,
+                            end: Date.now(),
+                            count: 1,
+                            aggregate: 'percentile',
+                            percentile: 95,
+                            removeBorderValues: true,
+                            addId: true,
+                        },
+                    },
+                    result => {
+                        console.log(JSON.stringify(result.result, null, 2));
+                        if (instanceName !== 'influxdb.0') {
+                            expect(result.result.length).to.be.equal(1);
+                            expect(result.result[0].val).to.be.equal(7);
+                        } else {
+                            expect(result.result.length).to.be.within(1, 3);
+                            expect(result.result[result.result.length - 1].val).to.be.equal(7);
+                            expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
+                        }
+
+                        expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
+                        done();
+                    },
+                );
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Read integral from DB using GetHistory`, function (done) {
         this.timeout(25000);
 
-        sendTo(instanceName, 'getHistory', {
-            id: `${instanceName}.testValueDebounce`,
-            options: {
-                start:     now,
-                end:       Date.now(),
-                count:     5,
-                aggregate: 'integral',
-                integralUnit: 5,
-                removeBorderValues: true,
-                addId: true
-            }
-        }, function (result) {
-            console.log(JSON.stringify(result.result, null, 2));
-            if (instanceName !== 'influxdb.0') {
-                expect(result.result.length).to.be.equal(5);
-            } else {
-                expect(result.result.length).to.be.within(3, 5);
-            }
-            expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
-            done();
-        });
+        sendTo(
+            instanceName,
+            'getHistory',
+            {
+                id: `${instanceName}.testValueDebounce`,
+                options: {
+                    start: now,
+                    end: Date.now(),
+                    count: 5,
+                    aggregate: 'integral',
+                    integralUnit: 5,
+                    removeBorderValues: true,
+                    addId: true,
+                },
+            },
+            function (result) {
+                console.log(JSON.stringify(result.result, null, 2));
+                if (instanceName !== 'influxdb.0') {
+                    expect(result.result.length).to.be.equal(5);
+                } else {
+                    expect(result.result.length).to.be.within(3, 5);
+                }
+                expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
+                done();
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Read linear integral from DB using GetHistory`, function (done) {
         this.timeout(25000);
 
-        sendTo(instanceName, 'getHistory', {
-            id: `${instanceName}.testValueDebounce`,
-            options: {
-                start:     now,
-                end:       Date.now(),
-                count:     5,
-                aggregate: 'integral',
-                integralUnit: 5,
-                integralInterpolation: 'linear',
-                removeBorderValues: true,
-                addId: true
-            }
-        }, function (result) {
-            console.log(JSON.stringify(result.result, null, 2));
-            if (instanceName !== 'influxdb.0') {
-                expect(result.result.length).to.be.equal(5);
-            } else {
-                expect(result.result.length).to.be.within(3, 6);
-            }
-            expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
-            done();
-        });
+        sendTo(
+            instanceName,
+            'getHistory',
+            {
+                id: `${instanceName}.testValueDebounce`,
+                options: {
+                    start: now,
+                    end: Date.now(),
+                    count: 5,
+                    aggregate: 'integral',
+                    integralUnit: 5,
+                    integralInterpolation: 'linear',
+                    removeBorderValues: true,
+                    addId: true,
+                },
+            },
+            function (result) {
+                console.log(JSON.stringify(result.result, null, 2));
+                if (instanceName !== 'influxdb.0') {
+                    expect(result.result.length).to.be.equal(5);
+                } else {
+                    expect(result.result.length).to.be.within(3, 6);
+                }
+                expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
+                done();
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Write with 1s block values into DB`, async function () {
@@ -622,30 +726,34 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
         }
 
         return new Promise(resolve => {
+            sendTo(
+                instanceName,
+                'getHistory',
+                {
+                    id: `${instanceName}.testValueBlocked`,
+                    options: {
+                        start: now,
+                        end: Date.now(),
+                        count: 50,
+                        aggregate: 'none',
+                    },
+                },
+                function (result) {
+                    console.log(JSON.stringify(result.result, null, 2));
+                    expect(result.result.length).to.be.at.least(9);
+                    expect(result.result[0].val).to.be.equal(1);
+                    expect(result.result[1].val).to.be.at.least(2.3);
+                    expect(result.result[2].val).to.be.equal(4);
+                    expect(result.result[3].val).to.be.equal(5);
+                    expect(result.result[4].val).to.be.equal(6);
+                    expect(result.result[5].val).to.be.equal(6);
+                    expect(result.result[6].val).to.be.equal(6.45);
+                    expect(result.result[7].val).to.be.equal(7);
+                    expect(result.result[8].val).to.be.equal(7);
 
-            sendTo(instanceName, 'getHistory', {
-                id: `${instanceName}.testValueBlocked`,
-                options: {
-                    start:     now,
-                    end:       Date.now(),
-                    count:     50,
-                    aggregate: 'none'
-                }
-            }, function (result) {
-                console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.at.least(9);
-                expect(result.result[0].val).to.be.equal(1);
-                expect(result.result[1].val).to.be.at.least(2.3);
-                expect(result.result[2].val).to.be.equal(4);
-                expect(result.result[3].val).to.be.equal(5);
-                expect(result.result[4].val).to.be.equal(6);
-                expect(result.result[5].val).to.be.equal(6);
-                expect(result.result[6].val).to.be.equal(6.45);
-                expect(result.result[7].val).to.be.equal(7);
-                expect(result.result[8].val).to.be.equal(7);
-
-                resolve();
-            });
+                    resolve();
+                },
+            );
         });
     });
 
@@ -658,252 +766,336 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
         const nowSampleI24 = Date.now() - 25 * 60 * 60 * 1000;
 
         return new Promise(resolve => {
+            sendTo(
+                instanceName,
+                'storeState',
+                {
+                    id: `${instanceName}.testValue`,
+                    state: [
+                        { val: 2.064, ack: true, ts: nowSampleI1 }, //
+                        { val: 2.116, ack: true, ts: nowSampleI1 + 6 * 60 * 1000 },
+                        { val: 2.028, ack: true, ts: nowSampleI1 + 12 * 60 * 1000 },
+                        { val: 2.126, ack: true, ts: nowSampleI1 + 18 * 60 * 1000 },
+                        { val: 2.041, ack: true, ts: nowSampleI1 + 24 * 60 * 1000 },
+                        { val: 2.051, ack: true, ts: nowSampleI1 + 30 * 60 * 1000 },
 
-            sendTo(instanceName, 'storeState', {
-                id: `${instanceName}.testValue`,
-                state: [
-                    {val: 2.064, ack: true, ts: nowSampleI1}, //
-                    {val: 2.116, ack: true, ts: nowSampleI1 + 6 * 60 * 1000},
-                    {val: 2.028, ack: true, ts: nowSampleI1 + 12 * 60 * 1000},
-                    {val: 2.126, ack: true, ts: nowSampleI1 + 18 * 60 * 1000},
-                    {val: 2.041, ack: true, ts: nowSampleI1 + 24 * 60 * 1000},
-                    {val: 2.051, ack: true, ts: nowSampleI1 + 30 * 60 * 1000},
+                        { val: -2, ack: true, ts: nowSampleI21 }, // 10s none = 50.0
+                        { val: 10, ack: true, ts: nowSampleI21 + 10 * 1000 },
+                        { val: 7, ack: true, ts: nowSampleI21 + 20 * 1000 },
+                        { val: 17, ack: true, ts: nowSampleI21 + 30 * 1000 },
+                        { val: 15, ack: true, ts: nowSampleI21 + 40 * 1000 },
+                        { val: 4, ack: true, ts: nowSampleI21 + 50 * 1000 },
 
-                    {val: -2, ack: true, ts: nowSampleI21}, // 10s none = 50.0
-                    {val: 10, ack: true, ts: nowSampleI21 + 10 * 1000},
-                    {val: 7, ack: true, ts: nowSampleI21 + 20 * 1000},
-                    {val: 17, ack: true, ts: nowSampleI21 + 30 * 1000},
-                    {val: 15, ack: true, ts: nowSampleI21 + 40 * 1000},
-                    {val: 4, ack: true, ts: nowSampleI21 + 50 * 1000},
+                        { val: 19, ack: true, ts: nowSampleI22 }, // 10s none = 43
+                        { val: 4, ack: true, ts: nowSampleI22 + 10 * 1000 },
+                        { val: -3, ack: true, ts: nowSampleI22 + 20 * 1000 },
+                        { val: 19, ack: true, ts: nowSampleI22 + 30 * 1000 },
+                        { val: 13, ack: true, ts: nowSampleI22 + 40 * 1000 },
+                        { val: 1, ack: true, ts: nowSampleI22 + 50 * 1000 },
 
-                    {val: 19, ack: true, ts: nowSampleI22}, // 10s none = 43
-                    {val: 4, ack: true, ts: nowSampleI22 + 10 * 1000},
-                    {val: -3, ack: true, ts: nowSampleI22 + 20 * 1000},
-                    {val: 19, ack: true, ts: nowSampleI22 + 30 * 1000},
-                    {val: 13, ack: true, ts: nowSampleI22 + 40 * 1000},
-                    {val: 1, ack: true, ts: nowSampleI22 + 50 * 1000},
+                        { val: -2, ack: true, ts: nowSampleI23 }, // 10s linear = 25
+                        { val: 7, ack: true, ts: nowSampleI23 + 20 * 1000 },
+                        { val: 4, ack: true, ts: nowSampleI23 + 50 * 1000 },
 
-                    {val: -2, ack: true, ts: nowSampleI23}, // 10s linear = 25
-                    {val: 7, ack: true, ts: nowSampleI23 + 20 * 1000},
-                    {val: 4, ack: true, ts: nowSampleI23 + 50 * 1000},
+                        { val: 4, ack: true, ts: nowSampleI24 + 10 * 1000 }, // 10s linear = 32.5
+                        { val: -3, ack: true, ts: nowSampleI24 + 20 * 1000 },
+                        { val: 19, ack: true, ts: nowSampleI24 + 30 * 1000 },
+                        { val: 1, ack: true, ts: nowSampleI24 + 50 * 1000 },
+                    ],
+                },
+                function (result) {
+                    expect(result.success).to.be.true;
 
-                    {val: 4, ack: true, ts: nowSampleI24 + 10 * 1000}, // 10s linear = 32.5
-                    {val: -3, ack: true, ts: nowSampleI24 + 20 * 1000},
-                    {val: 19, ack: true, ts: nowSampleI24 + 30 * 1000},
-                    {val: 1, ack: true, ts: nowSampleI24 + 50 * 1000},
-                ]
-            }, function (result) {
-                expect(result.success).to.be.true;
-
-                setTimeout(() => {
-                    sendTo(instanceName, 'getHistory', {
-                        id: `${instanceName}.testValue`,
-                        options: {
-                            start:     nowSampleI1,
-                            end:       nowSampleI1 + 30 * 60 * 1000,
-                            count:     1,
-                            aggregate: 'integral',
-                            removeBorderValues: true,
-                            integralUnit: 1,
-                            integralInterpolation: 'none'
-                        }
-                    }, function (result) {
-                        console.log(`Sample I1-1: ${JSON.stringify(result.result, null, 2)}`);
-                        if (instanceName !== 'influxdb.0') {
-                            expect(result.result.length).to.be.equal(1);
-                            if (assumeExistingData) {
-                                expect(result.result[0].val).to.be.within(3700, 3755);
-                            } else {
-                                expect(result.result[0].val).to.be.within(3700, 3800);
-                            }
-                        } else {
-                            if (assumeExistingData) {
-                                expect(result.result.length).to.be.within(2,3);
-                                if (process.env.INFLUXDB2) {
-                                    //expect((result.result[0].val + result.result[1].val)).to.be.within(3780, 4000);
-                                } else {
-                                    //expect(result.result[0].val).to.be.within(2980, 3000);
-                                }
-                            } else {
-                                expect(result.result.length).to.be.equal(2);
-                                if (process.env.INFLUXDB2) {
-                                    expect((result.result[0].val + result.result[1].val)).to.be.within(2980, 3000);
-                                } else {
-                                    expect(parseFloat((result.result[0].val + result.result[1].val).toFixed(2))).to.be.equal(3732.66);
-                                }
-                            }
-
-                        }
-                        // Result Influxdb1 Doku = 3732.66
-
-                        sendTo(instanceName, 'getHistory', {
-                            id: `${instanceName}.testValue`,
-                            options: {
-                                start:     nowSampleI1,
-                                end:       nowSampleI1 + 30 * 60 * 1000,
-                                count:     1,
-                                aggregate: 'integral',
-                                removeBorderValues: true,
-                                integralUnit: 60,
-                                integralInterpolation: 'none'
-                            }
-                        }, function (result) {
-                            console.log(`Sample I1-60: ${JSON.stringify(result.result, null, 2)}`);
-                            if (instanceName !== 'influxdb.0') {
-                                expect(result.result.length).to.be.equal(1);
-                                if (assumeExistingData) {
-                                    expect(result.result[0].val).to.be.lessThan(62.25);
-                                } else {
-                                    expect(result.result[0].val).to.be.equal(62.25);
-                                }
-                            } else {
-                                if (assumeExistingData) {
-                                    expect(result.result.length).to.be.equal(3);
-                                    //expect(result.result[1].val).to.be.within(40, 65);
-                                } else {
-                                    expect(result.result.length).to.be.equal(2);
-                                    if (process.env.INFLUXDB2) {
-                                        expect(parseFloat((result.result[0].val + result.result[1].val).toFixed(2))).to.be.within(49, 50);
-                                    } else {
-                                        expect(parseFloat((result.result[0].val + result.result[1].val).toFixed(2))).to.be.equal(62.21);
-                                    }
-                                }
-                            }
-                            // Result Influxdb1 Doku = 62.211
-
-                            sendTo(instanceName, 'getHistory', {
+                    setTimeout(() => {
+                        sendTo(
+                            instanceName,
+                            'getHistory',
+                            {
                                 id: `${instanceName}.testValue`,
                                 options: {
-                                    start:     nowSampleI21,
-                                    end:       nowSampleI21 + 60 * 1000,
-                                    count:     1,
+                                    start: nowSampleI1,
+                                    end: nowSampleI1 + 30 * 60 * 1000,
+                                    count: 1,
                                     aggregate: 'integral',
                                     removeBorderValues: true,
-                                    integralUnit: 10,
-                                    integralInterpolation: 'none'
-                                }
-                            }, function (result) {
-                                console.log(`Sample I21: ${JSON.stringify(result.result, null, 2)}`);
+                                    integralUnit: 1,
+                                    integralInterpolation: 'none',
+                                },
+                            },
+                            function (result) {
+                                console.log(`Sample I1-1: ${JSON.stringify(result.result, null, 2)}`);
                                 if (instanceName !== 'influxdb.0') {
                                     expect(result.result.length).to.be.equal(1);
-                                    expect(result.result[0].val).to.be.equal(51);
-                                } else {
-                                    expect(result.result.length).to.be.within(1, 2);
-                                    expect(result.result[0].val + (result.result[1] ? result.result[1].val : 0)).to.be.within(30, 50);
-                                }
-                                // Result Influxdb21 Doku = 50.0
-
-                                sendTo(instanceName, 'getHistory', {
-                                    id: `${instanceName}.testValue`,
-                                    options: {
-                                        start:     nowSampleI22,
-                                        end:       nowSampleI22 + 60 * 1000,
-                                        count:     1,
-                                        aggregate: 'integral',
-                                        removeBorderValues: true,
-                                        integralUnit: 10,
-                                        integralInterpolation: 'none'
-                                    }
-                                }, function (result) {
-                                    console.log(`Sample I22: ${JSON.stringify(result.result, null, 2)}`);
-                                    if (instanceName !== 'influxdb.0') {
-                                        expect(result.result.length).to.be.equal(1);
-                                        expect(result.result[0].val).to.be.equal(53);
+                                    if (assumeExistingData) {
+                                        expect(result.result[0].val).to.be.within(3700, 3755);
                                     } else {
-                                        expect(result.result.length).to.be.within(1,2);
-                                        expect(result.result[0].val + (result.result[1] ? result.result[1].val : 0)).to.be.within(27,43);
+                                        expect(result.result[0].val).to.be.within(3700, 3800);
                                     }
-                                    // Result Influxdb22 Doku = 43
+                                } else {
+                                    if (assumeExistingData) {
+                                        expect(result.result.length).to.be.within(2, 3);
+                                        if (process.env.INFLUXDB2) {
+                                            //expect((result.result[0].val + result.result[1].val)).to.be.within(3780, 4000);
+                                        } else {
+                                            //expect(result.result[0].val).to.be.within(2980, 3000);
+                                        }
+                                    } else {
+                                        expect(result.result.length).to.be.equal(2);
+                                        if (process.env.INFLUXDB2) {
+                                            expect(result.result[0].val + result.result[1].val).to.be.within(
+                                                2980,
+                                                3000,
+                                            );
+                                        } else {
+                                            expect(
+                                                parseFloat((result.result[0].val + result.result[1].val).toFixed(2)),
+                                            ).to.be.equal(3732.66);
+                                        }
+                                    }
+                                }
+                                // Result Influxdb1 Doku = 3732.66
 
-                                    sendTo(instanceName, 'getHistory', {
+                                sendTo(
+                                    instanceName,
+                                    'getHistory',
+                                    {
                                         id: `${instanceName}.testValue`,
                                         options: {
-                                            start:     nowSampleI23,
-                                            end:       nowSampleI23 + 60 * 1000,
-                                            count:     1,
+                                            start: nowSampleI1,
+                                            end: nowSampleI1 + 30 * 60 * 1000,
+                                            count: 1,
                                             aggregate: 'integral',
                                             removeBorderValues: true,
-                                            integralUnit: 10,
-                                            integralInterpolation: 'linear'
-                                        }
-                                    }, function (result) {
-                                        console.log(`Sample I23: ${JSON.stringify(result.result, null, 2)}`);
+                                            integralUnit: 60,
+                                            integralInterpolation: 'none',
+                                        },
+                                    },
+                                    function (result) {
+                                        console.log(`Sample I1-60: ${JSON.stringify(result.result, null, 2)}`);
                                         if (instanceName !== 'influxdb.0') {
                                             expect(result.result.length).to.be.equal(1);
-                                            expect(result.result[0].val).to.be.equal(25.5);
-                                        } else {
-                                            expect(result.result.length).to.be.within(1,2);
-                                            if (process.env.INFLUXDB2) {
-                                                //expect(result.result[0].val).to.be.equal(25.5);
+                                            if (assumeExistingData) {
+                                                expect(result.result[0].val).to.be.lessThan(62.25);
                                             } else {
-                                                expect(result.result[0].val).to.be.equal(34.5);
+                                                expect(result.result[0].val).to.be.equal(62.25);
+                                            }
+                                        } else {
+                                            if (assumeExistingData) {
+                                                expect(result.result.length).to.be.equal(3);
+                                                //expect(result.result[1].val).to.be.within(40, 65);
+                                            } else {
+                                                expect(result.result.length).to.be.equal(2);
+                                                if (process.env.INFLUXDB2) {
+                                                    expect(
+                                                        parseFloat(
+                                                            (result.result[0].val + result.result[1].val).toFixed(2),
+                                                        ),
+                                                    ).to.be.within(49, 50);
+                                                } else {
+                                                    expect(
+                                                        parseFloat(
+                                                            (result.result[0].val + result.result[1].val).toFixed(2),
+                                                        ),
+                                                    ).to.be.equal(62.21);
+                                                }
                                             }
                                         }
-                                        // Result Influxdb23 Doku = 25.0
+                                        // Result Influxdb1 Doku = 62.211
 
-                                        sendTo(instanceName, 'getHistory', {
-                                            id: `${instanceName}.testValue`,
-                                            options: {
-                                                start:     nowSampleI24,
-                                                end:       nowSampleI24 + 60 * 1000,
-                                                count:     1,
-                                                aggregate: 'integral',
-                                                removeBorderValues: true,
-                                                integralUnit: 10,
-                                                integralInterpolation: 'linear'
-                                            }
-                                        }, function (result) {
-                                            console.log(`Sample I24: ${JSON.stringify(result.result, null, 2)}`);
-                                            if (instanceName !== 'influxdb.0') {
-                                                expect(result.result.length).to.be.equal(1);
-                                                if (assumeExistingData) {
-                                                    expect(result.result[0].val).to.be.within(31, 32);
-                                                } else {
-                                                    expect(result.result[0].val).to.be.within(32, 33.5);
-                                                }
-                                            } else {
-                                                expect(result.result.length).to.be.within(1,2);
-                                                if (process.env.INFLUXDB2) {
-                                                    //expect(result.result[0].val).to.be.equal(25.5);
-                                                } else {
-                                                    if (assumeExistingData) {
-                                                        expect(result.result[0].val).to.be.within(31, 34);
-                                                    } else {
-                                                        expect(result.result[0].val).to.be.within(32, 33.5);
-                                                    }
-                                                }
-                                            }
-                                            // Result Influxdb24 Doku = 32.5
-
-                                            sendTo(instanceName, 'getHistory', {
+                                        sendTo(
+                                            instanceName,
+                                            'getHistory',
+                                            {
                                                 id: `${instanceName}.testValue`,
                                                 options: {
-                                                    start:     nowSampleI22,
-                                                    end:       nowSampleI22 + 60 * 1000,
-                                                    count:     1,
-                                                    aggregate: 'quantile',
-                                                    quantile: 0.8
-                                                }
-                                            }, function (result) {
-                                                console.log(`Sample I22-Quantile: ${JSON.stringify(result.result, null, 2)}`);
+                                                    start: nowSampleI21,
+                                                    end: nowSampleI21 + 60 * 1000,
+                                                    count: 1,
+                                                    aggregate: 'integral',
+                                                    removeBorderValues: true,
+                                                    integralUnit: 10,
+                                                    integralInterpolation: 'none',
+                                                },
+                                            },
+                                            function (result) {
+                                                console.log(`Sample I21: ${JSON.stringify(result.result, null, 2)}`);
                                                 if (instanceName !== 'influxdb.0') {
-                                                    expect(result.result.length).to.be.equal(3);
-                                                    expect(result.result[1].val).to.be.equal(19);
+                                                    expect(result.result.length).to.be.equal(1);
+                                                    expect(result.result[0].val).to.be.equal(51);
                                                 } else {
-                                                    expect(result.result.length).to.be.within(3, 4);
-                                                    expect(result.result[1].val).to.be.within(4, 19);
+                                                    expect(result.result.length).to.be.within(1, 2);
+                                                    expect(
+                                                        result.result[0].val +
+                                                            (result.result[1] ? result.result[1].val : 0),
+                                                    ).to.be.within(30, 50);
                                                 }
+                                                // Result Influxdb21 Doku = 50.0
 
-                                                resolve();
-                                            });
-                                        });
-                                    });
-                                });
-                            });
-                        });
-                    });
-                }, 1000);
-            });
+                                                sendTo(
+                                                    instanceName,
+                                                    'getHistory',
+                                                    {
+                                                        id: `${instanceName}.testValue`,
+                                                        options: {
+                                                            start: nowSampleI22,
+                                                            end: nowSampleI22 + 60 * 1000,
+                                                            count: 1,
+                                                            aggregate: 'integral',
+                                                            removeBorderValues: true,
+                                                            integralUnit: 10,
+                                                            integralInterpolation: 'none',
+                                                        },
+                                                    },
+                                                    function (result) {
+                                                        console.log(
+                                                            `Sample I22: ${JSON.stringify(result.result, null, 2)}`,
+                                                        );
+                                                        if (instanceName !== 'influxdb.0') {
+                                                            expect(result.result.length).to.be.equal(1);
+                                                            expect(result.result[0].val).to.be.equal(53);
+                                                        } else {
+                                                            expect(result.result.length).to.be.within(1, 2);
+                                                            expect(
+                                                                result.result[0].val +
+                                                                    (result.result[1] ? result.result[1].val : 0),
+                                                            ).to.be.within(27, 43);
+                                                        }
+                                                        // Result Influxdb22 Doku = 43
+
+                                                        sendTo(
+                                                            instanceName,
+                                                            'getHistory',
+                                                            {
+                                                                id: `${instanceName}.testValue`,
+                                                                options: {
+                                                                    start: nowSampleI23,
+                                                                    end: nowSampleI23 + 60 * 1000,
+                                                                    count: 1,
+                                                                    aggregate: 'integral',
+                                                                    removeBorderValues: true,
+                                                                    integralUnit: 10,
+                                                                    integralInterpolation: 'linear',
+                                                                },
+                                                            },
+                                                            function (result) {
+                                                                console.log(
+                                                                    `Sample I23: ${JSON.stringify(result.result, null, 2)}`,
+                                                                );
+                                                                if (instanceName !== 'influxdb.0') {
+                                                                    expect(result.result.length).to.be.equal(1);
+                                                                    expect(result.result[0].val).to.be.equal(25.5);
+                                                                } else {
+                                                                    expect(result.result.length).to.be.within(1, 2);
+                                                                    if (process.env.INFLUXDB2) {
+                                                                        //expect(result.result[0].val).to.be.equal(25.5);
+                                                                    } else {
+                                                                        expect(result.result[0].val).to.be.equal(34.5);
+                                                                    }
+                                                                }
+                                                                // Result Influxdb23 Doku = 25.0
+
+                                                                sendTo(
+                                                                    instanceName,
+                                                                    'getHistory',
+                                                                    {
+                                                                        id: `${instanceName}.testValue`,
+                                                                        options: {
+                                                                            start: nowSampleI24,
+                                                                            end: nowSampleI24 + 60 * 1000,
+                                                                            count: 1,
+                                                                            aggregate: 'integral',
+                                                                            removeBorderValues: true,
+                                                                            integralUnit: 10,
+                                                                            integralInterpolation: 'linear',
+                                                                        },
+                                                                    },
+                                                                    function (result) {
+                                                                        console.log(
+                                                                            `Sample I24: ${JSON.stringify(result.result, null, 2)}`,
+                                                                        );
+                                                                        if (instanceName !== 'influxdb.0') {
+                                                                            expect(result.result.length).to.be.equal(1);
+                                                                            if (assumeExistingData) {
+                                                                                expect(
+                                                                                    result.result[0].val,
+                                                                                ).to.be.within(31, 32);
+                                                                            } else {
+                                                                                expect(
+                                                                                    result.result[0].val,
+                                                                                ).to.be.within(32, 33.5);
+                                                                            }
+                                                                        } else {
+                                                                            expect(result.result.length).to.be.within(
+                                                                                1,
+                                                                                2,
+                                                                            );
+                                                                            if (process.env.INFLUXDB2) {
+                                                                                //expect(result.result[0].val).to.be.equal(25.5);
+                                                                            } else {
+                                                                                if (assumeExistingData) {
+                                                                                    expect(
+                                                                                        result.result[0].val,
+                                                                                    ).to.be.within(31, 34);
+                                                                                } else {
+                                                                                    expect(
+                                                                                        result.result[0].val,
+                                                                                    ).to.be.within(32, 33.5);
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        // Result Influxdb24 Doku = 32.5
+
+                                                                        sendTo(
+                                                                            instanceName,
+                                                                            'getHistory',
+                                                                            {
+                                                                                id: `${instanceName}.testValue`,
+                                                                                options: {
+                                                                                    start: nowSampleI22,
+                                                                                    end: nowSampleI22 + 60 * 1000,
+                                                                                    count: 1,
+                                                                                    aggregate: 'quantile',
+                                                                                    quantile: 0.8,
+                                                                                },
+                                                                            },
+                                                                            function (result) {
+                                                                                console.log(
+                                                                                    `Sample I22-Quantile: ${JSON.stringify(result.result, null, 2)}`,
+                                                                                );
+                                                                                if (instanceName !== 'influxdb.0') {
+                                                                                    expect(
+                                                                                        result.result.length,
+                                                                                    ).to.be.equal(3);
+                                                                                    expect(
+                                                                                        result.result[1].val,
+                                                                                    ).to.be.equal(19);
+                                                                                } else {
+                                                                                    expect(
+                                                                                        result.result.length,
+                                                                                    ).to.be.within(3, 4);
+                                                                                    expect(
+                                                                                        result.result[1].val,
+                                                                                    ).to.be.within(4, 19);
+                                                                                }
+
+                                                                                resolve();
+                                                                            },
+                                                                        );
+                                                                    },
+                                                                );
+                                                            },
+                                                        );
+                                                    },
+                                                );
+                                            },
+                                        );
+                                    },
+                                );
+                            },
+                        );
+                    }, 1000);
+                },
+            );
         });
     });
 
@@ -912,86 +1104,111 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
 
         const start1week = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-        sendTo(instanceName, 'getHistory', {
-            id: `${instanceName}.testValue`,
-            options: {
-                start:     start1week,
-                end:       start1week + 7 * 24 * 60 * 60 * 1000,
-                step:      24 * 60 * 60 * 1000,
-                aggregate: 'integral',
-                integralUnit: 3600,
-                addId: true
-            }
-        }, function (result) {
-            console.log(JSON.stringify(result.result, null, 2));
-            expect(result.result.length).to.be.equal(4);
-            expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
-            done();
-        });
+        sendTo(
+            instanceName,
+            'getHistory',
+            {
+                id: `${instanceName}.testValue`,
+                options: {
+                    start: start1week,
+                    end: start1week + 7 * 24 * 60 * 60 * 1000,
+                    step: 24 * 60 * 60 * 1000,
+                    aggregate: 'integral',
+                    integralUnit: 3600,
+                    addId: true,
+                },
+            },
+            function (result) {
+                console.log(JSON.stringify(result.result, null, 2));
+                expect(result.result.length).to.be.equal(4);
+                expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
+                done();
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Remove Alias-ID`, function (done) {
         this.timeout(5000);
 
-        sendTo(instanceName, 'enableHistory', {
-            id: `${instanceName}.testValue2`,
-            options: {
-                aliasId: ''
-            }
-        }, function (result) {
-            expect(result.error).to.be.undefined;
-            expect(result.success).to.be.true;
-            // wait till adapter receives the new settings
-            setTimeout(function () {
-                done();
-            }, 2000);
-        });
+        sendTo(
+            instanceName,
+            'enableHistory',
+            {
+                id: `${instanceName}.testValue2`,
+                options: {
+                    aliasId: '',
+                },
+            },
+            function (result) {
+                expect(result.error).to.be.undefined;
+                expect(result.success).to.be.true;
+                // wait till adapter receives the new settings
+                setTimeout(function () {
+                    done();
+                }, 2000);
+            },
+        );
     });
     it(`Test ${adapterShortName}: Add Alias-ID again`, function (done) {
         this.timeout(5000);
 
-        sendTo(instanceName, 'enableHistory', {
-            id: `${instanceName}.testValue2`,
-            options: {
-                aliasId: 'this.is.a.test-value'
-            }
-        }, function (result) {
-            expect(result.error).to.be.undefined;
-            expect(result.success).to.be.true;
-            // wait till adapter receives the new settings
-            setTimeout(function () {
-                done();
-            }, 2000);
-        });
+        sendTo(
+            instanceName,
+            'enableHistory',
+            {
+                id: `${instanceName}.testValue2`,
+                options: {
+                    aliasId: 'this.is.a.test-value',
+                },
+            },
+            function (result) {
+                expect(result.error).to.be.undefined;
+                expect(result.success).to.be.true;
+                // wait till adapter receives the new settings
+                setTimeout(function () {
+                    done();
+                }, 2000);
+            },
+        );
     });
     it(`Test ${adapterShortName}: Change Alias-ID`, function (done) {
         this.timeout(5000);
 
-        sendTo(instanceName, 'enableHistory', {
-            id: `${instanceName}.testValue2`,
-            options: {
-                aliasId: 'this.is.another.test-value'
-            }
-        }, function (result) {
-            expect(result.error).to.be.undefined;
-            expect(result.success).to.be.true;
-            // wait till adapter receives the new settings
-            setTimeout(function () {
-                done();
-            }, 2000);
-        });
+        sendTo(
+            instanceName,
+            'enableHistory',
+            {
+                id: `${instanceName}.testValue2`,
+                options: {
+                    aliasId: 'this.is.another.test-value',
+                },
+            },
+            function (result) {
+                expect(result.error).to.be.undefined;
+                expect(result.success).to.be.true;
+                // wait till adapter receives the new settings
+                setTimeout(function () {
+                    done();
+                }, 2000);
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Disable Datapoint again`, function (done) {
         this.timeout(5000);
 
-        sendTo(instanceName, 'disableHistory', {
-            id: `${instanceName}.testValue`
-        }, function (result) {
-            expect(result.error).to.be.undefined;
-            expect(result.success).to.be.true;
-            setTimeout(done, 2000);
-        });
+        sendTo(
+            instanceName,
+            'disableHistory',
+            {
+                id: `${instanceName}.testValue`,
+            },
+            function (result) {
+                expect(result.error).to.be.undefined;
+                expect(result.success).to.be.true;
+                setTimeout(done, 2000);
+            },
+        );
     });
     it(`Test ${adapterShortName}: Check Enabled Points after Disable`, function (done) {
         this.timeout(5000);
@@ -1006,135 +1223,174 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
     it(`Test ${adapterShortName}: Enable testValue Datapoint again`, function (done) {
         this.timeout(5000);
 
-        sendTo(instanceName, 'enableHistory', {
-            id: `${instanceName}.testValue`
-        }, function (result) {
-            expect(result.error).to.be.undefined;
-            expect(result.success).to.be.true;
-            setTimeout(done, 2000);
-        });
+        sendTo(
+            instanceName,
+            'enableHistory',
+            {
+                id: `${instanceName}.testValue`,
+            },
+            function (result) {
+                expect(result.error).to.be.undefined;
+                expect(result.success).to.be.true;
+                setTimeout(done, 2000);
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Check for written Null values`, function (done) {
         this.timeout(25000);
 
-        sendTo(instanceName, 'getHistory', {
-            id: `${instanceName}.testValue`,
-            options: {
-                start:     preInitTime,
-                count:     500,
-                aggregate: 'none'
-            }
-        }, function (result) {
-            console.log(JSON.stringify(result.result, null, 2));
-            expect(result.result.length).to.be.at.least(5);
-            var found = 0;
-            for (var i = 0; i < result.result.length; i++) {
-                if (result.result[i].val === null) found++;
-            }
-            if (writeNulls) {
-                expect(found).to.be.equal(3);
-            } else {
-                expect(found).to.be.equal(0);
-            }
+        sendTo(
+            instanceName,
+            'getHistory',
+            {
+                id: `${instanceName}.testValue`,
+                options: {
+                    start: preInitTime,
+                    count: 500,
+                    aggregate: 'none',
+                },
+            },
+            function (result) {
+                console.log(JSON.stringify(result.result, null, 2));
+                expect(result.result.length).to.be.at.least(5);
+                let found = 0;
+                for (let i = 0; i < result.result.length; i++) {
+                    if (result.result[i].val === null) found++;
+                }
+                if (writeNulls) {
+                    expect(found).to.be.equal(3);
+                } else {
+                    expect(found).to.be.equal(0);
+                }
 
-            done();
-        });
+                done();
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Check for written Data in general`, function (done) {
         this.timeout(25000);
 
-        sendTo(instanceName, 'getHistory', {
-            id: `${instanceName}.testValue`,
-            options: {
-                count:     500,
-                aggregate: 'none'
-            }
-        }, function (result) {
-            console.log(JSON.stringify(result.result, null, 2));
-            expect(result.result.length).to.be.at.least((writeNulls? 3 : 0) + ((assumeExistingData + 1) * 30));
+        sendTo(
+            instanceName,
+            'getHistory',
+            {
+                id: `${instanceName}.testValue`,
+                options: {
+                    count: 500,
+                    aggregate: 'none',
+                },
+            },
+            function (result) {
+                console.log(JSON.stringify(result.result, null, 2));
+                expect(result.result.length).to.be.at.least((writeNulls ? 3 : 0) + (assumeExistingData + 1) * 30);
 
-            done();
-        });
+                done();
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: Read minmax values from DB using GetHistory with 1mio slices`, function (done) {
         this.timeout(20000);
 
-        sendTo(instanceName, 'getHistory', {
-            id: `${instanceName}.testValue`,
-            options: {
-                start:     Date.now() - 7 * 24 * 60 * 60 * 1000,
-                end:       Date.now(),
-                count:     1000000,
-                limit:     1000000,
-                aggregate: 'minmax',
-                addId: true
-            }
-        }, result => {
-            console.log(JSON.stringify(result.result, null, 2));
-            expect(result.result.length).to.be.at.least(4);
-            expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
-            done();
-        });
+        sendTo(
+            instanceName,
+            'getHistory',
+            {
+                id: `${instanceName}.testValue`,
+                options: {
+                    start: Date.now() - 7 * 24 * 60 * 60 * 1000,
+                    end: Date.now(),
+                    count: 1000000,
+                    limit: 1000000,
+                    aggregate: 'minmax',
+                    addId: true,
+                },
+            },
+            result => {
+                console.log(JSON.stringify(result.result, null, 2));
+                expect(result.result.length).to.be.at.least(4);
+                expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
+                done();
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: storeState and getHistory for unknown Id`, function (done) {
         this.timeout(25000);
 
         const customNow = Date.now();
-        sendTo(instanceName, 'storeState', {
-            id: `my.own.unknown.value-${customNow}`,
-            state: [
-                {val: 1, ack: true, ts: customNow - 5000},
-                {val: 2, ack: true, ts: customNow - 4000},
-                {val: 3, ack: true, ts: customNow - 3000}
-            ]
-        }, function (result) {
-            expect(result.success).to.be.true;
-            expect(result.successCount).to.be.equal(3);
+        sendTo(
+            instanceName,
+            'storeState',
+            {
+                id: `my.own.unknown.value-${customNow}`,
+                state: [
+                    { val: 1, ack: true, ts: customNow - 5000 },
+                    { val: 2, ack: true, ts: customNow - 4000 },
+                    { val: 3, ack: true, ts: customNow - 3000 },
+                ],
+            },
+            function (result) {
+                expect(result.success).to.be.true;
+                expect(result.successCount).to.be.equal(3);
 
-            setTimeout( () =>  {
-                sendTo(instanceName, 'getHistory', {
-                    id: `my.own.unknown.value-${customNow}`,
-                    options: {
-                        start:     customNow - 10000,
-                        count: 500,
-                        aggregate: 'none'
-                    }
-                }, function (result) {
-                    console.log(JSON.stringify(result.result, null, 2));
-                    expect(result.result.length).to.be.equal(3);
+                setTimeout(() => {
+                    sendTo(
+                        instanceName,
+                        'getHistory',
+                        {
+                            id: `my.own.unknown.value-${customNow}`,
+                            options: {
+                                start: customNow - 10000,
+                                count: 500,
+                                aggregate: 'none',
+                            },
+                        },
+                        function (result) {
+                            console.log(JSON.stringify(result.result, null, 2));
+                            expect(result.result.length).to.be.equal(3);
 
-                    done();
-                });
-            }, 1000);
-        });
+                            done();
+                        },
+                    );
+                }, 1000);
+            },
+        );
     });
 
     it(`Test ${adapterShortName}: storeState error for unknown Id with rules parameter`, function (done) {
         this.timeout(25000);
 
         const customNow2 = Date.now();
-        sendTo(instanceName, 'storeState', {
-            id: `my.own.unknown.value-${customNow2}`,
-            rules: true,
-            state: [
-                {val: 1, ack: true, ts: customNow2 - 5000},
-                {val: 2, ack: true, ts: customNow2 - 4000},
-                '37'
-            ]
-        }, function (result) {
-            expect(result.success).to.be.not.ok;
-            expect(result.successCount).to.be.equal(0);
-            expect(result.error).to.be.equal('3 errors happened while storing data');
-            expect(Array.isArray(result.errors)).to.be.true;
-            expect(result.errors[0].endsWith(` not enabled for my.own.unknown.value-${customNow2}, so can not apply the rules as requested`)).to.be.true;
-            expect(result.errors[2]).to.be.equal(`State "37" for my.own.unknown.value-${customNow2} is not valid`);
+        sendTo(
+            instanceName,
+            'storeState',
+            {
+                id: `my.own.unknown.value-${customNow2}`,
+                rules: true,
+                state: [
+                    { val: 1, ack: true, ts: customNow2 - 5000 },
+                    { val: 2, ack: true, ts: customNow2 - 4000 },
+                    '37',
+                ],
+            },
+            function (result) {
+                expect(result.success).to.be.not.ok;
+                expect(result.successCount).to.be.equal(0);
+                expect(result.error).to.be.equal('3 errors happened while storing data');
+                expect(Array.isArray(result.errors)).to.be.true;
+                expect(
+                    result.errors[0].endsWith(
+                        ` not enabled for my.own.unknown.value-${customNow2}, so can not apply the rules as requested`,
+                    ),
+                ).to.be.true;
+                expect(result.errors[2]).to.be.equal(`State "37" for my.own.unknown.value-${customNow2} is not valid`);
 
-            done();
-        });
+                done();
+            },
+        );
     });
 }
 

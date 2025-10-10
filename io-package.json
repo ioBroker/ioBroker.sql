@@ -1,276 +1,282 @@
 {
-  "common": {
-    "name": "sql",
-    "title": "SQL History",
-    "titleLang": {
-      "en": "SQL logging",
-      "de": "SQL-Protokollierung",
-      "ru": "Ведение журнала SQL",
-      "pt": "Log de SQL",
-      "nl": "SQL logging",
-      "fr": "Journalisation SQL",
-      "it": "Registrazione SQL",
-      "es": "Registro de SQL",
-      "pl": "Rejestrowanie SQL",
-      "zh-cn": "SQL记录"
-    },
-    "desc": {
-      "en": "Logging of states into SQL DB",
-      "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
-      "ru": "Сохраняет историю событий для отдельных состояний в SQL DB",
-      "pt": "Registro de estados em SQL DB",
-      "nl": "Logging van toestanden in SQL DB",
-      "fr": "Journalisation des états dans la base de données SQL",
-      "it": "Registrazione degli stati nel DB SQL",
-      "es": "Registro de estados en SQL DB",
-      "pl": "Rejestrowanie stanów w SQL DB",
-      "zh-cn": "将状态记录到SQL DB"
-    },
-    "version": "3.0.1",
-    "news": {
-      "3.0.1": {
-        "en": "(foxriver76) upgraded dependencies",
-        "de": "(foxriver76) verbesserte abhängigkeiten",
-        "ru": "(foxriver76) повышенные зависимости",
-        "pt": "(foxriver76) dependências atualizadas",
-        "nl": "(foxriver76) verbeterde afhankelijkheden",
-        "fr": "(foxriver76) dépendances améliorées",
-        "it": "(foxriver76) dipendenze aggiornate",
-        "es": "(foxriver76)",
-        "pl": "(foxriver76) zmodernizowane zależności",
-        "uk": "(foxriver76) оновлені залежності",
-        "zh-cn": "(foxriver76) 升级的依赖性"
-      },
-      "3.0.0": {
-        "en": "IMPORTANT: Node.js 16.x is now needed at a minimum!\nAllowed setting port 0 as default\nChecked if a string is written into the number table",
-        "de": "WICHTIG: Node.js 16.x wird jetzt auf ein Minimum benötigt!\nErlaubte Einstellung Port 0 als Standard\nGeprüft, ob ein String in die Nummerntabelle geschrieben wird",
-        "ru": "ВАЖНО: Node.js 16.x теперь нужен минимум!\nДопустимый порт установки 0 как по умолчанию\nПроверено, если строка написана в таблице номера",
-        "pt": "IMPORTANTE: Node.js 16.x é agora necessário no mínimo!\nConfiguração permitida da porta 0 como padrão\nVerificado se uma string é escrita na tabela de números",
-        "nl": "De 16.x is nu nodig op een minimum!\nVertaling:\nControleer of er een touw in de tafel is geschreven",
-        "fr": "IMPORTANT: Node.js 16.x est maintenant nécessaire au minimum!\nRéglage autorisé port 0 par défaut\nVérifié si une chaîne est écrite dans la table numéro",
-        "it": "IMPORTANTE: Node.js 16.x è ora necessario al minimo!\nImpostare la porta 0 come predefinito\nControllato se una stringa è scritta nella tabella numerica",
-        "es": "IMPORTANTE: Node.js 16.x ahora es necesario como mínimo!\nPuerto de configuración 0 como predeterminado\nRevisado si una cadena está escrita en la tabla número",
-        "pl": "IMPORTANT: Node.js 16.x jest obecnie potrzebny przy minimalnej cenie!\nAllowed Port 0 jako domyślny\nUwaga, czy struna jest zapisywana w tabeli liczbowej",
-        "uk": "ВАЖЛИВО: Node.js 16.x тепер потрібен мінімум!\nУсього налаштування порту 0 як за замовчуванням\nПеревірити, якщо рядок записано в номер таблиці",
-        "zh-cn": "IMPORTANT: Nodejs 16x现在至少需要!\n允许将港口建为零\n如果在表格编号上写一包,则标示"
-      },
-      "2.2.0": {
-        "en": "IMPORTANT: Node.js 14.x is now needed at minimum!\nFix potential crash cases with upcoming js-controller versions",
-        "de": "WICHTIG: Node.js 14.x wird jetzt mindestens benötigt!\nBeheben Sie mögliche Crash-Fälle mit anstehenden js-Controller-Versionen",
-        "ru": "ВАЖНО: Node.js 14.x теперь нужен минимум!\nИсправление потенциальных кейсов с предстоящими версиями js-controller",
-        "pt": "IMPORTANTE: Node.js 14.x é agora necessário no mínimo!\nCorrigir casos potenciais de acidente com versões js-controller",
-        "nl": "Node is 14.x is nu nodig op minimum!\nVertaling:",
-        "fr": "IMPORTANT: Node.js 14.x est maintenant nécessaire au minimum!\nRéparer les cas de crash potentiels avec les versions de js-controller à venir",
-        "it": "IMPORTANTE: Node.js 14.x è ora necessario al minimo!\nRisolvere potenziali casi di crash con le prossime versioni js-controller",
-        "es": "IMPORTANTE: Node.js 14.x ahora es necesario al mínimo!\nFijar posibles casos de choque con las próximas versiones js-controller",
-        "pl": "IMPORTANT: Nodejs 14.x jest obecnie potrzebny na minimum!\nFix ma problemy z nadchodzącymi wersjami js-controllerowymi",
-        "zh-cn": "IMPORTANT: Nodejs 14x现在至少需要!\n九件潜在的事故,即将出版的丛书控制字"
-      },
-      "2.1.8": {
-        "en": "Optimize getHistory query by using \"UNION ALL\"\nFix crash cases reported by Sentry",
-        "de": "Optimieren Sie Geschichte Anfrage mit \"UNION ALL\"\nReparieren Crashfälle gemeldet von Sentry",
-        "ru": "Оптимизируйте получите Запрос истории с помощью \"UNION ALL\"\nИсправление случаев аварии, описанных Sentry",
-        "pt": "Otimizar obter Consulta de história usando \"UNION ALL\"\nCorrigir casos de acidente relatados por Sentry",
-        "nl": "Optimaliseren Vertaling:\nVertaling:",
-        "fr": "Optimiser les résultats Demande d'histoire en utilisant \"UNION ALL\"\nTroubles de crash signalés par Sentry",
-        "it": "Ottimizzare ottenere query di storia utilizzando \"UNION ALL\"\nCorrezione dei casi di crash segnalati da Sentry",
-        "es": "Optimize get Consulta de historia usando \"UNION ALL\"\nCasos de accidente fijo reportados por Sentry",
-        "pl": "Optimizować History query by use the UNION ALL (ang.)\nSprawy katastrofy Fix podane przez Sentry’a",
-        "zh-cn": "A. 全球化 利用“联合国目标”的历史询问\nSentry所报告的六例事故"
-      },
-      "2.1.7": {
-        "en": "Fix crash cases reported by Sentry",
-        "de": "Reparieren Crashfälle gemeldet von Sentry",
-        "ru": "Исправление случаев аварии, описанных Sentry",
-        "pt": "Corrigir casos de acidente relatados por Sentry",
-        "nl": "Vertaling:",
-        "fr": "Troubles de crash signalés par Sentry",
-        "it": "Correzione dei casi di crash segnalati da Sentry",
-        "es": "Casos de accidente fijo reportados por Sentry",
-        "pl": "Sprawy katastrofy Fix podane przez Sentry’a",
-        "zh-cn": "Sentry所报告的六例事故"
-      },
-      "2.1.6": {
-        "en": "Allow to remove a configuration value for \"round\" in config again",
-        "de": "Lassen Sie einen Konfigurationswert für Runde in config wieder entfernen",
-        "ru": "Разрешить удалить конфигурационную ценность для раунда в config снова",
-        "pt": "Permitir remover um valor de configuração para round em config novamente",
-        "nl": "Sta toe om weer een configuratiewaarde te verwijderen voor ronde in het leger",
-        "fr": "Permettre de supprimer une valeur de configuration pour round in config à nouveau",
-        "it": "Permette di rimuovere un valore di configurazione per round in config di nuovo",
-        "es": "Permitir eliminar de nuevo un valor de configuración para redondear en configuración",
-        "pl": "Allow, aby usunąć wartość konfiguracyjna w zakręcie ponownie w konfigunie",
-        "zh-cn": "允许再次取消一轮谈判的组合价值"
-      },
-      "2.1.5": {
-        "en": "When no count is provided for aggregate \"none\" or \"onchange\" then the limit (default 2000) is used as count to define the number of data to return.\nFix the initialization of types and IDs for some cases.",
-        "de": "Wenn keine Zählung für die Aggregate keine oder Änderung vorgesehen ist, wird die Grenze (Standard 2000) als Zählung verwendet, um die Anzahl der Daten zu definieren, um zurückzukehren.\nBeheben Sie die Initialisierung von Typen und IDs für einige Fälle.",
-        "ru": "Когда никакое число не предусмотрено для агрегировать никакое или онмен после этого предел (по умолчанию 2000) использован как считать для того чтобы определить количество данных для возвращения.\nИсправьте инициализацию типов и идентификаторов для некоторых случаев.",
-        "pt": "Quando nenhuma contagem é fornecida para agregar nenhum ou onchange, então o limite (padrão 2000) é usado como contagem para definir o número de dados para retornar.\nCorrigir a inicialização de tipos e IDs para alguns casos.",
-        "nl": "Als er geen tel is voor aggregate noch onchange dan wordt de limiet (default 2000) gebruikt om het aantal data te definiëren om terug te keren.\nMaak de initialisatie van types en ID's voor sommige gevallen.",
-        "fr": "Si aucun compte n'est fourni pour l'agrégat aucun ou le changement, la limite (par défaut 2000) est utilisée comme compte pour définir le nombre de données à retourner.\nFixer l'initialisation des types et des ID pour certains cas.",
-        "it": "Quando non è previsto alcun conteggio per aggregato nessuno o per il cambiamento, il limite (default 2000) viene utilizzato come conteggio per definire il numero di dati da restituire.\nFissare l'inizializzazione di tipi e ID per alcuni casi.",
-        "es": "Cuando no se proporciona ningún recuento para agregado ninguno o cambio entonces el límite (por defecto 2000) se utiliza como recuento para definir el número de datos para regresar.\nArreglar la inicialización de tipos e identificaciones para algunos casos.",
-        "pl": "Jeśli nie jest liczona dla agregacji ani zmian, to limit (default 2000) jest używany jako określenie liczby danych do powrotu.\nW niektórych przypadkach inicjacja typów i ID.",
-        "zh-cn": "当时没有对总数据或换算进行计算(2000年12月)用于确定返回的数据数量。.\n确定某些案例的类型和研发。."
-      }
-    },
-    "mode": "daemon",
-    "platform": "Javascript/Node.js",
-    "loglevel": "info",
-    "messagebox": true,
-    "subscribe": "messagebox",
-    "keywords": [
-      "charts",
-      "sql",
-      "logging",
-      "graphs",
-      "archive"
-    ],
-    "preserveSettings": "custom",
-    "supportCustoms": true,
-    "getHistory": true,
-    "enabled": true,
-    "stopBeforeUpdate": true,
-    "compact": true,
-    "authors": [
-      "bluefox <dogafox@gmail.com>",
-      "Apollon77 <ingo@fischer-ka.de>"
-    ],
-    "license": "MIT",
-    "readme": "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
-    "icon": "sql.png",
-    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
-    "type": "storage",
-    "dependencies": [
-      {
-        "js-controller": ">=3.3.0"
-      }
-    ],
-    "globalDependencies": [
-      {
-        "admin": ">=5.1.28"
-      }
-    ],
-    "supportStopInstance": 10000,
-    "stopTimeout": 10000,
-    "plugins": {
-      "sentry": {
-        "dsn": "https://c30462d3e0834993b0aa29824346701e@sentry.iobroker.net/45"
-      }
-    },
-    "adminUI": {
-      "config": "json",
-      "custom": "json"
-    },
-    "tier": 1,
-    "eraseOnUpload": true,
-    "connectionType": "none",
-    "dataSource": "push",
-    "messages": [
-      {
-        "condition": {
-          "operand": "and",
-          "rules": [
-            "oldVersion<2.0.0",
-            "newVersion>=2.0.0"
-          ]
+    "common": {
+        "name": "sql",
+        "titleLang": {
+            "en": "SQL logging",
+            "de": "SQL-Protokollierung",
+            "ru": "Ведение журнала SQL",
+            "pt": "Log de SQL",
+            "nl": "SQL logging",
+            "fr": "Journalisation SQL",
+            "it": "Registrazione SQL",
+            "es": "Registro de SQL",
+            "pl": "Rejestrowanie SQL",
+            "zh-cn": "SQL记录"
         },
-        "title": {
-          "en": "Important notice!",
-          "de": "Wichtiger Hinweis!",
-          "ru": "Важное замечание!",
-          "pt": "Notícia importante!",
-          "nl": "Belangrijke mededeling!",
-          "fr": "Avis important!",
-          "it": "Avviso IMPORTANTE!",
-          "es": "Noticia importante!",
-          "pl": "Ważna uwaga!",
-          "zh-cn": "重要通知!"
+        "desc": {
+            "en": "Logging of states into SQL DB",
+            "de": "Loggt die Historie von einzelnen Zuständen in einer SQL DB",
+            "ru": "Сохраняет историю событий для отдельных состояний в SQL DB",
+            "pt": "Registro de estados em SQL DB",
+            "nl": "Logging van toestanden in SQL DB",
+            "fr": "Journalisation des états dans la base de données SQL",
+            "it": "Registrazione degli stati nel DB SQL",
+            "es": "Registro de estados en SQL DB",
+            "pl": "Rejestrowanie stanów w SQL DB",
+            "zh-cn": "将状态记录到SQL DB"
         },
-        "text": {
-          "en": "This new version introduces several changes how values are logged because we fixed several issues and added new features. Please especially check the defined \"debounce\" and \"block time\" settings in your datapoints if values are not logged as expected and make sure the settings make sense. For more details please refer to the changelog and Readme.",
-          "de": "Diese neue Version führt mehrere Änderungen ein, wie Werte protokolliert werden, da wir mehrere Probleme behoben und neue Funktionen hinzugefügt haben. Bitte überprüfen Sie insbesondere die definierten „Entprellen“- und „Sperrzeit“-Einstellungen in Ihren Datenpunkten, wenn Werte nicht wie erwartet protokolliert werden, und stellen Sie sicher, dass die Einstellungen sinnvoll sind. Weitere Details finden Sie im Changelog und in der Readme.",
-          "ru": "В этой новой версии внесено несколько изменений в регистрацию значений, поскольку мы исправили несколько проблем и добавили новые функции. Пожалуйста, особенно проверьте определенные настройки «debounce» и «block time» в ваших точках данных, если значения не регистрируются должным образом, и убедитесь, что настройки имеют смысл. Для получения более подробной информации, пожалуйста, обратитесь к журналу изменений и Readme.",
-          "pt": "Esta nova versão apresenta várias alterações na forma como os valores são registrados, pois corrigimos vários problemas e adicionamos novos recursos. Verifique especialmente as configurações definidas de \"debounce\" e \"block time\" em seus pontos de dados se os valores não forem registrados conforme o esperado e verifique se as configurações fazem sentido. Para obter mais detalhes, consulte o log de alterações e o Leiame.",
-          "nl": "Deze nieuwe versie introduceert verschillende wijzigingen in de manier waarop waarden worden geregistreerd, omdat we verschillende problemen hebben opgelost en nieuwe functies hebben toegevoegd. Controleer vooral de gedefinieerde \"debounce\" en \"block time\" instellingen in uw datapunten als de waarden niet zijn vastgelegd zoals verwacht en zorg ervoor dat de instellingen kloppen. Raadpleeg de changelog en Readme voor meer informatie.",
-          "fr": "Cette nouvelle version introduit plusieurs changements dans la journalisation des valeurs car nous avons corrigé plusieurs problèmes et ajouté de nouvelles fonctionnalités. Veuillez vérifier en particulier les paramètres \"anti-rebond\" et \"temps de blocage\" définis dans vos points de données si les valeurs ne sont pas enregistrées comme prévu et assurez-vous que les paramètres ont un sens. Pour plus de détails, veuillez consulter le journal des modifications et le fichier Lisez-moi.",
-          "it": "Questa nuova versione introduce diverse modifiche al modo in cui i valori vengono registrati perché abbiamo risolto diversi problemi e aggiunto nuove funzionalità. Controllare in particolare le impostazioni definite \"debounce\" e \"block time\" nei propri datapoint se i valori non sono registrati come previsto e assicurarsi che le impostazioni abbiano un senso. Per maggiori dettagli, fare riferimento al log delle modifiche e al Leggimi.",
-          "es": "Esta nueva versión introduce varios cambios en la forma en que se registran los valores porque solucionamos varios problemas y agregamos nuevas funciones. Verifique especialmente la configuración definida de \"antirrebote\" y \"tiempo de bloqueo\" en sus puntos de datos si los valores no se registran como se esperaba y asegúrese de que la configuración tenga sentido. Para obtener más detalles, consulte el registro de cambios y el archivo Léame.",
-          "pl": "Ta nowa wersja wprowadza kilka zmian w sposobie rejestrowania wartości, ponieważ naprawiliśmy kilka problemów i dodaliśmy nowe funkcje. W szczególności sprawdź zdefiniowane ustawienia „odbicia” i „czasu blokowania” w punktach danych, jeśli wartości nie są rejestrowane zgodnie z oczekiwaniami i upewnij się, że ustawienia mają sens. Aby uzyskać więcej informacji, zapoznaj się z dziennikiem zmian i Readme.",
-          "zh-cn": "这个新版本引入了一些更改值的记录方式，因为我们修复了几个问题并添加了新功能。如果未按预期记录值，请特别检查数据点中定义的“去抖动”和“阻塞时间”设置，并确保设置有意义。有关更多详细信息，请参阅更改日志和自述文件。"
+        "version": "3.0.1",
+        "news": {
+            "3.0.1": {
+                "en": "(foxriver76) upgraded dependencies",
+                "de": "(foxriver76) verbesserte abhängigkeiten",
+                "ru": "(foxriver76) повышенные зависимости",
+                "pt": "(foxriver76) dependências atualizadas",
+                "nl": "(foxriver76) verbeterde afhankelijkheden",
+                "fr": "(foxriver76) dépendances améliorées",
+                "it": "(foxriver76) dipendenze aggiornate",
+                "es": "(foxriver76)",
+                "pl": "(foxriver76) zmodernizowane zależności",
+                "uk": "(foxriver76) оновлені залежності",
+                "zh-cn": "(foxriver76) 升级的依赖性"
+            },
+            "3.0.0": {
+                "en": "IMPORTANT: Node.js 16.x is now needed at a minimum!\nAllowed setting port 0 as default\nChecked if a string is written into the number table",
+                "de": "WICHTIG: Node.js 16.x wird jetzt auf ein Minimum benötigt!\nErlaubte Einstellung Port 0 als Standard\nGeprüft, ob ein String in die Nummerntabelle geschrieben wird",
+                "ru": "ВАЖНО: Node.js 16.x теперь нужен минимум!\nДопустимый порт установки 0 как по умолчанию\nПроверено, если строка написана в таблице номера",
+                "pt": "IMPORTANTE: Node.js 16.x é agora necessário no mínimo!\nConfiguração permitida da porta 0 como padrão\nVerificado se uma string é escrita na tabela de números",
+                "nl": "De 16.x is nu nodig op een minimum!\nVertaling:\nControleer of er een touw in de tafel is geschreven",
+                "fr": "IMPORTANT: Node.js 16.x est maintenant nécessaire au minimum!\nRéglage autorisé port 0 par défaut\nVérifié si une chaîne est écrite dans la table numéro",
+                "it": "IMPORTANTE: Node.js 16.x è ora necessario al minimo!\nImpostare la porta 0 come predefinito\nControllato se una stringa è scritta nella tabella numerica",
+                "es": "IMPORTANTE: Node.js 16.x ahora es necesario como mínimo!\nPuerto de configuración 0 como predeterminado\nRevisado si una cadena está escrita en la tabla número",
+                "pl": "IMPORTANT: Node.js 16.x jest obecnie potrzebny przy minimalnej cenie!\nAllowed Port 0 jako domyślny\nUwaga, czy struna jest zapisywana w tabeli liczbowej",
+                "uk": "ВАЖЛИВО: Node.js 16.x тепер потрібен мінімум!\nУсього налаштування порту 0 як за замовчуванням\nПеревірити, якщо рядок записано в номер таблиці",
+                "zh-cn": "IMPORTANT: Nodejs 16x现在至少需要!\n允许将港口建为零\n如果在表格编号上写一包,则标示"
+            },
+            "2.2.0": {
+                "en": "IMPORTANT: Node.js 14.x is now needed at minimum!\nFix potential crash cases with upcoming js-controller versions",
+                "de": "WICHTIG: Node.js 14.x wird jetzt mindestens benötigt!\nBeheben Sie mögliche Crash-Fälle mit anstehenden js-Controller-Versionen",
+                "ru": "ВАЖНО: Node.js 14.x теперь нужен минимум!\nИсправление потенциальных кейсов с предстоящими версиями js-controller",
+                "pt": "IMPORTANTE: Node.js 14.x é agora necessário no mínimo!\nCorrigir casos potenciais de acidente com versões js-controller",
+                "nl": "Node is 14.x is nu nodig op minimum!\nVertaling:",
+                "fr": "IMPORTANT: Node.js 14.x est maintenant nécessaire au minimum!\nRéparer les cas de crash potentiels avec les versions de js-controller à venir",
+                "it": "IMPORTANTE: Node.js 14.x è ora necessario al minimo!\nRisolvere potenziali casi di crash con le prossime versioni js-controller",
+                "es": "IMPORTANTE: Node.js 14.x ahora es necesario al mínimo!\nFijar posibles casos de choque con las próximas versiones js-controller",
+                "pl": "IMPORTANT: Nodejs 14.x jest obecnie potrzebny na minimum!\nFix ma problemy z nadchodzącymi wersjami js-controllerowymi",
+                "zh-cn": "IMPORTANT: Nodejs 14x现在至少需要!\n九件潜在的事故,即将出版的丛书控制字"
+            },
+            "2.1.8": {
+                "en": "Optimize getHistory query by using \"UNION ALL\"\nFix crash cases reported by Sentry",
+                "de": "Optimieren Sie Geschichte Anfrage mit \"UNION ALL\"\nReparieren Crashfälle gemeldet von Sentry",
+                "ru": "Оптимизируйте получите Запрос истории с помощью \"UNION ALL\"\nИсправление случаев аварии, описанных Sentry",
+                "pt": "Otimizar obter Consulta de história usando \"UNION ALL\"\nCorrigir casos de acidente relatados por Sentry",
+                "nl": "Optimaliseren Vertaling:\nVertaling:",
+                "fr": "Optimiser les résultats Demande d'histoire en utilisant \"UNION ALL\"\nTroubles de crash signalés par Sentry",
+                "it": "Ottimizzare ottenere query di storia utilizzando \"UNION ALL\"\nCorrezione dei casi di crash segnalati da Sentry",
+                "es": "Optimize get Consulta de historia usando \"UNION ALL\"\nCasos de accidente fijo reportados por Sentry",
+                "pl": "Optimizować History query by use the UNION ALL (ang.)\nSprawy katastrofy Fix podane przez Sentry’a",
+                "zh-cn": "A. 全球化 利用“联合国目标”的历史询问\nSentry所报告的六例事故"
+            },
+            "2.1.7": {
+                "en": "Fix crash cases reported by Sentry",
+                "de": "Reparieren Crashfälle gemeldet von Sentry",
+                "ru": "Исправление случаев аварии, описанных Sentry",
+                "pt": "Corrigir casos de acidente relatados por Sentry",
+                "nl": "Vertaling:",
+                "fr": "Troubles de crash signalés par Sentry",
+                "it": "Correzione dei casi di crash segnalati da Sentry",
+                "es": "Casos de accidente fijo reportados por Sentry",
+                "pl": "Sprawy katastrofy Fix podane przez Sentry’a",
+                "zh-cn": "Sentry所报告的六例事故"
+            },
+            "2.1.6": {
+                "en": "Allow to remove a configuration value for \"round\" in config again",
+                "de": "Lassen Sie einen Konfigurationswert für Runde in config wieder entfernen",
+                "ru": "Разрешить удалить конфигурационную ценность для раунда в config снова",
+                "pt": "Permitir remover um valor de configuração para round em config novamente",
+                "nl": "Sta toe om weer een configuratiewaarde te verwijderen voor ronde in het leger",
+                "fr": "Permettre de supprimer une valeur de configuration pour round in config à nouveau",
+                "it": "Permette di rimuovere un valore di configurazione per round in config di nuovo",
+                "es": "Permitir eliminar de nuevo un valor de configuración para redondear en configuración",
+                "pl": "Allow, aby usunąć wartość konfiguracyjna w zakręcie ponownie w konfigunie",
+                "zh-cn": "允许再次取消一轮谈判的组合价值"
+            },
+            "2.1.5": {
+                "en": "When no count is provided for aggregate \"none\" or \"onchange\" then the limit (default 2000) is used as count to define the number of data to return.\nFix the initialization of types and IDs for some cases.",
+                "de": "Wenn keine Zählung für die Aggregate keine oder Änderung vorgesehen ist, wird die Grenze (Standard 2000) als Zählung verwendet, um die Anzahl der Daten zu definieren, um zurückzukehren.\nBeheben Sie die Initialisierung von Typen und IDs für einige Fälle.",
+                "ru": "Когда никакое число не предусмотрено для агрегировать никакое или онмен после этого предел (по умолчанию 2000) использован как считать для того чтобы определить количество данных для возвращения.\nИсправьте инициализацию типов и идентификаторов для некоторых случаев.",
+                "pt": "Quando nenhuma contagem é fornecida para agregar nenhum ou onchange, então o limite (padrão 2000) é usado como contagem para definir o número de dados para retornar.\nCorrigir a inicialização de tipos e IDs para alguns casos.",
+                "nl": "Als er geen tel is voor aggregate noch onchange dan wordt de limiet (default 2000) gebruikt om het aantal data te definiëren om terug te keren.\nMaak de initialisatie van types en ID's voor sommige gevallen.",
+                "fr": "Si aucun compte n'est fourni pour l'agrégat aucun ou le changement, la limite (par défaut 2000) est utilisée comme compte pour définir le nombre de données à retourner.\nFixer l'initialisation des types et des ID pour certains cas.",
+                "it": "Quando non è previsto alcun conteggio per aggregato nessuno o per il cambiamento, il limite (default 2000) viene utilizzato come conteggio per definire il numero di dati da restituire.\nFissare l'inizializzazione di tipi e ID per alcuni casi.",
+                "es": "Cuando no se proporciona ningún recuento para agregado ninguno o cambio entonces el límite (por defecto 2000) se utiliza como recuento para definir el número de datos para regresar.\nArreglar la inicialización de tipos e identificaciones para algunos casos.",
+                "pl": "Jeśli nie jest liczona dla agregacji ani zmian, to limit (default 2000) jest używany jako określenie liczby danych do powrotu.\nW niektórych przypadkach inicjacja typów i ID.",
+                "zh-cn": "当时没有对总数据或换算进行计算(2000年12月)用于确定返回的数据数量。.\n确定某些案例的类型和研发。."
+            }
         },
-        "link": "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md#settings",
-        "level": "warn",
-        "linkText": {
-          "en": "Readme",
-          "de": "Liesmich",
-          "ru": "Прочти меня",
-          "pt": "Leia-me",
-          "nl": "Leesmij",
-          "fr": "Lisez-moi",
-          "it": "Leggimi",
-          "es": "Léame",
-          "pl": "Readme",
-          "zh-cn": "自述文件"
+        "mode": "daemon",
+        "platform": "Javascript/Node.js",
+        "loglevel": "info",
+        "messagebox": true,
+        "subscribe": "messagebox",
+        "keywords": ["charts", "sql", "logging", "graphs", "archive"],
+        "preserveSettings": "custom",
+        "supportCustoms": true,
+        "getHistory": true,
+        "enabled": true,
+        "stopBeforeUpdate": true,
+        "compact": true,
+        "authors": ["bluefox <dogafox@gmail.com>", "Apollon77 <ingo@fischer-ka.de>"],
+        "license": "MIT",
+        "readme": "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
+        "icon": "sql.png",
+        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
+        "type": "storage",
+        "dependencies": [
+            {
+                "js-controller": ">=3.3.0"
+            }
+        ],
+        "globalDependencies": [
+            {
+                "admin": ">=5.1.28"
+            }
+        ],
+        "licenseInformation": {
+            "license": "MIT",
+            "type": "free"
         },
-        "buttons": [
-          "agree",
-          "cancel"
+        "supportStopInstance": 10000,
+        "stopTimeout": 10000,
+        "plugins": {
+            "sentry": {
+                "dsn": "https://c30462d3e0834993b0aa29824346701e@sentry.iobroker.net/45"
+            },
+            "docker": {
+                "iobDockerComposeFiles": ["docker-compose.yaml"]
+            }
+        },
+        "adminUI": {
+            "config": "json",
+            "custom": "json"
+        },
+        "tier": 1,
+        "eraseOnUpload": true,
+        "connectionType": "none",
+        "dataSource": "push",
+        "messages": [
+            {
+                "condition": {
+                    "operand": "and",
+                    "rules": ["oldVersion<2.0.0", "newVersion>=2.0.0"]
+                },
+                "title": {
+                    "en": "Important notice!",
+                    "de": "Wichtiger Hinweis!",
+                    "ru": "Важное замечание!",
+                    "pt": "Notícia importante!",
+                    "nl": "Belangrijke mededeling!",
+                    "fr": "Avis important!",
+                    "it": "Avviso IMPORTANTE!",
+                    "es": "Noticia importante!",
+                    "pl": "Ważna uwaga!",
+                    "zh-cn": "重要通知!"
+                },
+                "text": {
+                    "en": "This new version introduces several changes how values are logged because we fixed several issues and added new features. Please especially check the defined \"debounce\" and \"block time\" settings in your datapoints if values are not logged as expected and make sure the settings make sense. For more details please refer to the changelog and Readme.",
+                    "de": "Diese neue Version führt mehrere Änderungen ein, wie Werte protokolliert werden, da wir mehrere Probleme behoben und neue Funktionen hinzugefügt haben. Bitte überprüfen Sie insbesondere die definierten „Entprellen“- und „Sperrzeit“-Einstellungen in Ihren Datenpunkten, wenn Werte nicht wie erwartet protokolliert werden, und stellen Sie sicher, dass die Einstellungen sinnvoll sind. Weitere Details finden Sie im Changelog und in der Readme.",
+                    "ru": "В этой новой версии внесено несколько изменений в регистрацию значений, поскольку мы исправили несколько проблем и добавили новые функции. Пожалуйста, особенно проверьте определенные настройки «debounce» и «block time» в ваших точках данных, если значения не регистрируются должным образом, и убедитесь, что настройки имеют смысл. Для получения более подробной информации, пожалуйста, обратитесь к журналу изменений и Readme.",
+                    "pt": "Esta nova versão apresenta várias alterações na forma como os valores são registrados, pois corrigimos vários problemas e adicionamos novos recursos. Verifique especialmente as configurações definidas de \"debounce\" e \"block time\" em seus pontos de dados se os valores não forem registrados conforme o esperado e verifique se as configurações fazem sentido. Para obter mais detalhes, consulte o log de alterações e o Leiame.",
+                    "nl": "Deze nieuwe versie introduceert verschillende wijzigingen in de manier waarop waarden worden geregistreerd, omdat we verschillende problemen hebben opgelost en nieuwe functies hebben toegevoegd. Controleer vooral de gedefinieerde \"debounce\" en \"block time\" instellingen in uw datapunten als de waarden niet zijn vastgelegd zoals verwacht en zorg ervoor dat de instellingen kloppen. Raadpleeg de changelog en Readme voor meer informatie.",
+                    "fr": "Cette nouvelle version introduit plusieurs changements dans la journalisation des valeurs car nous avons corrigé plusieurs problèmes et ajouté de nouvelles fonctionnalités. Veuillez vérifier en particulier les paramètres \"anti-rebond\" et \"temps de blocage\" définis dans vos points de données si les valeurs ne sont pas enregistrées comme prévu et assurez-vous que les paramètres ont un sens. Pour plus de détails, veuillez consulter le journal des modifications et le fichier Lisez-moi.",
+                    "it": "Questa nuova versione introduce diverse modifiche al modo in cui i valori vengono registrati perché abbiamo risolto diversi problemi e aggiunto nuove funzionalità. Controllare in particolare le impostazioni definite \"debounce\" e \"block time\" nei propri datapoint se i valori non sono registrati come previsto e assicurarsi che le impostazioni abbiano un senso. Per maggiori dettagli, fare riferimento al log delle modifiche e al Leggimi.",
+                    "es": "Esta nueva versión introduce varios cambios en la forma en que se registran los valores porque solucionamos varios problemas y agregamos nuevas funciones. Verifique especialmente la configuración definida de \"antirrebote\" y \"tiempo de bloqueo\" en sus puntos de datos si los valores no se registran como se esperaba y asegúrese de que la configuración tenga sentido. Para obtener más detalles, consulte el registro de cambios y el archivo Léame.",
+                    "pl": "Ta nowa wersja wprowadza kilka zmian w sposobie rejestrowania wartości, ponieważ naprawiliśmy kilka problemów i dodaliśmy nowe funkcje. W szczególności sprawdź zdefiniowane ustawienia „odbicia” i „czasu blokowania” w punktach danych, jeśli wartości nie są rejestrowane zgodnie z oczekiwaniami i upewnij się, że ustawienia mają sens. Aby uzyskać więcej informacji, zapoznaj się z dziennikiem zmian i Readme.",
+                    "zh-cn": "这个新版本引入了一些更改值的记录方式，因为我们修复了几个问题并添加了新功能。如果未按预期记录值，请特别检查数据点中定义的“去抖动”和“阻塞时间”设置，并确保设置有意义。有关更多详细信息，请参阅更改日志和自述文件。"
+                },
+                "link": "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md#settings",
+                "level": "warn",
+                "linkText": {
+                    "en": "Readme",
+                    "de": "Liesmich",
+                    "ru": "Прочти меня",
+                    "pt": "Leia-me",
+                    "nl": "Leesmij",
+                    "fr": "Lisez-moi",
+                    "it": "Leggimi",
+                    "es": "Léame",
+                    "pl": "Readme",
+                    "zh-cn": "自述文件"
+                },
+                "buttons": ["agree", "cancel"]
+            }
         ]
-      }
-    ]
-  },
-  "native": {
-    "connLink": "",
-    "debounce": 1000,
-    "retention": 31536000,
-    "host": "localhost",
-    "port": 0,
-    "user": "",
-    "password": "",
-    "dbtype": "sqlite",
-    "fileName": "sqlite.db",
-    "requestInterval": 0,
-    "encrypt": false,
-    "round": 4,
-    "dbname": "iobroker",
-    "multiRequests": true,
-    "maxConnections": 100,
-    "changesRelogInterval": 0,
-    "changesMinDelta": 0,
-    "writeNulls": true,
-    "doNotCreateDatabase": false,
-    "maxLength": 0,
-    "blockTime": 0,
-    "debounceTime": 0,
-    "disableSkippedValueLogging": false,
-    "enableLogging": false,
-    "rejectUnauthorized": false,
-    "customRetentionDuration": 365
-  },
-  "instanceObjects": [
-    {
-      "_id": "info",
-      "type": "channel",
-      "common": {
-        "name": "Information"
-      },
-      "native": {}
     },
-    {
-      "_id": "info.connection",
-      "type": "state",
-      "common": {
-        "role": "indicator.connected",
-        "name": "If connected to DB",
-        "type": "boolean",
-        "read": true,
-        "write": false,
-        "def": false
-      },
-      "native": {}
-    }
-  ],
-  "objects": []
+    "native": {
+        "connLink": "",
+        "debounce": 1000,
+        "retention": 31536000,
+        "host": "localhost",
+        "port": 0,
+        "user": "",
+        "password": "",
+        "dbtype": "sqlite",
+        "fileName": "sqlite.db",
+        "requestInterval": 0,
+        "encrypt": false,
+        "round": 4,
+        "dbname": "iobroker",
+        "multiRequests": true,
+        "maxConnections": 100,
+        "changesRelogInterval": 0,
+        "changesMinDelta": 0,
+        "writeNulls": true,
+        "doNotCreateDatabase": false,
+        "maxLength": 0,
+        "blockTime": 0,
+        "debounceTime": 0,
+        "disableSkippedValueLogging": false,
+        "enableLogging": false,
+        "rejectUnauthorized": false,
+        "customRetentionDuration": 365,
+        "dockerMysql": {
+            "enabled": false,
+            "bind": "127.0.0.1",
+            "stopIfInstanceStopped": true,
+            "port": "3306",
+            "autoImageUpdate": true,
+            "rootPassword": "root_iobroker"
+        },
+        "dockerPhpMyAdmin": {
+            "enabled": false,
+            "bind": "0.0.0.0",
+            "stopIfInstanceStopped": true,
+            "port": "8080",
+            "autoImageUpdate": true
+        }
+    },
+    "instanceObjects": [
+        {
+            "_id": "info",
+            "type": "channel",
+            "common": {
+                "name": "Information"
+            },
+            "native": {}
+        },
+        {
+            "_id": "info.connection",
+            "type": "state",
+            "common": {
+                "role": "indicator.connected",
+                "name": "If connected to DB",
+                "type": "boolean",
+                "read": true,
+                "write": false,
+                "def": false
+            },
+            "native": {}
+        }
+    ],
+    "objects": []
 }

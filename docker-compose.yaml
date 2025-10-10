@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+    mysql:
+        image: mysql:lts
+        labels:
+            - 'iobEnabled=${config.dockerMysql.enabled:-true}'
+            - 'iobStopOnUnload=${config.dockerMysql.stopIfInstanceStopped:-false}'
+            - 'iobAutoImageUpdate=${config.dockerMysql.autoImageUpdate:-true}'
+            - 'iobBackup=grafana_data'
+        ports:
+            - '${config.dockerMysql.bind:-127.0.0.1}:${config_dockerMysql_port:-3306}:3306'
+        container_name: mysql
+        environment:
+            MYSQL_DATABASE: 'iobroker'
+            MYSQL_USER: 'iobroker'
+            MYSQL_PASSWORD: 'iobroker'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 'false'
+            MYSQL_ROOT_PASSWORD: '${config.dockerMysql.rootPassword:-root_iobroker}'
+        volumes:
+            - mysql_data:/var/lib/mysql
+            - mysql_config:/etc/mysql/conf.d
+        networks:
+            - true
+        restart: unless-stopped
+
+    phpMyAdmin:
+        image: phpmyadmin/latest
+        labels:
+            - 'iobEnabled=${config.dockerPhpMyAdmin.enabled:-true}'
+            - 'iobStopOnUnload=${config.dockerPhpMyAdmin.stopIfInstanceStopped:-true}'
+            - 'iobBackup=flux_data'
+        container_name: phpmyadmin
+        depends_on:
+            - mysql
+        ports:
+            - '${config.dockerPhpMyAdmin.bind:-127.0.0.1}:${config_dockerPhpMyAdmin_port:-8080}:8080'
+        environment:
+            GF_SECURITY_ADMIN_PASSWORD: '${config.dockerPhpMyAdmin.adminSecurityPassword:-iobroker}'
+            GF_SERVER_ROOT_URL: '${config.dockerPhpMyAdmin.serverRootUrl:-}'
+            GF_INSTALL_PLUGINS: '${config.dockerPhpMyAdmin.plugins:-}'
+            GF_USERS_ALLOW_SIGN_UP: '${config.dockerPhpMyAdmin.usersAllowSignUp:-false}'
+            MYSQL_ROOT_PASSWORD: config.dockerMysql.rootPassword || 'root_iobroker',
+            MYSQL_USER: 'iobroker'
+            MYSQL_PASSWORD: 'iobroker'
+            PMA_ABSOLUTE_URI: '${config.dockerPhpMyAdmin.absoluteUri}'
+            PMA_PORT: '${config.dockerMysql.port}:-3306'
+            PMA_HOST: 'iob_sql_${instance}_mysql'
+        networks:
+            - true
+        restart: unless-stopped
+
+networks:
+    true:
+        driver: bridge
+
+volumes:
+    mysql_data:
+    mysql_config:
