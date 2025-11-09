@@ -137,7 +137,10 @@
       "bluefox <dogafox@gmail.com>",
       "Apollon77 <ingo@fischer-ka.de>"
     ],
-    "license": "MIT",
+    "licenseInformation": {
+      "type": "free",
+      "license": "MIT"
+    },
     "readme": "https://github.com/ioBroker/ioBroker.sql/blob/master/README.md",
     "icon": "sql.png",
     "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.sql/master/admin/sql.png",
