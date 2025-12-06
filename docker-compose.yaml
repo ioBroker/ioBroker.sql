@@ -7,7 +7,7 @@ services:
             - 'iobEnabled=${config.dockerMysql.enabled:-true}'
             - 'iobStopOnUnload=${config.dockerMysql.stopIfInstanceStopped:-false}'
             - 'iobAutoImageUpdate=${config.dockerMysql.autoImageUpdate:-true}'
-            - 'iobBackup=grafana_data'
+            - 'iobBackup=mysql_data'
         ports:
             - '${config.dockerMysql.bind:-127.0.0.1}:${config_dockerMysql_port:-3306}:3306'
         container_name: mysql
@@ -29,7 +29,7 @@ services:
         labels:
             - 'iobEnabled=${config.dockerPhpMyAdmin.enabled:-true}'
             - 'iobStopOnUnload=${config.dockerPhpMyAdmin.stopIfInstanceStopped:-true}'
-            - 'iobBackup=flux_data'
+            - 'iobBackup=phpmyadmin_data'
         container_name: phpmyadmin
         depends_on:
             - mysql
