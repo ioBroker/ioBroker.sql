@@ -74,7 +74,7 @@ export interface SqlAdapterConfigTyped {
     dockerMysql: {
         enabled?: boolean;
         bind?: string;
-        stopIfInstanceStopped?: true;
+        stopIfInstanceStopped?: boolean;
         port?: string | number;
         autoImageUpdate?: boolean;
         rootPassword?: string;
