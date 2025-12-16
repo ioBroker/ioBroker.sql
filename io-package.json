@@ -1,7 +1,6 @@
 {
   "common": {
     "name": "sql",
-    "title": "SQL History",
     "titleLang": {
       "en": "SQL logging",
       "de": "SQL-Protokollierung",
