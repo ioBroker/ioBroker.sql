@@ -7,8 +7,8 @@ const utils       = require('@iobroker/adapter-core'); // Get common adapter uti
 const adapterName = require('./package.json').name.split('.').pop();
 const SQL         = require('sql-client');
 const commons     = require('./lib/aggregate');
-const fs          = require('fs');
-const path        = require('path');
+const fs          = require('node:fs');
+const path        = require('node:path');
 let   SQLFuncs    = null;
 
 const clients = {
