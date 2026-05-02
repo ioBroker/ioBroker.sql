@@ -552,6 +552,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+- (copilot) Adapter requires node.js >= 22 now
+
 ### 3.0.1 (2024-06-13)
 * (foxriver76) upgraded dependencies
 
