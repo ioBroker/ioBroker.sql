@@ -887,6 +887,8 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ### 0.0.1 (2015-11-19)
 * (bluefox) initial commit
 
+[Older changelogs can be found there](CHANGELOG_OLD.md)
+
 ## License
 
 The MIT License (MIT)
