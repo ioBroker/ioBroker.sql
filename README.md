@@ -552,6 +552,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+
+### **WORK IN PROGRESS**
+- (ioBroker-Bot) Adapter requires js-controller >= 6.0.11 now.
+
 ### 3.0.1 (2024-06-13)
 * (foxriver76) upgraded dependencies
 
