@@ -835,7 +835,8 @@ export class SqlAdapter extends Adapter {
                     if (err) {
                         this.clientPool = null;
                         this.setConnected(false);
-                        this.log.error(JSON.stringify(err));
+                        // JSON.stringify(Error) is "{}" and would swallow the message
+                        this.log.error(err.message || err.toString());
                         this.reconnectTimeout && clearTimeout(this.reconnectTimeout);
                         this.reconnectTimeout = setTimeout(() => {
                             this.reconnectTimeout = null;
@@ -849,12 +850,8 @@ export class SqlAdapter extends Adapter {
                     }
                 });
             } catch (ex) {
-                if (ex.toString() === 'TypeError: undefined is not a function') {
-                    this.log.error(`Node.js DB driver for "${this.config.dbtype}" could not be installed.`);
-                } else {
-                    this.log.error(ex.toString());
-                    this.log.error(ex.stack);
-                }
+                this.log.error(ex.toString());
+                this.log.error(ex.stack);
                 this.clientPool = null;
                 this.activeConnections = 0;
                 this.setConnected(false);
@@ -1056,16 +1053,7 @@ export class SqlAdapter extends Adapter {
                     this.log.error(`Cannot stop docker container: ${e}`);
                 }
             }
-            if (ex.toString() === 'TypeError: undefined is not a function') {
-                this.sendTo(
-                    msg.from,
-                    msg.command,
-                    { error: 'Node.js DB driver could not be installed.' },
-                    msg.callback,
-                );
-            } else {
-                this.sendTo(msg.from, msg.command, { error: ex.toString() }, msg.callback);
-            }
+            this.sendTo(msg.from, msg.command, { error: ex.toString() }, msg.callback);
         }
     }
 

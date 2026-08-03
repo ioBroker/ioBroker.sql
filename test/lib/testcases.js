@@ -105,7 +105,7 @@ async function preInit(_objects, _states, sendTo, adapterShortName) {
     states.subscribeMessage('system.adapter.test.0');
 }
 
-function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExistingData, additionalActiveObjects) {
+function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, additionalActiveObjects) {
     const instanceName = `${adapterShortName}.0`;
     if (writeNulls) adapterShortName += '-writeNulls';
     if (assumeExistingData) adapterShortName += '-existing';
@@ -138,8 +138,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                         },
                     },
                     function (result) {
-                        expect(result.error).to.be.undefined;
-                        expect(result.success).to.be.true;
+                        assert.strictEqual(result.error, undefined);
+                        assert.strictEqual(result.success, true);
                         // wait till adapter receives the new settings
                         setTimeout(function () {
                             done();
@@ -155,8 +155,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
 
         sendTo(instanceName, 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
-            expect(Object.keys(result).length).to.be.equal(5 + additionalActiveObjects);
-            expect(result[`${instanceName}.testValue`].enabled).to.be.true;
+            assert.strictEqual(Object.keys(result).length, 5 + additionalActiveObjects);
+            assert.strictEqual(result[`${instanceName}.testValue`].enabled, true);
             done();
         });
     });
@@ -277,12 +277,12 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             },
             function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.at.least(4);
+                assert.ok(result.result.length >= 4, `${result.result.length} >= 4`);
                 let found = 0;
                 for (let i = 0; i < result.result.length; i++) {
                     if (result.result[i].val >= 1 && result.result[i].val <= 3) found++;
                 }
-                expect(found).to.be.equal(5); // additionally, null value by start of adapter.
+                assert.strictEqual(found, 5); // additionally, null value by start of adapter.
 
                 sendTo(
                     instanceName,
@@ -298,13 +298,13 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                     },
                     function (result) {
                         console.log(JSON.stringify(result.result, null, 2));
-                        expect(result.result.length).to.be.equal(2);
+                        assert.strictEqual(result.result.length, 2);
                         let found = 0;
                         for (let i = 0; i < result.result.length; i++) {
                             if (result.result[i].val >= 1 && result.result[i].val <= 3) found++;
                         }
-                        expect(found).to.be.equal(2);
-                        expect(result.result[0].id).to.be.undefined;
+                        assert.strictEqual(found, 2);
+                        assert.strictEqual(result.result[0].id, undefined);
 
                         const latestTs = result.result[result.result.length - 1].ts;
 
@@ -324,14 +324,14 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                             },
                             function (result) {
                                 console.log(JSON.stringify(result.result, null, 2));
-                                expect(result.result.length).to.be.equal(2);
+                                assert.strictEqual(result.result.length, 2);
                                 let found = 0;
                                 for (let i = 0; i < result.result.length; i++) {
                                     if (result.result[i].val >= 2.5 && result.result[i].val <= 3) found++;
                                 }
-                                expect(found).to.be.equal(2);
-                                expect(result.result[0].ts >= latestTs).to.be.true;
-                                expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
+                                assert.strictEqual(found, 2);
+                                assert.strictEqual(result.result[0].ts >= latestTs, true);
+                                assert.strictEqual(result.result[0].id, `${instanceName}.testValue`);
                                 done();
                             },
                         );
@@ -361,17 +361,29 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
                 if (instanceName !== 'influxdb.0') {
-                    expect(result.result.length).to.be.equal(4);
-                    expect(result.result[1].val).to.be.equal(1.5);
-                    expect(result.result[2].val).to.be.equal(2.57);
-                    expect(result.result[3].val).to.be.equal(2.57);
+                    assert.strictEqual(result.result.length, 4);
+                    assert.strictEqual(result.result[1].val, 1.5);
+                    assert.strictEqual(result.result[2].val, 2.57);
+                    assert.strictEqual(result.result[3].val, 2.57);
                 } else {
-                    expect(result.result.length).to.be.within(4, 5);
-                    expect(result.result[1].val).to.be.within(1, 1.5);
-                    expect(result.result[2].val).to.be.within(2, 3);
-                    expect(result.result[3].val).to.be.within(2, 3);
+                    assert.ok(
+                        result.result.length >= 4 && result.result.length <= 5,
+                        `${result.result.length} within 4..5`,
+                    );
+                    assert.ok(
+                        result.result[1].val >= 1 && result.result[1].val <= 1.5,
+                        `${result.result[1].val} within 1..1.5`,
+                    );
+                    assert.ok(
+                        result.result[2].val >= 2 && result.result[2].val <= 3,
+                        `${result.result[2].val} within 2..3`,
+                    );
+                    assert.ok(
+                        result.result[3].val >= 2 && result.result[3].val <= 3,
+                        `${result.result[3].val} within 2..3`,
+                    );
                 }
-                expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
+                assert.strictEqual(result.result[0].id, `${instanceName}.testValue`);
                 done();
             },
         );
@@ -395,8 +407,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             },
             result => {
                 console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.at.least(4);
-                expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
+                assert.ok(result.result.length >= 4, `${result.result.length} >= 4`);
+                assert.strictEqual(result.result[0].id, `${instanceName}.testValue`);
                 done();
             },
         );
@@ -419,7 +431,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             },
             function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.equal(2);
+                assert.strictEqual(result.result.length, 2);
 
                 sendTo(
                     instanceName,
@@ -435,9 +447,9 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                     },
                     function (result2) {
                         console.log(JSON.stringify(result2.result, null, 2));
-                        expect(result2.result.length).to.be.equal(2);
+                        assert.strictEqual(result2.result.length, 2);
                         for (let i = 0; i < result2.result.length; i++) {
-                            expect(result2.result[i].val).to.be.equal(result.result[i].val);
+                            assert.strictEqual(result2.result[i].val, result.result[i].val);
                         }
 
                         done();
@@ -500,7 +512,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             await logSampleData(`${instanceName}.testValueDebounceRaw`);
         } catch (err) {
             console.log(err);
-            expect(err).to.be.not.ok;
+            assert.ok(!err);
         }
 
         return new Promise(resolve => {
@@ -518,16 +530,16 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 },
                 function (result) {
                     console.log(JSON.stringify(result.result, null, 2));
-                    expect(result.result.length).to.be.at.least(9);
-                    expect(result.result[0].val).to.be.equal(1);
-                    expect(result.result[1].val).to.be.equal(2.5);
-                    expect(result.result[2].val).to.be.equal(3.0);
-                    expect(result.result[3].val).to.be.equal(4);
-                    expect(result.result[4].val).to.be.equal(5);
-                    expect(result.result[5].val).to.be.equal(6);
-                    expect(result.result[6].val).to.be.equal(6);
-                    expect(result.result[7].val).to.be.equal(7);
-                    expect(result.result[8].val).to.be.equal(7);
+                    assert.ok(result.result.length >= 9, `${result.result.length} >= 9`);
+                    assert.strictEqual(result.result[0].val, 1);
+                    assert.strictEqual(result.result[1].val, 2.5);
+                    assert.strictEqual(result.result[2].val, 3.0);
+                    assert.strictEqual(result.result[3].val, 4);
+                    assert.strictEqual(result.result[4].val, 5);
+                    assert.strictEqual(result.result[5].val, 6);
+                    assert.strictEqual(result.result[6].val, 6);
+                    assert.strictEqual(result.result[7].val, 7);
+                    assert.strictEqual(result.result[8].val, 7);
 
                     setTimeout(resolve, 2000);
                 },
@@ -543,7 +555,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             await logSampleData(`${instanceName}.testValueDebounce`);
         } catch (err) {
             console.log(err);
-            expect(err).to.be.not.ok;
+            assert.ok(!err);
         }
 
         return new Promise(resolve => {
@@ -561,7 +573,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 },
                 function (result) {
                     console.log(JSON.stringify(result.result, null, 2));
-                    expect(result.result.length).to.be.at.least(12);
+                    assert.ok(result.result.length >= 12, `${result.result.length} >= 12`);
 
                     const expectedVals = [1, 2.5, 3, 4, 5, 5, 6, 7, 7];
                     let expectedId = 0;
@@ -569,12 +581,15 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                         console.log(
                             `${i}: check ${result.result[i].val} vs ${expectedVals[expectedId]} (${expectedId})`,
                         );
-                        expect(result.result[i].val).to.be.lessThanOrEqual(expectedVals[expectedId]);
+                        assert.ok(
+                            result.result[i].val <= expectedVals[expectedId],
+                            `${result.result[i].val} <= expectedVals[expectedId]`,
+                        );
                         if (result.result[i].val === expectedVals[expectedId] && expectedId < expectedVals.length - 1) {
                             expectedId++;
                         }
                     }
-                    expect(expectedId).to.be.equal(expectedVals.length - 1);
+                    assert.strictEqual(expectedId, expectedVals.length - 1);
 
                     resolve();
                 },
@@ -603,18 +618,32 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             result => {
                 console.log(JSON.stringify(result.result, null, 2));
                 if (instanceName !== 'influxdb.0') {
-                    expect(result.result.length).to.be.equal(1);
-                    expect(result.result[0].val).to.be.equal(5);
-                    expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
+                    assert.strictEqual(result.result.length, 1);
+                    assert.strictEqual(result.result[0].val, 5);
+                    assert.strictEqual(result.result[0].id, `${instanceName}.testValueDebounce alias`);
                 } else {
                     if (process.env.INFLUXDB2) {
-                        expect(result.result.length).to.be.within(1, 3);
-                        expect(result.result[1] ? result.result[1].val : result.result[0].val).to.be.within(5, 7);
+                        assert.ok(
+                            result.result.length >= 1 && result.result.length <= 3,
+                            `${result.result.length} within 1..3`,
+                        );
+                        assert.ok(
+                            (result.result[1] ? result.result[1].val : result.result[0].val) >= 5 &&
+                                (result.result[1] ? result.result[1].val : result.result[0].val) <= 7,
+                            `${result.result[1] ? result.result[1].val : result.result[0].val} within 5..7`,
+                        );
                     } else {
-                        expect(result.result.length).to.be.within(1, 2);
-                        expect(result.result[1] ? result.result[1].val : result.result[0].val).to.be.within(5, 7);
+                        assert.ok(
+                            result.result.length >= 1 && result.result.length <= 2,
+                            `${result.result.length} within 1..2`,
+                        );
+                        assert.ok(
+                            (result.result[1] ? result.result[1].val : result.result[0].val) >= 5 &&
+                                (result.result[1] ? result.result[1].val : result.result[0].val) <= 7,
+                            `${result.result[1] ? result.result[1].val : result.result[0].val} within 5..7`,
+                        );
                     }
-                    expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
+                    assert.strictEqual(result.result[0].id, `${instanceName}.testValueDebounce alias`);
                 }
 
                 sendTo(
@@ -635,15 +664,18 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                     result => {
                         console.log(JSON.stringify(result.result, null, 2));
                         if (instanceName !== 'influxdb.0') {
-                            expect(result.result.length).to.be.equal(1);
-                            expect(result.result[0].val).to.be.equal(7);
+                            assert.strictEqual(result.result.length, 1);
+                            assert.strictEqual(result.result[0].val, 7);
                         } else {
-                            expect(result.result.length).to.be.within(1, 3);
-                            expect(result.result[result.result.length - 1].val).to.be.equal(7);
-                            expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
+                            assert.ok(
+                                result.result.length >= 1 && result.result.length <= 3,
+                                `${result.result.length} within 1..3`,
+                            );
+                            assert.strictEqual(result.result[result.result.length - 1].val, 7);
+                            assert.strictEqual(result.result[0].id, `${instanceName}.testValueDebounce alias`);
                         }
 
-                        expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
+                        assert.strictEqual(result.result[0].id, `${instanceName}.testValueDebounce alias`);
                         done();
                     },
                 );
@@ -672,11 +704,14 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
                 if (instanceName !== 'influxdb.0') {
-                    expect(result.result.length).to.be.equal(5);
+                    assert.strictEqual(result.result.length, 5);
                 } else {
-                    expect(result.result.length).to.be.within(3, 5);
+                    assert.ok(
+                        result.result.length >= 3 && result.result.length <= 5,
+                        `${result.result.length} within 3..5`,
+                    );
                 }
-                expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
+                assert.strictEqual(result.result[0].id, `${instanceName}.testValueDebounce alias`);
                 done();
             },
         );
@@ -704,11 +739,14 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
                 if (instanceName !== 'influxdb.0') {
-                    expect(result.result.length).to.be.equal(5);
+                    assert.strictEqual(result.result.length, 5);
                 } else {
-                    expect(result.result.length).to.be.within(3, 6);
+                    assert.ok(
+                        result.result.length >= 3 && result.result.length <= 6,
+                        `${result.result.length} within 3..6`,
+                    );
                 }
-                expect(result.result[0].id).to.be.equal(`${instanceName}.testValueDebounce alias`);
+                assert.strictEqual(result.result[0].id, `${instanceName}.testValueDebounce alias`);
                 done();
             },
         );
@@ -722,7 +760,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             await logSampleData(`${instanceName}.testValueBlocked`, 1.5);
         } catch (err) {
             console.log(err);
-            expect(err).to.be.not.ok;
+            assert.ok(!err);
         }
 
         return new Promise(resolve => {
@@ -740,16 +778,16 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 },
                 function (result) {
                     console.log(JSON.stringify(result.result, null, 2));
-                    expect(result.result.length).to.be.at.least(9);
-                    expect(result.result[0].val).to.be.equal(1);
-                    expect(result.result[1].val).to.be.at.least(2.3);
-                    expect(result.result[2].val).to.be.equal(4);
-                    expect(result.result[3].val).to.be.equal(5);
-                    expect(result.result[4].val).to.be.equal(6);
-                    expect(result.result[5].val).to.be.equal(6);
-                    expect(result.result[6].val).to.be.equal(6.45);
-                    expect(result.result[7].val).to.be.equal(7);
-                    expect(result.result[8].val).to.be.equal(7);
+                    assert.ok(result.result.length >= 9, `${result.result.length} >= 9`);
+                    assert.strictEqual(result.result[0].val, 1);
+                    assert.ok(result.result[1].val >= 2.3, `${result.result[1].val} >= 2.3`);
+                    assert.strictEqual(result.result[2].val, 4);
+                    assert.strictEqual(result.result[3].val, 5);
+                    assert.strictEqual(result.result[4].val, 6);
+                    assert.strictEqual(result.result[5].val, 6);
+                    assert.strictEqual(result.result[6].val, 6.45);
+                    assert.strictEqual(result.result[7].val, 7);
+                    assert.strictEqual(result.result[8].val, 7);
 
                     resolve();
                 },
@@ -804,7 +842,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                     ],
                 },
                 function (result) {
-                    expect(result.success).to.be.true;
+                    assert.strictEqual(result.success, true);
 
                     setTimeout(() => {
                         sendTo(
@@ -825,31 +863,42 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                             function (result) {
                                 console.log(`Sample I1-1: ${JSON.stringify(result.result, null, 2)}`);
                                 if (instanceName !== 'influxdb.0') {
-                                    expect(result.result.length).to.be.equal(1);
+                                    assert.strictEqual(result.result.length, 1);
                                     if (assumeExistingData) {
-                                        expect(result.result[0].val).to.be.within(3700, 3755);
+                                        assert.ok(
+                                            result.result[0].val >= 3700 && result.result[0].val <= 3755,
+                                            `${result.result[0].val} within 3700..3755`,
+                                        );
                                     } else {
-                                        expect(result.result[0].val).to.be.within(3700, 3800);
+                                        assert.ok(
+                                            result.result[0].val >= 3700 && result.result[0].val <= 3800,
+                                            `${result.result[0].val} within 3700..3800`,
+                                        );
                                     }
                                 } else {
                                     if (assumeExistingData) {
-                                        expect(result.result.length).to.be.within(2, 3);
+                                        assert.ok(
+                                            result.result.length >= 2 && result.result.length <= 3,
+                                            `${result.result.length} within 2..3`,
+                                        );
                                         if (process.env.INFLUXDB2) {
-                                            //expect((result.result[0].val + result.result[1].val)).to.be.within(3780, 4000);
+                                            //assert.ok(((result.result[0].val + result.result[1].val)) >= 3780 && ((result.result[0].val + result.result[1].val)) <= 4000, `${((result.result[0].val + result.result[1].val))} within 3780..4000`);
                                         } else {
-                                            //expect(result.result[0].val).to.be.within(2980, 3000);
+                                            //assert.ok(result.result[0].val >= 2980 && result.result[0].val <= 3000, `${result.result[0].val} within 2980..3000`);
                                         }
                                     } else {
-                                        expect(result.result.length).to.be.equal(2);
+                                        assert.strictEqual(result.result.length, 2);
                                         if (process.env.INFLUXDB2) {
-                                            expect(result.result[0].val + result.result[1].val).to.be.within(
-                                                2980,
-                                                3000,
+                                            assert.ok(
+                                                result.result[0].val + result.result[1].val >= 2980 &&
+                                                    result.result[0].val + result.result[1].val <= 3000,
+                                                `${result.result[0].val + result.result[1].val} within 2980..3000`,
                                             );
                                         } else {
-                                            expect(
+                                            assert.strictEqual(
                                                 parseFloat((result.result[0].val + result.result[1].val).toFixed(2)),
-                                            ).to.be.equal(3732.66);
+                                                3732.66,
+                                            );
                                         }
                                     }
                                 }
@@ -873,30 +922,42 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                                     function (result) {
                                         console.log(`Sample I1-60: ${JSON.stringify(result.result, null, 2)}`);
                                         if (instanceName !== 'influxdb.0') {
-                                            expect(result.result.length).to.be.equal(1);
+                                            assert.strictEqual(result.result.length, 1);
                                             if (assumeExistingData) {
-                                                expect(result.result[0].val).to.be.lessThan(62.25);
+                                                assert.ok(
+                                                    result.result[0].val < 62.25,
+                                                    `${result.result[0].val} < 62.25`,
+                                                );
                                             } else {
-                                                expect(result.result[0].val).to.be.equal(62.25);
+                                                assert.strictEqual(result.result[0].val, 62.25);
                                             }
                                         } else {
                                             if (assumeExistingData) {
-                                                expect(result.result.length).to.be.equal(3);
-                                                //expect(result.result[1].val).to.be.within(40, 65);
+                                                assert.strictEqual(result.result.length, 3);
+                                                //assert.ok(result.result[1].val >= 40 && result.result[1].val <= 65, `${result.result[1].val} within 40..65`);
                                             } else {
-                                                expect(result.result.length).to.be.equal(2);
+                                                assert.strictEqual(result.result.length, 2);
                                                 if (process.env.INFLUXDB2) {
-                                                    expect(
+                                                    assert.ok(
                                                         parseFloat(
                                                             (result.result[0].val + result.result[1].val).toFixed(2),
-                                                        ),
-                                                    ).to.be.within(49, 50);
+                                                        ) >= 49 &&
+                                                            parseFloat(
+                                                                (result.result[0].val + result.result[1].val).toFixed(
+                                                                    2,
+                                                                ),
+                                                            ) <= 50,
+                                                        `${parseFloat(
+                                                            (result.result[0].val + result.result[1].val).toFixed(2),
+                                                        )} within 49..50`,
+                                                    );
                                                 } else {
-                                                    expect(
+                                                    assert.strictEqual(
                                                         parseFloat(
                                                             (result.result[0].val + result.result[1].val).toFixed(2),
                                                         ),
-                                                    ).to.be.equal(62.21);
+                                                        62.21,
+                                                    );
                                                 }
                                             }
                                         }
@@ -920,14 +981,25 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                                             function (result) {
                                                 console.log(`Sample I21: ${JSON.stringify(result.result, null, 2)}`);
                                                 if (instanceName !== 'influxdb.0') {
-                                                    expect(result.result.length).to.be.equal(1);
-                                                    expect(result.result[0].val).to.be.equal(51);
+                                                    assert.strictEqual(result.result.length, 1);
+                                                    assert.strictEqual(result.result[0].val, 51);
                                                 } else {
-                                                    expect(result.result.length).to.be.within(1, 2);
-                                                    expect(
+                                                    assert.ok(
+                                                        result.result.length >= 1 && result.result.length <= 2,
+                                                        `${result.result.length} within 1..2`,
+                                                    );
+                                                    assert.ok(
                                                         result.result[0].val +
-                                                            (result.result[1] ? result.result[1].val : 0),
-                                                    ).to.be.within(30, 50);
+                                                            (result.result[1] ? result.result[1].val : 0) >=
+                                                            30 &&
+                                                            result.result[0].val +
+                                                                (result.result[1] ? result.result[1].val : 0) <=
+                                                                50,
+                                                        `${
+                                                            result.result[0].val +
+                                                            (result.result[1] ? result.result[1].val : 0)
+                                                        } within 30..50`,
+                                                    );
                                                 }
                                                 // Result Influxdb21 Doku = 50.0
 
@@ -951,14 +1023,25 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                                                             `Sample I22: ${JSON.stringify(result.result, null, 2)}`,
                                                         );
                                                         if (instanceName !== 'influxdb.0') {
-                                                            expect(result.result.length).to.be.equal(1);
-                                                            expect(result.result[0].val).to.be.equal(53);
+                                                            assert.strictEqual(result.result.length, 1);
+                                                            assert.strictEqual(result.result[0].val, 53);
                                                         } else {
-                                                            expect(result.result.length).to.be.within(1, 2);
-                                                            expect(
+                                                            assert.ok(
+                                                                result.result.length >= 1 && result.result.length <= 2,
+                                                                `${result.result.length} within 1..2`,
+                                                            );
+                                                            assert.ok(
                                                                 result.result[0].val +
-                                                                    (result.result[1] ? result.result[1].val : 0),
-                                                            ).to.be.within(27, 43);
+                                                                    (result.result[1] ? result.result[1].val : 0) >=
+                                                                    27 &&
+                                                                    result.result[0].val +
+                                                                        (result.result[1] ? result.result[1].val : 0) <=
+                                                                        43,
+                                                                `${
+                                                                    result.result[0].val +
+                                                                    (result.result[1] ? result.result[1].val : 0)
+                                                                } within 27..43`,
+                                                            );
                                                         }
                                                         // Result Influxdb22 Doku = 43
 
@@ -982,14 +1065,18 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                                                                     `Sample I23: ${JSON.stringify(result.result, null, 2)}`,
                                                                 );
                                                                 if (instanceName !== 'influxdb.0') {
-                                                                    expect(result.result.length).to.be.equal(1);
-                                                                    expect(result.result[0].val).to.be.equal(25.5);
+                                                                    assert.strictEqual(result.result.length, 1);
+                                                                    assert.strictEqual(result.result[0].val, 25.5);
                                                                 } else {
-                                                                    expect(result.result.length).to.be.within(1, 2);
+                                                                    assert.ok(
+                                                                        result.result.length >= 1 &&
+                                                                            result.result.length <= 2,
+                                                                        `${result.result.length} within 1..2`,
+                                                                    );
                                                                     if (process.env.INFLUXDB2) {
-                                                                        //expect(result.result[0].val).to.be.equal(25.5);
+                                                                        //assert.strictEqual(result.result[0].val, 25.5);
                                                                     } else {
-                                                                        expect(result.result[0].val).to.be.equal(34.5);
+                                                                        assert.strictEqual(result.result[0].val, 34.5);
                                                                     }
                                                                 }
                                                                 // Result Influxdb23 Doku = 25.0
@@ -1014,32 +1101,42 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                                                                             `Sample I24: ${JSON.stringify(result.result, null, 2)}`,
                                                                         );
                                                                         if (instanceName !== 'influxdb.0') {
-                                                                            expect(result.result.length).to.be.equal(1);
+                                                                            assert.strictEqual(result.result.length, 1);
                                                                             if (assumeExistingData) {
-                                                                                expect(
-                                                                                    result.result[0].val,
-                                                                                ).to.be.within(31, 32);
+                                                                                assert.ok(
+                                                                                    result.result[0].val >= 31 &&
+                                                                                        result.result[0].val <= 32,
+                                                                                    `${result.result[0].val} within 31..32`,
+                                                                                );
                                                                             } else {
-                                                                                expect(
-                                                                                    result.result[0].val,
-                                                                                ).to.be.within(32, 33.5);
+                                                                                assert.ok(
+                                                                                    result.result[0].val >= 32 &&
+                                                                                        result.result[0].val <= 33.5,
+                                                                                    `${result.result[0].val} within 32..33.5`,
+                                                                                );
                                                                             }
                                                                         } else {
-                                                                            expect(result.result.length).to.be.within(
-                                                                                1,
-                                                                                2,
+                                                                            assert.ok(
+                                                                                result.result.length >= 1 &&
+                                                                                    result.result.length <= 2,
+                                                                                `${result.result.length} within 1..2`,
                                                                             );
                                                                             if (process.env.INFLUXDB2) {
-                                                                                //expect(result.result[0].val).to.be.equal(25.5);
+                                                                                //assert.strictEqual(result.result[0].val, 25.5);
                                                                             } else {
                                                                                 if (assumeExistingData) {
-                                                                                    expect(
-                                                                                        result.result[0].val,
-                                                                                    ).to.be.within(31, 34);
+                                                                                    assert.ok(
+                                                                                        result.result[0].val >= 31 &&
+                                                                                            result.result[0].val <= 34,
+                                                                                        `${result.result[0].val} within 31..34`,
+                                                                                    );
                                                                                 } else {
-                                                                                    expect(
-                                                                                        result.result[0].val,
-                                                                                    ).to.be.within(32, 33.5);
+                                                                                    assert.ok(
+                                                                                        result.result[0].val >= 32 &&
+                                                                                            result.result[0].val <=
+                                                                                                33.5,
+                                                                                        `${result.result[0].val} within 32..33.5`,
+                                                                                    );
                                                                                 }
                                                                             }
                                                                         }
@@ -1063,19 +1160,25 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                                                                                     `Sample I22-Quantile: ${JSON.stringify(result.result, null, 2)}`,
                                                                                 );
                                                                                 if (instanceName !== 'influxdb.0') {
-                                                                                    expect(
+                                                                                    assert.strictEqual(
                                                                                         result.result.length,
-                                                                                    ).to.be.equal(3);
-                                                                                    expect(
+                                                                                        3,
+                                                                                    );
+                                                                                    assert.strictEqual(
                                                                                         result.result[1].val,
-                                                                                    ).to.be.equal(19);
+                                                                                        19,
+                                                                                    );
                                                                                 } else {
-                                                                                    expect(
-                                                                                        result.result.length,
-                                                                                    ).to.be.within(3, 4);
-                                                                                    expect(
-                                                                                        result.result[1].val,
-                                                                                    ).to.be.within(4, 19);
+                                                                                    assert.ok(
+                                                                                        result.result.length >= 3 &&
+                                                                                            result.result.length <= 4,
+                                                                                        `${result.result.length} within 3..4`,
+                                                                                    );
+                                                                                    assert.ok(
+                                                                                        result.result[1].val >= 4 &&
+                                                                                            result.result[1].val <= 19,
+                                                                                        `${result.result[1].val} within 4..19`,
+                                                                                    );
                                                                                 }
 
                                                                                 resolve();
@@ -1120,8 +1223,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             },
             function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.equal(4);
-                expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
+                assert.strictEqual(result.result.length, 4);
+                assert.strictEqual(result.result[0].id, `${instanceName}.testValue`);
                 done();
             },
         );
@@ -1140,8 +1243,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 },
             },
             function (result) {
-                expect(result.error).to.be.undefined;
-                expect(result.success).to.be.true;
+                assert.strictEqual(result.error, undefined);
+                assert.strictEqual(result.success, true);
                 // wait till adapter receives the new settings
                 setTimeout(function () {
                     done();
@@ -1162,8 +1265,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 },
             },
             function (result) {
-                expect(result.error).to.be.undefined;
-                expect(result.success).to.be.true;
+                assert.strictEqual(result.error, undefined);
+                assert.strictEqual(result.success, true);
                 // wait till adapter receives the new settings
                 setTimeout(function () {
                     done();
@@ -1184,8 +1287,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 },
             },
             function (result) {
-                expect(result.error).to.be.undefined;
-                expect(result.success).to.be.true;
+                assert.strictEqual(result.error, undefined);
+                assert.strictEqual(result.success, true);
                 // wait till adapter receives the new settings
                 setTimeout(function () {
                     done();
@@ -1204,8 +1307,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 id: `${instanceName}.testValue`,
             },
             function (result) {
-                expect(result.error).to.be.undefined;
-                expect(result.success).to.be.true;
+                assert.strictEqual(result.error, undefined);
+                assert.strictEqual(result.success, true);
                 setTimeout(done, 2000);
             },
         );
@@ -1215,7 +1318,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
 
         sendTo(instanceName, 'getEnabledDPs', {}, function (result) {
             console.log(JSON.stringify(result));
-            expect(Object.keys(result).length).to.be.equal(4 + additionalActiveObjects);
+            assert.strictEqual(Object.keys(result).length, 4 + additionalActiveObjects);
             done();
         });
     });
@@ -1230,8 +1333,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 id: `${instanceName}.testValue`,
             },
             function (result) {
-                expect(result.error).to.be.undefined;
-                expect(result.success).to.be.true;
+                assert.strictEqual(result.error, undefined);
+                assert.strictEqual(result.success, true);
                 setTimeout(done, 2000);
             },
         );
@@ -1253,15 +1356,15 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             },
             function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.at.least(5);
+                assert.ok(result.result.length >= 5, `${result.result.length} >= 5`);
                 let found = 0;
                 for (let i = 0; i < result.result.length; i++) {
                     if (result.result[i].val === null) found++;
                 }
                 if (writeNulls) {
-                    expect(found).to.be.equal(3);
+                    assert.strictEqual(found, 3);
                 } else {
-                    expect(found).to.be.equal(0);
+                    assert.strictEqual(found, 0);
                 }
 
                 done();
@@ -1284,7 +1387,10 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             },
             function (result) {
                 console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.at.least((writeNulls ? 3 : 0) + (assumeExistingData + 1) * 30);
+                assert.ok(
+                    result.result.length >= (writeNulls ? 3 : 0) + (assumeExistingData + 1) * 30,
+                    `${result.result.length} >= (writeNulls ? 3 : 0) + (assumeExistingData + 1) * 30`,
+                );
 
                 done();
             },
@@ -1310,8 +1416,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
             },
             result => {
                 console.log(JSON.stringify(result.result, null, 2));
-                expect(result.result.length).to.be.at.least(4);
-                expect(result.result[0].id).to.be.equal(`${instanceName}.testValue`);
+                assert.ok(result.result.length >= 4, `${result.result.length} >= 4`);
+                assert.strictEqual(result.result[0].id, `${instanceName}.testValue`);
                 done();
             },
         );
@@ -1333,8 +1439,8 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 ],
             },
             function (result) {
-                expect(result.success).to.be.true;
-                expect(result.successCount).to.be.equal(3);
+                assert.strictEqual(result.success, true);
+                assert.strictEqual(result.successCount, 3);
 
                 setTimeout(() => {
                     sendTo(
@@ -1350,7 +1456,7 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                         },
                         function (result) {
                             console.log(JSON.stringify(result.result, null, 2));
-                            expect(result.result.length).to.be.equal(3);
+                            assert.strictEqual(result.result.length, 3);
 
                             done();
                         },
@@ -1377,16 +1483,17 @@ function register(it, expect, sendTo, adapterShortName, writeNulls, assumeExisti
                 ],
             },
             function (result) {
-                expect(result.success).to.be.not.ok;
-                expect(result.successCount).to.be.equal(0);
-                expect(result.error).to.be.equal('3 errors happened while storing data');
-                expect(Array.isArray(result.errors)).to.be.true;
-                expect(
+                assert.ok(!result.success);
+                assert.strictEqual(result.successCount, 0);
+                assert.strictEqual(result.error, '3 errors happened while storing data');
+                assert.strictEqual(Array.isArray(result.errors), true);
+                assert.strictEqual(
                     result.errors[0].endsWith(
                         ` not enabled for my.own.unknown.value-${customNow2}, so can not apply the rules as requested`,
                     ),
-                ).to.be.true;
-                expect(result.errors[2]).to.be.equal(`State "37" for my.own.unknown.value-${customNow2} is not valid`);
+                    true,
+                );
+                assert.strictEqual(result.errors[2], `State "37" for my.own.unknown.value-${customNow2} is not valid`);
 
                 done();
             },

@@ -13,10 +13,15 @@ export class SQLite3ConnectionFactory extends ConnectionFactory {
 
     openConnection(options: SQLite3Options, callback: (err: Error | null, connection?: Database) => void): void {
         if (!this.Database) {
-            void import('sqlite3').then(sqlite3 => {
-                this.Database = sqlite3.default.Database;
-                this.openConnection(options, callback);
-            });
+            void import('sqlite3').then(
+                sqlite3 => {
+                    this.Database = sqlite3.default.Database;
+                    this.openConnection(options, callback);
+                },
+                // sqlite3 is an optional dependency, so report a missing driver instead of
+                // letting the rejection escape as an unhandled promise rejection
+                e => callback(new Error(`Node.js DB driver "sqlite3" could not be loaded: ${e}`)),
+            );
             return;
         }
 

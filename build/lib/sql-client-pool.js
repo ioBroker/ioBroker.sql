@@ -45,7 +45,9 @@ class SQLClientPool {
         //   - `unref_eviction_runner` - unless `false`, `unref` (https://nodejs.org/api/timers.html#timers_unref) will be called on the eviction run interval timer
         this.sqlOptions = sqlOptions;
         this.factory = factory;
-        this.open(poolOptions);
+        this.poolOptions = poolOptions;
+        // The pool is not opened here: callers must call `open(opts, cb)` so that
+        // configuration errors are reported through the callback instead of being swallowed.
     }
     create(callback) {
         const client = new sql_client_1.default(this.sqlOptions, this.factory);

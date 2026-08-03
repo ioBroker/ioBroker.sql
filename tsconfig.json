@@ -4,6 +4,8 @@
         "noEmit": true,
         "allowJs": true,
         "checkJs": true,
+        "strict": true,
+        "strictNullChecks": true,
         "skipLibCheck": true, // Don't report errors in 3rd party definitions
         "noEmitOnError": true,
         "outDir": "./build",
@@ -13,7 +15,7 @@
         "moduleResolution": "node16",
         "resolveJsonModule": true,
         "strict": true,
-        "target": "es2022",
+        "target": "es2023",
         "sourceMap": true,
         "inlineSourceMap": false,
         "useUnknownInCatchVariables": false,

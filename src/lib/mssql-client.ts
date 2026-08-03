@@ -12,11 +12,16 @@ class MSSQLConnectionFactory extends ConnectionFactory {
 
     openConnection(options: MSSQLOptions, callback: (err: Error | null, connection?: ConnectionPool) => void): void {
         if (!this.ConnectionPool) {
-            void import('mssql').then(mssql => {
-                this.ConnectionPool = mssql.default.ConnectionPool;
-                this.Request = mssql.default.Request;
-                this.openConnection(options, callback);
-            });
+            void import('mssql').then(
+                mssql => {
+                    this.ConnectionPool = mssql.default.ConnectionPool;
+                    this.Request = mssql.default.Request;
+                    this.openConnection(options, callback);
+                },
+                // mssql is an optional dependency, so report a missing driver instead of
+                // letting the rejection escape as an unhandled promise rejection
+                e => callback(new Error(`Node.js DB driver "mssql" could not be loaded: ${e}`)),
+            );
             return;
         }
         const pos = options.server.indexOf(':');

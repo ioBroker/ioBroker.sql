@@ -1,5 +1,5 @@
 /* eslint-env mocha */
-const { expect } = require('chai');
+const assert = require('node:assert');
 
 // Pfad ggf. anpassen: Modul muss finishAggregationForIntegralEx exportieren
 const { finishAggregationForIntegralEx } = require('../build/lib/aggregate');
@@ -24,13 +24,13 @@ describe('finishAggregationForIntegralEx', () => {
 
         finishAggregationForIntegralEx(options);
 
-        expect(options.result).to.have.lengthOf(2);
+        assert.strictEqual(options.result.length, 2);
         // Check midpoints
-        expect(options.result[0].ts).to.equal(0 + Math.round((1000 - 0) / 2)); // 500
-        expect(options.result[1].ts).to.equal(1000 + Math.round((2000 - 1000) / 2)); // 1500
+        assert.strictEqual(options.result[0].ts, 0 + Math.round((1000 - 0) / 2)); // 500
+        assert.strictEqual(options.result[1].ts, 1000 + Math.round((2000 - 1000) / 2)); // 1500
         // Werte bleiben 0
-        expect(options.result[0].val).to.equal(0);
-        expect(options.result[1].val).to.equal(0);
+        assert.strictEqual(options.result[0].val, 0);
+        assert.strictEqual(options.result[1].val, 0);
     });
 
     it('fills start/end points via interpolation and yields positive integrals (increasing trend)', () => {
@@ -53,23 +53,23 @@ describe('finishAggregationForIntegralEx', () => {
 
         finishAggregationForIntegralEx(options);
 
-        expect(options.result).to.have.lengthOf(2);
+        assert.strictEqual(options.result.length, 2);
         // Buckets wurden mit Start (start) und Ende (end-1) befüllt
         for (let i = 0; i < intervals.length; i++) {
             const b = options.integralDataPoints[i + 1];
-            expect(b).to.be.an('array').that.is.not.empty;
-            expect(b[0].ts).to.equal(intervals[i].start);
-            expect(b[b.length - 1].ts).to.equal(intervals[i].end - 1);
+            assert.ok(Array.isArray(b) && b.length > 0);
+            assert.strictEqual(b[0].ts, intervals[i].start);
+            assert.strictEqual(b[b.length - 1].ts, intervals[i].end - 1);
         }
         // Midpoints
-        expect(options.result[0].ts).to.equal(500);
-        expect(options.result[1].ts).to.equal(1500);
+        assert.strictEqual(options.result[0].ts, 500);
+        assert.strictEqual(options.result[1].ts, 1500);
 
         // Steigender Verlauf => Integrale > 0 und zweites Intervall größer als erstes
-        expect(options.result[0].val).to.be.a('number');
-        expect(options.result[1].val).to.be.a('number');
-        expect(options.result[0].val).to.be.greaterThan(0);
-        expect(options.result[1].val).to.be.greaterThan(options.result[0].val);
+        assert.strictEqual(typeof options.result[0].val, 'number');
+        assert.strictEqual(typeof options.result[1].val, 'number');
+        assert.ok(options.result[0].val > 0, `${options.result[0].val} > 0`);
+        assert.ok(options.result[1].val > options.result[0].val, `${options.result[1].val} > options.result[0].val`);
     });
 
     it('yields equal integrals for a constant value across all intervals', () => {
@@ -92,11 +92,14 @@ describe('finishAggregationForIntegralEx', () => {
 
         finishAggregationForIntegralEx(options);
 
-        expect(options.result).to.have.lengthOf(2);
+        assert.strictEqual(options.result.length, 2);
         // Beide Intervalle sollten das gleiche Integral liefern (konstante Funktion)
-        expect(options.result[0].val).to.be.a('number');
-        expect(options.result[1].val).to.be.a('number');
-        expect(Math.abs(options.result[0].val - options.result[1].val)).to.be.below(1e-9);
+        assert.strictEqual(typeof options.result[0].val, 'number');
+        assert.strictEqual(typeof options.result[1].val, 'number');
+        assert.ok(
+            Math.abs(options.result[0].val - options.result[1].val) < 1e-9,
+            `${Math.abs(options.result[0].val - options.result[1].val)} < 1e-9`,
+        );
     });
 
     it('computes exact integrals for a known linear function f(t) = 2t + 3', () => {
@@ -107,12 +110,12 @@ describe('finishAggregationForIntegralEx', () => {
         const buckets = [
             [], // pre
             [
-                { ts: intervals[0].start,   val: f(intervals[0].start) },    // f(0) = 3
-                { ts: intervals[0].end - 1, val: f(intervals[0].end - 1) },  // f(999) = 2001
+                { ts: intervals[0].start, val: f(intervals[0].start) }, // f(0) = 3
+                { ts: intervals[0].end - 1, val: f(intervals[0].end - 1) }, // f(999) = 2001
             ],
             [
-                { ts: intervals[1].start,   val: f(intervals[1].start) },    // f(1000) = 2003
-                { ts: intervals[1].end - 1, val: f(intervals[1].end - 1) },  // f(1999) = 4001
+                { ts: intervals[1].start, val: f(intervals[1].start) }, // f(1000) = 2003
+                { ts: intervals[1].end - 1, val: f(intervals[1].end - 1) }, // f(1999) = 4001
             ],
             [], // post
         ];
@@ -127,15 +130,20 @@ describe('finishAggregationForIntegralEx', () => {
         const expected = intervals.map(iv => {
             const S = iv.start;
             const E1 = iv.end - 1;
-            return 0.5 * (f(S) + f(E1)) * (E1 - S) / 3_600_000; // in hours
+            return (0.5 * (f(S) + f(E1)) * (E1 - S)) / 3_600_000; // in hours
         });
         // Expected: [0.278055, 0.833055]
 
         finishAggregationForIntegralEx(options);
 
-        expect(options.result).to.have.lengthOf(2);
-        expect(Math.abs(options.result[0].val - expected[0])).to.be.lessThan(0.00000001); // 0.278055
-        expect(Math.abs(options.result[1].val - expected[1])).to.be.lessThan(0.00000001); // 0.833055
+        assert.strictEqual(options.result.length, 2);
+        assert.ok(
+            Math.abs(options.result[0].val - expected[0]) < 0.00000001,
+            `${Math.abs(options.result[0].val - expected[0])} < 0.00000001`,
+        ); // 0.278055
+        assert.ok(
+            Math.abs(options.result[1].val - expected[1]) < 0.00000001,
+            `${Math.abs(options.result[1].val - expected[1])} < 0.00000001`,
+        ); // 0.833055
     });
-
 });

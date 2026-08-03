@@ -1,7 +1,7 @@
 /* jshint -W097 */ // jshint strict:false
 /*jslint node: true */
 /*jshint expr: true*/
-const expect = require('chai').expect;
+const assert = require('node:assert');
 const setup = require('./lib/setup');
 const tests = require('./lib/testcases');
 
@@ -107,8 +107,8 @@ describe(`Test ${__filename}`, function () {
                     },
                 },
                 function (result) {
-                    expect(result.error).to.be.undefined;
-                    expect(result.success).to.be.true;
+                    assert.strictEqual(result.error, undefined);
+                    assert.strictEqual(result.success, true);
                     sendTo(
                         'sql.0',
                         'enableHistory',
@@ -122,8 +122,8 @@ describe(`Test ${__filename}`, function () {
                             },
                         },
                         function (result) {
-                            expect(result.error).to.be.undefined;
-                            expect(result.success).to.be.true;
+                            assert.strictEqual(result.error, undefined);
+                            assert.strictEqual(result.success, true);
                             // wait till the adapter receives the new settings
                             setTimeout(function () {
                                 done();
@@ -135,23 +135,23 @@ describe(`Test ${__filename}`, function () {
         });
     });
 
-    tests.register(it, expect, sendTo, adapterShortName, true, 0, 2);
+    tests.register(it, sendTo, adapterShortName, true, 0, 2);
 
     it(`Test ${__filename}: Check Datapoint Types`, function (done) {
         this.timeout(5000);
 
         sendTo('sql.0', 'query', 'SELECT name, type FROM iobroker.dbo.datapoints', function (result) {
             console.log(`MSSQL: ${JSON.stringify(result.result, null, 2)}`);
-            expect(result.result.length).to.least(3);
+            assert.ok(result.result.length >= 3, `${result.result.length} >= 3`);
             for (let i = 0; i < result.result.length; i++) {
                 if (result.result[i].name === 'sql.0.testValue') {
-                    expect(result.result[i].type).to.be.equal(0);
+                    assert.strictEqual(result.result[i].type, 0);
                 } else if (result.result[i].name === 'sql.0.testValueDebounce') {
-                    expect(result.result[i].type).to.be.equal(0);
+                    assert.strictEqual(result.result[i].type, 0);
                 } else if (result.result[i].name === 'system.adapter.sql.0.memHeapTotal') {
-                    expect(result.result[i].type).to.be.equal(1);
+                    assert.strictEqual(result.result[i].type, 1);
                 } else if (result.result[i].name === 'system.adapter.sql.0.uptime') {
-                    expect(result.result[i].type).to.be.equal(2);
+                    assert.strictEqual(result.result[i].type, 2);
                 }
             }
 

@@ -1,4 +1,4 @@
-const expect = require('chai').expect;
+const assert = require('node:assert');
 const commons = require('../build/lib/aggregate');
 
 describe('Test Common functions', function () {
@@ -22,7 +22,7 @@ describe('Test Common functions', function () {
 
         const adapter = {
             sendTo: function (from, command, result, callback) {
-                expect(result.result).to.be.equal(700);
+                assert.strictEqual(result.result, 700);
                 done();
             },
             log,
@@ -39,7 +39,7 @@ describe('Test Common functions', function () {
 
         const adapter = {
             sendTo: function (from, command, result, callback) {
-                expect(result.result).to.be.equal(300);
+                assert.strictEqual(result.result, 300);
                 done();
             },
             log,
@@ -59,7 +59,7 @@ describe('Test Common functions', function () {
 
         const adapter = {
             sendTo: function (from, command, result, callback) {
-                expect(result.result).to.be.equal(550);
+                assert.strictEqual(result.result, 550);
                 done();
             },
             log,
@@ -81,7 +81,7 @@ describe('Test Common functions', function () {
 
         const adapter = {
             sendTo: function (from, command, result, callback) {
-                expect(result.result).to.be.equal(800);
+                assert.strictEqual(result.result, 800);
                 done();
             },
             log,
@@ -102,7 +102,7 @@ describe('Test Common functions', function () {
 
         const adapter = {
             sendTo: function (from, command, result, callback) {
-                expect(result.result).to.be.equal(750);
+                assert.strictEqual(result.result, 750);
                 done();
             },
             log,
@@ -124,7 +124,7 @@ describe('Test Common functions', function () {
 
         const adapter = {
             sendTo: function (from, command, result, callback) {
-                expect(result.result).to.be.equal(900);
+                assert.strictEqual(result.result, 900);
                 done();
             },
             log,

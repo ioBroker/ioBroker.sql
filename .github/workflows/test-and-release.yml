@@ -39,12 +39,14 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-#      - name: Perform a type check
-#        run: npm run check:ts
-#        env:
-#          CI: true
-      # - name: Lint TypeScript code
-      #   run: npm run lint
+      - name: Perform a type check
+        run: npm run check:ts
+        env:
+          CI: true
+
+      - name: Lint TypeScript code
+        run: npm run lint
+
       - name: Test package files
         run: node node_modules/mocha/bin/mocha test/testPackageFiles.js --exit
 
@@ -57,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x, 24.x]
+        node-version: [22.x, 24.x]
 
     steps:
       - uses: actions/checkout@v5
@@ -97,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x, 24.x]
+        node-version: [22.x, 24.x]
 
     # Service containers to run with `container-job`
     services:
@@ -152,7 +154,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x, 24.x]
+        node-version: [22.x, 24.x]
 
     # Service containers to run with `container-job`
     services:
@@ -199,7 +201,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x, 24.x]
+        node-version: [22.x, 24.x]
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:

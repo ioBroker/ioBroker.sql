@@ -8,12 +8,17 @@ export type { MySQLOptions };
 
 class MySQL2ConnectionFactory extends ConnectionFactory {
     private createConnection: any;
-    openConnection(options: MySQLOptions, callback: (err: Error | null, connection: Connection) => void): void {
+    openConnection(options: MySQLOptions, callback: (err: Error | null, connection?: Connection) => void): void {
         if (!this.createConnection) {
-            void import('mysql2').then(mysql2 => {
-                this.createConnection = mysql2.default.createConnection;
-                this.openConnection(options, callback);
-            });
+            void import('mysql2').then(
+                mysql2 => {
+                    this.createConnection = mysql2.default.createConnection;
+                    this.openConnection(options, callback);
+                },
+                // mysql2 is an optional dependency, so report a missing driver instead of
+                // letting the rejection escape as an unhandled promise rejection
+                e => callback(new Error(`Node.js DB driver "mysql2" could not be loaded: ${e}`)),
+            );
             return;
         }
 

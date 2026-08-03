@@ -14,7 +14,10 @@ class SQLite3ConnectionFactory extends connection_factory_1.ConnectionFactory {
             void import('sqlite3').then(sqlite3 => {
                 this.Database = sqlite3.default.Database;
                 this.openConnection(options, callback);
-            });
+            }, 
+            // sqlite3 is an optional dependency, so report a missing driver instead of
+            // letting the rejection escape as an unhandled promise rejection
+            e => callback(new Error(`Node.js DB driver "sqlite3" could not be loaded: ${e}`)));
             return;
         }
         if (options.mode) {

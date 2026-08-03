@@ -10,12 +10,17 @@ export type { PostgreSQLOptions };
 class PostgreSQLConnectionFactory extends ConnectionFactory {
     private Client: typeof Client | undefined;
 
-    openConnection(connectString: PostgreSQLOptions, callback: (err: Error | null, connection: Client) => void): void {
+    openConnection(connectString: PostgreSQLOptions, callback: (err: Error | null, connection?: Client) => void): void {
         if (!this.Client) {
-            void import('pg').then(pg => {
-                this.Client = pg.default.native?.Client || pg.default.Client;
-                this.openConnection(connectString, callback);
-            });
+            void import('pg').then(
+                pg => {
+                    this.Client = pg.default.native?.Client || pg.default.Client;
+                    this.openConnection(connectString, callback);
+                },
+                // pg is an optional dependency, so report a missing driver instead of
+                // letting the rejection escape as an unhandled promise rejection
+                e => callback(new Error(`Node.js DB driver "pg" could not be loaded: ${e}`)),
+            );
             return;
         }
         const connection = new this.Client(connectString);

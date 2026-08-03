@@ -15,7 +15,10 @@ class PostgreSQLConnectionFactory extends connection_factory_1.ConnectionFactory
             void import('pg').then(pg => {
                 this.Client = pg.default.native?.Client || pg.default.Client;
                 this.openConnection(connectString, callback);
-            });
+            }, 
+            // pg is an optional dependency, so report a missing driver instead of
+            // letting the rejection escape as an unhandled promise rejection
+            e => callback(new Error(`Node.js DB driver "pg" could not be loaded: ${e}`)));
             return;
         }
         const connection = new this.Client(connectString);
