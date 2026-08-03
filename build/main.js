@@ -38,7 +38,6 @@ const adapter_core_1 = require("@iobroker/adapter-core"); // Get common adapter 
 const aggregate_1 = require("./lib/aggregate");
 const node_fs_1 = require("node:fs");
 const node_path_1 = require("node:path");
-const plugin_docker_1 = require("@iobroker/plugin-docker");
 const MSSQL = __importStar(require("./lib/mssql"));
 const MySQL = __importStar(require("./lib/mysql"));
 const PostgreSQL = __importStar(require("./lib/postgresql"));
@@ -757,28 +756,9 @@ class SqlAdapter extends adapter_core_1.Adapter {
         let postgreSQLOptions;
         const config = msg.message.config;
         config.port = parseInt(config.port, 10) || 0;
-        let dockerCreated = false;
-        let dockerManager;
         if (config.dockerMysql?.enabled) {
-            // Start docker container if not running and then stop it
-            const mysqlDockerConfig = this.getDockerConfigMySQL(config);
-            dockerManager = this.getPluginInstance('docker')?.getDockerManager();
-            if (!dockerManager) {
-                dockerCreated = true;
-                mysqlDockerConfig.removeOnExit = true;
-                dockerManager = new plugin_docker_1.DockerManagerOfOwnContainers({
-                    logger: {
-                        level: 'silly',
-                        silly: this.log.silly.bind(this.log),
-                        debug: this.log.debug.bind(this.log),
-                        info: this.log.info.bind(this.log),
-                        warn: this.log.warn.bind(this.log),
-                        error: this.log.error.bind(this.log),
-                    },
-                    namespace: this.namespace,
-                    adapterDir: `${__dirname}/../`,
-                }, [mysqlDockerConfig]);
-            }
+            // The container is started by the docker plugin; only align the connection settings
+            this.applyDockerMysqlConfig(config);
         }
         if (config.dbtype === 'postgresql') {
             postgreSQLOptions = {
@@ -859,16 +839,6 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     resolve(err);
                 });
             }));
-            if (dockerCreated && dockerManager) {
-                try {
-                    await dockerManager.destroy();
-                    dockerManager = undefined;
-                    dockerCreated = false;
-                }
-                catch (e) {
-                    this.log.error(`Cannot stop docker container: ${e}`);
-                }
-            }
             if (this.testConnectTimeout) {
                 clearTimeout(this.testConnectTimeout);
                 this.testConnectTimeout = null;
@@ -880,14 +850,6 @@ class SqlAdapter extends adapter_core_1.Adapter {
             if (this.testConnectTimeout) {
                 clearTimeout(this.testConnectTimeout);
                 this.testConnectTimeout = null;
-            }
-            if (dockerCreated && dockerManager) {
-                try {
-                    await dockerManager.destroy();
-                }
-                catch (e) {
-                    this.log.error(`Cannot stop docker container: ${e}`);
-                }
             }
             this.sendTo(msg.from, msg.command, { error: ex.toString() }, msg.callback);
         }
@@ -3349,54 +3311,28 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
         this.sendTo(msg.from, msg.command, data, msg.callback);
     }
-    getDockerConfigMySQL(config) {
-        config.dockerMysql ||= {
-            enabled: false,
-        };
+    /**
+     * Align the connection settings with the MySQL container declared in docker-compose.yaml.
+     *
+     * The container itself (image, ports, volumes, credentials) is defined there and created by the
+     * docker plugin. This only mirrors the values the adapter needs to connect, because the admin UI
+     * hides host/port/user/password/dbname/dbtype while the docker container is enabled and those
+     * fields may still hold stale values from a previous manual setup.
+     */
+    applyDockerMysqlConfig(config) {
+        config.dockerMysql ||= { enabled: false };
         config.dbtype = 'mysql';
         config.dbname = 'iobroker';
         config.user = 'iobroker';
         config.password = 'iobroker';
         config.dockerMysql.port = parseInt(config.dockerMysql.port || '3306', 10) || 3306;
         config.port = config.dockerMysql.port;
+        config.host = config.dockerMysql.bind || '127.0.0.1';
         config.multiRequests = true;
         config.maxConnections = 100;
-        return {
-            iobEnabled: true,
-            iobStopOnUnload: config.dockerMysql.stopIfInstanceStopped || false,
-            removeOnExit: true,
-            // influxdb image: https://hub.docker.com/_/influxdb. Only version 2 is supported
-            image: 'mysql:lts',
-            ports: [
-                {
-                    hostPort: config.dockerMysql.port,
-                    containerPort: 3306,
-                    hostIP: config.dockerMysql.bind || '127.0.0.1', // only localhost to disable authentication and https safely
-                },
-            ],
-            mounts: [
-                {
-                    source: 'mysql_data',
-                    target: '/var/lib/mysql',
-                    type: 'volume',
-                    iobBackup: true,
-                },
-                {
-                    source: 'mysql_config',
-                    target: '/etc/mysql/conf.d',
-                    type: 'volume',
-                },
-            ],
-            networkMode: true, // take default name iob_influxdb_<instance>
-            // influxdb v2 requires some environment variables to be set on first start
-            environment: {
-                MYSQL_ROOT_PASSWORD: config.dockerMysql.rootPassword || 'root_iobroker',
-                MYSQL_DATABASE: 'iobroker',
-                MYSQL_USER: 'iobroker',
-                MYSQL_PASSWORD: 'iobroker',
-                MYSQL_ALLOW_EMPTY_PASSWORD: 'false',
-            },
-        };
+        if (config.dockerPhpMyAdmin) {
+            config.dockerPhpMyAdmin.port = parseInt(config.dockerPhpMyAdmin.port || '8080', 10) || 8080;
+        }
     }
     normalizeAdapterConfig(config) {
         config.dbname ||= 'iobroker';
@@ -3484,7 +3420,14 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
         return config;
     }
-    async createUserInDocker() {
+    /**
+     * Make sure the 'iobroker' user exists in the containerized MySQL.
+     *
+     * The mysql image already creates it from MYSQL_USER/MYSQL_PASSWORD on first start, so this is a
+     * fallback for volumes that were created before those variables were declared. The container is
+     * started by the docker plugin and may still be initialising, therefore the connection is retried.
+     */
+    async createUserInDocker(retries = 30) {
         const mySQLOptions = {
             host: this.config.host, // needed for PostgreSQL , MySQL
             user: 'root',
@@ -3496,17 +3439,37 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 }
                 : undefined,
         };
-        const client = new mysql_client_1.MySQL2Client(mySQLOptions);
-        await client.connectAsync();
-        // Show all users
-        const exists = await client.executeAsync(`SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = 'iobroker') as "ex";`);
-        if (exists?.[0]?.ex !== 1) {
-            // create user
-            await client.executeAsync(`CREATE USER 'iobroker'@'%' IDENTIFIED BY 'iobroker';`);
-            await client.executeAsync(`GRANT ALL PRIVILEGES ON * . * TO 'iobroker'@'%';`);
-            await client.executeAsync(`FLUSH PRIVILEGES;`);
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            const client = new mysql_client_1.MySQL2Client(mySQLOptions);
+            try {
+                await client.connectAsync();
+                // Show all users
+                const exists = await client.executeAsync(`SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = 'iobroker') as "ex";`);
+                if (exists?.[0]?.ex !== 1) {
+                    // create user
+                    await client.executeAsync(`CREATE USER 'iobroker'@'%' IDENTIFIED BY 'iobroker';`);
+                    await client.executeAsync(`GRANT ALL PRIVILEGES ON * . * TO 'iobroker'@'%';`);
+                    await client.executeAsync(`FLUSH PRIVILEGES;`);
+                }
+                await client.disconnectAsync();
+                return;
+            }
+            catch (e) {
+                try {
+                    await client.disconnectAsync();
+                }
+                catch {
+                    // the connection was never established
+                }
+                if (attempt === retries) {
+                    // Do not abort the start-up: the user is normally created by the image itself
+                    this.log.warn(`Cannot verify the "iobroker" user in the MySQL container: ${e}`);
+                    return;
+                }
+                this.log.debug(`MySQL container not ready yet (${attempt}/${retries}), waiting...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
         }
-        await client.disconnectAsync();
     }
     async main() {
         this.setConnected(false);
@@ -3522,23 +3485,16 @@ class SqlAdapter extends adapter_core_1.Adapter {
         catch (e) {
             this.log.error(`Cannot get system config: ${e}`);
         }
+        // The MySQL and phpMyAdmin containers are declared in docker-compose.yaml and are started by
+        // the docker plugin. Align the connection settings before normalising, because normalisation
+        // derives multiRequests/maxConnections/writeNulls from dbtype.
+        if (this.config.dockerMysql?.enabled) {
+            this.applyDockerMysqlConfig(this.config);
+        }
         // Normalize adapter config
         const config = this.normalizeAdapterConfig(this.config);
         this.sqlFuncs = SQLFuncs[config.dbtype];
-        // Start docker if configured
-        if (this.config.dockerMysql?.enabled) {
-            this.config.dbtype = 'mysql';
-            this.config.dbname = 'iobroker';
-            this.config.user = 'iobroker';
-            this.config.password = 'iobroker';
-            this.config.dockerMysql.port = parseInt(this.config.dockerMysql.port || '3306', 10) || 3306;
-            this.config.port = this.config.dockerMysql.port;
-            this.config.multiRequests = true;
-            this.config.maxConnections = 100;
-            if (this.config.dockerPhpMyAdmin) {
-                this.config.dockerPhpMyAdmin.port =
-                    parseInt(this.config.dockerPhpMyAdmin.port || '8080', 10) || 8080;
-            }
+        if (config.dockerMysql?.enabled) {
             // Check that the user 'iobroker' exists
             await this.createUserInDocker();
         }

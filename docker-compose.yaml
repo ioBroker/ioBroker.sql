@@ -25,27 +25,25 @@ services:
         restart: unless-stopped
 
     phpMyAdmin:
-        image: phpmyadmin/latest
+        image: phpmyadmin:latest
         labels:
             - 'iobEnabled=${config.dockerPhpMyAdmin.enabled:-true}'
             - 'iobStopOnUnload=${config.dockerPhpMyAdmin.stopIfInstanceStopped:-true}'
-            - 'iobBackup=phpmyadmin_data'
+            - 'iobAutoImageUpdate=${config.dockerPhpMyAdmin.autoImageUpdate:-true}'
         container_name: phpmyadmin
         depends_on:
             - mysql
         ports:
             - '${config.dockerPhpMyAdmin.bind:-127.0.0.1}:${config_dockerPhpMyAdmin_port:-8080}:8080'
         environment:
-            GF_SECURITY_ADMIN_PASSWORD: '${config.dockerPhpMyAdmin.adminSecurityPassword:-iobroker}'
-            GF_SERVER_ROOT_URL: '${config.dockerPhpMyAdmin.serverRootUrl:-}'
-            GF_INSTALL_PLUGINS: '${config.dockerPhpMyAdmin.plugins:-}'
-            GF_USERS_ALLOW_SIGN_UP: '${config.dockerPhpMyAdmin.usersAllowSignUp:-false}'
-            MYSQL_ROOT_PASSWORD: config.dockerMysql.rootPassword || 'root_iobroker',
+            MYSQL_ROOT_PASSWORD: '${config.dockerMysql.rootPassword:-root_iobroker}'
             MYSQL_USER: 'iobroker'
             MYSQL_PASSWORD: 'iobroker'
+            # no ":-" default here: an empty default resolves to the number 0
             PMA_ABSOLUTE_URI: '${config.dockerPhpMyAdmin.absoluteUri}'
-            PMA_PORT: '${config.dockerMysql.port}:-3306'
+            # the mysql service above is created as iob_sql_<instance>_mysql
             PMA_HOST: 'iob_sql_${instance}_mysql'
+            PMA_PORT: '3306'
         networks:
             - true
         restart: unless-stopped
