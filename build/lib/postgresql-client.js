@@ -19,7 +19,7 @@ class PostgreSQLConnectionFactory extends connection_factory_1.ConnectionFactory
             return;
         }
         const connection = new this.Client(connectString);
-        connection.connect(err => callback(err, connection));
+        connection.connect((err) => callback(err, connection));
     }
     closeConnection(connection, callback) {
         if (connection) {

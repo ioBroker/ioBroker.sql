@@ -344,7 +344,7 @@ function aggregationLogic(data, index, options) {
  * finishAggregationForIntegralEx
  *
  * Purpose:
- * - Calculate integrals per defined time intervals (smart intervals mode).
+ * - Calculate integrals per defined time intervals (smart intervals mode per hour).
  * - Options must contain `timeIntervals` and `integralDataPoints`.
  * - Produces `options.result` as an array with one entry per `timeIntervals` element.
  *
@@ -372,9 +372,9 @@ function aggregationLogic(data, index, options) {
  * 4. Iterate intervals from the first interval that might contain data (index found in step 1):
  *    - For interval i, obtain the bucket workDP stored at `integralDataPoints[i + 1]`.
  *    - If bucket has data and `current` exists:
- *        * Interpolate a point at interval start using linear interpolation between `current` and bucket[0].
- *        * Insert that interpolated start point at the beginning of bucket.
- *        * Update `current` to the last point in this bucket (the newest in that bucket).
+ *        - Interpolate a point at interval start using linear interpolation between `current` and bucket[0].
+ *        - Insert that interpolated start point at the beginning of bucket.
+ *        - Update `current` to the last point in this bucket (the newest in that bucket).
  *    - Find the next known data point `next` in later buckets (search forward) and remember its interval index.
  *    - If no `next` found, assume no further data -> stop filling remaining intervals.
  *    - Ensure the bucket has at least a start point; if empty, compute and push a start point interpolated between `current` and `next`.

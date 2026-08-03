@@ -214,7 +214,7 @@ function cleanContainerConfig(obj: ContainerConfig, mayChange?: boolean): Contai
                 delete obj.environment;
                 return;
             }
-            const env = obj.environment as { [key: string]: string };
+            const env = obj.environment;
             if (Object.keys(env).length) {
                 obj.environment = {};
                 Object.keys(env)
@@ -236,7 +236,7 @@ function cleanContainerConfig(obj: ContainerConfig, mayChange?: boolean): Contai
                 delete obj.labels;
                 return;
             }
-            const labels = obj.labels as { [key: string]: string };
+            const labels = obj.labels;
             if (Object.keys(labels).length) {
                 obj.labels = {};
                 Object.keys(labels)

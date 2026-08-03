@@ -41,7 +41,7 @@ export function initAggregate(
     timeIntervals?: TimeInterval[],
     log?: (text: string) => void,
 ): InternalHistoryOptions {
-    const options: InternalHistoryOptions = initialOptions as InternalHistoryOptions;
+    const options: InternalHistoryOptions = initialOptions;
     options.log = log;
     options.id = id; // id is needed for because of addId option
     if (!options.log) {
@@ -394,9 +394,9 @@ function aggregationLogic(data: IobDataEntry, index: number, options: InternalHi
  * 4. Iterate intervals from the first interval that might contain data (index found in step 1):
  *    - For interval i, obtain the bucket workDP stored at `integralDataPoints[i + 1]`.
  *    - If bucket has data and `current` exists:
- *        * Interpolate a point at interval start using linear interpolation between `current` and bucket[0].
- *        * Insert that interpolated start point at the beginning of bucket.
- *        * Update `current` to the last point in this bucket (the newest in that bucket).
+ *        - Interpolate a point at interval start using linear interpolation between `current` and bucket[0].
+ *        - Insert that interpolated start point at the beginning of bucket.
+ *        - Update `current` to the last point in this bucket (the newest in that bucket).
  *    - Find the next known data point `next` in later buckets (search forward) and remember its interval index.
  *    - If no `next` found, assume no further data -> stop filling remaining intervals.
  *    - Ensure the bucket has at least a start point; if empty, compute and push a start point interpolated between `current` and `next`.

@@ -269,15 +269,7 @@ export type Protocol = 'tcp' | 'udp' | 'sctp';
 export type NetworkMode = 'bridge' | 'host' | 'none' | 'container' | string; // with container:<id|name> in networkContainer // custom network name
 export type RestartPolicy = 'no' | 'always' | 'unless-stopped' | 'on-failure';
 export type LogDriver =
-    | 'json-file'
-    | 'local'
-    | 'syslog'
-    | 'journald'
-    | 'gelf'
-    | 'fluentd'
-    | 'awslogs'
-    | 'splunk'
-    | 'none';
+    'json-file' | 'local' | 'syslog' | 'journald' | 'gelf' | 'fluentd' | 'awslogs' | 'splunk' | 'none';
 
 export interface PortBinding {
     /** Container port (required) */
@@ -638,16 +630,7 @@ export type ImageInfo = {
     size: number;
 };
 export type VolumeDriver =
-    | 'local'
-    | 'tmpfs'
-    | 'nfs'
-    | 'cifs'
-    | 'sshfs'
-    | 'flocker'
-    | 'glusterfs'
-    | 'ceph'
-    | 'rexray'
-    | 'portworx';
+    'local' | 'tmpfs' | 'nfs' | 'cifs' | 'sshfs' | 'flocker' | 'glusterfs' | 'ceph' | 'rexray' | 'portworx';
 export type VolumeInfo = {
     name: string;
     driver: VolumeDriver;

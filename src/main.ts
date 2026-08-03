@@ -307,7 +307,7 @@ export class SqlAdapter extends Adapter {
             message: (obj: ioBroker.Message) => this.processMessage(obj),
             stateChange: (id: string, state: ioBroker.State | null | undefined): void => {
                 id = this.aliasMap[id] || id;
-                this.pushHistory(id, state as IobDataEntryEx);
+                this.pushHistory(id, state);
             },
             objectChange: (id: string, obj: ioBroker.Object | null | undefined): void => {
                 let tmpState: IobDataEntryEx | undefined;
@@ -1177,7 +1177,7 @@ export class SqlAdapter extends Adapter {
                             errno?: number;
                             code?: string;
                             message?: string;
-                        } = err as any;
+                        } = err;
                         // Database 'iobroker' already exists. Choose a different database name.
                         if (
                             typedError.number === 1801 ||
@@ -1472,7 +1472,7 @@ export class SqlAdapter extends Adapter {
                         state.ts = now;
                         state.lc = now;
                         state.from = `system.adapter.${this.namespace}`;
-                        this.pushHistory(task.id, state as IobDataEntryEx);
+                        this.pushHistory(task.id, state);
                     }
 
                     setImmediate(() => this.processStartValues());
@@ -2943,12 +2943,7 @@ export class SqlAdapter extends Adapter {
             } else {
                 const options = { id, start, end, index: this.sqlDPs[id].index };
                 this.getCounterDataFromDB(options, (err, data) =>
-                    sendResponseCounter(
-                        this as unknown as ioBroker.Adapter,
-                        msg,
-                        options,
-                        err?.toString() || (data as IobDataEntry[]) || [],
-                    ),
+                    sendResponseCounter(this, msg, options, err?.toString() || (data as IobDataEntry[]) || []),
                 );
             }
         }
@@ -3149,7 +3144,7 @@ export class SqlAdapter extends Adapter {
             return this.getId(options.id, null, err => {
                 if (err) {
                     this.log.warn(`Cannot get index of "${options.id}": ${err}`);
-                    sendResponse(this as unknown as ioBroker.Adapter, msg, options.id!, options, [], startTime);
+                    sendResponse(this, msg, options.id!, options, [], startTime);
                 } else {
                     this.getHistorySql(msg);
                 }
@@ -3160,7 +3155,7 @@ export class SqlAdapter extends Adapter {
                 `For getHistory for id "${options.id}": Type empty. Need to write data first. Index = ${this.sqlDPs[options.id].index}`,
             );
             sendResponse(
-                this as unknown as ioBroker.Adapter,
+                this,
                 msg,
                 options.id,
                 options,
@@ -3249,7 +3244,7 @@ export class SqlAdapter extends Adapter {
                         }
                         try {
                             sendResponse(
-                                this as unknown as ioBroker.Adapter,
+                                this,
                                 msg,
                                 options.id!,
                                 options,
@@ -3258,14 +3253,7 @@ export class SqlAdapter extends Adapter {
                                 debugLog ? logId : undefined,
                             );
                         } catch (e) {
-                            sendResponse(
-                                this as unknown as ioBroker.Adapter,
-                                msg,
-                                options.id!,
-                                options,
-                                e.toString(),
-                                startTime,
-                            );
+                            sendResponse(this, msg, options.id!, options, e.toString(), startTime);
                         }
                     });
                 }
@@ -3278,7 +3266,7 @@ export class SqlAdapter extends Adapter {
                 if (isFull && cacheData.length) {
                     cacheData.sort(sortByTs);
                     sendResponse(
-                        this as unknown as ioBroker.Adapter,
+                        this,
                         msg,
                         '',
                         options,
@@ -3299,23 +3287,9 @@ export class SqlAdapter extends Adapter {
                             if (!--count) {
                                 rows.sort(sortByTs);
                                 try {
-                                    sendResponse(
-                                        this as unknown as ioBroker.Adapter,
-                                        msg,
-                                        '',
-                                        options,
-                                        rows as IobDataEntry[],
-                                        startTime,
-                                    );
+                                    sendResponse(this, msg, '', options, rows as IobDataEntry[], startTime);
                                 } catch (e) {
-                                    sendResponse(
-                                        this as unknown as ioBroker.Adapter,
-                                        msg,
-                                        '',
-                                        options,
-                                        e.toString(),
-                                        startTime,
-                                    );
+                                    sendResponse(this, msg, '', options, e.toString(), startTime);
                                 }
                             }
                         });
