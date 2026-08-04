@@ -797,6 +797,53 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
         });
     });
 
+    it(`Test ${adapterShortName}: Relog the value dropped by blockTime, not the stale one`, async function () {
+        this.timeout(60000);
+
+        // Regression test for issue #273. A value arriving inside the blockTime window is not stored,
+        // which is what blockTime promises. But it used to be forgotten entirely, so when the datapoint
+        // stopped changing afterwards the relog timer kept repeating the value from before the window -
+        // a PV inverter dropping from 500 W to 0 W was relogged as 500 W for hours.
+        // testValueBlocked has blockTime 1500 and changesRelogInterval 10, so the second value below is
+        // blocked and the relog roughly 10 s later has to write it instead of the first one. Timestamps
+        // are explicit to keep the block window independent of the runner's wall clock.
+        const blockNow = Date.now();
+        const blockedId = `${instanceName}.testValueBlocked`;
+
+        await states.setStateAsync(blockedId, { val: 50, ts: blockNow }); // expect logged
+        await delay(300);
+        await states.setStateAsync(blockedId, { val: 3, ts: blockNow + 200 }); // blocked by blockTime
+        // deliberately no further value: this is what makes the stale value visible
+        await delay(14000); // wait for the relog timer
+
+        return new Promise(resolve => {
+            sendTo(
+                instanceName,
+                'getHistory',
+                {
+                    id: blockedId,
+                    options: {
+                        start: blockNow,
+                        end: Date.now(),
+                        count: 50,
+                        aggregate: 'none',
+                    },
+                },
+                function (result) {
+                    console.log(JSON.stringify(result.result, null, 2));
+                    const values = result.result.map(entry => entry.val);
+                    assert.ok(values.includes(50), `${JSON.stringify(values)} contains 50`);
+                    assert.ok(
+                        values.includes(3),
+                        `${JSON.stringify(values)} contains 3 - relog repeated the stale value instead of the one blockTime dropped`,
+                    );
+
+                    resolve();
+                },
+            );
+        });
+    });
+
     it(`Test ${adapterShortName}: Tests with more sample data`, async function () {
         this.timeout(60000);
         const nowSampleI1 = Date.now() - 29 * 60 * 60 * 1000;
