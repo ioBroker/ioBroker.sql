@@ -67,13 +67,19 @@ function insert(dbName, index, values) {
     const query = [];
     for (const table in insertValues) {
         if (table === 'ts_counter') {
+            // no ON DUPLICATE KEY here: ts_counter has no primary key in MySQL (unlike SQLite),
+            // so there is no uniqueness conflict to suppress
             while (insertValues[table].length) {
                 query.push(`INSERT INTO \`${dbName}\`.ts_counter (id, ts, val) VALUES ${insertValues[table].splice(0, 500).join(',')};`);
             }
         }
         else {
             while (insertValues[table].length) {
-                query.push(`INSERT INTO \`${dbName}\`.${table} (id, ts, val, ack, _from, q) VALUES ${insertValues[table].splice(0, 500).join(',')};`);
+                // ts_number/ts_string/ts_bool have PRIMARY KEY(id, ts). Importing history writes rows
+                // that may already exist, and a single duplicate would otherwise abort the whole batch.
+                // "id=id" is a no-op assignment, so this suppresses the duplicate key error and nothing
+                // else - INSERT IGNORE would also hide truncation and conversion errors.
+                query.push(`INSERT INTO \`${dbName}\`.${table} (id, ts, val, ack, _from, q) VALUES ${insertValues[table].splice(0, 500).join(',')} ON DUPLICATE KEY UPDATE id=id;`);
             }
         }
     }

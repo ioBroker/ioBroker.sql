@@ -73,6 +73,11 @@ export function insert(
     });
 
     const query: string[] = [];
+    // The other dialects suppress duplicate (id, ts) rows here so that importing history does not
+    // abort a whole batch. MS SQL has no equivalent: init() creates plain CREATE INDEX, not a unique
+    // index, so no uniqueness conflict can occur in the first place - duplicates are already inserted
+    // silently. Making the index unique would only affect new installations and would turn today's
+    // silent duplicates into hard errors, so the insert is deliberately left unguarded.
     for (const table in insertValues) {
         if (table === 'ts_counter') {
             while (insertValues[table].length) {
