@@ -66,13 +66,18 @@ function insert(_dbName, index, values) {
     const query = [];
     for (const table in insertValues) {
         if (table === 'ts_counter') {
+            // ts_counter has PRIMARY KEY(id, ts) in SQLite, unlike MySQL and PostgreSQL
             while (insertValues[table].length) {
-                query.push(`INSERT INTO ts_counter (id, ts, val) VALUES ${insertValues[table].splice(0, 500).join(',')};`);
+                query.push(`INSERT INTO ts_counter (id, ts, val) VALUES ${insertValues[table].splice(0, 500).join(',')} ON CONFLICT DO NOTHING;`);
             }
         }
         else {
             while (insertValues[table].length) {
-                query.push(`INSERT INTO ${table} (id, ts, val, ack, _from, q) VALUES ${insertValues[table].splice(0, 500).join(',')};`);
+                // ts_number/ts_string/ts_bool have PRIMARY KEY(id, ts). Importing history writes rows
+                // that may already exist, and a single duplicate would otherwise abort the whole batch.
+                // DO NOTHING only applies to uniqueness conflicts, so INSERT OR IGNORE is deliberately
+                // not used here - it would also swallow NOT NULL and CHECK violations.
+                query.push(`INSERT INTO ${table} (id, ts, val, ack, _from, q) VALUES ${insertValues[table].splice(0, 500).join(',')} ON CONFLICT DO NOTHING;`);
             }
         }
     }

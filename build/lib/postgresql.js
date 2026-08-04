@@ -63,13 +63,18 @@ function insert(_dbName, index, values) {
     const query = [];
     for (const table in insertValues) {
         if (table === 'ts_counter') {
+            // no ON CONFLICT here: ts_counter has no primary key in PostgreSQL (unlike SQLite),
+            // so there is no uniqueness conflict to suppress
             while (insertValues[table].length) {
                 query.push(`INSERT INTO ts_counter (id, ts, val) VALUES ${insertValues[table].splice(0, 500).join(',')};`);
             }
         }
         else {
             while (insertValues[table].length) {
-                query.push(`INSERT INTO ${table} (id, ts, val, ack, _from, q) VALUES ${insertValues[table].splice(0, 500).join(',')};`);
+                // ts_number/ts_string/ts_bool have PRIMARY KEY(id, ts). Importing history writes rows
+                // that may already exist, and a single duplicate would otherwise abort the whole batch.
+                // DO NOTHING only applies to uniqueness conflicts, so conversion errors still surface.
+                query.push(`INSERT INTO ${table} (id, ts, val, ack, _from, q) VALUES ${insertValues[table].splice(0, 500).join(',')} ON CONFLICT DO NOTHING;`);
             }
         }
     }
