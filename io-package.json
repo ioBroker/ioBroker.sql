@@ -118,7 +118,6 @@
         "platform": "Javascript/Node.js",
         "loglevel": "info",
         "messagebox": true,
-        "subscribe": "messagebox",
         "keywords": ["charts", "sql", "logging", "graphs", "archive"],
         "preserveSettings": "custom",
         "supportCustoms": true,
@@ -142,7 +141,7 @@
         ],
         "globalDependencies": [
             {
-                "admin": ">=5.1.28"
+                "admin": ">=7.0.0"
             }
         ],
         "supportStopInstance": 10000,
