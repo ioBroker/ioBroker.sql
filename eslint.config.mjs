@@ -4,7 +4,6 @@ import config from '@iobroker/eslint-config';
 
 export default [
     ...config,
-
     {
         // specify files to exclude from linting here
         ignores: [
@@ -21,13 +20,11 @@ export default [
             'admin/blockly.js',
         ],
     },
-
     {
         // disable temporary the rule 'jsdoc/require-param' and enable 'jsdoc/require-jsdoc'
         rules: {
             'jsdoc/require-jsdoc': 'off',
             'jsdoc/require-param': 'off',
-
             '@typescript-eslint/no-require-imports': 'off',
         },
     },
