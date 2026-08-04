@@ -1,0 +1,25 @@
+{
+    "compileOnSave": true,
+    "compilerOptions": {
+        "noEmit": true,
+        "allowJs": true,
+        "checkJs": true,
+        "strict": true,
+        "strictNullChecks": true,
+        "skipLibCheck": true, // Don't report errors in 3rd party definitions
+        "noEmitOnError": true,
+        "outDir": "./build",
+        "rootDir": "./src",
+        "removeComments": false,
+        "module": "Node16",
+        "moduleResolution": "node16",
+        "resolveJsonModule": true,
+        "strict": true,
+        "target": "es2023",
+        "sourceMap": true,
+        "inlineSourceMap": false,
+        "useUnknownInCatchVariables": false,
+        "types": ["@iobroker/types"]
+    },
+    "include": ["src/**/*.ts", "src/**/*.d.ts"]
+}
