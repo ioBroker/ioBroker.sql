@@ -52,7 +52,7 @@ Use `localhost\instance` for the host and check TCP/IP connections enabled.
 https://msdn.microsoft.com/en-us/library/bb909712(v=vs.90).aspx
 
 ### SQLite:
-is "file"-DB and cannot manage too many events. If you have a big amount of data, use the real DB, like PostgreSQL and co.
+is a "file"-DB and cannot manage too many events. If you have a big amount of data, use the real DB, like PostgreSQL and co.
 
 SQLite DB must not be installed extra. It is just a file on disk, but to install it you require build tools on your system. For linux, just write:
 
@@ -546,6 +546,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Migrated to TypeScript
+* (@GermanBluefox) Node.js 22 is now needed at a minimum!
+
 ### 3.0.1 (2024-06-13)
 * (foxriver76) upgraded dependencies
 
@@ -784,25 +788,25 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ### 1.4.0 (2016-12-02)
 * (Apollon77) Add messages enableHistory/disableHistory
-* (Apollon77) add support to log changes only if value differs a minimum value for numbers
+* (Apollon77) add support to log changes only if the value differs from a minimum value for numbers
 
 ### 1.3.4 (2016-11)
 * (Apollon77) Allow database names with '-' for MySQL
 
 ### 1.3.3 (2016-11)
-* (Apollon77) Update dependecies
+* (Apollon77) Update dependencies
 
 ### 1.3.2 (2016-11-21)
 * (bluefox) Fix insert of string with '
 
 ### 1.3.0 (2016-10-29)
-* (Apollon77) add option to re-log unchanged values to make it easier for visualization
+* (Apollon77) Added an option to re-log unchanged values to make it easier for visualization
 
 ### 1.2.1 (2016-08-30)
 * (bluefox) Fix selector for SQL objects
 
 ### 1.2.0 (2016-08-30)
-* (bluefox) сompatible only with new admin
+* (bluefox) compatible only with new admin
 
 ### 1.0.10 (2016-08-27)
 * (bluefox) change name of object from "history" to "custom"
@@ -814,7 +818,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (bluefox) allow settings for parallel requests
 
 ### 1.0.7 (2016-05-31)
-* (bluefox) draw line to the end if ignore null
+* (bluefox) Draw a line to the end if ignore null
 
 ### 1.0.6 (2016-05-30)
 * (bluefox) allow setup DB name for mysql and mssql
