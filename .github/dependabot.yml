@@ -21,5 +21,9 @@ updates:
       cronjob: '50 2 16 * *'
     open-pull-requests-limit: 20
     versioning-strategy: 'increase'
+    ignore:
+      - dependency-name: '@types/node'
+        update-types:
+          - 'version-update:semver-major'
     cooldown:
       default-days: 7
