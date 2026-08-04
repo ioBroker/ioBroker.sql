@@ -165,7 +165,7 @@ export function getHistory(
     if ((!options.start && options.count) || (options.aggregate === 'none' && options.count)) {
         query += ` TOP ${options.count}`;
     }
-    query += ` ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${
+    query += ` ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${
         options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''
     }${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
 
@@ -201,7 +201,7 @@ export function getHistory(
         // add last value before start
         let subQuery;
         let subWhere;
-        subQuery = ` SELECT TOP 1 ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${
+        subQuery = ` SELECT TOP 1 ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${
             options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''
         }${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
         if (options.from) {
@@ -222,7 +222,7 @@ export function getHistory(
         where += ` UNION ALL SELECT * FROM (${subQuery}) a`;
 
         // add next value after end
-        subQuery = ` SELECT TOP 1 ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${
+        subQuery = ` SELECT TOP 1 ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${
             options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''
         }${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
         if (options.from) {

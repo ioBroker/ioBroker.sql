@@ -2911,22 +2911,14 @@ export class SqlAdapter extends Adapter {
                 msg.callback,
             );
         }
+        // callers send this either as a real boolean/number or as a string
         let ignoreNull: ioBroker.GetHistoryOptions['ignoreNull'];
-        if (msg.message.options.ignoreNull === 'true') {
-            ignoreNull = true;
-        } // include nulls and replace them with last value
-        if (msg.message.options.ignoreNull === 'false') {
-            ignoreNull = false;
-        } // include nulls
-        if (msg.message.options.ignoreNull === '0') {
-            ignoreNull = 0;
-        } // include nulls and replace them with 0
-        if (
-            msg.message.options.ignoreNull !== true &&
-            msg.message.options.ignoreNull !== false &&
-            msg.message.options.ignoreNull !== 0
-        ) {
-            ignoreNull = false;
+        if (msg.message.options.ignoreNull === true || msg.message.options.ignoreNull === 'true') {
+            ignoreNull = true; // include nulls and replace them with the last value
+        } else if (msg.message.options.ignoreNull === 0 || msg.message.options.ignoreNull === '0') {
+            ignoreNull = 0; // include nulls and replace them with 0
+        } else {
+            ignoreNull = false; // include nulls
         }
         const logId: string = (msg.message.id ? msg.message.id : 'all') + Date.now() + Math.random();
         const options: ioBroker.GetHistoryOptions & { id: string | null; index: number | null } = {
@@ -4228,7 +4220,11 @@ export class SqlAdapter extends Adapter {
                                 if (this.sqlDPs[id] && this.sqlDPs[id].dbType !== undefined) {
                                     storedType = this.sqlDPs[id].dbType;
                                 }
-                                const config = this.normalizeCustomConfig(doc.rows[i].value as SqlCustomConfig);
+                                // the view returns the whole custom container, the settings for this
+                                // instance are below the namespace key
+                                const config = this.normalizeCustomConfig(
+                                    doc.rows[i].value[this.namespace] as SqlCustomConfig,
+                                );
 
                                 this.sqlDPs[id] ||= {} as SQLPointConfig;
                                 const sqlDP = this.sqlDPs[id];

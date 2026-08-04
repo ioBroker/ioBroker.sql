@@ -124,7 +124,7 @@ function getCounterDiff(dbName, options) {
         `ORDER BY ts) a;`);
 }
 function getHistory(_dbName, table, options) {
-    let query = `SELECT ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? ', sources.name as from' : ''}${options.q ? ', q' : ''} FROM ${table}`;
+    let query = `SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? ', sources.name as from' : ''}${options.q ? ', q' : ''} FROM ${table}`;
     if (options.from) {
         query += ` INNER JOIN sources ON sources.id=${table}._from`;
     }
@@ -140,7 +140,7 @@ function getHistory(_dbName, table, options) {
         //add last value before start
         let subQuery;
         let subWhere;
-        subQuery = ` SELECT ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? ', sources.name as from' : ''}${options.q ? ', q' : ''} FROM ${table}`;
+        subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? ', sources.name as from' : ''}${options.q ? ', q' : ''} FROM ${table}`;
         if (options.from) {
             subQuery += ` INNER JOIN sources ON sources.id=${table}._from`;
         }
@@ -158,7 +158,7 @@ function getHistory(_dbName, table, options) {
         subQuery += ` ORDER BY ${table}.ts DESC LIMIT 1`;
         where += ` UNION ALL (${subQuery})`;
         //add next value after end
-        subQuery = ` SELECT ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? ', sources.name as from' : ''}${options.q ? ', q' : ''} FROM ${table}`;
+        subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? ', sources.name as from' : ''}${options.q ? ', q' : ''} FROM ${table}`;
         if (options.from) {
             subQuery += ` INNER JOIN sources ON sources.id=${table}._from`;
         }

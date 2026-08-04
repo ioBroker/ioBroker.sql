@@ -2453,20 +2453,16 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 error: 'Invalid call. No options for getHistory provided',
             }, msg.callback);
         }
+        // callers send this either as a real boolean/number or as a string
         let ignoreNull;
-        if (msg.message.options.ignoreNull === 'true') {
-            ignoreNull = true;
-        } // include nulls and replace them with last value
-        if (msg.message.options.ignoreNull === 'false') {
-            ignoreNull = false;
-        } // include nulls
-        if (msg.message.options.ignoreNull === '0') {
-            ignoreNull = 0;
-        } // include nulls and replace them with 0
-        if (msg.message.options.ignoreNull !== true &&
-            msg.message.options.ignoreNull !== false &&
-            msg.message.options.ignoreNull !== 0) {
-            ignoreNull = false;
+        if (msg.message.options.ignoreNull === true || msg.message.options.ignoreNull === 'true') {
+            ignoreNull = true; // include nulls and replace them with the last value
+        }
+        else if (msg.message.options.ignoreNull === 0 || msg.message.options.ignoreNull === '0') {
+            ignoreNull = 0; // include nulls and replace them with 0
+        }
+        else {
+            ignoreNull = false; // include nulls
         }
         const logId = (msg.message.id ? msg.message.id : 'all') + Date.now() + Math.random();
         const options = {
@@ -3521,7 +3517,9 @@ class SqlAdapter extends adapter_core_1.Adapter {
                                 if (this.sqlDPs[id] && this.sqlDPs[id].dbType !== undefined) {
                                     storedType = this.sqlDPs[id].dbType;
                                 }
-                                const config = this.normalizeCustomConfig(doc.rows[i].value);
+                                // the view returns the whole custom container, the settings for this
+                                // instance are below the namespace key
+                                const config = this.normalizeCustomConfig(doc.rows[i].value[this.namespace]);
                                 this.sqlDPs[id] ||= {};
                                 const sqlDP = this.sqlDPs[id];
                                 sqlDP.config = config;

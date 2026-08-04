@@ -67,7 +67,7 @@ describe(`Test ${__filename}`, function () {
             config.native.enableDebugLogs = true;
             config.native.host = '127.0.0.1';
             config.native.dbtype = 'mssql';
-            config.native.user = 'sa';
+            config.native.user = process.env.SQL_USER || 'sa';
             config.native.password = 'Password12!';
 
             await setup.setAdapterConfig(config.common, config.native);

@@ -67,7 +67,7 @@ describe(`Test ${__filename}`, function () {
             config.native.enableDebugLogs = true;
             config.native.host = '127.0.0.1';
             config.native.dbtype = 'mysql';
-            config.native.user = 'root';
+            config.native.user = process.env.SQL_USER || 'root';
             config.native.password = process.env.SQL_PASS || '';
 
             await setup.setAdapterConfig(config.common, config.native);

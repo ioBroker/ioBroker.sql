@@ -150,7 +150,7 @@ export function getHistory(
     table: string,
     options: ioBroker.GetHistoryOptions & { index: number | null },
 ): string {
-    let query = `SELECT ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${
+    let query = `SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${
         options.from ? ', sources.name as from' : ''
     }${options.q ? ', q' : ''} FROM ${table}`;
 
@@ -172,7 +172,7 @@ export function getHistory(
         //add last value before start
         let subQuery;
         let subWhere;
-        subQuery = ` SELECT ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${
+        subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${
             options.from ? ', sources.name as from' : ''
         }${options.q ? ', q' : ''} FROM ${table}`;
         if (options.from) {
@@ -193,7 +193,7 @@ export function getHistory(
         where += ` UNION ALL (${subQuery})`;
 
         //add next value after end
-        subQuery = ` SELECT ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${
+        subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${
             options.from ? ', sources.name as from' : ''
         }${options.q ? ', q' : ''} FROM ${table}`;
         if (options.from) {

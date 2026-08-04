@@ -128,7 +128,7 @@ function getCounterDiff(dbName, options) {
         `ORDER BY ts) a;`);
 }
 function getHistory(dbName, table, options) {
-    let query = `SELECT ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
+    let query = `SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
     if (options.from) {
         query += ` INNER JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
     }
@@ -143,7 +143,7 @@ function getHistory(dbName, table, options) {
         where += `${where ? ' AND' : ''} \`${dbName}\`.${table}.ts >= ${options.start}`;
         let subQuery;
         let subWhere;
-        subQuery = ` SELECT ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
+        subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
         if (options.from) {
             subQuery += ` INNER JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
         }
@@ -161,7 +161,7 @@ function getHistory(dbName, table, options) {
         subQuery += ` ORDER BY \`${dbName}\`.${table}.ts DESC LIMIT 1`;
         where += ` UNION ALL (${subQuery})`;
         // add next value after end
-        subQuery = ` SELECT ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
+        subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
         if (options.from) {
             subQuery += ` INNER JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
         }

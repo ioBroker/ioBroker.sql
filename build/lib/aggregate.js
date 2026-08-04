@@ -905,7 +905,10 @@ function finishAggregationForMinMax(options) {
     options.result = finalResult;
 }
 function finishAggregationForAverage(options) {
-    const round = options.round || 100;
+    // averages are always rounded to 2 decimals, independent of options.round.
+    // This file must stay identical with the history adapter's copy, so do not
+    // make it configurable here alone.
+    const round = 100;
     let startIndex = 0;
     if (!options.processing) {
         return;

@@ -4,6 +4,8 @@
 /* jshint expr: true */
 'use strict';
 
+const assert = require('node:assert');
+
 let now;
 let preInitTime;
 let objects = null;

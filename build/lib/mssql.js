@@ -140,7 +140,7 @@ function getHistory(dbName, table, options) {
     if ((!options.start && options.count) || (options.aggregate === 'none' && options.count)) {
         query += ` TOP ${options.count}`;
     }
-    query += ` ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
+    query += ` ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
     if (options.from) {
         query += ` INNER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
     }
@@ -169,7 +169,7 @@ function getHistory(dbName, table, options) {
         // add last value before start
         let subQuery;
         let subWhere;
-        subQuery = ` SELECT TOP 1 ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
+        subQuery = ` SELECT TOP 1 ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
         if (options.from) {
             subQuery += ` INNER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
         }
@@ -187,7 +187,7 @@ function getHistory(dbName, table, options) {
         subQuery += ` ORDER BY ${dbName}.dbo.${table}.ts DESC`;
         where += ` UNION ALL SELECT * FROM (${subQuery}) a`;
         // add next value after end
-        subQuery = ` SELECT TOP 1 ts, val${options.index !== null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
+        subQuery = ` SELECT TOP 1 ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
         if (options.from) {
             subQuery += ` INNER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
         }
