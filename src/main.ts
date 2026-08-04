@@ -221,6 +221,8 @@ type SQLPointConfig = {
     config: SqlCustomConfigTyped;
     state: IobDataEntryEx | null;
     skipped: IobDataEntryEx | undefined | null;
+    /** last value dropped by blockTime, used by reLogHelper so it does not repeat a stale value */
+    blocked: IobDataEntryEx | undefined | null;
     ts: number | null;
     lastCheck: number;
     lastLogTime: number;
@@ -1526,6 +1528,13 @@ export class SqlAdapter extends Adapter {
                     this.sqlDPs[id].state &&
                     this.sqlDPs[id].state.ts + settings.blockTime > state.ts
                 ) {
+                    // Keep the blocked value for reLogHelper. It is deliberately NOT put into "skipped":
+                    // that channel is flushed as soon as the next value passes, which would write blocked
+                    // values after all and undermine blockTime, documented as "no further value is stored"
+                    // during the window. Here it only replaces the stale value the relog timer would
+                    // otherwise repeat - a PV inverter dropping from 500 W to 0 W and then staying there
+                    // used to be relogged as 500 W for hours (issue #273).
+                    this.sqlDPs[id].blocked = state;
                     settings.enableDebugLogs &&
                         this.log.debug(
                             `value ignored blockTime ${id}, value=${state.val}, ts=${state.ts}, lastState.ts=${this.sqlDPs[id].state.ts}, blockTime=${settings.blockTime}`,
@@ -1690,6 +1699,8 @@ export class SqlAdapter extends Adapter {
                         }
                         this.sqlDPs[id].timeout = null;
                         this.sqlDPs[id].state = state;
+                        // a newer value was logged, so any value dropped by blockTime before is obsolete
+                        this.sqlDPs[id].blocked = null;
                         this.sqlDPs[id].lastLogTime = state.ts;
                         if (settings.enableDebugLogs) {
                             this.log.debug(
@@ -1712,6 +1723,8 @@ export class SqlAdapter extends Adapter {
             } else {
                 if (!timerRelog) {
                     this.sqlDPs[id].state = state;
+                    // a newer value was logged, so any value dropped by blockTime before is obsolete
+                    this.sqlDPs[id].blocked = null;
                 }
                 this.sqlDPs[id].lastLogTime = state.ts;
 
@@ -1741,6 +1754,10 @@ export class SqlAdapter extends Adapter {
             this.sqlDPs[_id].relogTimeout = null;
             if (this.sqlDPs[_id].skipped) {
                 this.pushHistory(_id, this.sqlDPs[_id].skipped, true);
+            } else if (this.sqlDPs[_id].blocked) {
+                // a value dropped by blockTime is newer than the last logged one, so relog that
+                // instead of repeating a value the datapoint has long left behind (issue #273)
+                this.pushHistory(_id, this.sqlDPs[_id].blocked, true);
             } else if (this.sqlDPs[_id].state) {
                 this.pushHistory(_id, this.sqlDPs[_id].state, true);
             } else {
