@@ -54,6 +54,8 @@
         "LICENSE"
     ],
     "scripts": {
+        "test:package": "mocha test/testPackageFiles.js --exit",
+        "test:integration": "mocha --exit",
         "test": "mocha --exit",
         "lint": "eslint -c eslint.config.mjs",
         "check:ts": "tsc -p tsconfig.json --noEmit",
