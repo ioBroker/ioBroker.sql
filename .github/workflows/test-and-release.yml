@@ -32,6 +32,7 @@ jobs:
             - uses: ioBroker/testing-action-check@v2
               with:
                   node-version: '24.x'
+                  install-command: 'npm i'
                   lint: true
 
     # Runs adapter tests on all supported node versions and OSes
@@ -235,6 +236,7 @@ jobs:
         steps:
             - uses: ioBroker/testing-action-deploy@v1
               with:
+                  install-command: 'npm i'
                   node-version: '24.x'
                   github-token: ${{ secrets.GITHUB_TOKEN }}
                   sentry: true
