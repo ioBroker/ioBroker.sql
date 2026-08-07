@@ -25,8 +25,21 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "4.0.0",
+    "version": "4.0.1",
     "news": {
+      "4.0.1": {
+        "en": "Fixed MySQL error \"Can't create more than max_prepared_stmt_count statements\": every query allocated a server-side prepared statement\nBatches of more than 500 values are no longer sent as one multi-statement query",
+        "de": "MySQL-Fehler behoben \"Kann nicht mehr als max  prepared stmt count-Anweisungen erstellen\": Jede Abfrage hat eine serverseitige vorbereitete Anweisung zugewiesen\nBatches mit mehr als 500 Werten werden nicht mehr als eine Multistatement-Abfrage gesendet",
+        "ru": "Исправленная ошибка MySQL «Невозможно создать больше, чем заявления max prepared stmt count»: каждый запрос выделяет подготовленное заявление на стороне сервера\nПакеты с более чем 500 значениями больше не отправляются в виде одного многократного запроса",
+        "pt": "Erro MySQL Fixo \"Não é possível criar mais do que declarações max preparado stmt count\": cada consulta alocou uma instrução preparada do lado do servidor\nBatches de mais de 500 valores não são mais enviados como uma consulta multi-declaração",
+        "nl": "Fixed MySQL-fout \"Kan niet meer dan max prepared stamt count statements aanmaken\": elke query toegewezen een server-side voorbereid statement\nBatches van meer dan 500 waarden worden niet langer verstuurd als één multi-statement query",
+        "fr": "Correction de l'erreur MySQL \"Impossible de créer plus d'instructions max prepared stmt count\" : chaque requête a attribué une instruction préparée côté serveur\nLes lots de plus de 500 valeurs ne sont plus envoyés comme une requête multi-états",
+        "it": "Corretto errore MySQL \"Impossibile creare più delle dichiarazioni max prepared stmt count\": ogni query ha assegnato un'affermazione preparata lato server\nLe pipistrelli di oltre 500 valori non vengono più inviate come una query multi-stato",
+        "es": "Error de MySQL fijo \"No se puede crear más que estados de max prepared stmt count\": cada consulta asignó una declaración preparada del lado del servidor\nBatches of more than 500 values are no longer sent as one multi-statement query",
+        "pl": "Naprawiono błąd MySQL \"Nie można utworzyć więcej niż max _ preparted _ stmt _ count haseł\": każde zapytanie przyporządkowało oświadczenie przygotowane po stronie serwera\nSerie o wartości powyżej 500 nie są już wysyłane jako jedno zapytanie wieloskładnikowe",
+        "uk": "Виправлена помилка MySQL \"Неможливо створити більше, ніж max prepared stmt count звітності\": кожен запит виділено серверно-зайняту заяву\nПакети більш ніж 500 значень більше не відправлені як один багатодержавний запит",
+        "zh-cn": "固定 MySQL 错误“ 无法创建超过 max  prepared stmt  counts 语句 ” : 每个查询都分配了服务器侧准备的语句\n超过500个值的批次不再作为多报表查询发送"
+      },
       "4.0.0": {
         "en": "Migrated to TypeScript\nNode.js 22 is now needed at a minimum!",
         "de": "Migration zu TypeScript\nNode.js 22 wird nun mindestens benötigt!",
@@ -101,18 +114,6 @@
         "es": "Casos de accidente fijo reportados por Sentry",
         "pl": "Sprawy katastrofy Fix podane przez Sentry’a",
         "zh-cn": "Sentry所报告的六例事故"
-      },
-      "2.1.6": {
-        "en": "Allow to remove a configuration value for \"round\" in config again",
-        "de": "Lassen Sie einen Konfigurationswert für Runde in config wieder entfernen",
-        "ru": "Разрешить удалить конфигурационную ценность для раунда в config снова",
-        "pt": "Permitir remover um valor de configuração para round em config novamente",
-        "nl": "Sta toe om weer een configuratiewaarde te verwijderen voor ronde in het leger",
-        "fr": "Permettre de supprimer une valeur de configuration pour round in config à nouveau",
-        "it": "Permette di rimuovere un valore di configurazione per round in config di nuovo",
-        "es": "Permitir eliminar de nuevo un valor de configuración para redondear en configuración",
-        "pl": "Allow, aby usunąć wartość konfiguracyjna w zakręcie ponownie w konfigunie",
-        "zh-cn": "允许再次取消一轮谈判的组合价值"
       }
     },
     "mode": "daemon",

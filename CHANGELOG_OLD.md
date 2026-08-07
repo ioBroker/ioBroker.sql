@@ -1,4 +1,8 @@
 # Older changes
+## 2.1.8 (2022-08-13)
+* (riversource/Apollon77) Optimize getHistory query by using "UNION ALL"
+* (Apollon77) Fix crash cases reported by Sentry
+
 ## 2.1.7 (2022-06-30)
 * (Apollon77) Fix crash cases reported by Sentry
 

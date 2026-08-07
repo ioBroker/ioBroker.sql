@@ -546,7 +546,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 4.0.1 (2026-08-07)
 * (@GermanBluefox) Fixed MySQL error "Can't create more than max_prepared_stmt_count statements": every query allocated a server-side prepared statement
 * (@GermanBluefox) Batches of more than 500 values are no longer sent as one multi-statement query
 
@@ -566,10 +566,6 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ### 2.2.0 (2022-09-19)
 * IMPORTANT: Node.js 14.x is now needed at a minimum!
 * (Apollon77) Fix potential crash cases with upcoming js-controller versions
-
-### 2.1.8 (2022-08-13)
-* (riversource/Apollon77) Optimize getHistory query by using "UNION ALL"
-* (Apollon77) Fix crash cases reported by Sentry
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 
