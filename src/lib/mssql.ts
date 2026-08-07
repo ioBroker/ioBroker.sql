@@ -45,7 +45,7 @@ export function insert(
         state: { val: any; ts: number; ack?: boolean; q?: number };
         from?: number;
     }[],
-): string {
+): string[] {
     const insertValues: { [table: string]: string[] } = {};
     values.forEach(value => {
         // state, from, db
@@ -94,7 +94,7 @@ export function insert(
         }
     }
 
-    return query.join(' ');
+    return query;
 }
 
 export function retention(dbName: string, index: number, table: TableName, retention: number): string {

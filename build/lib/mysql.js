@@ -83,7 +83,7 @@ function insert(dbName, index, values) {
             }
         }
     }
-    return query.join(' ');
+    return query;
 }
 function retention(dbName, index, table, retention) {
     const d = new Date();

@@ -1675,26 +1675,43 @@ class SqlAdapter extends adapter_core_1.Adapter {
             }
         }
     }
-    _insertValueIntoDB(query, id, cb) {
-        this.log.debug(query);
+    /**
+     * Write one batch of values.
+     *
+     * `sqlFuncs.insert()` chunks at 500 rows per statement and emits one statement per table, so a batch
+     * can be more than one query. They must be sent one by one: no driver here is configured for
+     * multi-statement batches (mysql2 needs `multipleStatements`, node-sqlite3's run() takes a single
+     * statement), and enabling that would only widen the injection surface of the `query` message.
+     * All statements share one borrowed connection, and the first failure aborts the rest - same as the
+     * single concatenated query did before.
+     */
+    _insertValuesIntoDB(queries, id, cb) {
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
                 this.log.error(err?.toString() || 'No client');
                 cb?.(); // BF asked (2021.12.14): may be return here err?
+                return;
             }
-            else {
-                client.execute(query, (err /* , rows, fields */) => {
+            const next = (i) => {
+                if (i >= queries.length) {
                     this.returnClientToPool(client);
-                    if (err) {
-                        this.log.error(`Cannot insert ${query}: ${err} (id: ${id})`);
-                    }
-                    else {
-                        this.checkRetention(id);
-                    }
+                    this.checkRetention(id);
                     cb?.(); // BF asked (2021.12.14): may be return here err?
+                    return;
+                }
+                this.log.debug(queries[i]);
+                client.execute(queries[i], (err /* , rows, fields */) => {
+                    if (err) {
+                        this.returnClientToPool(client);
+                        this.log.error(`Cannot insert ${queries[i]}: ${err} (id: ${id})`);
+                        cb?.(); // BF asked (2021.12.14): may be return here err?
+                        return;
+                    }
+                    next(i + 1);
                 });
-            }
+            };
+            next(0);
         });
     }
     _executeQuery(query, id, cb) {
@@ -2052,8 +2069,8 @@ class SqlAdapter extends adapter_core_1.Adapter {
             }
         }
         else {
-            const query = this.sqlFuncs.insert(this.config.dbname, this.sqlDPs[id].index, list);
-            this._insertValueIntoDB(query, id, cb);
+            const queries = this.sqlFuncs.insert(this.config.dbname, this.sqlDPs[id].index, list);
+            this._insertValuesIntoDB(queries, id, cb);
         }
     }
     processTasks() {
@@ -2092,8 +2109,8 @@ class SqlAdapter extends adapter_core_1.Adapter {
                         }
                     }
                 }
-                const query = this.sqlFuncs.insert(this.config.dbname, this.tasks[0].index, this.tasks[0].list);
-                this._insertValueIntoDB(query, this.tasks[0].id, () => {
+                const queries = this.sqlFuncs.insert(this.config.dbname, this.tasks[0].index, this.tasks[0].list);
+                this._insertValuesIntoDB(queries, this.tasks[0].id, () => {
                     callbacks.forEach(cb => cb());
                     this.tasks.shift();
                     this.lockTasks = false;

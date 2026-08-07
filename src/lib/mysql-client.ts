@@ -39,7 +39,13 @@ class MySQL2ConnectionFactory extends ConnectionFactory {
         sql: string,
         callback: (err: Error | null | undefined, results?: Array<T>) => void,
     ): void {
-        connection.execute(sql, (err: Error | null | undefined, results: Array<T>) => {
+        // query(), NOT execute(): mysql2's execute() prepares a server-side statement and caches it per
+        // connection, keyed by the SQL text. This adapter inlines all values by string concatenation, so
+        // every single INSERT/SELECT is a distinct SQL text and would allocate its own prepared statement -
+        // MySQL then fails with "Can't create more than max_prepared_stmt_count statements" (default 16382)
+        // after a few thousand logged values. There is nothing to prepare here anyway: no placeholders are
+        // ever bound.
+        connection.query(sql, (err: Error | null | undefined, results: Array<T>) => {
             if (err) {
                 return callback(err);
             }
