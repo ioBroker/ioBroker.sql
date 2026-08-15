@@ -1120,7 +1120,8 @@ function finishAggregationTotalIntegral(options: InternalHistoryOptions): void {
             const y2 = options.totalIntegralDataPoints[len - 1].val as number;
             const x1 = options.totalIntegralDataPoints[len - 2].ts;
             const x2 = options.totalIntegralDataPoints[len - 1].ts;
-            const val = y1 + ((y2 - y1) * (options.start! - x1)) / (x2 - x1);
+            // Interpolate the last data point onto options.end (not options.start)
+            const val = y1 + ((y2 - y1) * (options.end! - x1)) / (x2 - x1);
             options.totalIntegralDataPoints[len - 1] = {
                 ts: options.end as number,
                 val,
@@ -1591,6 +1592,11 @@ function getQuantileValue(q: number | null | undefined, list: number[]): number 
 
     const index = list.length * q;
     if (Number.isInteger(index)) {
+        // For q === 1 (e.g. 100th percentile) index === list.length, so list[index] is undefined.
+        // In that case return the largest value instead of producing NaN.
+        if (index >= list.length) {
+            return list[list.length - 1];
+        }
         // mean of two middle numbers
         return (list[index - 1] + list[index]) / 2;
     }
