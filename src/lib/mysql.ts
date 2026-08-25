@@ -1,4 +1,4 @@
-import type { TableName } from '../types';
+import type { RawEntriesOptions, TableName } from '../types';
 
 export function init(dbName: string, doNotCreateDatabase?: boolean): string[] {
     const commands = [
@@ -307,4 +307,39 @@ export function update(
     query += ';';
 
     return query;
+}
+
+function rawEntriesWhere(
+    dbName: string,
+    table: TableName,
+    index: number,
+    options: { start?: number; end?: number },
+): string {
+    let where = `\`${dbName}\`.${table}.id=${index}`;
+    if (options.start) {
+        where += ` AND \`${dbName}\`.${table}.ts>=${options.start}`;
+    }
+    if (options.end) {
+        where += ` AND \`${dbName}\`.${table}.ts<=${options.end}`;
+    }
+    return where;
+}
+
+export function getRawEntries(dbName: string, table: TableName, index: number, options: RawEntriesOptions): string {
+    return (
+        `SELECT \`${dbName}\`.${table}.ts, \`${dbName}\`.${table}.val, \`${dbName}\`.${table}.ack, \`${dbName}\`.${table}.q, \`${dbName}\`.sources.name AS 'from' FROM \`${dbName}\`.${table}` +
+        ` LEFT JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from` +
+        ` WHERE ${rawEntriesWhere(dbName, table, index, options)}` +
+        ` ORDER BY \`${dbName}\`.${table}.ts ${options.sort === 'asc' ? 'ASC' : 'DESC'}` +
+        ` LIMIT ${options.limit} OFFSET ${options.offset};`
+    );
+}
+
+export function getRawEntriesCount(
+    dbName: string,
+    table: TableName,
+    index: number,
+    options: { start?: number; end?: number },
+): string {
+    return `SELECT COUNT(*) AS total FROM \`${dbName}\`.${table} WHERE ${rawEntriesWhere(dbName, table, index, options)};`;
 }

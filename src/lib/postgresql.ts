@@ -1,4 +1,4 @@
-import type { TableName } from '../types';
+import type { RawEntriesOptions, TableName } from '../types';
 
 export function init(_dbName: string, _doNotCreateDatabase?: boolean): string[] {
     return [
@@ -297,4 +297,34 @@ export function update(
     query += ';';
 
     return query;
+}
+
+function rawEntriesWhere(table: TableName, index: number, options: { start?: number; end?: number }): string {
+    let where = `${table}.id=${index}`;
+    if (options.start) {
+        where += ` AND ${table}.ts>=${options.start}`;
+    }
+    if (options.end) {
+        where += ` AND ${table}.ts<=${options.end}`;
+    }
+    return where;
+}
+
+export function getRawEntries(_dbName: string, table: TableName, index: number, options: RawEntriesOptions): string {
+    return (
+        `SELECT ${table}.ts, ${table}.val, ${table}.ack, ${table}.q, sources.name AS "from" FROM ${table}` +
+        ` LEFT JOIN sources ON sources.id=${table}._from` +
+        ` WHERE ${rawEntriesWhere(table, index, options)}` +
+        ` ORDER BY ${table}.ts ${options.sort === 'asc' ? 'ASC' : 'DESC'}` +
+        ` LIMIT ${options.limit} OFFSET ${options.offset};`
+    );
+}
+
+export function getRawEntriesCount(
+    _dbName: string,
+    table: TableName,
+    index: number,
+    options: { start?: number; end?: number },
+): string {
+    return `SELECT COUNT(*) AS total FROM ${table} WHERE ${rawEntriesWhere(table, index, options)};`;
 }

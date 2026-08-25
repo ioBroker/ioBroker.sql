@@ -355,6 +355,47 @@ Example if your database is called 'iobroker':
 | MS-SQL  | `SELECT * FROM iobroker.dbo.datapoints ...` |
 | MySQL   | `SELECT * FROM iobroker.datapoints ...`     |
 
+## Read raw values
+`getHistory` is made for charts: it aggregates, interpolates, rounds and adds the values directly before and
+after the requested range. To see and page through the stored rows exactly as they are in the database, use
+**getRawEntries**:
+
+```js
+sendTo(
+    'sql.0',
+    'getRawEntries',
+    {
+        id: 'system.adapter.admin.0.memRss',
+        start: Date.now() - 3600000, // optional, inclusive
+        end: Date.now(),             // optional, inclusive
+        limit: 100,                  // optional, default 100, maximum 2000
+        offset: 0,                   // optional, default 0
+        sort: 'desc',                // optional, 'desc' (newest first, default) or 'asc'
+    },
+    result => {
+        if (result.error) {
+            console.error(result.error);
+        } else {
+            // total = number of all entries matching start/end, so a table can page through them
+            console.log(`${result.result.length} of ${result.total} entries`);
+            // [{ts: 1589458809352, val: 51.5, ack: 1, q: 0, from: 'system.adapter.admin.0'}, ...]
+            console.log(JSON.stringify(result.result));
+        }
+    },
+);
+```
+
+The answer additionally contains `id`, `index` (the ID in the `datapoints` table), `type`
+(`Number`, `String` or `Boolean`), `table` (`ts_number`, `ts_string` or `ts_bool`) and the used
+`limit`, `offset` and `sort`.
+
+The values are returned as they come from the database and are **not** converted: `ack` and boolean values
+are `0`/`1` in most databases, and `val` of a string datapoint is the stored string. `from` is `null` if no
+source was stored.
+
+Like `update`, `delete` and `storeState`, this works for datapoints whose logging is disabled too, as long as
+they still have entries in the database. If the datapoint is unknown, the answer contains an `error`.
+
 ## storeState
 
 If you want to write other data into the SQL database, you can use the build
@@ -557,6 +598,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (@GermanBluefox) The messages `delete`, `deleteRange` and `deleteAll` delete the counter values of a numeric datapoint (table `ts_counter`) too
 * (@GermanBluefox) Fixed `NaN` as a result of the aggregation `percentile` with 100 or `quantile` with 1
 * (@GermanBluefox) Fixed the last value of the `integralTotal` aggregation: it was interpolated onto the start instead of the end of the requested range
+* (@GermanBluefox) Added the message `getRawEntries` to read the stored values of one datapoint page by page (with the total number of entries) for tools that show or edit the raw data
+* (@GermanBluefox) The message `update` works now also for datapoints whose logging is disabled and reports errors back to the caller
+* (@GermanBluefox) `storeState` uses the data type stored in the database for known datapoints instead of deriving it from the value
 
 ### 4.0.4 (2026-08-11)
 * (@GermanBluefox) Fixed that nothing was stored for datapoints with an `aliasId`: the adapter subscribed to the alias name instead of the real state ID, so no state change ever arrived

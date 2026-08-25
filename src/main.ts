@@ -10,6 +10,7 @@ import type {
     SqlCustomConfig,
     SqlCustomConfigTyped,
     TableName,
+    RawEntriesOptions,
 } from './types';
 
 import * as MSSQL from './lib/mssql';
@@ -81,6 +82,13 @@ type SQLFunc = {
         from: number,
         table: 'ts_bool' | 'ts_number' | 'ts_string' | 'ts_counter',
     ) => string;
+    getRawEntries: (dbName: string, table: TableName, index: number, options: RawEntriesOptions) => string;
+    getRawEntriesCount: (
+        dbName: string,
+        table: TableName,
+        index: number,
+        options: { start?: number; end?: number },
+    ) => string;
 };
 
 const SQLFuncs: Record<DbType, SQLFunc> = {
@@ -99,6 +107,8 @@ const SQLFuncs: Record<DbType, SQLFunc> = {
         getHistory: MSSQL.getHistory,
         deleteFromTable: MSSQL.deleteFromTable,
         update: MSSQL.update,
+        getRawEntries: MSSQL.getRawEntries,
+        getRawEntriesCount: MSSQL.getRawEntriesCount,
     },
     mysql: {
         init: MySQL.init,
@@ -115,6 +125,8 @@ const SQLFuncs: Record<DbType, SQLFunc> = {
         getHistory: MySQL.getHistory,
         deleteFromTable: MySQL.deleteFromTable,
         update: MySQL.update,
+        getRawEntries: MySQL.getRawEntries,
+        getRawEntriesCount: MySQL.getRawEntriesCount,
     },
     postgresql: {
         init: PostgreSQL.init,
@@ -131,6 +143,8 @@ const SQLFuncs: Record<DbType, SQLFunc> = {
         getHistory: PostgreSQL.getHistory,
         deleteFromTable: PostgreSQL.deleteFromTable,
         update: PostgreSQL.update,
+        getRawEntries: PostgreSQL.getRawEntries,
+        getRawEntriesCount: PostgreSQL.getRawEntriesCount,
     },
     sqlite: {
         init: SQLite.init,
@@ -147,6 +161,8 @@ const SQLFuncs: Record<DbType, SQLFunc> = {
         getHistory: SQLite.getHistory,
         deleteFromTable: SQLite.deleteFromTable,
         update: SQLite.update,
+        getRawEntries: SQLite.getRawEntries,
+        getRawEntriesCount: SQLite.getRawEntriesCount,
     },
 };
 
@@ -210,6 +226,8 @@ function isEqual(a: any, b: any): boolean {
 }
 
 const MAX_TASKS = 100;
+/** Maximal number of rows one `getRawEntries` call may return */
+const MAX_RAW_ENTRIES = 2000;
 
 type SQLPointConfig = {
     realId: string;
@@ -1385,6 +1403,8 @@ export class SqlAdapter extends Adapter {
             this.deleteHistoryEntry(msg);
         } else if (msg.command === 'storeState') {
             this.storeState(msg).catch(e => this.log.error(`Cannot store state: ${e}`));
+        } else if (msg.command === 'getRawEntries') {
+            this.getRawEntries(msg);
         } else if (msg.command === 'getDpOverview') {
             this.getDpOverview(msg);
         } else if (msg.command === 'enableHistory') {
@@ -3306,38 +3326,55 @@ export class SqlAdapter extends Adapter {
             }
         }
 
-        if (!found) {
-            this.prepareTaskCheckTypeAndDbId(id, state, false, (err?: Error | null): void => {
-                if (err) {
-                    return cb?.(err);
-                }
-
-                const type = this.sqlDPs[id].type;
-
-                const query = this.sqlFuncs!.update(
-                    this.config.dbname,
-                    this.sqlDPs[id].index,
-                    state,
-                    this.from[state.from],
-                    dbNames[type],
-                );
-
-                if (!this.multiRequests) {
-                    if (this.tasks.length > MAX_TASKS) {
-                        const error = `Cannot queue new requests, because more than ${MAX_TASKS}`;
-                        this.log.error(error);
-                        cb?.(new Error(error));
-                    } else {
-                        this.tasks.push({ operation: 'query', query, id, callback: cb });
-                        this.tasks.length === 1 && this.processTasks();
-                    }
-                } else {
-                    this._executeQuery(query, id, cb);
-                }
-            });
-        } else {
+        if (found) {
             cb?.();
+            return;
         }
+
+        if (!this.sqlDPs[id]) {
+            // Logging is not (or no longer) enabled for this ID, so neither the type nor the index are known
+            // in RAM. Read both from the `datapoints` table, so stored values can still be changed.
+            this.#readIdIndexAndType(id, (err, index, type) => {
+                if (err || index === undefined || type === undefined) {
+                    cb?.(err || new Error(`Unknown ID: ${id}`));
+                    return;
+                }
+
+                // the source is only known if it was used before, otherwise `_from` stays unchanged
+                if (state.from && this.from[state.from] === undefined) {
+                    return this.getFrom(state.from, err => {
+                        if (err) {
+                            this.log.warn(`Cannot get "from" for "${state.from}": ${err}`);
+                        }
+                        this.#updateInDb(id, dbNames[type], index, state, cb);
+                    });
+                }
+
+                this.#updateInDb(id, dbNames[type], index, state, cb);
+            });
+            return;
+        }
+
+        this.prepareTaskCheckTypeAndDbId(id, state, false, (err?: Error | null): void => {
+            if (err) {
+                return cb?.(err);
+            }
+
+            this.#updateInDb(id, dbNames[this.sqlDPs[id].type], this.sqlDPs[id].index, state, cb);
+        });
+    }
+
+    /** Build and execute the UPDATE query for one entry of one datapoint */
+    #updateInDb(
+        id: string,
+        table: TableName,
+        index: number,
+        state: ioBroker.State,
+        cb?: (err?: Error | null) => void,
+    ): void {
+        const query = this.sqlFuncs!.update(this.config.dbname, index, state, this.from[state.from], table);
+
+        this.#executeQueries(id, [query], cb);
     }
 
     #delete(
@@ -3557,14 +3594,13 @@ export class SqlAdapter extends Adapter {
         } else if (msg.message.id && msg.message.state && typeof msg.message.state === 'object') {
             this.log.debug('updateState 1 item');
             id = this.aliasMap[msg.message.id] ? this.aliasMap[msg.message.id] : msg.message.id;
-            return this.update(id, msg.message.state, () =>
+            return this.update(id, msg.message.state, err =>
                 this.sendTo(
                     msg.from,
                     msg.command,
-                    {
-                        success: true,
-                        sqlConnected: !!this.clientPool,
-                    },
+                    err
+                        ? { error: err.message, sqlConnected: !!this.clientPool }
+                        : { success: true, sqlConnected: !!this.clientPool },
                     msg.callback,
                 ),
             );
@@ -3784,20 +3820,40 @@ export class SqlAdapter extends Adapter {
             this.sqlDPs[id].realId = id;
         }
         return new Promise<boolean>((resolve, reject) => {
-            if (applyRules) {
-                this.pushHistory(id, state);
-                resolve(true);
-            } else {
-                this.pushHelper(id, state, err => {
-                    if (err) {
-                        reject(
-                            new Error(`Error writing state for ${id}: ${err.message}, Data: ${JSON.stringify(state)}`),
-                        );
-                    } else {
-                        resolve(true);
+            const push = (): void => {
+                if (applyRules) {
+                    this.pushHistory(id, state);
+                    resolve(true);
+                } else {
+                    this.pushHelper(id, state, err => {
+                        if (err) {
+                            reject(
+                                new Error(
+                                    `Error writing state for ${id}: ${err.message}, Data: ${JSON.stringify(state)}`,
+                                ),
+                            );
+                        } else {
+                            resolve(true);
+                        }
+                    });
+                }
+            };
+
+            // Without a configuration, the type would be guessed from the value and could then even overwrite
+            // the type in the `datapoints` table. Use the stored type of an already known datapoint instead.
+            if (!this.sqlDPs[id].config && this.sqlDPs[id].type === undefined) {
+                this.#readIdIndexAndType(id, (err, index, type) => {
+                    if (!err && index !== undefined && type !== undefined) {
+                        this.sqlDPs[id].index = index;
+                        this.sqlDPs[id].type = type;
+                        this.sqlDPs[id].dbType = type;
                     }
+                    push();
                 });
+                return;
             }
+
+            push();
         });
     }
 
@@ -3884,6 +3940,106 @@ export class SqlAdapter extends Adapter {
             },
             msg.callback,
         );
+    }
+
+    /**
+     * Read the stored values of one datapoint page by page.
+     *
+     * In contrast to `getHistory`, the rows are returned exactly as they are in the database: no aggregation,
+     * no interpolation, no border values and no rounding. Together with the total number of matching entries,
+     * so that a table can page through them. Works for datapoints that are not (or no longer) enabled for
+     * logging too.
+     */
+    getRawEntries(msg: ioBroker.Message): void {
+        if (!msg.message?.id) {
+            this.log.error('getRawEntries called with invalid data');
+            return this.sendTo(msg.from, msg.command, { error: `Invalid call: ${JSON.stringify(msg)}` }, msg.callback);
+        }
+
+        const toTs = (value: unknown): number | undefined => {
+            if (value === undefined || value === null || value === '') {
+                return undefined;
+            }
+            const ts = typeof value === 'number' ? value : new Date(value as string).getTime();
+            return isFinite(ts) ? ts : undefined;
+        };
+
+        const id: string = this.aliasMap[msg.message.id] || msg.message.id;
+        const options: RawEntriesOptions = {
+            start: toTs(msg.message.start),
+            end: toTs(msg.message.end),
+            limit: Math.min(Math.max(parseInt(msg.message.limit, 10) || 100, 1), MAX_RAW_ENTRIES),
+            offset: Math.max(parseInt(msg.message.offset, 10) || 0, 0),
+            sort: msg.message.sort === 'asc' ? 'asc' : 'desc',
+        };
+
+        this.#readIdIndexAndType(id, (err, index, type) => {
+            if (err || index === undefined || type === undefined) {
+                return this.sendTo(
+                    msg.from,
+                    msg.command,
+                    { error: (err || new Error(`Unknown ID: ${id}`)).message },
+                    msg.callback,
+                );
+            }
+
+            const table = dbNames[type];
+
+            this.borrowClientFromPool((err, client) => {
+                if (err || !client) {
+                    this.returnClientToPool(client);
+                    return this.sendTo(
+                        msg.from,
+                        msg.command,
+                        { error: (err || new Error('No client')).message },
+                        msg.callback,
+                    );
+                }
+
+                const countQuery = this.sqlFuncs!.getRawEntriesCount(this.config.dbname, table, index, options);
+                this.log.debug(countQuery);
+
+                client.execute<{ total: number | string }>(countQuery, (err, rows) => {
+                    if (err) {
+                        this.returnClientToPool(client);
+                        this.log.error(`Cannot select ${countQuery}: ${err}`);
+                        return this.sendTo(msg.from, msg.command, { error: err.message }, msg.callback);
+                    }
+
+                    // PostgreSQL returns the count of a bigint column as string
+                    const total = rows?.[0] ? parseInt(rows[0].total as string, 10) || 0 : 0;
+
+                    const query = this.sqlFuncs!.getRawEntries(this.config.dbname, table, index, options);
+                    this.log.debug(query);
+
+                    client.execute<IobDataEntry>(query, (err, rows) => {
+                        this.returnClientToPool(client);
+
+                        if (err) {
+                            this.log.error(`Cannot select ${query}: ${err}`);
+                            return this.sendTo(msg.from, msg.command, { error: err.message }, msg.callback);
+                        }
+
+                        this.sendTo(
+                            msg.from,
+                            msg.command,
+                            {
+                                id: msg.message.id,
+                                index,
+                                type: storageTypes[type],
+                                table,
+                                total,
+                                limit: options.limit,
+                                offset: options.offset,
+                                sort: options.sort,
+                                result: rows || [],
+                            },
+                            msg.callback,
+                        );
+                    });
+                });
+            });
+        });
     }
 
     getDpOverview(msg: ioBroker.Message): void {

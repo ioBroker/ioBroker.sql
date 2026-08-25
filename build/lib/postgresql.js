@@ -14,6 +14,8 @@ exports.getCounterDiff = getCounterDiff;
 exports.getHistory = getHistory;
 exports.deleteFromTable = deleteFromTable;
 exports.update = update;
+exports.getRawEntries = getRawEntries;
+exports.getRawEntriesCount = getRawEntriesCount;
 function init(_dbName, _doNotCreateDatabase) {
     return [
         'CREATE TABLE sources    (id SERIAL NOT NULL PRIMARY KEY, name TEXT);',
@@ -237,5 +239,25 @@ function update(_dbName, index, state, from, table) {
     query += ` AND ts=${state.ts}`;
     query += ';';
     return query;
+}
+function rawEntriesWhere(table, index, options) {
+    let where = `${table}.id=${index}`;
+    if (options.start) {
+        where += ` AND ${table}.ts>=${options.start}`;
+    }
+    if (options.end) {
+        where += ` AND ${table}.ts<=${options.end}`;
+    }
+    return where;
+}
+function getRawEntries(_dbName, table, index, options) {
+    return (`SELECT ${table}.ts, ${table}.val, ${table}.ack, ${table}.q, sources.name AS "from" FROM ${table}` +
+        ` LEFT JOIN sources ON sources.id=${table}._from` +
+        ` WHERE ${rawEntriesWhere(table, index, options)}` +
+        ` ORDER BY ${table}.ts ${options.sort === 'asc' ? 'ASC' : 'DESC'}` +
+        ` LIMIT ${options.limit} OFFSET ${options.offset};`);
+}
+function getRawEntriesCount(_dbName, table, index, options) {
+    return `SELECT COUNT(*) AS total FROM ${table} WHERE ${rawEntriesWhere(table, index, options)};`;
 }
 //# sourceMappingURL=postgresql.js.map

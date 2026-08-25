@@ -1,6 +1,20 @@
 export type DbType = 'sqlite' | 'postgresql' | 'mysql' | 'mssql';
 export type TableName = 'ts_string' | 'ts_number' | 'ts_bool' | 'ts_counter';
 export type StorageType = '' | 'String' | 'Number' | 'Boolean';
+
+/** Options of the `getRawEntries` message, already sanitized by the adapter */
+export interface RawEntriesOptions {
+    /** oldest timestamp to return (inclusive) */
+    start?: number;
+    /** newest timestamp to return (inclusive) */
+    end?: number;
+    /** maximal number of returned rows */
+    limit: number;
+    /** number of rows to skip */
+    offset: number;
+    /** sort order by timestamp */
+    sort: 'asc' | 'desc';
+}
 export interface SqlCustomConfigTyped {
     enabled: boolean;
     debounceTime: number;

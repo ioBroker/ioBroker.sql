@@ -1,4 +1,4 @@
-import type { TableName } from '../types';
+import type { RawEntriesOptions, TableName } from '../types';
 
 export function init(dbName: string, doNotCreateDatabase?: boolean): string[] {
     const commands = [
@@ -313,4 +313,39 @@ export function update(
     query += ` WHERE id=${index} AND ts=${state.ts};`;
 
     return query;
+}
+
+function rawEntriesWhere(
+    dbName: string,
+    table: TableName,
+    index: number,
+    options: { start?: number; end?: number },
+): string {
+    let where = `${dbName}.dbo.${table}.id=${index}`;
+    if (options.start) {
+        where += ` AND ${dbName}.dbo.${table}.ts>=${options.start}`;
+    }
+    if (options.end) {
+        where += ` AND ${dbName}.dbo.${table}.ts<=${options.end}`;
+    }
+    return where;
+}
+
+export function getRawEntries(dbName: string, table: TableName, index: number, options: RawEntriesOptions): string {
+    return (
+        `SELECT ${dbName}.dbo.${table}.ts, ${dbName}.dbo.${table}.val, ${dbName}.dbo.${table}.ack, ${dbName}.dbo.${table}.q, ${dbName}.dbo.sources.name AS 'from' FROM ${dbName}.dbo.${table}` +
+        ` LEFT OUTER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from` +
+        ` WHERE ${rawEntriesWhere(dbName, table, index, options)}` +
+        ` ORDER BY ${dbName}.dbo.${table}.ts ${options.sort === 'asc' ? 'ASC' : 'DESC'}` +
+        ` OFFSET ${options.offset} ROWS FETCH NEXT ${options.limit} ROWS ONLY;`
+    );
+}
+
+export function getRawEntriesCount(
+    dbName: string,
+    table: TableName,
+    index: number,
+    options: { start?: number; end?: number },
+): string {
+    return `SELECT COUNT(*) AS total FROM ${dbName}.dbo.${table} WHERE ${rawEntriesWhere(dbName, table, index, options)};`;
 }

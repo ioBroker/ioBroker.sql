@@ -14,6 +14,8 @@ exports.getCounterDiff = getCounterDiff;
 exports.getHistory = getHistory;
 exports.deleteFromTable = deleteFromTable;
 exports.update = update;
+exports.getRawEntries = getRawEntries;
+exports.getRawEntriesCount = getRawEntriesCount;
 function init(dbName, doNotCreateDatabase) {
     const commands = [
         `CREATE TABLE \`${dbName}\`.sources    (id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, name TEXT);`,
@@ -241,5 +243,25 @@ function update(dbName, index, state, from, table) {
     query += ` AND ts=${state.ts}`;
     query += ';';
     return query;
+}
+function rawEntriesWhere(dbName, table, index, options) {
+    let where = `\`${dbName}\`.${table}.id=${index}`;
+    if (options.start) {
+        where += ` AND \`${dbName}\`.${table}.ts>=${options.start}`;
+    }
+    if (options.end) {
+        where += ` AND \`${dbName}\`.${table}.ts<=${options.end}`;
+    }
+    return where;
+}
+function getRawEntries(dbName, table, index, options) {
+    return (`SELECT \`${dbName}\`.${table}.ts, \`${dbName}\`.${table}.val, \`${dbName}\`.${table}.ack, \`${dbName}\`.${table}.q, \`${dbName}\`.sources.name AS 'from' FROM \`${dbName}\`.${table}` +
+        ` LEFT JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from` +
+        ` WHERE ${rawEntriesWhere(dbName, table, index, options)}` +
+        ` ORDER BY \`${dbName}\`.${table}.ts ${options.sort === 'asc' ? 'ASC' : 'DESC'}` +
+        ` LIMIT ${options.limit} OFFSET ${options.offset};`);
+}
+function getRawEntriesCount(dbName, table, index, options) {
+    return `SELECT COUNT(*) AS total FROM \`${dbName}\`.${table} WHERE ${rawEntriesWhere(dbName, table, index, options)};`;
 }
 //# sourceMappingURL=mysql.js.map

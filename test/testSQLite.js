@@ -156,6 +156,99 @@ describe(`Test ${__filename}`, function () {
         });
     });
 
+    it(`Test ${__filename}: Read raw entries page by page`, function (done) {
+        this.timeout(20000);
+
+        sendTo('sql.0', 'getRawEntries', { id: 'sql.0.testValue', limit: 5 }, function (result) {
+            assert.ok(!result.error, `${result.error}`);
+            assert.strictEqual(result.type, 'Number');
+            assert.strictEqual(result.table, 'ts_number');
+            assert.strictEqual(result.sort, 'desc');
+            console.log(`SQLite: ${result.total} raw entries for sql.0.testValue`);
+            assert.ok(result.total >= 10, `${result.total} >= 10`);
+            assert.strictEqual(result.result.length, 5);
+            // newest first
+            assert.ok(result.result[0].ts >= result.result[4].ts);
+
+            const total = result.total;
+            const newest = result.result[0].ts;
+
+            sendTo('sql.0', 'getRawEntries', { id: 'sql.0.testValue', limit: 5, offset: 5 }, function (result) {
+                assert.ok(!result.error, `${result.error}`);
+                assert.strictEqual(result.total, total);
+                assert.strictEqual(result.result.length, 5);
+                // the second page is older than the first one
+                assert.ok(result.result[0].ts < newest, `${result.result[0].ts} < ${newest}`);
+
+                sendTo('sql.0', 'getRawEntries', { id: 'sql.0.testValue', limit: 1, sort: 'asc' }, function (result) {
+                    assert.ok(!result.error, `${result.error}`);
+                    assert.strictEqual(result.sort, 'asc');
+                    assert.strictEqual(result.result.length, 1);
+                    assert.ok(result.result[0].ts <= newest);
+
+                    sendTo('sql.0', 'getRawEntries', { id: 'sql.0.doesNotExist' }, function (result) {
+                        assert.ok(result.error, `Error expected, but got ${JSON.stringify(result)}`);
+                        done();
+                    });
+                });
+            });
+        });
+    });
+
+    it(`Test ${__filename}: Update a value of a datapoint with disabled logging`, function (done) {
+        this.timeout(60000);
+
+        sendTo('sql.0', 'disableHistory', { id: 'sql.0.testValue' }, function (result) {
+            assert.strictEqual(result.error, undefined);
+            assert.strictEqual(result.success, true);
+
+            // wait till the adapter processed the object change and flushed its RAM buffer
+            setTimeout(function () {
+                sendTo('sql.0', 'getRawEntries', { id: 'sql.0.testValue', limit: 1 }, function (result) {
+                    assert.ok(!result.error, `${result.error}`);
+                    assert.strictEqual(result.result.length, 1);
+
+                    const entry = result.result[0];
+                    const newValue = typeof entry.val === 'number' ? entry.val + 42 : 42;
+
+                    sendTo(
+                        'sql.0',
+                        'update',
+                        { id: 'sql.0.testValue', state: { ts: entry.ts, val: newValue, ack: true, q: 0 } },
+                        function (result) {
+                            assert.strictEqual(result.error, undefined);
+                            assert.strictEqual(result.success, true);
+
+                            setTimeout(function () {
+                                sendTo(
+                                    'sql.0',
+                                    'getRawEntries',
+                                    { id: 'sql.0.testValue', start: entry.ts, end: entry.ts },
+                                    function (result) {
+                                        assert.ok(!result.error, `${result.error}`);
+                                        assert.strictEqual(result.result.length, 1);
+                                        assert.strictEqual(result.result[0].val, newValue);
+                                        done();
+                                    },
+                                );
+                            }, 2000);
+                        },
+                    );
+                });
+            }, 5000);
+        });
+    });
+
+    it(`Test ${__filename}: Update a value of an unknown datapoint reports an error`, function (done) {
+        this.timeout(10000);
+
+        sendTo('sql.0', 'update', { id: 'sql.0.doesNotExist', state: { ts: Date.now(), val: 1 } }, function (result) {
+            assert.ok(result.error, `Error expected, but got ${JSON.stringify(result)}`);
+            assert.strictEqual(result.success, undefined);
+            done();
+        });
+    });
+
     it(`Test ${__filename}: Delete all data of a datapoint with disabled logging`, function (done) {
         this.timeout(60000);
 
