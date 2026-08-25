@@ -1,5 +1,5 @@
 import { Adapter, type AdapterOptions, getAbsoluteDefaultDataDir } from '@iobroker/adapter-core'; // Get common adapter utils
-import { sendResponseCounter, sendResponse } from './lib/aggregate';
+import { sendResponseCounter, sendResponse } from '@iobroker/aggregate';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join, normalize } from 'node:path';
 
@@ -1405,6 +1405,8 @@ export class SqlAdapter extends Adapter {
             this.storeState(msg).catch(e => this.log.error(`Cannot store state: ${e}`));
         } else if (msg.command === 'getRawEntries') {
             this.getRawEntries(msg);
+        } else if (msg.command === 'getDatapoints') {
+            this.getDatapoints(msg);
         } else if (msg.command === 'getDpOverview') {
             this.getDpOverview(msg);
         } else if (msg.command === 'enableHistory') {
@@ -4038,6 +4040,49 @@ export class SqlAdapter extends Adapter {
                         );
                     });
                 });
+            });
+        });
+    }
+
+    /**
+     * Return all datapoints that have an entry in the `datapoints` table - no matter whether their logging is
+     * still enabled or not.
+     *
+     * In contrast to `getDpOverview`, this is only one SELECT and answers immediately: `getDpOverview`
+     * additionally determines the first timestamp of every datapoint and pauses 5 seconds between the types.
+     */
+    getDatapoints(msg: ioBroker.Message): void {
+        const query = this.sqlFuncs!.getIdSelect(this.config.dbname);
+        this.log.debug(query);
+
+        this.borrowClientFromPool((err, client) => {
+            if (err || !client) {
+                this.returnClientToPool(client);
+                return this.sendTo(
+                    msg.from,
+                    msg.command,
+                    { error: (err || new Error('No client')).message },
+                    msg.callback,
+                );
+            }
+
+            client.execute<{ id: number; type: 0 | 1 | 2; name: string }>(query, (err, rows) => {
+                this.returnClientToPool(client);
+
+                if (err) {
+                    this.log.error(`Cannot select ${query}: ${err}`);
+                    return this.sendTo(msg.from, msg.command, { error: err.message }, msg.callback);
+                }
+
+                const result = (rows || [])
+                    .map(row => ({
+                        id: row.name,
+                        index: row.id,
+                        type: typeof row.type === 'number' ? storageTypes[row.type] : null,
+                    }))
+                    .sort((a, b) => (a.id > b.id ? 1 : a.id < b.id ? -1 : 0));
+
+                this.sendTo(msg.from, msg.command, { success: true, result }, msg.callback);
             });
         });
     }

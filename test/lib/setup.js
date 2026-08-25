@@ -528,6 +528,8 @@ function copyAdapterToController() {
         'test',
         'tmp',
         '.git',
+        // sources and node_modules of the admin component - only the built bundle in admin/custom is needed
+        'src-admin',
         appName + '.js-controller',
     ]);
     console.log('Adapter copied.');

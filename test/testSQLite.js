@@ -156,6 +156,26 @@ describe(`Test ${__filename}`, function () {
         });
     });
 
+    it(`Test ${__filename}: Read the list of all datapoints`, function (done) {
+        this.timeout(10000);
+
+        sendTo('sql.0', 'getDatapoints', {}, function (result) {
+            assert.ok(!result.error, `${result.error}`);
+            assert.ok(Array.isArray(result.result), 'array expected');
+            assert.ok(result.result.length >= 3, `${result.result.length} >= 3`);
+
+            const testValue = result.result.find(point => point.id === 'sql.0.testValue');
+            assert.ok(testValue, 'sql.0.testValue not found');
+            assert.strictEqual(testValue.type, 'Number');
+            assert.ok(testValue.index > 0, `${testValue.index} > 0`);
+
+            // sorted by ID
+            const ids = result.result.map(point => point.id);
+            assert.deepStrictEqual(ids, [...ids].sort(), 'not sorted by id');
+            done();
+        });
+    });
+
     it(`Test ${__filename}: Read raw entries page by page`, function (done) {
         this.timeout(20000);
 

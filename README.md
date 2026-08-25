@@ -355,6 +355,33 @@ Example if your database is called 'iobroker':
 | MS-SQL  | `SELECT * FROM iobroker.dbo.datapoints ...` |
 | MySQL   | `SELECT * FROM iobroker.datapoints ...`     |
 
+## Data browser
+The instance settings contain a tab **Data browser**: on the left all datapoints that have data in the
+database, on the right the stored values of the selected one. The values can be paged through, edited,
+deleted and new ones can be inserted. The tab needs a running instance.
+
+The component is a JSON-Config `custom` component. Its sources are in `src-admin`, the built bundle in
+`admin/custom` is committed:
+
+```bash
+npm run npm:admin      # install the dependencies of the component (only once)
+npm run build:admin    # clean, build and copy into admin/custom
+cd src-admin && npm start   # development server on http://localhost:4173
+```
+
+The datapoint list comes from the message **getDatapoints**, which can also be used from scripts:
+
+```js
+sendTo('sql.0', 'getDatapoints', {}, result => {
+    // [{id: 'system.adapter.admin.0.memRss', index: 1, type: 'Number'}, ...]
+    console.log(JSON.stringify(result.result));
+});
+```
+
+It returns every datapoint of the `datapoints` table - including the ones whose logging is disabled -
+sorted by ID. In contrast to `getDpOverview`, it does not determine the first timestamp of every
+datapoint and answers immediately.
+
 ## Read raw values
 `getHistory` is made for charts: it aggregates, interpolates, rounds and adds the values directly before and
 after the requested range. To see and page through the stored rows exactly as they are in the database, use
@@ -601,6 +628,8 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (@GermanBluefox) Added the message `getRawEntries` to read the stored values of one datapoint page by page (with the total number of entries) for tools that show or edit the raw data
 * (@GermanBluefox) The message `update` works now also for datapoints whose logging is disabled and reports errors back to the caller
 * (@GermanBluefox) `storeState` uses the data type stored in the database for known datapoints instead of deriving it from the value
+* (@GermanBluefox) Added the tab `Data browser` to the instance settings: show, edit, delete and insert the stored values of a datapoint
+* (@GermanBluefox) Added the message `getDatapoints` that returns all datapoints of the database immediately
 
 ### 4.0.4 (2026-08-11)
 * (@GermanBluefox) Fixed that nothing was stored for datapoints with an `aliasId`: the adapter subscribed to the alias name instead of the real state ID, so no state change ever arrived

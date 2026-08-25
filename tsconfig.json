@@ -14,7 +14,6 @@
         "module": "Node16",
         "moduleResolution": "node16",
         "resolveJsonModule": true,
-        "strict": true,
         "target": "es2023",
         "sourceMap": true,
         "inlineSourceMap": false,

@@ -35,11 +35,14 @@
     "@alcalzone/release-script": "^5.2.1",
     "@alcalzone/release-script-plugin-iobroker": "^5.2.0",
     "@alcalzone/release-script-plugin-license": "^5.2.2",
+    "@iobroker/build-tools": "^3.0.1",
     "@iobroker/eslint-config": "^2.3.4",
     "@iobroker/testing": "^5.3.0",
     "@types/mssql": "^12.3.0",
+    "@types/node": "^26.1.1",
     "@types/pg": "^8.23.1",
     "mocha": "^11.8.0",
+    "tsx": "^4.23.1",
     "typescript": "^6.0.3"
   },
   "bugs": {
@@ -66,7 +69,9 @@
     "release-patch": "release-script patch --yes",
     "release-minor": "release-script minor --yes",
     "release-major": "release-script major --yes",
-    "update-packages": "npx npm-check-updates --upgrade"
+    "update-packages": "npx npm-check-updates --upgrade",
+    "build:admin": "tsx tasks.ts",
+    "npm:admin": "cd src-admin && npm i -f"
   },
   "license": "MIT"
 }

@@ -155,10 +155,39 @@ different logging ID (`aliasMap`).
 
 ### Admin UI
 
-JSON-config only: `admin/jsonConfig.json` (instance settings, panels `dbTab`, `defaultTab`, `dockerMysql`,
-`dockerPhpMyAdmin`) and `admin/jsonCustom.json` (per-datapoint settings). Translations are in
-`admin/i18n/<lang>/translations.json` and are maintained by Weblate — do not hand-edit non-English files.
-`admin/words.js` is legacy and unused.
+JSON-config plus one React component: `admin/jsonConfig.json` (instance settings, panels `dbTab`,
+`defaultTab`, `dataTab`, `dockerMysql`, `dockerPhpMyAdmin`) and `admin/jsonCustom.json` (per-datapoint
+settings). Translations are in `admin/i18n/<lang>/translations.json` and are maintained by Weblate — do not
+hand-edit non-English files. `admin/words.js` is legacy and unused.
+
+The `dataTab` panel embeds the **data browser**, a JSON-Config `custom` component (`guiApi: 2`):
+
+```
+src-admin/src/DataBrowser.tsx   the component (extends ConfigGeneric, renderItem())
+src-admin/src/Components.tsx    the export map that module federation exposes
+src-admin/src/App.tsx|index.tsx dev harness only, not part of the bundle
+src-admin/vite.config.ts        federation name `SqlComponentsSet` - must match `name` in jsonConfig.json
+tasks.ts                        clean / npm install / vite build / copy into admin/custom
+admin/custom/**                 the built bundle, committed to git
+```
+
+```bash
+npm run npm:admin      # install the component dependencies (own package.json in src-admin)
+npm run build:admin    # tsx tasks.ts: clean, npm i, vite build, copy
+cd src-admin && npm start
+```
+
+- `npm run build` builds **only the adapter** (`tsc`), never the component. Rebuild and commit
+  `admin/custom` yourself when `src-admin` changes; the release script does not do it.
+- The copy step must take `src-admin/build/assets/*` along — vite puts the chunks there and
+  `customComponents.js` loads them relatively. The official template copies `static/js/*` instead, which
+  is a leftover of the old CRA build and silently copies nothing.
+- `moduleFederationShared()` marks React, MUI, `@iobroker/gui-components` and `@iobroker/json-config` as
+  shared, but still bundles a fallback copy of each — that is why `admin/custom` is ~8 MB although the
+  admin provides all of them at runtime. `import: false` in the `shared` config of `vite.config.ts` would
+  drop the fallbacks.
+- The component talks to the adapter only through messages (`getDatapoints`, `getRawEntries`, `update`,
+  `storeState`, `delete`), never through its own SQL.
 
 ### Docker
 

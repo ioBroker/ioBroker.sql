@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SqlAdapter = void 0;
 const adapter_core_1 = require("@iobroker/adapter-core"); // Get common adapter utils
-const aggregate_1 = require("./lib/aggregate");
+const aggregate_1 = require("@iobroker/aggregate");
 const node_fs_1 = require("node:fs");
 const node_path_1 = require("node:path");
 const MSSQL = __importStar(require("./lib/mssql"));
@@ -1212,6 +1212,9 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
         else if (msg.command === 'getRawEntries') {
             this.getRawEntries(msg);
+        }
+        else if (msg.command === 'getDatapoints') {
+            this.getDatapoints(msg);
         }
         else if (msg.command === 'getDpOverview') {
             this.getDpOverview(msg);
@@ -3347,6 +3350,38 @@ class SqlAdapter extends adapter_core_1.Adapter {
                         }, msg.callback);
                     });
                 });
+            });
+        });
+    }
+    /**
+     * Return all datapoints that have an entry in the `datapoints` table - no matter whether their logging is
+     * still enabled or not.
+     *
+     * In contrast to `getDpOverview`, this is only one SELECT and answers immediately: `getDpOverview`
+     * additionally determines the first timestamp of every datapoint and pauses 5 seconds between the types.
+     */
+    getDatapoints(msg) {
+        const query = this.sqlFuncs.getIdSelect(this.config.dbname);
+        this.log.debug(query);
+        this.borrowClientFromPool((err, client) => {
+            if (err || !client) {
+                this.returnClientToPool(client);
+                return this.sendTo(msg.from, msg.command, { error: (err || new Error('No client')).message }, msg.callback);
+            }
+            client.execute(query, (err, rows) => {
+                this.returnClientToPool(client);
+                if (err) {
+                    this.log.error(`Cannot select ${query}: ${err}`);
+                    return this.sendTo(msg.from, msg.command, { error: err.message }, msg.callback);
+                }
+                const result = (rows || [])
+                    .map(row => ({
+                    id: row.name,
+                    index: row.id,
+                    type: typeof row.type === 'number' ? storageTypes[row.type] : null,
+                }))
+                    .sort((a, b) => (a.id > b.id ? 1 : a.id < b.id ? -1 : 0));
+                this.sendTo(msg.from, msg.command, { success: true, result }, msg.callback);
             });
         });
     }

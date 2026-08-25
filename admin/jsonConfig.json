@@ -346,6 +346,20 @@
                 }
             }
         },
+        "dataTab": {
+            "type": "panel",
+            "label": "Data browser",
+            "items": {
+                "_dataBrowser": {
+                    "type": "custom",
+                    "i18n": true,
+                    "url": "custom/customComponents.js",
+                    "name": "SqlComponentsSet/Components/DataBrowser",
+                    "guiApi": 2,
+                    "sm": 12
+                }
+            }
+        },
         "dockerMysql": {
             "type": "panel",
             "label": "MySQL Docker",
