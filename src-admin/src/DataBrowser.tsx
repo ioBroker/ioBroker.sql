@@ -177,6 +177,18 @@ function formatTs(ts: number): string {
     );
 }
 
+/** local date of a timestamp as `YYYY-MM-DD` for an input field */
+function toDateInput(date: Date): string {
+    const pad = (value: number): string => value.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** local time of a timestamp as `HH:mm:ss` for an input field */
+function toTimeInput(date: Date): string {
+    const pad = (value: number): string => value.toString().padStart(2, '0');
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
 function fromInputValue(value: string): number | undefined {
     if (!value) {
         return undefined;
@@ -681,6 +693,86 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
         );
     }
 
+    /**
+     * Date, time and milliseconds of one entry.
+     *
+     * The timestamp is the primary key of the entry, so it can only be set for a new one. `dialog.ts` stays
+     * the leading value in milliseconds, the three fields only show and change parts of it.
+     */
+    renderTimeSelector(dialog: EntryDialog): React.JSX.Element {
+        const ts = parseInt(dialog.ts, 10);
+        const valid = !isNaN(ts);
+        const disabled = !!dialog.original;
+
+        const changePart = (part: 'date' | 'time' | 'ms', value: string): void => {
+            const date = new Date(valid ? ts : Date.now());
+            let dateValue = toDateInput(date);
+            let timeValue = toTimeInput(date);
+            let ms = date.getMilliseconds();
+
+            if (part === 'date') {
+                if (!value) {
+                    return;
+                }
+                dateValue = value;
+            } else if (part === 'time') {
+                if (!value) {
+                    return;
+                }
+                // the time input delivers HH:mm without seconds if they are zero
+                timeValue = value.length === 5 ? `${value}:00` : value;
+            } else {
+                ms = Math.min(999, Math.max(0, parseInt(value, 10) || 0));
+            }
+
+            // a date-time without time zone is parsed as local time - exactly what the fields show
+            const newTs = new Date(`${dateValue}T${timeValue}.${ms.toString().padStart(3, '0')}`).getTime();
+            if (!isNaN(newTs)) {
+                this.setState({ entryDialog: { ...dialog, ts: newTs.toString() } });
+            }
+        };
+
+        return (
+            <div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <TextField
+                        label={I18n.t('sql_date')}
+                        type="date"
+                        value={valid ? toDateInput(new Date(ts)) : ''}
+                        disabled={disabled}
+                        style={{ flexGrow: 1 }}
+                        slotProps={{ inputLabel: { shrink: true } }}
+                        onChange={e => changePart('date', e.target.value)}
+                    />
+                    <TextField
+                        label={I18n.t('sql_time')}
+                        type="time"
+                        value={valid ? toTimeInput(new Date(ts)) : ''}
+                        disabled={disabled}
+                        style={{ flexGrow: 1 }}
+                        slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 1 } }}
+                        onChange={e => changePart('time', e.target.value)}
+                    />
+                    <TextField
+                        label={I18n.t('sql_ms')}
+                        type="number"
+                        value={valid ? new Date(ts).getMilliseconds() : ''}
+                        disabled={disabled}
+                        style={{ width: 100 }}
+                        slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: 0, max: 999 } }}
+                        onChange={e => changePart('ms', e.target.value)}
+                    />
+                </div>
+                <Typography
+                    variant="caption"
+                    style={{ opacity: 0.7 }}
+                >
+                    {valid ? `${formatTs(ts)} · ${ts}` : ''}
+                </Typography>
+            </div>
+        );
+    }
+
     renderEntryDialog(): React.JSX.Element | null {
         const dialog = this.state.entryDialog;
         if (!dialog) {
@@ -696,13 +788,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
             >
                 <DialogTitle>{I18n.t(dialog.original ? 'sql_save' : 'sql_add')}</DialogTitle>
                 <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8 }}>
-                    <TextField
-                        label={I18n.t('sql_time')}
-                        value={dialog.ts}
-                        disabled={!!dialog.original}
-                        helperText={formatTs(parseInt(dialog.ts, 10))}
-                        onChange={e => this.setState({ entryDialog: { ...dialog, ts: e.target.value } })}
-                    />
+                    {this.renderTimeSelector(dialog)}
                     {this.state.selected?.type === 'Boolean' ? (
                         <Select
                             value={dialog.val === 'true' || dialog.val === '1' ? 'true' : 'false'}
