@@ -2015,21 +2015,21 @@ export class SqlAdapter extends Adapter {
         });
     }
 
-    _executeQuery(query: string, id: string, cb?: () => void): void {
+    _executeQuery(query: string, id: string, cb?: (err?: Error | null) => void): void {
         this.log.debug(query);
 
         this.borrowClientFromPool((err: Error | null | undefined, client?: SQLClient): void => {
             if (err || !client) {
                 this.returnClientToPool(client);
                 this.log.error(err?.toString() || 'No client');
-                cb?.();
+                cb?.(err || new Error('No client'));
             } else {
                 client.execute(query, (err?: Error | null): void => {
                     this.returnClientToPool(client);
                     if (err) {
                         this.log.error(`Cannot query ${query}: ${err} (id: ${id})`);
                     }
-                    cb?.();
+                    cb?.(err);
                 });
             }
         });
@@ -2464,8 +2464,8 @@ export class SqlAdapter extends Adapter {
         if (this.tasks.length) {
             if (this.tasks[0].operation === 'query') {
                 const taskQuery: TaskQuery = this.tasks[0];
-                this._executeQuery(taskQuery.query, this.tasks[0].id, () => {
-                    taskQuery.callback?.();
+                this._executeQuery(taskQuery.query, this.tasks[0].id, err => {
+                    taskQuery.callback?.(err);
                     this.tasks.shift();
                     this.lockTasks = false;
                     if (this.tasks.length) {
@@ -3380,50 +3380,143 @@ export class SqlAdapter extends Adapter {
             }
         }
 
-        if (!found) {
-            this.prepareTaskCheckTypeAndDbId(id, state as unknown as IobDataEntryEx, false, err => {
+        if (found) {
+            cb?.();
+            return;
+        }
+
+        if (!this.sqlDPs[id]) {
+            // Logging is not (or no longer) enabled for this ID, so neither the type nor the index are known
+            // in RAM. Read both from the `datapoints` table, so the already stored values can still be deleted.
+            this.#readIdIndexAndType(id, (err, index, type) => {
+                if (err || index === undefined || type === undefined) {
+                    cb?.(err || new Error(`Unknown ID: ${id}`));
+                    return;
+                }
+
+                this.#deleteFromDb(id, dbNames[type], index, state, cb);
+            });
+            return;
+        }
+
+        this.prepareTaskCheckTypeAndDbId(id, state as unknown as IobDataEntryEx, false, err => {
+            if (err) {
+                return cb?.(err);
+            }
+
+            this.#deleteFromDb(id, dbNames[this.sqlDPs[id].type], this.sqlDPs[id].index, state, cb);
+        });
+    }
+
+    /**
+     * Read the index and the stored data type of one datapoint from the `datapoints` table.
+     *
+     * In contrast to `getId`, this never creates or modifies anything and it works for IDs that are not
+     * (or no longer) enabled for logging, i.e., that are not in `sqlDPs`.
+     */
+    #readIdIndexAndType(id: string, cb: (err: Error | null, index?: number, type?: 0 | 1 | 2) => void): void {
+        if (!this.clientPool) {
+            this.log.warn('No Connection to database');
+            setImmediate(() => cb(new Error('No Connection to database')));
+            return;
+        }
+
+        const query = this.sqlFuncs!.getIdSelect(this.config.dbname, id);
+        this.log.debug(query);
+
+        this.borrowClientFromPool((err, client) => {
+            if (err || !client) {
+                this.returnClientToPool(client);
+                cb(err || new Error('No client'));
+                return;
+            }
+
+            client.execute<{ id: number; name: string; type: 0 | 1 | 2 }>(query, (err, rows) => {
+                this.returnClientToPool(client);
+
                 if (err) {
-                    return cb?.(err);
-                }
-
-                const type = this.sqlDPs[id].type;
-
-                let query;
-                if (state.start && state.end) {
-                    query = this.sqlFuncs!.deleteFromTable(
-                        this.config.dbname,
-                        dbNames[type],
-                        this.sqlDPs[id].index,
-                        state.start,
-                        state.end,
-                    );
-                } else if (state.ts) {
-                    query = this.sqlFuncs!.deleteFromTable(
-                        this.config.dbname,
-                        dbNames[type],
-                        this.sqlDPs[id].index,
-                        state.ts,
-                    );
+                    this.log.error(`Cannot select ${query}: ${err}`);
+                    cb(err);
+                } else if (!rows?.length) {
+                    cb(new Error(`Unknown ID: ${id}`));
+                } else if (typeof rows[0].type !== 'number' || !dbNames[rows[0].type]) {
+                    cb(new Error(`No valid data type stored for ${id}: ${rows[0].type}`));
                 } else {
-                    // delete all entries for ID
-                    query = this.sqlFuncs!.deleteFromTable(this.config.dbname, dbNames[type], this.sqlDPs[id].index);
-                }
-
-                if (!this.multiRequests) {
-                    if (this.tasks.length > MAX_TASKS) {
-                        const error = `Cannot queue new requests, because more than ${MAX_TASKS}`;
-                        this.log.error(error);
-                        cb?.(new Error(error));
-                    } else {
-                        this.tasks.push({ operation: 'query', query, id, callback: cb });
-                        this.tasks.length === 1 && this.processTasks();
-                    }
-                } else {
-                    this._executeQuery(query, id, cb);
+                    cb(null, rows[0].id, rows[0].type);
                 }
             });
-        } else {
+        });
+    }
+
+    /** Build and execute the DELETE query for one datapoint */
+    #deleteFromDb(
+        id: string,
+        table: TableName,
+        index: number,
+        state: {
+            ts?: number;
+            start?: number;
+            end?: number;
+        },
+        cb?: (err?: Error | null) => void,
+    ): void {
+        const queries = [this.#buildDeleteQuery(table, index, state)];
+
+        // the counter values of a numeric datapoint are stored in an own table (like in `checkRetention`)
+        if (table === 'ts_number') {
+            queries.push(this.#buildDeleteQuery('ts_counter', index, state));
+        }
+
+        this.#executeQueries(id, queries, cb);
+    }
+
+    /** Build the DELETE query for one table of one datapoint */
+    #buildDeleteQuery(
+        table: TableName,
+        index: number,
+        state: {
+            ts?: number;
+            start?: number;
+            end?: number;
+        },
+    ): string {
+        if (state.start && state.end) {
+            return this.sqlFuncs!.deleteFromTable(this.config.dbname, table, index, state.start, state.end);
+        }
+        if (state.ts) {
+            return this.sqlFuncs!.deleteFromTable(this.config.dbname, table, index, state.ts);
+        }
+        // delete all entries for ID
+        return this.sqlFuncs!.deleteFromTable(this.config.dbname, table, index);
+    }
+
+    /** Execute the given queries one after another and stop at the first error */
+    #executeQueries(id: string, queries: string[], cb?: (err?: Error | null) => void): void {
+        const query = queries.shift();
+        if (!query) {
             cb?.();
+            return;
+        }
+
+        const next = (err?: Error | null): void => {
+            if (err || !queries.length) {
+                cb?.(err);
+                return;
+            }
+            this.#executeQueries(id, queries, cb);
+        };
+
+        if (!this.multiRequests) {
+            if (this.tasks.length > MAX_TASKS) {
+                const error = `Cannot queue new requests, because more than ${MAX_TASKS}`;
+                this.log.error(error);
+                cb?.(new Error(error));
+            } else {
+                this.tasks.push({ operation: 'query', query, id, callback: next });
+                this.tasks.length === 1 && this.processTasks();
+            }
+        } else {
+            this._executeQuery(query, id, next);
         }
     }
 
@@ -3591,28 +3684,26 @@ export class SqlAdapter extends Adapter {
         } else if (msg.message.id && msg.message.state && typeof msg.message.state === 'object') {
             this.log.debug('deleteHistoryEntry 1 item');
             id = this.aliasMap[msg.message.id] ? this.aliasMap[msg.message.id] : msg.message.id;
-            return this.#delete(id, { ts: msg.message.state.ts }, () =>
+            return this.#delete(id, { ts: msg.message.state.ts }, err =>
                 this.sendTo(
                     msg.from,
                     msg.command,
-                    {
-                        success: true,
-                        sqlConnected: !!this.clientPool,
-                    },
+                    err
+                        ? { error: err.message, sqlConnected: !!this.clientPool }
+                        : { success: true, sqlConnected: !!this.clientPool },
                     msg.callback,
                 ),
             );
         } else if (msg.message.id && msg.message.ts && typeof msg.message.ts === 'number') {
             this.log.debug('deleteHistoryEntry 1 item');
             id = this.aliasMap[msg.message.id] ? this.aliasMap[msg.message.id] : msg.message.id;
-            return this.#delete(id, { ts: msg.message.ts }, () =>
+            return this.#delete(id, { ts: msg.message.ts }, err =>
                 this.sendTo(
                     msg.from,
                     msg.command,
-                    {
-                        success: true,
-                        sqlConnected: !!this.clientPool,
-                    },
+                    err
+                        ? { error: err.message, sqlConnected: !!this.clientPool }
+                        : { success: true, sqlConnected: !!this.clientPool },
                     msg.callback,
                 ),
             );
@@ -3654,14 +3745,13 @@ export class SqlAdapter extends Adapter {
         } else if (msg.message.id) {
             this.log.debug('deleteStateAll 1 item');
             id = this.aliasMap[msg.message.id] ? this.aliasMap[msg.message.id] : msg.message.id;
-            return this.#delete(id, {}, () =>
+            return this.#delete(id, {}, err =>
                 this.sendTo(
                     msg.from,
                     msg.command,
-                    {
-                        success: true,
-                        sqlConnected: !!this.clientPool,
-                    },
+                    err
+                        ? { error: err.message, sqlConnected: !!this.clientPool }
+                        : { success: true, sqlConnected: !!this.clientPool },
                     msg.callback,
                 ),
             );

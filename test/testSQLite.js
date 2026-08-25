@@ -156,6 +156,69 @@ describe(`Test ${__filename}`, function () {
         });
     });
 
+    it(`Test ${__filename}: Delete all data of a datapoint with disabled logging`, function (done) {
+        this.timeout(60000);
+
+        const countIn = table =>
+            `SELECT COUNT(*) AS cnt FROM ${table} WHERE id=(SELECT id FROM datapoints WHERE name='sql.0.testValue')`;
+
+        // stop the logging first: the adapter forgets everything it knows about this datapoint
+        sendTo('sql.0', 'disableHistory', { id: 'sql.0.testValue' }, function (result) {
+            assert.strictEqual(result.error, undefined);
+            assert.strictEqual(result.success, true);
+
+            // wait till the adapter processed the object change and flushed its RAM buffer
+            setTimeout(function () {
+                // the test cases do not write counters, so add one manually
+                const insertCounter = `INSERT INTO ts_counter (id, ts, val) VALUES ((SELECT id FROM datapoints WHERE name='sql.0.testValue'), ${Date.now()}, 1)`;
+
+                sendTo('sql.0', 'query', insertCounter, function (result) {
+                    assert.ok(!result.error, `${result.error}`);
+
+                    sendTo('sql.0', 'query', countIn('ts_number'), function (result) {
+                        assert.ok(!result.error, `${result.error}`);
+                        console.log(`SQLite: ts_number rows before deleteAll: ${result.result[0].cnt}`);
+                        assert.ok(result.result[0].cnt > 0, `${result.result[0].cnt} > 0`);
+
+                        sendTo('sql.0', 'query', countIn('ts_counter'), function (result) {
+                            assert.ok(!result.error, `${result.error}`);
+                            console.log(`SQLite: ts_counter rows before deleteAll: ${result.result[0].cnt}`);
+                            assert.ok(result.result[0].cnt > 0, `${result.result[0].cnt} > 0`);
+
+                            sendTo('sql.0', 'deleteAll', { id: 'sql.0.testValue' }, function (result) {
+                                assert.strictEqual(result.error, undefined);
+                                assert.strictEqual(result.success, true);
+
+                                setTimeout(function () {
+                                    sendTo('sql.0', 'query', countIn('ts_number'), function (result) {
+                                        assert.ok(!result.error, `${result.error}`);
+                                        assert.strictEqual(result.result[0].cnt, 0);
+
+                                        sendTo('sql.0', 'query', countIn('ts_counter'), function (result) {
+                                            assert.ok(!result.error, `${result.error}`);
+                                            assert.strictEqual(result.result[0].cnt, 0);
+                                            done();
+                                        });
+                                    });
+                                }, 3000);
+                            });
+                        });
+                    });
+                });
+            }, 5000);
+        });
+    });
+
+    it(`Test ${__filename}: Delete all data of an unknown datapoint reports an error`, function (done) {
+        this.timeout(10000);
+
+        sendTo('sql.0', 'deleteAll', { id: 'sql.0.doesNotExist' }, function (result) {
+            assert.ok(result.error, `Error expected, but got ${JSON.stringify(result)}`);
+            assert.strictEqual(result.success, undefined);
+            done();
+        });
+    });
+
     after(`Test ${__filename} Stop js-controller`, function (done) {
         this.timeout(30000);
 

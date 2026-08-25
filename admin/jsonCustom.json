@@ -190,24 +190,6 @@
       "help": "Number of days to keep the data.",
       "defaultFunc": "instanceObj.native.customRetentionDuration"
     },
-    "deleteHistoryButton": {
-      "newLine": true,
-      "type": "sendTo",
-      "label": "Delete all logged history data for this datapoint",
-      "command": "deleteAll",
-      "jsonData": "{\"id\": \"${customObj._id}\"}",
-      "variant": "outlined",
-      "icon": "warning",
-      "confirm": {
-        "condition": "true",
-        "type": "warning",
-        "title": "Delete history data?",
-        "text": "This permanently deletes ALL logged history data for this datapoint from the database. This cannot be undone and is independent of the logging enabled/disabled state above.",
-        "ok": "Delete",
-        "cancel": "Cancel"
-      },
-      "sm": 12
-    },
     "maxLength": {
       "newLine": true,
       "type": "number",
@@ -233,6 +215,24 @@
       "type": "checkbox",
       "sm": 12,
       "defaultFunc": "instanceObj.native.enableDebugLogs || false"
+    },
+    "deleteHistoryButton": {
+      "newLine": true,
+      "type": "sendTo",
+      "label": "Delete all logged history data for this datapoint",
+      "command": "deleteAll",
+      "jsonData": "{\"id\": \"${customObj._id}\"}",
+      "variant": "outlined",
+      "icon": "warning",
+      "confirm": {
+        "type": "warning",
+        "title": "Delete history data?",
+        "text": "This permanently deletes ALL logged history data for this datapoint from the database. This cannot be undone and is independent of the logging enabled/disabled state above.",
+        "ok": "Delete"
+      },
+      "sm": 12,
+      "noMultiEdit": true,
+      "showProcess": true
     },
     "debounce": {
       "type": "number",
