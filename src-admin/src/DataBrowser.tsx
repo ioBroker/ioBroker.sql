@@ -42,7 +42,7 @@ import {
 
 // important to import from the package and not from some children
 import { ConfigGeneric, type ConfigGenericProps, type ConfigGenericState } from '@iobroker/json-config';
-import { I18n } from '@iobroker/gui-components';
+import { I18n, Utils } from '@iobroker/gui-components';
 
 type StorageType = 'Number' | 'String' | 'Boolean';
 
@@ -71,6 +71,8 @@ interface EntryDialog {
 
 interface DataBrowserState extends ConfigGenericState {
     points: DataPoint[] | null;
+    /** name of the object behind a datapoint, if it has one and it differs from the ID */
+    names: Record<string, string>;
     filter: string;
     selected: DataPoint | null;
     rows: RawEntry[];
@@ -117,9 +119,35 @@ const styles: Record<string, React.CSSProperties> = {
     toolbar: {
         display: 'flex',
         alignItems: 'center',
-        flexWrap: 'wrap',
+        flexWrap: 'nowrap',
         gap: 8,
         padding: 8,
+        overflow: 'hidden',
+    },
+    // the ID is the only element that may shrink, so the controls always stay on one line
+    title: {
+        display: 'flex',
+        flexDirection: 'column',
+        flexGrow: 1,
+        minWidth: 60,
+        overflow: 'hidden',
+    },
+    titleId: {
+        fontWeight: 'bold',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
+    titleName: {
+        fontSize: 'smaller',
+        opacity: 0.7,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
+    dateField: {
+        width: 200,
+        flexShrink: 0,
     },
     table: {
         overflowY: 'auto',
@@ -127,6 +155,10 @@ const styles: Record<string, React.CSSProperties> = {
     },
     nowrap: {
         whiteSpace: 'nowrap',
+    },
+    pageInfo: {
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
     },
     grow: {
         flexGrow: 1,
@@ -160,6 +192,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
         this.state = {
             ...this.state,
             points: null,
+            names: {},
             filter: '',
             selected: null,
             rows: [],
@@ -209,9 +242,36 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
         this.setState({ loadingPoints: true, errorText: '' });
         try {
             const result = await this.sendToInstance('getDatapoints', {});
-            this.setState({ points: result?.result || [], loadingPoints: false });
+            const points: DataPoint[] = result?.result || [];
+            this.setState({ points, loadingPoints: false }, () => void this.loadNames(points));
         } catch (e: any) {
             this.setState({ loadingPoints: false, points: [], errorText: e.message });
+        }
+    }
+
+    /**
+     * Read the names of the objects behind the datapoints.
+     *
+     * They are pure comfort: the database only knows IDs, and a datapoint may have no object at all
+     * anymore. So a failure here must not disturb the list.
+     */
+    async loadNames(points: DataPoint[]): Promise<void> {
+        if (!points.length) {
+            return;
+        }
+        try {
+            const objects = await this.props.oContext.socket.getObjectsById(points.map(point => point.id));
+            const names: Record<string, string> = {};
+            for (const point of points) {
+                const obj = objects?.[point.id];
+                const name = obj ? Utils.getObjectNameFromObj(obj, null, { language: I18n.getLanguage() }) : '';
+                if (name && name !== point.id) {
+                    names[point.id] = name;
+                }
+            }
+            this.setState({ names });
+        } catch (e: any) {
+            console.warn(`Cannot read the names of the objects: ${e.message}`);
         }
     }
 
@@ -315,7 +375,12 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
 
     renderDatapoints(): React.JSX.Element {
         const filter = this.state.filter.toLowerCase();
-        const points = (this.state.points || []).filter(point => !filter || point.id.toLowerCase().includes(filter));
+        const points = (this.state.points || []).filter(
+            point =>
+                !filter ||
+                point.id.toLowerCase().includes(filter) ||
+                this.state.names[point.id]?.toLowerCase().includes(filter),
+        );
 
         return (
             <Paper style={styles.list}>
@@ -358,8 +423,13 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
                         >
                             <ListItemText
                                 primary={point.id}
-                                secondary={point.type || '?'}
-                                slotProps={{ primary: { style: { wordBreak: 'break-all' } } }}
+                                secondary={[this.state.names[point.id], point.type || '?']
+                                    .filter(text => !!text)
+                                    .join(' · ')}
+                                slotProps={{
+                                    primary: { style: { wordBreak: 'break-all' } },
+                                    secondary: { style: { wordBreak: 'break-word' } },
+                                }}
                             />
                         </ListItemButton>
                     ))}
@@ -380,28 +450,37 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
 
         return (
             <div style={styles.toolbar}>
-                <Typography style={{ fontWeight: 'bold', wordBreak: 'break-all' }}>
-                    {this.state.selected?.id}
-                </Typography>
-                <div style={styles.grow} />
-                <TextField
-                    variant="standard"
-                    type="datetime-local"
-                    label={I18n.t('sql_range_start')}
-                    value={this.state.start}
-                    onChange={e => this.setState({ start: e.target.value, page: 0 }, () => void this.loadRows())}
-                    slotProps={{ inputLabel: { shrink: true } }}
-                />
-                <TextField
-                    variant="standard"
-                    type="datetime-local"
-                    label={I18n.t('sql_range_end')}
-                    value={this.state.end}
-                    onChange={e => this.setState({ end: e.target.value, page: 0 }, () => void this.loadRows())}
-                    slotProps={{ inputLabel: { shrink: true } }}
-                />
+                <div style={styles.title}>
+                    <Tooltip title={this.state.selected?.id || ''}>
+                        <span style={styles.titleId}>{this.state.selected?.id}</span>
+                    </Tooltip>
+                    {this.state.selected && this.state.names[this.state.selected.id] ? (
+                        <span style={styles.titleName}>{this.state.names[this.state.selected.id]}</span>
+                    ) : null}
+                </div>
+                <Tooltip title={I18n.t('sql_range_start')}>
+                    <TextField
+                        variant="outlined"
+                        size="small"
+                        style={styles.dateField}
+                        type="datetime-local"
+                        value={this.state.start}
+                        onChange={e => this.setState({ start: e.target.value, page: 0 }, () => void this.loadRows())}
+                    />
+                </Tooltip>
+                <Tooltip title={I18n.t('sql_range_end')}>
+                    <TextField
+                        variant="outlined"
+                        size="small"
+                        style={styles.dateField}
+                        type="datetime-local"
+                        value={this.state.end}
+                        onChange={e => this.setState({ end: e.target.value, page: 0 }, () => void this.loadRows())}
+                    />
+                </Tooltip>
                 <Select
-                    variant="standard"
+                    variant="outlined"
+                    size="small"
                     value={rowsPerPage}
                     onChange={e =>
                         this.setState({ rowsPerPage: Number(e.target.value), page: 0 }, () => void this.loadRows())
@@ -418,6 +497,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
                 </Select>
                 <Tooltip title={I18n.t(this.state.sort === 'desc' ? 'sql_sort_desc' : 'sql_sort_asc')}>
                     <IconButton
+                        size="small"
                         onClick={() =>
                             this.setState(
                                 { sort: this.state.sort === 'desc' ? 'asc' : 'desc', page: 0 },
@@ -428,28 +508,34 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
                         {this.state.sort === 'desc' ? <ArrowDownward /> : <ArrowUpward />}
                     </IconButton>
                 </Tooltip>
-                <Typography style={styles.nowrap}>
+                <Typography style={styles.pageInfo}>
                     {I18n.t('sql_page', first.toString(), last.toString(), total.toString())}
                 </Typography>
                 <IconButton
+                    size="small"
                     disabled={!page}
                     onClick={() => this.setState({ page: page - 1 }, () => void this.loadRows())}
                 >
                     <ChevronLeft />
                 </IconButton>
                 <IconButton
+                    size="small"
                     disabled={last >= total}
                     onClick={() => this.setState({ page: page + 1 }, () => void this.loadRows())}
                 >
                     <ChevronRight />
                 </IconButton>
                 <Tooltip title={I18n.t('sql_refresh')}>
-                    <IconButton onClick={() => void this.loadRows()}>
+                    <IconButton
+                        size="small"
+                        onClick={() => void this.loadRows()}
+                    >
                         <Refresh />
                     </IconButton>
                 </Tooltip>
                 <Tooltip title={I18n.t('sql_add')}>
                     <IconButton
+                        size="small"
                         color="primary"
                         onClick={() =>
                             this.setState({
@@ -469,6 +555,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
                 <Tooltip title={I18n.t('sql_delete_selected')}>
                     <span>
                         <IconButton
+                            size="small"
                             disabled={!this.state.checked.length}
                             onClick={() =>
                                 this.setState({
