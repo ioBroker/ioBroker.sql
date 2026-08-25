@@ -281,14 +281,20 @@ function aggregationLogic(data, index, options) {
         }
     }
     else if (options.aggregate === 'average') {
-        options.processing[index].val.val += parseFloat(data.val);
-        options.averageCount[index]++;
+        // a null value would become NaN and poison the sum for the whole interval
+        if (data.val !== null && data.val !== undefined) {
+            options.processing[index].val.val += parseFloat(data.val);
+            options.averageCount[index]++;
+        }
     }
     else if (options.aggregate === 'count') {
         options.averageCount[index]++;
     }
     else if (options.aggregate === 'total') {
-        options.processing[index].val.val += parseFloat(data.val);
+        // a null value would become NaN and poison the sum for the whole interval
+        if (data.val !== null && data.val !== undefined) {
+            options.processing[index].val.val += parseFloat(data.val);
+        }
     }
     else if (options.aggregate === 'minmax') {
         if (options.processing[index].min.ts === null) {

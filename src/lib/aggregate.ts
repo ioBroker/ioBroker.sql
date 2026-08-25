@@ -308,12 +308,18 @@ function aggregationLogic(data: IobDataEntry, index: number, options: InternalHi
             options.processing[index].val.val = data.val;
         }
     } else if (options.aggregate === 'average') {
-        options.processing[index].val.val! += parseFloat(data.val as unknown as string);
-        options.averageCount![index]++;
+        // a null value would become NaN and poison the sum for the whole interval
+        if (data.val !== null && data.val !== undefined) {
+            options.processing[index].val.val! += parseFloat(data.val as unknown as string);
+            options.averageCount![index]++;
+        }
     } else if (options.aggregate === 'count') {
         options.averageCount![index]++;
     } else if (options.aggregate === 'total') {
-        options.processing[index].val.val! += parseFloat(data.val as unknown as string);
+        // a null value would become NaN and poison the sum for the whole interval
+        if (data.val !== null && data.val !== undefined) {
+            options.processing[index].val.val! += parseFloat(data.val as unknown as string);
+        }
     } else if (options.aggregate === 'minmax') {
         if (options.processing[index].min.ts === null) {
             options.processing[index].min.ts = data.ts;
