@@ -26,6 +26,8 @@ import {
     TextField,
     Tooltip,
     Typography,
+    type SxProps,
+    type Theme,
 } from '@mui/material';
 import {
     Add,
@@ -106,9 +108,15 @@ const styles: Record<string, React.CSSProperties> = {
         flexDirection: 'column',
         overflow: 'hidden',
     },
+    filterField: {
+        padding: 8,
+        flexShrink: 0,
+    },
     listItems: {
         overflowY: 'auto',
         flexGrow: 1,
+        // without it the list refuses to shrink below its content and squeezes the filter field
+        minHeight: 0,
     },
     data: {
         flexGrow: 1,
@@ -123,6 +131,8 @@ const styles: Record<string, React.CSSProperties> = {
         gap: 8,
         padding: 8,
         overflow: 'hidden',
+        // a long table must never squeeze the toolbar - it keeps its natural height
+        flexShrink: 0,
     },
     // the ID is the only element that may shrink, so the controls always stay on one line
     title: {
@@ -152,6 +162,8 @@ const styles: Record<string, React.CSSProperties> = {
     table: {
         overflowY: 'auto',
         flexGrow: 1,
+        // a flex item does not shrink below its content by default, so the table would push the toolbar away
+        minHeight: 0,
     },
     nowrap: {
         whiteSpace: 'nowrap',
@@ -164,6 +176,17 @@ const styles: Record<string, React.CSSProperties> = {
         flexGrow: 1,
     },
 };
+
+/**
+ * Chrome draws the icon of the native date/time picker always dark, so it disappears on a dark theme.
+ * `filter: invert` flips it to white there and leaves it untouched on a light theme.
+ */
+const pickerIconSx: SxProps<Theme> = theme => ({
+    '& input::-webkit-calendar-picker-indicator': {
+        filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none',
+        cursor: 'pointer',
+    },
+});
 
 function formatTs(ts: number): string {
     const date = new Date(ts);
@@ -398,7 +421,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
             <Paper style={styles.list}>
                 <TextField
                     variant="standard"
-                    style={{ padding: 8 }}
+                    style={styles.filterField}
                     value={this.state.filter}
                     onChange={e => this.setState({ filter: e.target.value })}
                     placeholder={I18n.t('sql_filter')}
@@ -432,12 +455,29 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
                             key={point.id}
                             selected={this.state.selected?.id === point.id}
                             onClick={() => this.selectDatapoint(point)}
+                            sx={theme => ({
+                                '&.Mui-selected': {
+                                    backgroundColor: theme.palette.primary.main,
+                                    color: theme.palette.primary.contrastText,
+                                    '& .MuiListItemText-secondary': {
+                                        color: theme.palette.primary.contrastText,
+                                        opacity: 0.8,
+                                    },
+                                    '&:hover': {
+                                        backgroundColor: theme.palette.primary.dark,
+                                    },
+                                },
+                            })}
                         >
                             <ListItemText
                                 primary={point.id}
-                                secondary={[this.state.names[point.id], point.type || '?']
-                                    .filter(text => !!text)
-                                    .join(' · ')}
+                                secondary={
+                                    <>
+                                        {this.state.names[point.id] ? <b>{this.state.names[point.id]}</b> : null}
+                                        {this.state.names[point.id] ? ' ' : ''}
+                                        {`[${point.type || '?'}]`}
+                                    </>
+                                }
                                 slotProps={{
                                     primary: { style: { wordBreak: 'break-all' } },
                                     secondary: { style: { wordBreak: 'break-word' } },
@@ -475,6 +515,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
                         variant="outlined"
                         size="small"
                         style={styles.dateField}
+                        sx={pickerIconSx}
                         type="datetime-local"
                         value={this.state.start}
                         onChange={e => this.setState({ start: e.target.value, page: 0 }, () => void this.loadRows())}
@@ -485,6 +526,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
                         variant="outlined"
                         size="small"
                         style={styles.dateField}
+                        sx={pickerIconSx}
                         type="datetime-local"
                         value={this.state.end}
                         onChange={e => this.setState({ end: e.target.value, page: 0 }, () => void this.loadRows())}
@@ -741,6 +783,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
                         value={valid ? toDateInput(new Date(ts)) : ''}
                         disabled={disabled}
                         style={{ flexGrow: 1 }}
+                        sx={pickerIconSx}
                         slotProps={{ inputLabel: { shrink: true } }}
                         onChange={e => changePart('date', e.target.value)}
                     />
@@ -750,6 +793,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
                         value={valid ? toTimeInput(new Date(ts)) : ''}
                         disabled={disabled}
                         style={{ flexGrow: 1 }}
+                        sx={pickerIconSx}
                         slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 1 } }}
                         onChange={e => changePart('time', e.target.value)}
                     />
@@ -885,6 +929,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
                     {this.state.errorText ? (
                         <Alert
                             severity="error"
+                            style={{ flexShrink: 0 }}
                             onClose={() => this.setState({ errorText: '' })}
                         >
                             {this.state.errorText}
