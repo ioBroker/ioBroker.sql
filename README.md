@@ -618,7 +618,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 4.1.0 (2026-08-26)
 * (@ipod86) Added a button to the datapoint settings to delete all logged values of this datapoint
 * (@GermanBluefox) The messages `delete`, `deleteRange` and `deleteAll` now report errors back to the caller instead of always answering with success
 * (@GermanBluefox) The messages `delete`, `deleteRange` and `deleteAll` work now also for datapoints whose logging is disabled
@@ -644,10 +644,6 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ### 4.0.1 (2026-08-07)
 * (@GermanBluefox) Fixed MySQL error "Can't create more than max_prepared_stmt_count statements": every query allocated a server-side prepared statement
 * (@GermanBluefox) Batches of more than 500 values are no longer sent as one multi-statement query
-
-### 4.0.0 (2026-08-04)
-* (@GermanBluefox) Migrated to TypeScript
-* (@GermanBluefox) Node.js 22 is now needed at a minimum!
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 

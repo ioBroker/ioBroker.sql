@@ -1,7 +1,7 @@
 {
   "sql_ack": "Bestätigen",
   "sql_add": "Wert einfügen",
-  "sql_cancel": "Stornieren",
+  "sql_cancel": "Abbrechen",
   "sql_confirm_delete": "%s ausgewählte Einträge löschen? Dies kann nicht rückgängig gemacht werden.",
   "sql_confirm_delete_one": "Eintrag aus %s löschen? Dies kann nicht rückgängig gemacht werden.",
   "sql_datapoints": "Datenpunkte",

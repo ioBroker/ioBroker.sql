@@ -1,4 +1,8 @@
 # Older changes
+## 4.0.0 (2026-08-04)
+* (@GermanBluefox) Migrated to TypeScript
+* (@GermanBluefox) Node.js 22 is now needed at a minimum!
+
 ## 3.0.1 (2024-06-13)
 * (foxriver76) upgraded dependencies
 
