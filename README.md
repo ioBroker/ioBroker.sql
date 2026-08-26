@@ -618,7 +618,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 4.1.1 (2026-08-26)
 (@joltcoke) Fixed average and total returning null for every interval that contains a null value: parseFloat(null) is NaN and poisoned the sum of the whole interval (thanks to @joltcoke, ioBroker/ioBroker.sql#526). As the result was NaN and not null, ignoreNull could not act on it either
 (@joltcoke) Fixed min returning a wrong value if the interval contains a null, minmax losing the minimum if the interval starts with a null, and percentile/quantile counting a null as 0
 
@@ -644,10 +644,6 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ### 4.0.2 (2026-08-10)
 * (@GermanBluefox) Fixed empty charts for the aggregation `onchange` ("raw" in e-charts): it was run through the interval aggregation and returned only `null` values
 * (@GermanBluefox) The MySQL and phpMyAdmin docker containers are no longer enabled by default: instances without the docker settings in their config (e.g. after an update from 3.x) reported "Docker is not installed"
-
-### 4.0.1 (2026-08-07)
-* (@GermanBluefox) Fixed MySQL error "Can't create more than max_prepared_stmt_count statements": every query allocated a server-side prepared statement
-* (@GermanBluefox) Batches of more than 500 values are no longer sent as one multi-statement query
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 

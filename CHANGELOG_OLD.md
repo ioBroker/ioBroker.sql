@@ -1,4 +1,8 @@
 # Older changes
+## 4.0.1 (2026-08-07)
+* (@GermanBluefox) Fixed MySQL error "Can't create more than max_prepared_stmt_count statements": every query allocated a server-side prepared statement
+* (@GermanBluefox) Batches of more than 500 values are no longer sent as one multi-statement query
+
 ## 4.0.0 (2026-08-04)
 * (@GermanBluefox) Migrated to TypeScript
 * (@GermanBluefox) Node.js 22 is now needed at a minimum!
