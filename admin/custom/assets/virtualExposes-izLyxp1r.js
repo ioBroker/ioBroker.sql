@@ -1,1 +1,0 @@
-import{t as e}from"./virtual_mf-exposes___mfe_internal__SqlComponentsSet__customComponents_js-DU42x3yg.js";export{e as default};
