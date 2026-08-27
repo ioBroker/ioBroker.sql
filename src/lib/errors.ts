@@ -3,6 +3,13 @@
 const MAX_NESTED_ERRORS = 5;
 const MAX_DEPTH = 3;
 
+/**
+ * Error names that say nothing about the cause. `Error` is the default of every `new Error()`, and
+ * `AggregateError` is just the box Node puts the real connect errors into - neither belongs in a log
+ * line. A driver-specific name like `ConnectionError` or a `TypeError` is kept, it does tell something.
+ */
+const GENERIC_ERROR_NAMES = ['Error', 'AggregateError'];
+
 /** Fields drivers put on their errors that are worth showing when the message alone says nothing */
 const DETAIL_FIELDS = ['code', 'errno', 'syscall', 'address', 'port', 'sqlMessage'] as const;
 
@@ -36,8 +43,14 @@ export function formatError(err: unknown, depth = 0): string {
 
     const error = err as Record<string, any>;
     const message = typeof error.message === 'string' ? oneLine(error.message) : '';
-    const name = typeof error.name === 'string' && error.name ? error.name : 'Error';
-    let text = message ? `${name}: ${message}` : name;
+    const name = typeof error.name === 'string' && error.name ? error.name : '';
+
+    let text = '';
+    if (name && !GENERIC_ERROR_NAMES.includes(name)) {
+        text = message ? `${name}: ${message}` : name;
+    } else {
+        text = message;
+    }
 
     // AggregateError: the reason is in `errors`, not in `message`
     if (Array.isArray(error.errors) && error.errors.length && depth < MAX_DEPTH) {
@@ -53,7 +66,7 @@ export function formatError(err: unknown, depth = 0): string {
             details.push(`and ${error.errors.length - MAX_NESTED_ERRORS} more`);
         }
         if (details.length) {
-            text += `: ${details.join('; ')}`;
+            text = text ? `${text}: ${details.join('; ')}` : details.join('; ');
         }
     }
 
@@ -61,7 +74,7 @@ export function formatError(err: unknown, depth = 0): string {
         const value = error[field];
         if ((typeof value === 'string' && value) || typeof value === 'number') {
             if (!text.includes(String(value))) {
-                text += ` (${field}: ${value})`;
+                text = text ? `${text} (${field}: ${value})` : `${field}: ${value}`;
             }
         }
     }
@@ -69,12 +82,12 @@ export function formatError(err: unknown, depth = 0): string {
     if (error.cause !== undefined && error.cause !== null && depth < MAX_DEPTH) {
         const cause = formatError(error.cause, depth + 1);
         if (cause && !text.includes(cause)) {
-            text += `; caused by ${cause}`;
+            text = text ? `${text}; caused by ${cause}` : cause;
         }
     }
 
-    if (text === 'Error') {
-        // a plain object without message/name - show what it actually holds
+    if (!text) {
+        // nothing but an empty shell - show what it actually holds
         try {
             const json = JSON.stringify(error);
             if (json && json !== '{}') {
@@ -83,7 +96,7 @@ export function formatError(err: unknown, depth = 0): string {
         } catch {
             // circular or non-serializable - fall through
         }
-        return Object.prototype.toString.call(error);
+        return name || Object.prototype.toString.call(error);
     }
 
     return text;

@@ -14,6 +14,8 @@ describe('Test formatError', function () {
         const text = formatError(err);
         assert.ok(text.includes('connect ECONNREFUSED ::1:3306'), text);
         assert.ok(text.includes('connect ECONNREFUSED 127.0.0.1:3306'), text);
+        // the class name says nothing about the cause and must not clutter the log line
+        assert.ok(!text.includes('AggregateError'), text);
         assert.ok(!text.includes('\n'), 'must stay on one line');
     });
 
@@ -36,15 +38,18 @@ describe('Test formatError', function () {
 
     it('keeps a normal error readable and adds the code', function () {
         const err = Object.assign(new Error('Access denied for user'), { code: 'ER_ACCESS_DENIED_ERROR', errno: 1045 });
-        assert.strictEqual(
-            formatError(err),
-            'Error: Access denied for user (code: ER_ACCESS_DENIED_ERROR) (errno: 1045)',
-        );
+        assert.strictEqual(formatError(err), 'Access denied for user (code: ER_ACCESS_DENIED_ERROR) (errno: 1045)');
     });
 
     it('does not repeat a code that is already in the message', function () {
         const err = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:5432'), { code: 'ECONNREFUSED' });
-        assert.strictEqual(formatError(err), 'Error: connect ECONNREFUSED 127.0.0.1:5432');
+        assert.strictEqual(formatError(err), 'connect ECONNREFUSED 127.0.0.1:5432');
+    });
+
+    it('keeps a name that tells something', function () {
+        // mssql names its errors, and "ConnectionError: Login failed" is more helpful than "Login failed"
+        const err = Object.assign(new Error('Login failed for user'), { name: 'ConnectionError' });
+        assert.strictEqual(formatError(err), 'ConnectionError: Login failed for user');
     });
 
     it('unwraps the cause', function () {
