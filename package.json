@@ -1,7 +1,7 @@
 {
   "name": "iobroker.sql",
   "description": "Log states into SQL database",
-  "version": "4.1.2",
+  "version": "4.1.3",
   "author": "bluefox <dogafox@gmail.com>",
   "contributors": [
     "bluefox <dogafox@gmail.com>",

@@ -35,7 +35,7 @@ function formatError(err, depth = 0) {
         return Object.prototype.toString.call(err);
     }
     const error = err;
-    const message = typeof error.message === 'string' ? error.message.trim() : '';
+    const message = typeof error.message === 'string' ? oneLine(error.message) : '';
     const name = typeof error.name === 'string' && error.name ? error.name : 'Error';
     let text = message ? `${name}: ${message}` : name;
     // AggregateError: the reason is in `errors`, not in `message`
@@ -85,6 +85,15 @@ function formatError(err, depth = 0) {
     return text;
 }
 /**
+ * Squeeze all whitespace into single spaces, so a multi-line driver message stays one log line
+ *
+ * @param text the text to normalize
+ * @returns the text without line breaks
+ */
+function oneLine(text) {
+    return text.replace(/\s+/g, ' ').trim();
+}
+/**
  * Describe one sub-error of an AggregateError: the message alone if there is one, because it usually
  * already carries the code ("connect ECONNREFUSED 127.0.0.1:3306").
  *
@@ -95,7 +104,7 @@ function formatError(err, depth = 0) {
 function describeNested(err, depth) {
     if (err && typeof err === 'object') {
         const nested = err;
-        const message = typeof nested.message === 'string' ? nested.message.trim() : '';
+        const message = typeof nested.message === 'string' ? oneLine(nested.message) : '';
         if (message) {
             const code = typeof nested.code === 'string' ? nested.code : '';
             return code && !message.includes(code) ? `${message} (${code})` : message;

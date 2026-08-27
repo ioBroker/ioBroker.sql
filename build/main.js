@@ -757,7 +757,9 @@ class SqlAdapter extends adapter_core_1.Adapter {
             }
             catch (ex) {
                 this.logConnectionError(ex);
-                this.log.debug(ex.stack);
+                if (ex.stack) {
+                    this.log.debug(ex.stack);
+                }
                 this.clientPool = null;
                 this.activeConnections = 0;
                 this.setConnected(false);
