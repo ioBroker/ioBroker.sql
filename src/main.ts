@@ -25,6 +25,7 @@ import { SQLite3ClientPool, SQLite3Client, type SQLite3Options } from './lib/sql
 import type { SQLClientPool, PoolConfig } from './lib/sql-client-pool';
 import type SQLClient from './lib/sql-client';
 import type { IobDataEntry } from './lib/types';
+import { formatError } from './lib/errors';
 
 export interface IobDataEntryEx extends Omit<IobDataEntry, 'val'> {
     val: string | boolean | number | null;
@@ -228,6 +229,8 @@ function isEqual(a: any, b: any): boolean {
 const MAX_TASKS = 100;
 /** Maximal number of rows one `getRawEntries` call may return */
 const MAX_RAW_ENTRIES = 2000;
+/** How often an unchanged connection error is repeated as error in the log */
+const REPEATED_ERROR_INTERVAL = 3_600_000;
 
 type SQLPointConfig = {
     realId: string;
@@ -317,6 +320,10 @@ export class SqlAdapter extends Adapter {
     private postgresDbCreated = false;
     private lockTasks = false;
     private sqlFuncs: SQLFunc | null = null;
+    /** Last connection error already written to the log, to not repeat it on every reconnect attempt */
+    private lastConnectionError: string | null = null;
+    private lastConnectionErrorTs = 0;
+    private connectionErrorCount = 0;
 
     public constructor(options: Partial<AdapterOptions> = {}) {
         super({
@@ -482,7 +489,7 @@ export class SqlAdapter extends Adapter {
             if (!err && client) {
                 // make sure we always have at least one error listener to prevent crashes
                 if (client.on && client.listenerCount && !client.listenerCount('error')) {
-                    client.on('error', (err: string): void => this.log.warn(`SQL client error: ${err}`));
+                    client.on('error', (err: unknown): void => this.log.warn(`SQL client error: ${formatError(err)}`));
                 }
             } else if (!client) {
                 this.activeConnections--;
@@ -703,6 +710,47 @@ export class SqlAdapter extends Adapter {
         }
     }
 
+    /**
+     * Log a connection error without flooding the log.
+     *
+     * `connect()` retries every 30 seconds, so a database that is simply switched off would otherwise
+     * write the very same line 2880 times a day. The first occurrence is logged as error, repetitions of
+     * the identical message go to debug, and once an hour a reminder is logged that the database is
+     * still unreachable.
+     *
+     * @param err error to report
+     * @param prefix optional text in front of the error message
+     */
+    logConnectionError(err: unknown, prefix?: string): void {
+        const text = `${prefix ? `${prefix}: ` : ''}${formatError(err)}`;
+        const now = Date.now();
+
+        if (text === this.lastConnectionError) {
+            this.connectionErrorCount++;
+            if (now - this.lastConnectionErrorTs >= REPEATED_ERROR_INTERVAL) {
+                this.lastConnectionErrorTs = now;
+                this.log.error(`${text} (still failing, ${this.connectionErrorCount} attempts)`);
+            } else {
+                this.log.debug(`${text} (attempt ${this.connectionErrorCount})`);
+            }
+        } else {
+            this.lastConnectionError = text;
+            this.lastConnectionErrorTs = now;
+            this.connectionErrorCount = 1;
+            this.log.error(text);
+        }
+    }
+
+    /** Forget the last connection error, so a new outage is logged again as error */
+    resetConnectionError(): void {
+        if (this.connectionErrorCount > 1) {
+            this.log.info(`Database is reachable again after ${this.connectionErrorCount} failed attempts`);
+        }
+        this.lastConnectionError = null;
+        this.lastConnectionErrorTs = 0;
+        this.connectionErrorCount = 0;
+    }
+
     connect(callback: (err?: Error | null) => void): void {
         if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
@@ -780,11 +828,11 @@ export class SqlAdapter extends Adapter {
                     `Postgres connection options: ${JSON.stringify(postgreSQLOptions).replace((postgreSQLOptions.password as string) || '******', '****')}`,
                 );
                 const _client: SQLClient = new PostgreSQLClient(postgreSQLOptions);
-                _client.on?.('error', (err: Error | null): void => this.log.warn(`SQL client error: ${err}`));
+                _client.on?.('error', (err: unknown): void => this.log.warn(`SQL client error: ${formatError(err)}`));
 
                 return _client.connect((err?: Error | null): void => {
                     if (err) {
-                        this.log.error(err.toString());
+                        this.logConnectionError(err, `Cannot connect to ${this.config.host}`);
                         if (this.reconnectTimeout) {
                             clearTimeout(this.reconnectTimeout);
                         }
@@ -812,7 +860,7 @@ export class SqlAdapter extends Adapter {
                             if (typedError && typedError.code !== '42P04') {
                                 // if error not about yet exists
                                 this.postgresDbCreated = false;
-                                this.log.error(JSON.stringify(typedError));
+                                this.logConnectionError(typedError, `Cannot create database ${this.config.dbname}`);
                                 this.reconnectTimeout && clearTimeout(this.reconnectTimeout);
                                 this.reconnectTimeout = setTimeout(() => {
                                     this.reconnectTimeout = null;
@@ -854,8 +902,9 @@ export class SqlAdapter extends Adapter {
                     if (err) {
                         this.clientPool = null;
                         this.setConnected(false);
-                        // JSON.stringify(Error) is "{}" and would swallow the message
-                        this.log.error(err.message || err.toString());
+                        // JSON.stringify(Error) is "{}", and toString() of an AggregateError is just
+                        // "AggregateError" - formatError() digs the real reason out of both
+                        this.logConnectionError(err);
                         this.reconnectTimeout && clearTimeout(this.reconnectTimeout);
                         this.reconnectTimeout = setTimeout(() => {
                             this.reconnectTimeout = null;
@@ -869,8 +918,10 @@ export class SqlAdapter extends Adapter {
                     }
                 });
             } catch (ex) {
-                this.log.error(ex.toString());
-                this.log.error(ex.stack);
+                this.logConnectionError(ex);
+                if (ex.stack) {
+                    this.log.debug(ex.stack);
+                }
                 this.clientPool = null;
                 this.activeConnections = 0;
                 this.setConnected(false);
@@ -892,6 +943,7 @@ export class SqlAdapter extends Adapter {
                     this.connect(callback);
                 }, 30000);
             } else {
+                this.resetConnectionError();
                 this.log.info(`Connected to ${this.config.dbtype}`);
                 // read all DB IDs and all FROM ids
                 this.getAllIds(() => this.getAllFroms(callback));
@@ -993,7 +1045,7 @@ export class SqlAdapter extends Adapter {
                 this.sendTo(msg.from, msg.command, { error: 'Unknown DB type' }, msg.callback);
                 return;
             }
-            client.on?.('error', (err?: string): void => this.log.warn(`SQL client error: ${err}`));
+            client.on?.('error', (err?: unknown): void => this.log.warn(`SQL client error: ${formatError(err)}`));
 
             this.testConnectTimeout = setTimeout(() => {
                 this.testConnectTimeout = null;
@@ -1007,12 +1059,7 @@ export class SqlAdapter extends Adapter {
                             clearTimeout(this.testConnectTimeout);
                             this.testConnectTimeout = null;
                         }
-                        this.sendTo(
-                            msg.from,
-                            msg.command,
-                            { error: `${(err as any).code} ${err.toString()}` },
-                            msg.callback,
-                        );
+                        this.sendTo(msg.from, msg.command, { error: formatError(err) }, msg.callback);
                         return;
                     }
 
@@ -1026,7 +1073,7 @@ export class SqlAdapter extends Adapter {
             if (this.testConnectTimeout) {
                 clearTimeout(this.testConnectTimeout);
                 this.testConnectTimeout = null;
-                this.sendTo(msg.from, msg.command, { error: err?.toString() || null }, msg.callback);
+                this.sendTo(msg.from, msg.command, { error: err ? formatError(err) : null }, msg.callback);
                 return;
             }
         } catch (ex) {
@@ -1077,7 +1124,7 @@ export class SqlAdapter extends Adapter {
 
             this.borrowClientFromPool((err, client) => {
                 if (err || !client) {
-                    this.sendTo(msg.from, msg.command, { error: err?.toString() || 'No client' }, msg.callback);
+                    this.sendTo(msg.from, msg.command, { error: err ? formatError(err) : 'No client' }, msg.callback);
                     this.returnClientToPool(client);
                     callback?.();
                 } else {
@@ -1132,7 +1179,7 @@ export class SqlAdapter extends Adapter {
                     this.activeConnections = 0;
                     this.clientPool = null;
                     this.setConnected(false);
-                    this.log.error(err?.toString() || 'No database connection');
+                    this.logConnectionError(err || 'No database connection');
                     return cb?.(err || new Error('No database connection'));
                 }
 
@@ -1921,7 +1968,7 @@ export class SqlAdapter extends Adapter {
         this.borrowClientFromPool((err?: Error | null, client?: SQLClient): void => {
             if (err || !client) {
                 this.returnClientToPool(client);
-                this.log.error(err?.toString() || 'No client');
+                this.log.error(err ? formatError(err) : 'No client');
                 cb?.();
             } else {
                 client.execute(query, (err?: Error | null): void => {
@@ -2007,7 +2054,7 @@ export class SqlAdapter extends Adapter {
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
-                this.log.error(err?.toString() || 'No client');
+                this.log.error(err ? formatError(err) : 'No client');
                 cb?.(); // BF asked (2021.12.14): may be return here err?
                 return;
             }
@@ -2043,7 +2090,7 @@ export class SqlAdapter extends Adapter {
         this.borrowClientFromPool((err: Error | null | undefined, client?: SQLClient): void => {
             if (err || !client) {
                 this.returnClientToPool(client);
-                this.log.error(err?.toString() || 'No client');
+                this.log.error(err ? formatError(err) : 'No client');
                 cb?.(err || new Error('No client'));
             } else {
                 client.execute(query, (err?: Error | null): void => {

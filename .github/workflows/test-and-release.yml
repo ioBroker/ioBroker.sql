@@ -194,7 +194,7 @@ jobs:
             # These need neither a database nor js-controller, so run them first: they fail in
             # milliseconds instead of after the SQLite integration test.
             - name: Run unit tests
-              run: node node_modules/mocha/bin/mocha test/testCommons.js test/testIntegral.js test/testDockerCompose.js --exit
+              run: node node_modules/mocha/bin/mocha test/testCommons.js test/testIntegral.js test/testDockerCompose.js test/testErrors.js --exit
 
             - name: Run SQLite tests
               run: node node_modules/mocha/bin/mocha test/testSQLite.js --exit

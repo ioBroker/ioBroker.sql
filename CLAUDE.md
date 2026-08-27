@@ -24,7 +24,8 @@ Minimum runtime is **Node.js 22** (`engines.node`), and CI covers 22.x and 24.x.
 **Build before testing.** The integration tests start js-controller on the compiled `build/main.js`, so
 `npm run build:ts` (or the full `npm run build`) has to run first. `build/` is committed to git — the release
 script runs `npm run build` before the release commit, so regenerate and commit it when you change `src/`.
-The pure unit tests need no build: they import `@iobroker/aggregate` directly.
+Most pure unit tests need no build: they import `@iobroker/aggregate` directly. `testErrors.js` is the
+exception — it requires `build/lib/errors.js`.
 
 ### Tests
 
@@ -36,6 +37,7 @@ npx mocha test/testSQLite.js --exit    # no external DB needed
 npx mocha test/testCommons.js --exit   # pure unit tests of @iobroker/aggregate
 npx mocha test/testIntegral.js --exit  # pure unit tests of integral aggregation
 npx mocha test/testDockerCompose.js --exit  # pure unit tests of docker-compose.yaml
+npx mocha test/testErrors.js --exit    # unit tests of formatError(), needs build/
 npx mocha test/testPackageFiles.js --exit
 SQL_PASS=root npx mocha test/testMySQL.js --exit   # server must already be running
 SQL_USER=iobroker SQL_PASS=iobroker npx mocha 'test/testMySQL*.js' --exit   # e.g. against a local MariaDB
