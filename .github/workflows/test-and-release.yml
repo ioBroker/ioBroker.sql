@@ -27,12 +27,17 @@ jobs:
         if: contains(github.event.head_commit.message, '[skip ci]') == false
 
         runs-on: ubuntu-latest
+        # `npm run lint` used to walk the committed 8 MB module federation bundle in `admin/custom`
+        # and ran for 6 hours until the runner killed it - which blocked every test job below,
+        # because they all wait for this one. Fail fast instead of burning a whole runner day.
+        timeout-minutes: 15
 
         steps:
+            # `npm run lint` also lints `src-admin`, so its dependencies have to be there
             - uses: ioBroker/testing-action-check@v2
               with:
                   node-version: '24.x'
-                  install-command: 'npm i'
+                  install-command: 'npm run npm'
                   lint: true
 
     # Runs adapter tests on all supported node versions and OSes
@@ -42,6 +47,7 @@ jobs:
         needs: [check-and-lint]
 
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         strategy:
             matrix:
                 node-version: [22.x, 24.x]
@@ -61,20 +67,13 @@ jobs:
               run: npm install
 
             - name: Build
-              run: npm run build
+              # the tests only need the compiled adapter, not the admin component
+              run: npm run build:ts
 
             - name: Run MySQL tests
               run: node node_modules/mocha/bin/mocha test/testMySQL*.js --exit
               env:
                   SQL_PASS: root
-    #      - name: Run unit tests
-    #        run: npm run test:unit
-    #      - name: Run integration tests # (linux/osx)
-    #        if: startsWith(runner.OS, 'windows') == false
-    #        run: DEBUG=testing:* npm run test:integration
-    #      - name: Run integration tests # (windows)
-    #        if: startsWith(runner.OS, 'windows')
-    #        run: set DEBUG=testing:* & npm run test:integration
 
     adapter-tests-postgres:
         if: contains(github.event.head_commit.message, '[skip ci]') == false
@@ -82,6 +81,7 @@ jobs:
         needs: [check-and-lint]
 
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         strategy:
             matrix:
                 node-version: [22.x, 24.x]
@@ -116,20 +116,13 @@ jobs:
               run: npm install
 
             - name: Build
-              run: npm run build
+              # the tests only need the compiled adapter, not the admin component
+              run: npm run build:ts
 
             - name: Run Postgres tests
               run: node node_modules/mocha/bin/mocha test/testPostgreSQL.js --exit
               env:
                   SQL_PASS: postgres
-    #      - name: Run unit tests
-    #        run: npm run test:unit
-    #      - name: Run integration tests # (linux/osx)
-    #        if: startsWith(runner.OS, 'windows') == false
-    #        run: DEBUG=testing:* npm run test:integration
-    #      - name: Run integration tests # (windows)
-    #        if: startsWith(runner.OS, 'windows')
-    #        run: set DEBUG=testing:* & npm run test:integration
 
     adapter-tests-mssql:
         if: contains(github.event.head_commit.message, '[skip ci]') == false
@@ -137,6 +130,7 @@ jobs:
         needs: [check-and-lint]
 
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         strategy:
             matrix:
                 node-version: [22.x, 24.x]
@@ -163,20 +157,13 @@ jobs:
               run: npm install
 
             - name: Build
-              run: npm run build
+              # the tests only need the compiled adapter, not the admin component
+              run: npm run build:ts
 
             - name: Run MSSQL tests
               run: node node_modules/mocha/bin/mocha test/testMSSQL.js --exit
               env:
                   SQL_PASS: Password12!
-    #      - name: Run unit tests
-    #        run: npm run test:unit
-    #      - name: Run integration tests # (linux/osx)
-    #        if: startsWith(runner.OS, 'windows') == false
-    #        run: DEBUG=testing:* npm run test:integration
-    #      - name: Run integration tests # (windows)
-    #        if: startsWith(runner.OS, 'windows')
-    #        run: set DEBUG=testing:* & npm run test:integration
 
     adapter-tests-sqlite:
         if: contains(github.event.head_commit.message, '[skip ci]') == false
@@ -184,6 +171,7 @@ jobs:
         needs: [check-and-lint]
 
         runs-on: ${{ matrix.os }}
+        timeout-minutes: 30
         strategy:
             matrix:
                 node-version: [22.x, 24.x]
@@ -200,21 +188,16 @@ jobs:
               run: npm install
 
             - name: Build
-              run: npm run build
+              # the tests only need the compiled adapter, not the admin component
+              run: npm run build:ts
+
+            # These need neither a database nor js-controller, so run them first: they fail in
+            # milliseconds instead of after the SQLite integration test.
+            - name: Run unit tests
+              run: node node_modules/mocha/bin/mocha test/testCommons.js test/testIntegral.js test/testDockerCompose.js --exit
 
             - name: Run SQLite tests
               run: node node_modules/mocha/bin/mocha test/testSQLite.js --exit
-            - name: Run Commons
-              run: node node_modules/mocha/bin/mocha test/testCommons.js --exit
-
-    #      - name: Run unit tests
-    #        run: npm run test:unit
-    #      - name: Run integration tests # (linux/osx)
-    #        if: startsWith(runner.OS, 'windows') == false
-    #        run: DEBUG=testing:* npm run test:integration
-    #      - name: Run integration tests # (windows)
-    #        if: startsWith(runner.OS, 'windows')
-    #        run: set DEBUG=testing:* & npm run test:integration
 
     # Deploys the final package to NPM
     deploy:

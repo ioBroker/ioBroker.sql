@@ -1,5 +1,5 @@
 const assert = require('node:assert');
-const commons = require('../build/lib/aggregate');
+const commons = require('@iobroker/aggregate');
 
 describe('Test Common functions', function () {
     const log = {

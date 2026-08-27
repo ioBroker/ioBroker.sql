@@ -14,21 +14,25 @@ const adapterShortName = setup.adapterName.substring(setup.adapterName.indexOf('
 
 let now = new Date().getTime();
 
+// `system.adapter.<name>.0.alive` is written with `expire: 1`, so it exists for one second out of the
+// fifteen between two adapter heartbeats. Sampling it once per second is a lottery that a loaded machine
+// loses - every sample can land in the fourteen seconds where the state is gone - so sample much faster
+// than the state lives, and give the adapter a full minute to come up on a cold CI runner.
 function checkConnectionOfAdapter(cb, counter) {
     counter ||= 0;
-    if (counter > 20) {
+    if (counter > 240) {
         cb?.('Cannot check connection');
         return;
     }
 
     states.getState(`system.adapter.${adapterShortName}.0.alive`, (err, state) => {
         if (err) {
-            console.error(`SQLite:${err}`);
+            console.error(`${adapterShortName}:${err}`);
         }
         if (state?.val) {
             cb?.();
         } else {
-            setTimeout(() => checkConnectionOfAdapter(cb, counter + 1), 1000);
+            setTimeout(() => checkConnectionOfAdapter(cb, counter + 1), 250);
         }
     });
 }
@@ -91,8 +95,14 @@ describe(`Test ${__filename}`, function () {
     });
 
     it(`Test ${__filename}: Check if adapter started`, function (done) {
-        this.timeout(60000);
-        checkConnectionOfAdapter(function () {
+        this.timeout(120000);
+        checkConnectionOfAdapter(function (error) {
+            // Without this the suite would keep running against an adapter that never came up, and
+            // every following test would fail with a bare "Timeout of Nms exceeded" instead.
+            if (error) {
+                done(new Error(error));
+                return;
+            }
             now = new Date().getTime();
             sendTo(
                 'sql.0',

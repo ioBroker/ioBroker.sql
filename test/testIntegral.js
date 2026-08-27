@@ -1,8 +1,7 @@
 /* eslint-env mocha */
 const assert = require('node:assert');
 
-// Pfad ggf. anpassen: Modul muss finishAggregationForIntegralEx exportieren
-const { finishAggregationForIntegralEx } = require('../build/lib/aggregate');
+const { finishAggregationForIntegralEx } = require('@iobroker/aggregate');
 
 function makeIntervals(start, step, count) {
     const arr = [];

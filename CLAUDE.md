@@ -21,9 +21,10 @@ npx prettier --write src   # formatting (config re-exported from @iobroker/eslin
 
 Minimum runtime is **Node.js 22** (`engines.node`), and CI covers 22.x and 24.x.
 
-**Build before testing.** Tests load the compiled output (`build/lib/aggregate`, and js-controller starts
-`build/main.js`). `build/` is committed to git — the release script runs `npm run build` before the release
-commit, so regenerate and commit it when you change `src/`.
+**Build before testing.** The integration tests start js-controller on the compiled `build/main.js`, so
+`npm run build:ts` (or the full `npm run build`) has to run first. `build/` is committed to git — the release
+script runs `npm run build` before the release commit, so regenerate and commit it when you change `src/`.
+The pure unit tests need no build: they import `@iobroker/aggregate` directly.
 
 ### Tests
 
@@ -32,8 +33,9 @@ to be reachable — not usually what you want locally. Run individual files inst
 
 ```bash
 npx mocha test/testSQLite.js --exit    # no external DB needed
-npx mocha test/testCommons.js --exit   # pure unit tests of aggregate.ts
+npx mocha test/testCommons.js --exit   # pure unit tests of @iobroker/aggregate
 npx mocha test/testIntegral.js --exit  # pure unit tests of integral aggregation
+npx mocha test/testDockerCompose.js --exit  # pure unit tests of docker-compose.yaml
 npx mocha test/testPackageFiles.js --exit
 SQL_PASS=root npx mocha test/testMySQL.js --exit   # server must already be running
 SQL_USER=iobroker SQL_PASS=iobroker npx mocha 'test/testMySQL*.js' --exit   # e.g. against a local MariaDB
@@ -46,7 +48,8 @@ SQL_USER=iobroker SQL_PASS=iobroker npx mocha 'test/testMySQL*.js' --exit   # e.
   final assertion in each file queries `iobroker.datapoints` by name. They only ever add datapoints and
   rows (the suite issues no `delete`/`deleteAll`/`destroy`, and `retention()` is scoped to one datapoint
   index), but do not point them at a server holding history you care about.
-- The `test*.js` files (except `testCommons`/`testIntegral`/`testPackageFiles`) are **integration tests**:
+- The `test*.js` files (except `testCommons`/`testIntegral`/`testDockerCompose`/`testPackageFiles`) are
+  **integration tests**:
   `test/lib/setup.js` installs a real js-controller into `tmp/`, starts it, and drives the adapter over the
   message bus. The first run downloads js-controller and can take minutes (600 s mocha timeout).
 - `test/lib/testcases.js` holds the shared assertion suite; each DB file calls
@@ -66,8 +69,10 @@ src/lib/<dialect>.ts     pure SQL-string builders (mysql|postgresql|mssql|sqlite
 src/lib/<dialect>-client.ts  driver glue: ConnectionFactory + SQLClient + SQLClientPool subclasses
 src/lib/sql-client.ts    generic connection wrapper (callback + *Async variants)
 src/lib/sql-client-pool.ts   generic connection pool (borrow/return/evict)
-src/lib/aggregate.ts     read-path aggregation & response shaping (no adapter/DB knowledge)
 ```
+
+The read-path aggregation and response shaping used to live in `src/lib/aggregate.ts`; it is now the external
+package **`@iobroker/aggregate`** and is no longer part of this repository.
 
 **Adding or changing a dialect** means touching two files plus one registration:
 
@@ -128,12 +133,13 @@ queued callbacks). Every borrow must have a matching return on all error paths o
 ### Read path
 
 `getHistory` message → `getHistorySql` builds the query via `sqlFuncs.getHistory` → results go to
-`sendResponse` in `aggregate.ts`, which does interval bucketing and applies the aggregate method
+`sendResponse` from `@iobroker/aggregate`, which does interval bucketing and applies the aggregate method
 (`onchange`, `minmax`, `min`, `max`, `average`, `total`, `count`, `none`, `percentile`, `quantile`,
 `integral`, `integralTotal`). `getCounter` → `getCounterDiff` → `sendResponseCounter`.
 
-`aggregate.ts` is deliberately adapter-agnostic and is the only part covered by fast unit tests
-(`testCommons.js`, `testIntegral.js`) — prefer putting new pure logic there.
+`@iobroker/aggregate` is deliberately adapter-agnostic and is covered by the fast unit tests
+(`testCommons.js`, `testIntegral.js`) — but it lives in its own repository, so pure read-path logic has to be
+changed and released there.
 
 ### Messages API
 

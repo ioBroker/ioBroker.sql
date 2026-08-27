@@ -7,17 +7,14 @@ export default [
     {
         // specify files to exclude from linting here
         ignores: [
-            '*.test.js',
-            'test/**/*.js',
+            'test/**/*',
             '*.config.mjs',
             'build/**/*',
-            'admin/build',
-            'admin/words.js',
-            'admin/admin.d.ts',
+            'admin/**/*',
             '**/adapter-config.d.ts',
-
-            // these files need to be adapted in the future
-            'admin/blockly.js',
+            'src-admin/**/*',
+            'tmp/**/*',
+            'tasks.ts',
         ],
     },
     {
