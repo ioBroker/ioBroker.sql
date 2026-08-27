@@ -3743,7 +3743,18 @@ class SqlAdapter extends adapter_core_1.Adapter {
             await this.createUserInDocker();
         }
         if (config.dbtype === 'sqlite' || this.config.host) {
-            this.connect(() => {
+            this.connect(async () => {
+                // `enableHistory` only writes the object and leaves the activation to `objectChange`, so
+                // subscribing after the view was read left a gap: a message that arrived in between was
+                // answered with `success: true` and then silently lost, because nothing delivered its
+                // object change. Registering the subscription *before* the view is read closes the gap -
+                // every write now either lands in the snapshot below or arrives as an object change.
+                try {
+                    await this.subscribeForeignObjectsAsync('*');
+                }
+                catch (e) {
+                    this.log.error(`Cannot subscribe to objects: ${e}`);
+                }
                 // read all custom settings
                 this.getObjectView('system', 'custom', {}, (err, doc) => {
                     let count = 0;
@@ -3819,7 +3830,6 @@ class SqlAdapter extends adapter_core_1.Adapter {
                         this.subscribeAll = true;
                         this.subscribeForeignStates('*');
                     }
-                    this.subscribeForeignObjects('*');
                     this.log.debug('Initialization done');
                     this.setConnected(true);
                     this.processStartValues();
