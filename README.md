@@ -618,7 +618,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 4.1.4 (2026-08-27)
 * (@GermanBluefox) Connection errors no longer start with the useless class name `AggregateError`: the log now shows only the real reason, e.g. `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`
 
 ### 4.1.3 (2026-08-27)
@@ -645,9 +645,6 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ### 4.0.4 (2026-08-11)
 * (@GermanBluefox) Fixed that nothing was stored for datapoints with an `aliasId`: the adapter subscribed to the alias name instead of the real state ID, so no state change ever arrived
-
-### 4.0.3 (2026-08-11)
-* (@GermanBluefox) Corrected a small configuration error
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 

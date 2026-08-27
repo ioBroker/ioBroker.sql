@@ -25,8 +25,21 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "4.1.3",
+    "version": "4.1.4",
     "news": {
+      "4.1.4": {
+        "en": "Connection errors no longer start with the useless class name `AggregateError`: the log now shows only the real reason, e.g. `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`",
+        "de": "Verbindungsfehler beginnen nicht mehr mit dem nutzlosen Klassennamen `AggregateError`: Das Protokoll zeigt nun nur noch den tatsächlichen Grund an, z. B. `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`",
+        "ru": "Ошибки подключения больше не начинаются с бесполезного имени класса `AggregateError`: теперь в журнале отображается только реальная причина, например, `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`",
+        "pt": "Os erros de conexão não começam mais com o nome de classe inútil `AggregateError`: o log agora mostra apenas o motivo real, por exemplo, `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`.",
+        "nl": "Verbindingsfouten beginnen niet langer met de nutteloze klassenaam `AggregateError`: het logboek toont nu alleen de werkelijke reden, bijvoorbeeld `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`",
+        "fr": "Les erreurs de connexion ne commencent plus par le nom de classe inutile `AggregateError` : le journal affiche désormais uniquement la véritable raison, par exemple : `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`",
+        "it": "Gli errori di connessione non iniziano più con l'inutile nome di classe `AggregateError`: il log ora mostra solo la causa reale, ad esempio `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`",
+        "es": "Los errores de conexión ya no comienzan con el nombre de clase inútil `AggregateError`: el registro ahora muestra solo el motivo real, por ejemplo, `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`.",
+        "pl": "Błędy połączenia nie zaczynają się już od bezużytecznej nazwy klasy `AggregateError`: w dzienniku jest teraz wyświetlana tylko prawdziwa przyczyna, np. `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`",
+        "uk": "Помилки підключення більше не починаються з непотрібної назви класу `AggregateError`: журнал тепер показує лише справжню причину, наприклад, `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`",
+        "zh-cn": "连接错误不再以无用的类名 `AggregateError` 开头：日志现在只显示真正的错误原因，例如 `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`"
+      },
       "4.1.3": {
         "en": "Connection errors are logged with the real reason again: Node reports a failed TCP connect as an `AggregateError` whose own message is empty, so the log only showed the word `AggregateError` instead of e.g. `connect ECONNREFUSED 127.0.0.1:3306`\nThe reconnect loop no longer repeats the same connection error every 30 seconds: the first occurrence is logged as error, repetitions go to debug and once an hour a reminder is logged",
         "de": "Verbindungsfehler werden wieder mit dem tatsächlichen Grund protokolliert: Node meldet einen fehlgeschlagenen TCP-Verbindungsversuch als `AggregateError`, dessen eigene Meldung leer ist, sodass im Protokoll nur das Wort `AggregateError` anstelle von z. B. `connect ECONNREFUSED 127.0.0.1:3306` angezeigt wurde.\nDie Wiederverbindungsschleife wiederholt den gleichen Verbindungsfehler nicht mehr alle 30 Sekunden: Das erste Auftreten wird als Fehler protokolliert, Wiederholungen werden in den Debug-Modus versetzt und einmal pro Stunde wird eine Erinnerung protokolliert.",
@@ -104,19 +117,6 @@
         "pl": "Naprawiono puste wykresy dla agregacji 'onchange' (\"raw\" w wykresach e-): zostało ono uruchomione przez agregację interwałów i zwrócone tylko wartości 'null'\nKontenery dokerów MySQL i phpMyAdmin nie są już domyślnie włączane: instancje bez ustawień dokerów w ich konfiguracji (np. po aktualizacji z 3.x) zgłoszone \"Docker nie jest zainstalowany\"",
         "uk": "Виправлено порожні діаграми для агрегації `onchange` (\"raw\" in e-charts): це було проведено через інтервал агрегації та подано тільки значення `null`\nРезервуари MySQL і phpMyAdmin вже не ввімкнені за замовчуванням: екземпляри без налаштувань docker в їх налаштуваннях (наприклад, після оновлення від 3.x) повідомляють \"Докер не встановлений\"",
         "zh-cn": "电子图中“ raw” 汇总的固定空图: 它通过间隔汇总运行, 只返回“ null” 值\nMySQL 和 phpMyAdmin 嵌入器容器默认不再启用: 在其配置中没有嵌入器设置的实例( 如从 3. x 更新后) 已报告“ 嵌入器没有安装 ”"
-      },
-      "4.0.1": {
-        "en": "Fixed MySQL error \"Can't create more than max_prepared_stmt_count statements\": every query allocated a server-side prepared statement\nBatches of more than 500 values are no longer sent as one multi-statement query",
-        "de": "MySQL-Fehler behoben \"Kann nicht mehr als max  prepared stmt count-Anweisungen erstellen\": Jede Abfrage hat eine serverseitige vorbereitete Anweisung zugewiesen\nBatches mit mehr als 500 Werten werden nicht mehr als eine Multistatement-Abfrage gesendet",
-        "ru": "Исправленная ошибка MySQL «Невозможно создать больше, чем заявления max prepared stmt count»: каждый запрос выделяет подготовленное заявление на стороне сервера\nПакеты с более чем 500 значениями больше не отправляются в виде одного многократного запроса",
-        "pt": "Erro MySQL Fixo \"Não é possível criar mais do que declarações max preparado stmt count\": cada consulta alocou uma instrução preparada do lado do servidor\nBatches de mais de 500 valores não são mais enviados como uma consulta multi-declaração",
-        "nl": "Fixed MySQL-fout \"Kan niet meer dan max prepared stamt count statements aanmaken\": elke query toegewezen een server-side voorbereid statement\nBatches van meer dan 500 waarden worden niet langer verstuurd als één multi-statement query",
-        "fr": "Correction de l'erreur MySQL \"Impossible de créer plus d'instructions max prepared stmt count\" : chaque requête a attribué une instruction préparée côté serveur\nLes lots de plus de 500 valeurs ne sont plus envoyés comme une requête multi-états",
-        "it": "Corretto errore MySQL \"Impossibile creare più delle dichiarazioni max prepared stmt count\": ogni query ha assegnato un'affermazione preparata lato server\nLe pipistrelli di oltre 500 valori non vengono più inviate come una query multi-stato",
-        "es": "Error de MySQL fijo \"No se puede crear más que estados de max prepared stmt count\": cada consulta asignó una declaración preparada del lado del servidor\nBatches of more than 500 values are no longer sent as one multi-statement query",
-        "pl": "Naprawiono błąd MySQL \"Nie można utworzyć więcej niż max _ preparted _ stmt _ count haseł\": każde zapytanie przyporządkowało oświadczenie przygotowane po stronie serwera\nSerie o wartości powyżej 500 nie są już wysyłane jako jedno zapytanie wieloskładnikowe",
-        "uk": "Виправлена помилка MySQL \"Неможливо створити більше, ніж max prepared stmt count звітності\": кожен запит виділено серверно-зайняту заяву\nПакети більш ніж 500 значень більше не відправлені як один багатодержавний запит",
-        "zh-cn": "固定 MySQL 错误“ 无法创建超过 max  prepared stmt  counts 语句 ” : 每个查询都分配了服务器侧准备的语句\n超过500个值的批次不再作为多报表查询发送"
       }
     },
     "mode": "daemon",
