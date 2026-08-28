@@ -1,4 +1,7 @@
 # Older changes
+## 4.0.4 (2026-08-11)
+* (@GermanBluefox) Fixed that nothing was stored for datapoints with an `aliasId`: the adapter subscribed to the alias name instead of the real state ID, so no state change ever arrived
+
 ## 4.0.3 (2026-08-11)
 * (@GermanBluefox) Corrected a small configuration error
 

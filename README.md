@@ -618,7 +618,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 4.1.5 (2026-08-28)
 * (@GermanBluefox) Updated packages
 
 ### 4.1.4 (2026-08-27)
@@ -645,9 +645,6 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (@GermanBluefox) `storeState` uses the data type stored in the database for known datapoints instead of deriving it from the value
 * (@GermanBluefox) Added the tab `Data browser` to the instance settings: show, edit, delete and insert the stored values of a datapoint
 * (@GermanBluefox) Added the message `getDatapoints` that returns all datapoints of the database immediately
-
-### 4.0.4 (2026-08-11)
-* (@GermanBluefox) Fixed that nothing was stored for datapoints with an `aliasId`: the adapter subscribed to the alias name instead of the real state ID, so no state change ever arrived
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 

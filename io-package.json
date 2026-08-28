@@ -25,8 +25,21 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "4.1.4",
+    "version": "4.1.5",
     "news": {
+      "4.1.5": {
+        "en": "Updated packages",
+        "de": "Aktualisierte Pakete",
+        "ru": "Обновлены пакеты",
+        "pt": "Pacotes atualizados",
+        "nl": "Bijgewerkte pakketten",
+        "fr": "Paquets mis à jour",
+        "it": "Pacchetti aggiornati",
+        "es": "Paquetes actualizados",
+        "pl": "Zaktualizowane pakiety",
+        "uk": "Оновлені пакети",
+        "zh-cn": "更新包"
+      },
       "4.1.4": {
         "en": "Connection errors no longer start with the useless class name `AggregateError`: the log now shows only the real reason, e.g. `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`",
         "de": "Verbindungsfehler beginnen nicht mehr mit dem nutzlosen Klassennamen `AggregateError`: Das Protokoll zeigt nun nur noch den tatsächlichen Grund an, z. B. `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`",
@@ -104,19 +117,6 @@
         "pl": "Naprawiono niewielki błąd konfiguracji",
         "uk": "Виправлено невелику помилку конфігурації",
         "zh-cn": "修正了一个小的配置错误"
-      },
-      "4.0.2": {
-        "en": "Fixed empty charts for the aggregation `onchange` (\"raw\" in e-charts): it was run through the interval aggregation and returned only `null` values\nThe MySQL and phpMyAdmin docker containers are no longer enabled by default: instances without the docker settings in their config (e.g. after an update from 3.x) reported \"Docker is not installed\"",
-        "de": "Fixed leere Charts für die Aggregation `onchange` (\"roh\" in E-Charts): Es wurde durch die Intervall-Aggregation ausgeführt und nur `null`-Werte zurückgegeben\nDie MySQL- und phpMyAdmin-Dockercontainer sind standardmäßig nicht mehr aktiviert: Instanzen ohne die Dockereinstellungen in ihrer Konfiguration (z. B. nach einem Update von 3.x) meldeten \"Docker ist nicht installiert\"",
-        "ru": "Фиксированные пустые диаграммы для агрегации «изменение» («сырой» в электронных диаграммах): она проходила через интервальную агрегацию и возвращала только «нулевые» значения\nКонтейнеры докеров MySQL и phpMyAdmin больше не включены по умолчанию: экземпляры без настроек докера в их конфигурации (например, после обновления от 3.x) сообщают, что «Docker не установлен»",
-        "pt": "Gráficos vazios fixos para a agregação `onchange` (\"raw\" em e-charts): ele foi executado através da agregação intervalar e retornou apenas `null' valores\nOs recipientes MySQL e phpMyAdmin docker não estão mais habilitados por padrão: instâncias sem as configurações do docker em sua configuração (por exemplo, após uma atualização de 3.x) reportado \"Docker não está instalado\"",
-        "nl": "Vaste lege grafieken voor de aggregatie \"onchange\" (\"raw\" in e-charts): het werd uitgevoerd door de interval-aggregatie en gaf alleen waardes terug\nDe MySQL en phpMyAdmin docker containers zijn standaard niet meer ingeschakeld: instanties zonder de docker instellingen in hun configuratie (bijv. na een update van 3.x) gemeld \"Docker is niet geïnstalleerd\"",
-        "fr": "Graphiques vides corrigés pour l'agrégation `onchange` (\"raw\" dans les cartes électroniques) : il a été exécuté à travers l'agrégation des intervalles et renvoyé uniquement les valeurs `null`\nLes conteneurs Docker MySQL et phpMyAdmin ne sont plus activés par défaut : des instances sans les paramètres Docker dans leur configuration (par exemple après une mise à jour de 3.x) ont déclaré \"Docker n'est pas installé\"",
-        "it": "Grafici vuoti fissi per l'aggregazione `onchange` (\"raw\" in e-charts): è stato eseguito attraverso l'aggregazione dell'intervallo e restituito solo valori `null`\nI contenitori MySQL e phpMyAdmin docker non sono più abilitati per impostazione predefinita: le istanze senza le impostazioni docker nella configurazione (ad esempio dopo un aggiornamento da 3.x) hanno riferito \"Docker non è installato\"",
-        "es": "Gráficos vacíos fijos para la agregación \"cambio\" (\"raw\" en e-charts): se ejecutó a través de la agregación del intervalo y devolvió sólo los valores \"null\"\nLos contenedores de docker MySQL y phpMyAdmin ya no están habilitados por defecto: casos sin la configuración del docker en su configuración (por ejemplo, después de una actualización de 3.x) reportaron \"Docker no está instalado\"",
-        "pl": "Naprawiono puste wykresy dla agregacji 'onchange' (\"raw\" w wykresach e-): zostało ono uruchomione przez agregację interwałów i zwrócone tylko wartości 'null'\nKontenery dokerów MySQL i phpMyAdmin nie są już domyślnie włączane: instancje bez ustawień dokerów w ich konfiguracji (np. po aktualizacji z 3.x) zgłoszone \"Docker nie jest zainstalowany\"",
-        "uk": "Виправлено порожні діаграми для агрегації `onchange` (\"raw\" in e-charts): це було проведено через інтервал агрегації та подано тільки значення `null`\nРезервуари MySQL і phpMyAdmin вже не ввімкнені за замовчуванням: екземпляри без налаштувань docker в їх налаштуваннях (наприклад, після оновлення від 3.x) повідомляють \"Докер не встановлений\"",
-        "zh-cn": "电子图中“ raw” 汇总的固定空图: 它通过间隔汇总运行, 只返回“ null” 值\nMySQL 和 phpMyAdmin 嵌入器容器默认不再启用: 在其配置中没有嵌入器设置的实例( 如从 3. x 更新后) 已报告“ 嵌入器没有安装 ”"
       }
     },
     "mode": "daemon",
