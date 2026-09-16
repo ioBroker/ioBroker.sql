@@ -37,11 +37,11 @@
     "@alcalzone/release-script-plugin-license": "^5.2.2",
     "@iobroker/build-tools": "^3.0.3",
     "@iobroker/eslint-config": "^2.3.4",
-    "@iobroker/testing": "^5.3.0",
+    "@iobroker/testing": "^6.2.2",
     "@types/mssql": "^12.3.0",
     "@types/node": "^22.20.1",
     "@types/pg": "^8.23.1",
-    "mocha": "^11.8.0",
+    "mocha": "^12.0.1",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3"
   },
