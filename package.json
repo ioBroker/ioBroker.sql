@@ -21,7 +21,7 @@
     "home automation"
   ],
   "optionalDependencies": {
-    "mssql": "^12.7.0",
+    "mssql": "^12.7.1",
     "mysql2": "^3.24.2",
     "pg": "^8.23.0",
     "sqlite3": "^6.0.1"
