@@ -12,7 +12,7 @@
     "devDependencies": {
         "@iobroker/build-tools": "^3.0.1",
         "@iobroker/eslint-config": "^2.3.4",
-        "@iobroker/gui-components": "^10.2.0",
+        "@iobroker/gui-components": "^10.3.1",
         "@iobroker/json-config": "^9.0.23",
         "@module-federation/runtime": "^2.9.0",
         "@module-federation/vite": "^1.21.0",
