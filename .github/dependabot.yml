@@ -14,7 +14,6 @@ updates:
     open-pull-requests-limit: 15
 
   - package-ecosystem: 'npm'
-    directory: '/'
     schedule:
       interval: 'cron'
       timezone: 'Europe/Berlin'
@@ -27,3 +26,5 @@ updates:
           - 'version-update:semver-major'
     cooldown:
       default-days: 7
+    directories:
+      - '**/*'
