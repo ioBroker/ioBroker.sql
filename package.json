@@ -39,7 +39,7 @@
     "@iobroker/eslint-config": "^2.3.4",
     "@iobroker/testing": "^6.2.2",
     "@types/mssql": "^12.3.0",
-    "@types/node": "^22.20.1",
+    "@types/node": "^22.20.3",
     "@types/pg": "^8.23.1",
     "mocha": "^12.0.1",
     "tsx": "^4.23.13",
