@@ -1548,6 +1548,77 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
             },
         );
     });
+
+    // getCounter round trip on every SQL dialect (influxdb has no getCounter command, so the test is
+    // not registered there). Uses a run-unique time window and explicit timestamps, so reruns against
+    // an existing database (the MySQL "existing" suites) stay deterministic.
+    if (instanceName !== 'influxdb.0') {
+        it(`Test ${adapterShortName}: getCounter returns the summed progression incl. a counter reset`, function (done) {
+            this.timeout(30000);
+            const counterId = `${instanceName}.testCounter`;
+            const base = Date.now();
+
+            objects.setObject(
+                counterId,
+                { common: { type: 'number', role: 'state', custom: {} }, type: 'state' },
+                function () {
+                    sendTo(
+                        instanceName,
+                        'enableHistory',
+                        {
+                            id: counterId,
+                            options: {
+                                changesOnly: false,
+                                debounce: 0,
+                                retention: 31536000,
+                                counter: true,
+                                storageType: 'Number',
+                            },
+                        },
+                        function (result) {
+                            assert.strictEqual(result.error, undefined);
+                            assert.strictEqual(result.success, true);
+                            // wait for the adapter to pick up the settings, then write a counter
+                            // sequence with a reset: 100 -> 200 -> 10 -> 110 (progression = 100 + 100)
+                            setTimeout(function () {
+                                states.setState(counterId, { val: 100, ts: base + 1000, ack: true }, function () {
+                                    states.setState(counterId, { val: 200, ts: base + 2000, ack: true }, function () {
+                                        states.setState(counterId, { val: 10, ts: base + 3000, ack: true }, function () {
+                                            states.setState(
+                                                counterId,
+                                                { val: 110, ts: base + 4000, ack: true },
+                                                function () {
+                                                    setTimeout(function () {
+                                                        sendTo(
+                                                            instanceName,
+                                                            'getCounter',
+                                                            {
+                                                                id: counterId,
+                                                                options: { start: base, end: base + 5000 },
+                                                            },
+                                                            function (result) {
+                                                                console.log(
+                                                                    `getCounter result: ${JSON.stringify(result)}`,
+                                                                );
+                                                                assert.strictEqual(result.error, undefined);
+                                                                assert.strictEqual(typeof result.result, 'number');
+                                                                assert.strictEqual(result.result, 200);
+                                                                done();
+                                                            },
+                                                        );
+                                                    }, 3000);
+                                                },
+                                            );
+                                        });
+                                    });
+                                });
+                            }, 3000);
+                        },
+                    );
+                },
+            );
+        });
+    }
 }
 
 module.exports.register = register;
