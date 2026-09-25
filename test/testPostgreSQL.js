@@ -171,6 +171,69 @@ describe(`Test ${__filename}`, function () {
         });
     });
 
+    it(`Test ${__filename}: getCounter works on PostgreSQL`, function (done) {
+        this.timeout(30000);
+        const counterId = 'sql.0.testCounter';
+        const base = Date.now();
+
+        objects.setObject(
+            counterId,
+            { common: { type: 'number', role: 'state', custom: {} }, type: 'state' },
+            function () {
+                sendTo(
+                    'sql.0',
+                    'enableHistory',
+                    {
+                        id: counterId,
+                        options: {
+                            changesOnly: false,
+                            debounce: 0,
+                            retention: 31536000,
+                            counter: true,
+                            storageType: 'Number',
+                        },
+                    },
+                    function (result) {
+                        assert.strictEqual(result.error, undefined);
+                        assert.strictEqual(result.success, true);
+                        // wait for the adapter to pick up the new settings, then write a counter
+                        // sequence with a reset: 100 -> 200 -> 10 -> 110 (progression = 100 + 100 = 200)
+                        setTimeout(function () {
+                            states.setState(counterId, { val: 100, ts: base + 1000, ack: true }, function () {
+                                states.setState(counterId, { val: 200, ts: base + 2000, ack: true }, function () {
+                                    states.setState(counterId, { val: 10, ts: base + 3000, ack: true }, function () {
+                                        states.setState(
+                                            counterId,
+                                            { val: 110, ts: base + 4000, ack: true },
+                                            function () {
+                                                setTimeout(function () {
+                                                    sendTo(
+                                                        'sql.0',
+                                                        'getCounter',
+                                                        { id: counterId, options: { start: base, end: base + 5000 } },
+                                                        function (result) {
+                                                            console.log(
+                                                                `PostgreSQL getCounter result: ${JSON.stringify(result)}`,
+                                                            );
+                                                            assert.strictEqual(result.error, undefined);
+                                                            assert.strictEqual(typeof result.result, 'number');
+                                                            assert.strictEqual(result.result, 200);
+                                                            done();
+                                                        },
+                                                    );
+                                                }, 3000);
+                                            },
+                                        );
+                                    });
+                                });
+                            });
+                        }, 3000);
+                    },
+                );
+            },
+        );
+    });
+
     after(`Test ${__filename} Stop js-controller`, function (done) {
         this.timeout(16000);
 
