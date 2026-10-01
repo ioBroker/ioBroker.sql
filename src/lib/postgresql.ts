@@ -122,7 +122,7 @@ export function getFromInsert(dbName: string, values: string): string {
 }
 
 export function getCounterDiff(
-    dbName: string,
+    _dbName: string,
     options: {
         index: number;
         start: number;
@@ -130,15 +130,15 @@ export function getCounterDiff(
     },
 ): string {
     // Take first real value after start
-    const subQueryStart = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=${options.index} AND ts>=${options.start} AND ts<${options.end} AND val IS NOT NULL ORDER BY ts ASC LIMIT 1`;
+    const subQueryStart = `SELECT ts, val FROM ts_number  WHERE id=${options.index} AND ts>=${options.start} AND ts<${options.end} AND val IS NOT NULL ORDER BY ts ASC LIMIT 1`;
     // Take last real value before the end
-    const subQueryEnd = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=${options.index} AND ts>=${options.start} AND ts<${options.end} AND val IS NOT NULL ORDER BY ts DESC LIMIT 1`;
+    const subQueryEnd = `SELECT ts, val FROM ts_number  WHERE id=${options.index} AND ts>=${options.start} AND ts<${options.end} AND val IS NOT NULL ORDER BY ts DESC LIMIT 1`;
     // Take last value before start
-    const subQueryFirst = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=${options.index} AND ts< ${options.start} ORDER BY ts DESC LIMIT 1`;
+    const subQueryFirst = `SELECT ts, val FROM ts_number  WHERE id=${options.index} AND ts< ${options.start} ORDER BY ts DESC LIMIT 1`;
     // Take next value after end
-    const subQueryLast = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=${options.index} AND ts>= ${options.end} ORDER BY ts ASC  LIMIT 1`;
+    const subQueryLast = `SELECT ts, val FROM ts_number  WHERE id=${options.index} AND ts>= ${options.end} ORDER BY ts ASC  LIMIT 1`;
     // get values from counters where counter changed from up to down (e.g. counter changed)
-    const subQueryCounterChanges = `SELECT ts, val FROM \`${dbName}\`.ts_counter WHERE id=${options.index} AND ts>${options.start} AND ts<${options.end} AND val IS NOT NULL ORDER BY ts ASC`;
+    const subQueryCounterChanges = `SELECT ts, val FROM ts_counter WHERE id=${options.index} AND ts>${options.start} AND ts<${options.end} AND val IS NOT NULL ORDER BY ts ASC`;
 
     return (
         `SELECT DISTINCT(a.ts), a.val from ((${subQueryFirst})\n` +
