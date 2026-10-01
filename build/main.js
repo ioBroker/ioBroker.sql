@@ -210,6 +210,8 @@ class SqlAdapter extends adapter_core_1.Adapter {
     lastConnectionError = null;
     lastConnectionErrorTs = 0;
     connectionErrorCount = 0;
+    /** consecutive pool-borrow failures; at 5 info.connection turns false instead of staying true forever (#374) */
+    consecutiveBorrowFailures = 0;
     constructor(options = {}) {
         super({
             ...options,
@@ -339,7 +341,6 @@ class SqlAdapter extends adapter_core_1.Adapter {
             this.setConnected(false);
             return callback(new Error('No database connection'));
         }
-        this.setConnected(true);
         if (this.activeConnections >= this.config.maxConnections) {
             if (this.logConnectionUsage) {
                 this.log.debug(`Borrow connection not possible: ${this.activeConnections} >= Max - Store for Later`);
@@ -357,9 +358,18 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 if (client.on && client.listenerCount && !client.listenerCount('error')) {
                     client.on('error', (err) => this.log.warn(`SQL client error: ${(0, errors_1.formatError)(err)}`));
                 }
+                // A real, working connection was handed out - this, not the mere existence of a pool
+                // object, is what info.connection reports (#374).
+                this.consecutiveBorrowFailures = 0;
+                this.setConnected(true);
             }
             else if (!client) {
                 this.activeConnections--;
+                // Repeated borrow failures (e.g. connect ETIMEDOUT while the server is down) mean the
+                // database is effectively unreachable; previously info.connection stayed true forever.
+                if (++this.consecutiveBorrowFailures >= 5) {
+                    this.setConnected(false);
+                }
             }
             callback(err, client);
         });
