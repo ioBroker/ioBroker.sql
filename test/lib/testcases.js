@@ -1583,33 +1583,37 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
                             setTimeout(function () {
                                 states.setState(counterId, { val: 100, ts: base + 1000, ack: true }, function () {
                                     states.setState(counterId, { val: 200, ts: base + 2000, ack: true }, function () {
-                                        states.setState(counterId, { val: 10, ts: base + 3000, ack: true }, function () {
-                                            states.setState(
-                                                counterId,
-                                                { val: 110, ts: base + 4000, ack: true },
-                                                function () {
-                                                    setTimeout(function () {
-                                                        sendTo(
-                                                            instanceName,
-                                                            'getCounter',
-                                                            {
-                                                                id: counterId,
-                                                                options: { start: base, end: base + 5000 },
-                                                            },
-                                                            function (result) {
-                                                                console.log(
-                                                                    `getCounter result: ${JSON.stringify(result)}`,
-                                                                );
-                                                                assert.strictEqual(result.error, undefined);
-                                                                assert.strictEqual(typeof result.result, 'number');
-                                                                assert.strictEqual(result.result, 200);
-                                                                done();
-                                                            },
-                                                        );
-                                                    }, 3000);
-                                                },
-                                            );
-                                        });
+                                        states.setState(
+                                            counterId,
+                                            { val: 10, ts: base + 3000, ack: true },
+                                            function () {
+                                                states.setState(
+                                                    counterId,
+                                                    { val: 110, ts: base + 4000, ack: true },
+                                                    function () {
+                                                        setTimeout(function () {
+                                                            sendTo(
+                                                                instanceName,
+                                                                'getCounter',
+                                                                {
+                                                                    id: counterId,
+                                                                    options: { start: base, end: base + 5000 },
+                                                                },
+                                                                function (result) {
+                                                                    console.log(
+                                                                        `getCounter result: ${JSON.stringify(result)}`,
+                                                                    );
+                                                                    assert.strictEqual(result.error, undefined);
+                                                                    assert.strictEqual(typeof result.result, 'number');
+                                                                    assert.strictEqual(result.result, 200);
+                                                                    done();
+                                                                },
+                                                            );
+                                                        }, 3000);
+                                                    },
+                                                );
+                                            },
+                                        );
                                     });
                                 });
                             }, 3000);
