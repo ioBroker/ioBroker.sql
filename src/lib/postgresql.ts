@@ -137,16 +137,19 @@ export function getCounterDiff(
     const subQueryFirst = `SELECT ts, val FROM ts_number  WHERE id=${options.index} AND ts< ${options.start} ORDER BY ts DESC LIMIT 1`;
     // Take next value after end
     const subQueryLast = `SELECT ts, val FROM ts_number  WHERE id=${options.index} AND ts>= ${options.end} ORDER BY ts ASC  LIMIT 1`;
-    // get values from counters where counter changed from up to down (e.g. counter changed)
-    const subQueryCounterChanges = `SELECT ts, val FROM ts_counter WHERE id=${options.index} AND ts>${options.start} AND ts<${options.end} AND val IS NOT NULL ORDER BY ts ASC`;
+    // get values from counters where counter changed from up to down (e.g. counter changed).
+    // No ORDER BY here: the outer ORDER BY sorts the combined result anyway.
+    const subQueryCounterChanges = `SELECT ts, val FROM ts_counter WHERE id=${options.index} AND ts>${options.start} AND ts<${options.end} AND val IS NOT NULL`;
 
+    // The ORDER BY belongs in the OUTER query, not inside the derived table: sendResponseCounter
+    // consumes the rows positionally, and a derived table's ordering is not guaranteed to survive
+    // the SELECT DISTINCT above it - PostgreSQL may hash-aggregate instead of sort/unique.
     return (
-        `SELECT DISTINCT(a.ts), a.val from ((${subQueryFirst})\n` +
-        `UNION ALL \n(${subQueryStart})\n` +
-        `UNION ALL \n(${subQueryEnd})\n` +
-        `UNION ALL \n(${subQueryLast})\n` +
-        `UNION ALL \n(${subQueryCounterChanges})\n` +
-        `ORDER BY ts) a;`
+        `SELECT DISTINCT a.ts, a.val FROM ((${subQueryFirst})\n` +
+        `UNION ALL (${subQueryStart})\n` +
+        `UNION ALL (${subQueryEnd})\n` +
+        `UNION ALL (${subQueryLast})\n` +
+        `UNION ALL (${subQueryCounterChanges})) a ORDER BY a.ts;`
     );
 }
 
