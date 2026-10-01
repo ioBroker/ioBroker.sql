@@ -25,8 +25,21 @@
       "pl": "Rejestrowanie stanów w SQL DB",
       "zh-cn": "将状态记录到SQL DB"
     },
-    "version": "4.1.5",
+    "version": "4.1.6",
     "news": {
+      "4.1.6": {
+        "en": "Fixed `getCounter` on PostgreSQL: the queries used MySQL-style backtick quoting\nFixed `getCounter` on SQLite: `ORDER BY`/`LIMIT` is not allowed on a compound-select member\nFixed `getCounter` on MS SQL: the counter subquery filtered on `ts_number` instead of `ts_counter`\n`getCounter` now sorts in the outer query on all dialects, so the row order no longer depends on the query plan\nAdded `getCounter` test coverage for all four dialects",
+        "de": "`GetCounter` auf PostgreSQL behoben: Die Abfragen nutzten MySQL-Backtick-Quotes\n`getCounter` auf SQLite behoben: `ORDER BY`/`LIMIT` ist bei Member verboten\n`GetCounter` auf MS SQL behoben: Die Zählerabfrage filterte nach `ts_number` statt `ts_counter`\n`GetCounter` sortiert jetzt alle Dialekte, sodass die Reihenfolge nicht mehr vom Abfrageplan abhängt\nGetCounter-Test für alle vier Dialekte hinzugefügt",
+        "ru": "Исправлено значение GetCounter в PostgreSQL: в запросах использовались обратные кавычки в стиле MySQL\nИсправлена ошибка «GetCounter» в SQLite: функция «ORDER BY`/`LIMIT» запрещена для участника, выбирающего соединение\nИсправлена ошибка `getCounter` в MS SQL: подзапрос счетчика отфильтрован по `ts_number` вместо `ts_counter`\n`getCounter` теперь сортирует внешний запрос на всех диалектах, поэтому порядок строк больше не зависит от плана запроса\nДобавлено тестовое покрытие GetCounter для всех четырех диалектов",
+        "pt": "Corrigido o `getCounter` no PostgreSQL: as consultas usavam aspas no estilo MySQL\nCorrigido o `getCounter` no SQLite: `ORDER BY`/`LIMIT` não é permitido em um membro composto\nCorrigido o `getCounter` no MS SQL: a subconsulta filtrada em `ts_number` em vez de `ts_counter`\n`getCounter` agora classifica a consulta externa em todos os dialetos e não depende mais do plano\nAdicionado teste `getCounter` para os 4 dialetos",
+        "nl": "`GetCounter` opgelost op PostgreSQL: bij de zoekopdrachten werd gebruik gemaakt van backtick-citaten in MySQL-stijl\n`GetCounter` opgelost op SQLite: `ORDER BY/`LIMIT` is niet toegestaan op een lid dat een compound selecteert\n`GetCounter` opgelost in MS SQL: de tellersubquery werd gefilterd op `ts_number` in plaats van op `ts_counter`\n`GetCounter` sorteert nu in de buitenste query op alle dialecten, zodat de volgorde van de rijen niet langer afhankelijk is van het queryplan\n`GetCounter` testdekking toegevoegd voor alle vier de dialecten",
+        "fr": "Correction de « GetCounter » sur PostgreSQL : les requêtes utilisaient des guillemets à la MySQL\nCorrection de « GetCounter » sur SQLite : « ORDER BY`/`LIMIT` n'est pas autorisé sur un membre Compound-Select\nCorrection de « GetCounter » sur MS SQL : la sous-requête du compteur filtrée sur « ts_number » au lieu de « ts_counter »\n« GetCounter » trie désormais tous les dialectes dans la requête externe. L'ordre des lignes ne dépend plus du plan de requête\nAjout de la couverture du test « GetCounter » pour les quatre dialectes",
+        "it": "Risolto `getCounter` su PostgreSQL: le query usavano virgolette in stile MySQL\nRisolto `getCounter` su SQLite: `ORDER BY`/`LIMIT` non è consentito su un membro composto\nRisolto `getCounter` su MS SQL: la subquery contatore filtrata su `ts_number` anziché `ts_counter`\n`getCounter` ora ordina in tutti i dialetti, quindi l'ordine delle righe non dipende più dal piano\nAggiunto il test `getCounter` per tutti i dialetti",
+        "es": "Se corrigió `GetCounter` en PostgreSQL: las consultas utilizaban comillas al revés al estilo MySQL\nSe corrigió `GetCounter` en SQLite: No se permite `ORDER BY`/`LIMIT` en un miembro de selección compuesta\nSe corrigió `GetCounter` en MS SQL: la subconsulta del contador se filtraba por `ts_number` en lugar de por `ts_counter`\n`GetCounter` ahora ordena en todos los dialectos, por lo que el orden de las filas ya no depende del plan de consulta\nSe ha añadido la prueba de «GetCounter» para los cuatro dialectos",
+        "pl": "Naprawiono `GetCounter` na PostgreSQL: zapytania używały cytowania backtick w stylu MySQL\nNaprawiono `GetCounter` na SQLite: `ORDER BY`/`LIMIT` jest niedozwolone na członku wybieranym przez złożenie\nNaprawiono `GetCounter` w MS SQL: podzapytanie licznika filtrowane na `ts_number` zamiast `ts_counter`\n`GetCounter` sortuje teraz w zewnętrznym zapytaniu na wszystkich dialektach, więc kolejność wierszy nie zależy już od planu zapytania\nDodano zakres testu `GetCounter` dla wszystkich czterech dialektów",
+        "uk": "Виправлено `GetCounter` на PostgreSQL: запити використовували зворотне цитування у стилі MySQL\nВиправлено `getCounter` на SQLite: `ORDER BY`/`LIMIT` не дозволено для члена вибору сполуки\nВиправлено `getCounter` на MS SQL: підзапит лічильника відфільтрований на `ts_number` замість `ts_counter`\n`GetCounter` тепер сортує зовнішній запит на всіх діалектах, тому порядок рядків більше не залежить від плану запиту\nДодано тестове покриття `GetCounter` для всіх чотирьох діалектів",
+        "zh-cn": "修复了 PostgreSQL 上的 `getCounter`：查询使用了 MySQL 风格的反引号\n修复了 SQLite 上的 getCounter：复合选择成员不允许 “ORDER BY”/“LIMIT”\n修复了 MS SQL 上的 `getCounter`：计数器子查询在 `ts_number` 而不是 `ts_counter` 上过滤\n`getCounter`现在对所有方言的外部查询进行排序，因此行顺序不再取决于查询计划\n为所有四种方言添加了 `getCounter` 测试覆盖范围"
+      },
       "4.1.5": {
         "en": "Updated packages",
         "de": "Aktualisierte Pakete",
@@ -104,19 +117,6 @@
         "pl": "Naprawiono błąd powodujący, że nic nie było przechowywane dla punktów danych z `aliasId`: adapter subskrybował nazwę aliasu zamiast rzeczywistego identyfikatora stanu, więc żadna zmiana stanu nigdy nie nadeszła",
         "uk": "Виправлено помилку, через яку нічого не зберігалося для точок даних з `aliasId`: адаптер підписувався на псевдонім замість ідентифікатора реального стану, тому жодної зміни стану ніколи не надходило.",
         "zh-cn": "修复了对于带有 `aliasId` 的数据点，未存储任何数据的问题：适配器订阅的是别名而不是实际的状态 ID，因此从未收到状态更改通知。"
-      },
-      "4.0.3": {
-        "en": "Corrected small configuration error",
-        "de": "Kleiner Konfigurationsfehler behoben",
-        "ru": "Исправлена небольшая ошибка конфигурации.",
-        "pt": "Pequeno erro de configuração corrigido",
-        "nl": "Een kleine configuratiefout is gecorrigeerd.",
-        "fr": "Correction d'une petite erreur de configuration",
-        "it": "Corretto un piccolo errore di configurazione.",
-        "es": "Se corrigió un pequeño error de configuración.",
-        "pl": "Naprawiono niewielki błąd konfiguracji",
-        "uk": "Виправлено невелику помилку конфігурації",
-        "zh-cn": "修正了一个小的配置错误"
       }
     },
     "mode": "daemon",
