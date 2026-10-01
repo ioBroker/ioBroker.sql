@@ -149,15 +149,18 @@ export function getCounterDiff(
     const subQueryFirst = `SELECT TOP 1 val, ts FROM ${dbName}.dbo.ts_number WHERE ${dbName}.dbo.ts_number.id=${options.index} AND ${dbName}.dbo.ts_number.ts< ${options.start} ORDER BY ${dbName}.dbo.ts_number.ts DESC`;
     // Take next value after end
     const subQueryLast = `SELECT TOP 1 val, ts FROM ${dbName}.dbo.ts_number WHERE ${dbName}.dbo.ts_number.id=${options.index} AND ${dbName}.dbo.ts_number.ts>=${options.end} ORDER BY ${dbName}.dbo.ts_number.ts ASC`;
-    // get values from counters where counter values changed
-    const subQueryCounterChanges = `SELECT val, ts FROM ${dbName}.dbo.ts_counter WHERE ${dbName}.dbo.ts_number.id=${options.index} AND ${dbName}.dbo.ts_number.ts>${options.start} AND ${dbName}.dbo.ts_number.ts<${options.end} AND ${dbName}.dbo.ts_number.val IS NOT NULL ORDER BY ${dbName}.dbo.ts_number.ts ASC`;
+    // get values from counters where counter values changed. No ORDER BY here: T-SQL forbids it in a
+    // union member without TOP, and the outer ORDER BY sorts the combined result anyway.
+    const subQueryCounterChanges = `SELECT val, ts FROM ${dbName}.dbo.ts_counter WHERE ${dbName}.dbo.ts_counter.id=${options.index} AND ${dbName}.dbo.ts_counter.ts>${options.start} AND ${dbName}.dbo.ts_counter.ts<${options.end} AND ${dbName}.dbo.ts_counter.val IS NOT NULL`;
 
+    // Same shape as the other dialects: DISTINCT over the union, ordered by ts in the OUTER query -
+    // sendResponseCounter consumes the rows positionally, so the order must be guaranteed here.
     return (
-        `${subQueryFirst} ` +
-        `UNION ALL (${subQueryStart}) a ` +
-        `UNION ALL (${subQueryEnd}) b ` +
-        `UNION ALL (${subQueryLast}) c` +
-        `UNION ALL (${subQueryCounterChanges}) d`
+        `SELECT DISTINCT a.ts, a.val FROM ((${subQueryFirst})\n` +
+        `UNION ALL (${subQueryStart})\n` +
+        `UNION ALL (${subQueryEnd})\n` +
+        `UNION ALL (${subQueryLast})\n` +
+        `UNION ALL (${subQueryCounterChanges})) a ORDER BY a.ts;`
     );
 }
 

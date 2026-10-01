@@ -138,16 +138,21 @@ export function getCounterDiff(
     const subQueryFirst = `SELECT ts, val FROM ts_number  WHERE id=${options.index} AND ts< ${options.start} ORDER BY ts DESC LIMIT 1`;
     // Take next value after end
     const subQueryLast = `SELECT ts, val FROM ts_number  WHERE id=${options.index} AND ts>= ${options.end} ORDER BY ts ASC  LIMIT 1`;
-    // get values from counters where counter changed from up to down (e.g. counter changed)
-    const subQueryCounterChanges = `SELECT ts, val FROM ts_counter WHERE id=${options.index} AND ts>${options.start} AND ts<${options.end} AND val IS NOT NULL ORDER BY ts ASC`;
+    // get values from counters where counter changed from up to down (e.g. counter changed).
+    // No ORDER BY here: SQLite forbids ORDER BY on compound-select members, and the outer
+    // ORDER BY sorts the combined result anyway.
+    const subQueryCounterChanges = `SELECT ts, val FROM ts_counter WHERE id=${options.index} AND ts>${options.start} AND ts<${options.end} AND val IS NOT NULL`;
 
+    // SQLite forbids ORDER BY/LIMIT directly on parenthesized compound-select members, so every
+    // TOP-1-style subquery is wrapped as a FROM-subquery (where ORDER BY + LIMIT are legal). The
+    // outer ORDER BY is required: sendResponseCounter consumes the rows positionally.
     return (
-        `SELECT DISTINCT(a.ts), a.val from ((${subQueryFirst})\n` +
-        `UNION ALL \n(${subQueryStart})\n` +
-        `UNION ALL \n(${subQueryEnd})\n` +
-        `UNION ALL \n(${subQueryLast})\n` +
-        `UNION ALL \n(${subQueryCounterChanges})\n` +
-        `ORDER BY ts) a;`
+        `SELECT DISTINCT a.ts, a.val FROM (SELECT ts, val FROM (${subQueryFirst})\n` +
+        `UNION ALL SELECT ts, val FROM (${subQueryStart})\n` +
+        `UNION ALL SELECT ts, val FROM (${subQueryEnd})\n` +
+        `UNION ALL SELECT ts, val FROM (${subQueryLast})\n` +
+        `UNION ALL ${subQueryCounterChanges}\n` +
+        `) a ORDER BY a.ts;`
     );
 }
 
