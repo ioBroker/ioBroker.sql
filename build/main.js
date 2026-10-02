@@ -178,6 +178,31 @@ const MAX_TASKS = 100;
 const MAX_RAW_ENTRIES = 2000;
 /** How often an unchanged connection error is repeated as error in the log */
 const REPEATED_ERROR_INTERVAL = 3_600_000;
+/**
+ * Messages that cannot be answered before `sqlFuncs` is known, i.e. before the dialect has been
+ * picked from the configuration in `main()`.
+ *
+ * The `message` handler is installed in the constructor, so the message box starts delivering as
+ * soon as the adapter is ready - while `main()` is still awaiting `system.config`. Charts that kept
+ * polling during a restart have their `getHistory` requests queued and delivered in one batch right
+ * at that moment, which is how a single restart used to produce an immediate UNCAUGHT_EXCEPTION.
+ * `stateChange` and `objectChange` cannot hit this window: both subscribe only after the dialect is
+ * set. See https://github.com/ioBroker/ioBroker.sql/issues/527
+ */
+const COMMANDS_REQUIRING_DB = new Set([
+    'getHistory',
+    'getCounter',
+    'destroy',
+    'query',
+    'update',
+    'delete',
+    'deleteAll',
+    'deleteRange',
+    'storeState',
+    'getRawEntries',
+    'getDatapoints',
+    'getDpOverview',
+]);
 function sortByTs(a, b) {
     const aTs = a.ts;
     const bTs = b.ts;
@@ -354,9 +379,13 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
         this.clientPool.borrow((err, client) => {
             if (!err && client) {
-                // make sure we always have at least one error listener to prevent crashes
+                // Log connection-level driver errors (ECONNRESET, PROTOCOL_CONNECTION_LOST). The
+                // crash safety itself does not depend on this listener: SQLClient handles the
+                // driver's `error` event and only re-emits when someone is listening, and the pool
+                // drops the flagged client on the next borrow. This just makes the reconnect
+                // visible in the log.
                 if (client.on && client.listenerCount && !client.listenerCount('error')) {
-                    client.on('error', (err) => this.log.warn(`SQL client error: ${(0, errors_1.formatError)(err)}`));
+                    client.on('error', (err) => this.log.warn(`SQL connection lost, will reconnect: ${(0, errors_1.formatError)(err)}`));
                 }
                 // A real, working connection was handed out - this, not the mere existence of a pool
                 // object, is what info.connection reports (#374).
@@ -1238,6 +1267,15 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
     }
     processMessage(msg) {
+        // Answer with an error instead of dereferencing a `sqlFuncs` that is still null. Guarding
+        // here covers every database-backed command at once; the alternative would be a check at
+        // each of the ~30 `this.sqlFuncs!` uses, every one of which is only reachable from here
+        // during this window.
+        if (!this.sqlFuncs && COMMANDS_REQUIRING_DB.has(msg.command)) {
+            this.log.warn(`Cannot process "${msg.command}": the adapter is not initialized yet`);
+            this.sendTo(msg.from, msg.command, { result: [], step: null, error: 'Adapter is not initialized yet' }, msg.callback);
+            return;
+        }
         if (msg.command === 'features') {
             this.sendTo(msg.from, msg.command, { supportedFeatures: ['update', 'delete', 'deleteRange', 'deleteAll', 'storeState'] }, msg.callback);
         }
@@ -3906,6 +3944,9 @@ exports.SqlAdapter = SqlAdapter;
 if (require.main !== module) {
     // Export the constructor in compact mode
     module.exports = (options) => new SqlAdapter(options);
+    // Also expose the class itself, so unit tests can call a single method on the prototype
+    // without starting an adapter. Compact mode calls the function above and is unaffected.
+    module.exports.SqlAdapter = SqlAdapter;
 }
 else {
     // otherwise start the instance directly
