@@ -8,10 +8,74 @@ class SQLClient extends node_events_1.EventEmitter {
     borrowed_at = null;
     connected_at = null;
     connection;
+    broken = false;
+    lastError = null;
     constructor(options, connectionFactory) {
         super();
         this.options = options;
         this.factory = connectionFactory;
+    }
+    /**
+     * Take ownership of a freshly opened connection.
+     *
+     * All four drivers hand out an EventEmitter (mysql2 `Connection`, pg `Client`, mssql
+     * `ConnectionPool`, sqlite3 `Database`) and emit `error` on it asynchronously when the server
+     * drops the socket - `ECONNRESET` or `PROTOCOL_CONNECTION_LOST`. An `error` event without a
+     * listener is thrown by EventEmitter, which used to terminate the adapter with
+     * UNCAUGHT_EXCEPTION instead of reconnecting, so the listener is attached here, centrally, for
+     * every dialect.
+     *
+     * @param connection the connection just returned by the factory
+     */
+    #adoptConnection(connection) {
+        this.connection = connection;
+        this.connected_at = Date.now();
+        this.broken = false;
+        this.lastError = null;
+        if (!connection || typeof connection.on !== 'function') {
+            return;
+        }
+        connection.on('error', (err) => {
+            // The listener is never removed, so that a driver emitting `error` while or after
+            // closing can never throw either. That also means events from a connection we have
+            // already replaced can still arrive - ignore those instead of flagging the client that
+            // now holds a healthy connection.
+            if (this.connection !== connection) {
+                return;
+            }
+            // A connection-level error means this connection is unusable: any further statement
+            // would fail with "Can't add new command when connection is in closed state". Flagging
+            // it makes the pool drop the client on the next borrow and open a fresh connection.
+            this.broken = true;
+            this.lastError = err instanceof Error ? err : new Error(String(err));
+            // Re-emit for whoever borrowed this client, but only when someone is listening:
+            // emit('error') without a listener throws ERR_UNHANDLED_ERROR, which is the very crash
+            // this handler exists to prevent.
+            if (this.listenerCount('error')) {
+                this.emit('error', this.lastError);
+            }
+        });
+    }
+    /**
+     * Drop the connection and the error state that belonged to it.
+     *
+     * The `error` listener stays on the old connection object on purpose - removing it would let a
+     * driver that emits during or after close throw again. It is inert once `this.connection` no
+     * longer points at that object, and goes away with it.
+     */
+    #releaseConnection() {
+        this.connection = null;
+        this.connected_at = null;
+        this.broken = false;
+        this.lastError = null;
+    }
+    /** Whether the driver reported a connection-level error, so this client must not be reused. */
+    isBroken() {
+        return this.broken;
+    }
+    /** The connection-level error that broke this client, if any. */
+    getLastError() {
+        return this.lastError;
     }
     connect(callback) {
         if (!this.connection) {
@@ -20,8 +84,7 @@ class SQLClient extends node_events_1.EventEmitter {
                     callback?.(err);
                     return;
                 }
-                this.connection = connection;
-                this.connected_at = Date.now();
+                this.#adoptConnection(connection);
                 callback?.();
             });
         }
@@ -34,8 +97,7 @@ class SQLClient extends node_events_1.EventEmitter {
                     reject(err);
                 }
                 else {
-                    this.connection = connection;
-                    this.connected_at = Date.now();
+                    this.#adoptConnection(connection);
                     resolve();
                 }
             }));
@@ -49,8 +111,7 @@ class SQLClient extends node_events_1.EventEmitter {
                     callback?.(err);
                     return;
                 }
-                this.connection = null;
-                this.connected_at = null;
+                this.#releaseConnection();
                 callback?.();
             });
             return;
@@ -64,8 +125,7 @@ class SQLClient extends node_events_1.EventEmitter {
                     reject(err);
                 }
                 else {
-                    this.connection = null;
-                    this.connected_at = null;
+                    this.#releaseConnection();
                     resolve();
                 }
             }));

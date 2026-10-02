@@ -57,6 +57,13 @@ class SQLClientPool {
         callback(null, client);
     }
     validate(client, callback) {
+        // A client whose driver reported a connection-level error cannot serve another statement -
+        // it would fail with "Can't add new command when connection is in closed state". Declaring
+        // it invalid makes `borrow` destroy it and open a fresh connection, which is the reconnect.
+        if (client?.isBroken()) {
+            callback(null, false, client);
+            return;
+        }
         if (client &&
             (!client.pooled_at ||
                 !this.poolOptions?.max_age ||
