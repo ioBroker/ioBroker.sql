@@ -1,5 +1,5 @@
 const assert = require('node:assert');
-const { formatError } = require('../build/lib/errors');
+const { formatError, counterTypeMismatch } = require('../build/lib/errors');
 
 describe('Test formatError', function () {
     it('unwraps an AggregateError', function () {
@@ -67,5 +67,25 @@ describe('Test formatError', function () {
         const circular = {};
         circular.self = circular;
         assert.ok(formatError(circular).length > 0);
+    });
+});
+
+describe('Test counterTypeMismatch', function () {
+    it('names the datapoint, which the old message did not', function () {
+        const text = counterTypeMismatch('modbus.0.holdingRegisters.1234_Zaehler', 'String');
+
+        // the whole point of issue #320: the old text was 'Counter must have type "number"!'
+        // and left people searching their configuration for which datapoint it meant
+        assert.ok(text.includes('modbus.0.holdingRegisters.1234_Zaehler'), text);
+        assert.ok(text.includes('String'), 'says how it is stored now');
+        assert.ok(text.includes('Number'), 'says what it has to be');
+        assert.ok(text.includes('counter option'), 'offers the other way out');
+        assert.ok(!text.includes('\n'), 'must stay on one line');
+    });
+
+    it('survives an unmapped storage type', function () {
+        // storageTypes[] has no entry for every value the datapoints table could hold
+        assert.ok(counterTypeMismatch('sql.0.x', 7).includes('"7"'));
+        assert.ok(counterTypeMismatch('sql.0.x', undefined).includes('unknown'));
     });
 });

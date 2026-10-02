@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.formatError = formatError;
+exports.counterTypeMismatch = counterTypeMismatch;
 // Only the first few sub-errors of an AggregateError are rendered - a DNS name with many A/AAAA
 // records would otherwise produce a log line of arbitrary length.
 const MAX_NESTED_ERRORS = 5;
@@ -123,5 +124,21 @@ function describeNested(err, depth) {
         }
     }
     return formatError(err, depth);
+}
+/**
+ * The message for a datapoint that has the counter option on but is not stored as a number.
+ *
+ * Built here rather than inline so it can be unit tested, and because the point of
+ * https://github.com/ioBroker/ioBroker.sql/issues/320 is the wording: the old text was
+ * `Counter must have type "number"!` with no indication of *which* datapoint, which left people
+ * searching their configuration for a year. The ID and the actual type are what make it
+ * actionable, and the sentence says what to change.
+ *
+ * @param id the state ID of the misconfigured datapoint
+ * @param storageType how the datapoint is stored, e.g. 'String' - may be a raw number if unmapped
+ */
+function counterTypeMismatch(id, storageType) {
+    return (`Counter must have type "number", but "${id}" is stored as "${storageType ?? 'unknown'}". ` +
+        `Change the storage type of this datapoint to "Number", or switch the counter option off.`);
 }
 //# sourceMappingURL=errors.js.map

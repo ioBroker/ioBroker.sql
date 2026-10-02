@@ -1481,7 +1481,14 @@ class SqlAdapter extends adapter_core_1.Adapter {
             }
             if (settings.counter && this.sqlDPs[id].state) {
                 if (this.sqlDPs[id].type !== types.number) {
-                    this.log.error('Counter must have type "number"!');
+                    // Without the ID this is unsearchable: the message fires for every value of
+                    // the misconfigured datapoint and says nothing about which one it is. Reported
+                    // once per datapoint rather than once per value, because the repetition was
+                    // half of the problem. See https://github.com/ioBroker/ioBroker.sql/issues/320
+                    if (!this.sqlDPs[id].counterTypeReported) {
+                        this.sqlDPs[id].counterTypeReported = true;
+                        this.log.error((0, errors_1.counterTypeMismatch)(id, storageTypes[this.sqlDPs[id].type] ?? this.sqlDPs[id].type));
+                    }
                 }
                 else if (state.val === null ||
                     this.sqlDPs[id].state.val === null ||
@@ -2022,7 +2029,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
         // Check SQL connection
         if (!this.clientPool) {
-            this.log.warn('No Connection to database');
+            this.log.warn(`No connection to the database, cannot store the value of "${id}"`);
             if (cb) {
                 setImmediate(() => cb(new Error('No Connection to database')));
             }
@@ -2954,7 +2961,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
      */
     #readIdIndexAndType(id, cb) {
         if (!this.clientPool) {
-            this.log.warn('No Connection to database');
+            this.log.warn(`No connection to the database, cannot look up "${id}"`);
             setImmediate(() => cb(new Error('No Connection to database')));
             return;
         }
