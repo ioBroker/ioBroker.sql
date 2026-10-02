@@ -666,9 +666,15 @@ class SqlAdapter extends adapter_core_1.Adapter {
             else if (this.config.dbtype === 'sqlite') {
                 sqLiteOptions = { fileName: this.getSqlLiteDir(this.config.fileName) };
             }
-            if (this.config.dbtype === 'postgresql' && !this.postgresDbCreated && postgreSQLOptions) {
+            if (this.config.dbtype === 'postgresql' &&
+                !this.config.doNotCreateDatabase &&
+                !this.postgresDbCreated &&
+                postgreSQLOptions) {
                 // special solution for postgres. Connect first to Db "postgres", create new DB "iobroker" and then connect to "iobroker" DB.
-                // connect first to DB postgres and create iobroker DB
+                // connect first to DB postgres and create iobroker DB.
+                // With "do not create database" this whole phase is skipped and the adapter connects
+                // straight to the configured database: a restricted role or a managed PostgreSQL often
+                // has no access to the maintenance DB "postgres" at all (#404, #285).
                 this.log.info(`Postgres connection options: ${JSON.stringify(postgreSQLOptions).replace(postgreSQLOptions.password || '******', '****')}`);
                 const _client = new postgresql_client_1.PostgreSQLClient(postgreSQLOptions);
                 _client.on?.('error', (err) => this.log.warn(`SQL client error: ${(0, errors_1.formatError)(err)}`));
@@ -684,40 +690,29 @@ class SqlAdapter extends adapter_core_1.Adapter {
                         }, 30000);
                         return;
                     }
-                    if (this.config.doNotCreateDatabase) {
+                    _client.execute(`CREATE DATABASE ${this.config.dbname};`, (err) => {
                         _client.disconnect();
-                        this.postgresDbCreated = true;
-                        this.reconnectTimeout && clearTimeout(this.reconnectTimeout);
-                        this.reconnectTimeout = setTimeout(() => {
-                            this.reconnectTimeout = null;
-                            this.connect(callback);
-                        }, 100);
-                    }
-                    else {
-                        _client.execute(`CREATE DATABASE ${this.config.dbname};`, (err) => {
-                            _client.disconnect();
-                            const typedError = err;
-                            if (typedError && typedError.code !== '42P04') {
-                                // if error not about yet exists
-                                this.postgresDbCreated = false;
-                                this.logConnectionError(typedError, `Cannot create database ${this.config.dbname}`);
-                                this.reconnectTimeout && clearTimeout(this.reconnectTimeout);
-                                this.reconnectTimeout = setTimeout(() => {
-                                    this.reconnectTimeout = null;
-                                    this.connect(callback);
-                                }, 30000);
-                            }
-                            else {
-                                // remember that DB is created
-                                this.postgresDbCreated = true;
-                                this.reconnectTimeout && clearTimeout(this.reconnectTimeout);
-                                this.reconnectTimeout = setTimeout(() => {
-                                    this.reconnectTimeout = null;
-                                    this.connect(callback);
-                                }, 100);
-                            }
-                        });
-                    }
+                        const typedError = err;
+                        if (typedError && typedError.code !== '42P04') {
+                            // if error not about yet exists
+                            this.postgresDbCreated = false;
+                            this.logConnectionError(typedError, `Cannot create database ${this.config.dbname}`);
+                            this.reconnectTimeout && clearTimeout(this.reconnectTimeout);
+                            this.reconnectTimeout = setTimeout(() => {
+                                this.reconnectTimeout = null;
+                                this.connect(callback);
+                            }, 30000);
+                        }
+                        else {
+                            // remember that DB is created
+                            this.postgresDbCreated = true;
+                            this.reconnectTimeout && clearTimeout(this.reconnectTimeout);
+                            this.reconnectTimeout = setTimeout(() => {
+                                this.reconnectTimeout = null;
+                                this.connect(callback);
+                            }, 100);
+                        }
+                    });
                 });
             }
             if (this.config.dbtype === 'postgresql' && postgreSQLOptions) {
@@ -833,7 +828,11 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 user: config.user || '',
                 password: config.password || '',
                 port: config.port || undefined,
-                database: 'postgres',
+                // With "do not create database" the configured database must be tested directly: a
+                // restricted role or a managed PostgreSQL may have no access to the maintenance DB
+                // "postgres" at all, so testing against it reports a failure for a perfectly good
+                // configuration (#404, #285).
+                database: config.doNotCreateDatabase ? config.dbname || 'iobroker' : 'postgres',
                 ssl: config.encrypt
                     ? {
                         rejectUnauthorized: !!config.rejectUnauthorized,

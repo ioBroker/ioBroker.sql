@@ -620,6 +620,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 ### **WORK IN PROGRESS**
+* (@DutchmanNL) PostgreSQL: "do not create database" now connects straight to the configured database instead of opening the maintenance database `postgres` first, so roles without `CONNECT` on it can be used
 * (@GermanBluefox) MySQL can now connect through a unix socket instead of host and port (#104)
 * (@DutchmanNL) Fixed `info.connection` staying `true` while the database was unreachable
 * (@GermanBluefox) Fixed crash (UNCAUGHT_EXCEPTION) when the database server closes the connection: the driver's `error` event had no listener (#527)
