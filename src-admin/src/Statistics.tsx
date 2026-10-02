@@ -119,7 +119,7 @@ export default class Statistics extends ConfigGeneric<ConfigGenericProps, Statis
             loading: false,
             errorText: '',
             filter: '',
-            sortField: 'count' as SortField,
+            sortField: 'count',
             sortAsc: false,
             preview: null,
             includeDisabled: false,
@@ -129,7 +129,7 @@ export default class Statistics extends ConfigGeneric<ConfigGenericProps, Statis
     }
 
     async componentDidMount(): Promise<void> {
-        super.componentDidMount();
+        await super.componentDidMount();
         if (this.props.alive) {
             await this.load();
         }
