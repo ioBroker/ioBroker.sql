@@ -20,6 +20,7 @@ import * as SQLite from './lib/sqlite';
 
 import { MSSQLClientPool, MSSQLClient, type MSSQLOptions } from './lib/mssql-client';
 import { MySQL2ClientPool, MySQL2Client, type MySQLOptions } from './lib/mysql-client';
+import { buildMySQLOptions } from './lib/connection-options';
 import { PostgreSQLClientPool, PostgreSQLClient, type PostgreSQLOptions } from './lib/postgresql-client';
 import { SQLite3ClientPool, SQLite3Client, type SQLite3Options } from './lib/sqlite3-client';
 import type { SQLClientPool, PoolConfig } from './lib/sql-client-pool';
@@ -848,17 +849,7 @@ export class SqlAdapter extends Adapter {
                     },
                 };
             } else if (this.config.dbtype === 'mysql') {
-                mySQLOptions = {
-                    host: this.config.host, // needed for PostgreSQL , MySQL
-                    user: this.config.user || '',
-                    password: this.config.password || '',
-                    port: this.config.port || undefined,
-                    ssl: this.config.encrypt
-                        ? {
-                              rejectUnauthorized: !!this.config.rejectUnauthorized,
-                          }
-                        : undefined,
-                };
+                mySQLOptions = buildMySQLOptions(this.config);
             } else if (this.config.dbtype === 'sqlite') {
                 sqLiteOptions = { fileName: this.getSqlLiteDir(this.config.fileName) };
             }
@@ -1058,17 +1049,7 @@ export class SqlAdapter extends Adapter {
                 },
             };
         } else if (config.dbtype === 'mysql') {
-            mySQLOptions = {
-                host: config.host, // needed for PostgreSQL , MySQL
-                user: config.user || '',
-                password: config.password || '',
-                port: config.port || undefined,
-                ssl: config.encrypt
-                    ? {
-                          rejectUnauthorized: !!config.rejectUnauthorized,
-                      }
-                    : undefined,
-            };
+            mySQLOptions = buildMySQLOptions(config);
         } else if (config.dbtype === 'sqlite') {
             sqLiteOptions = { fileName: this.getSqlLiteDir(config.fileName) };
         }
@@ -4448,6 +4429,9 @@ export class SqlAdapter extends Adapter {
         config.dockerMysql.port = parseInt((config.dockerMysql.port as string) || '3306', 10) || 3306;
         config.port = config.dockerMysql.port;
         config.host = config.dockerMysql.bind || '127.0.0.1';
+        // The container is reached over TCP on the published port; a socket path left over from a
+        // previous manual setup would otherwise win over it in buildMySQLOptions().
+        config.socketPath = '';
         config.multiRequests = true;
         config.maxConnections = 100;
 
@@ -4530,6 +4514,14 @@ export class SqlAdapter extends Adapter {
         }
 
         config.port = parseInt(config.port as string, 10) || 0;
+
+        // Only MySQL can use a unix socket. The field stays visible for other dialects in older
+        // configurations, so clear it rather than letting it silently change how they connect.
+        config.socketPath = typeof config.socketPath === 'string' ? config.socketPath.trim() : '';
+        if (config.socketPath && config.dbtype !== 'mysql') {
+            this.log.warn(`A unix socket is only supported for MySQL, ignoring it for "${config.dbtype}"`);
+            config.socketPath = '';
+        }
 
         if (config.round !== null && config.round !== undefined && config.round !== '') {
             config.round = parseInt(config.round as string, 10);
@@ -4630,7 +4622,9 @@ export class SqlAdapter extends Adapter {
             await this.createUserInDocker();
         }
 
-        if (config.dbtype === 'sqlite' || this.config.host) {
+        // A MySQL socket connection has no host, so it has to open this gate on its own - otherwise
+        // the adapter would start, report nothing and never call connect() (#104).
+        if (config.dbtype === 'sqlite' || this.config.host || this.config.socketPath) {
             this.connect(async () => {
                 // `enableHistory` only writes the object and leaves the activation to `objectChange`, so
                 // subscribing after the view was read left a gap: a message that arrived in between was

@@ -4,6 +4,13 @@ const assert = require('node:assert');
 // is still awaiting `system.config` and `sqlFuncs` is therefore still null. Rather than booting a
 // real adapter, the method is called on a minimal stand-in: it only touches `this.sqlFuncs`,
 // `this.log` and `this.sendTo` on the guarded path.
+//
+// NOTE: this file is deliberately NOT in the CI unit-test list and only runs where js-controller is
+// already installed, e.g. after the integration suite has populated `tmp/`. Requiring `build/main`
+// pulls in @iobroker/adapter-core, which calls `process.exit(10)` at module load time when
+// js-controller cannot be resolved - it is not a dependency of this repository. Testing the guard
+// in CI would mean extracting it from the class first; see src/lib/connection-options.ts for how
+// the MySQL options helper was moved out for exactly this reason.
 const { SqlAdapter } = require('../build/main');
 
 function makeStub(overrides = {}) {
