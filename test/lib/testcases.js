@@ -465,6 +465,23 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    /**
+     * Write a fixed value sequence, spacing the values so that some are kept and some collapse.
+     *
+     * `waitMultiplier` scales every gap. It matters more than it looks: the datapoints in
+     * `preInit()` use `debounceTime: 500`, and a value is only kept when it arrives more than that
+     * after the previous one. At the default multiplier the "kept" gaps are 600 ms against a 500 ms
+     * window - a 100 ms margin between two processes. One late state change is enough to let the
+     * adapter restart its debounce timer and swallow a value the test expects, which is what made
+     * these tests fail sporadically in CI. The debounce callers therefore pass 2.5, putting the
+     * gaps at 1500 ms while the 50 ms bursts stay far inside the window.
+     *
+     * `testValueBlocked` deliberately keeps 1.5: its gaps have to stay *below* its `blockTime` of
+     * 1500 ms, so raising them would test something else.
+     *
+     * @param stateId the datapoint to write to
+     * @param waitMultiplier scales every gap between the values
+     */
     async function logSampleData(stateId, waitMultiplier) {
         if (!waitMultiplier) waitMultiplier = 1;
         await states.setStateAsync(stateId, { val: 1 }); // expect logged
@@ -507,11 +524,13 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
     }
 
     it(`Test ${adapterShortName}: Write debounced Raw values into DB`, async function () {
-        this.timeout(45000);
+        // ~36 s of deliberate waiting at the 2.5 multiplier, plus the relog interval and
+        // the settle times - 45 s left no room on a loaded runner.
+        this.timeout(90000);
         now = Date.now();
 
         try {
-            await logSampleData(`${instanceName}.testValueDebounceRaw`);
+            await logSampleData(`${instanceName}.testValueDebounceRaw`, 2.5);
         } catch (err) {
             console.log(err);
             assert.ok(!err);
@@ -550,11 +569,13 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
     });
 
     it(`Test ${adapterShortName}: Write debounced values into DB`, async function () {
-        this.timeout(45000);
+        // ~36 s of deliberate waiting at the 2.5 multiplier, plus the relog interval and
+        // the settle times - 45 s left no room on a loaded runner.
+        this.timeout(90000);
         now = Date.now();
 
         try {
-            await logSampleData(`${instanceName}.testValueDebounce`);
+            await logSampleData(`${instanceName}.testValueDebounce`, 2.5);
         } catch (err) {
             console.log(err);
             assert.ok(!err);
