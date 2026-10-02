@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.init = init;
 exports.destroy = destroy;
 exports.getFirstTs = getFirstTs;
+exports.getIdCounts = getIdCounts;
+exports.getTableSize = getTableSize;
 exports.insert = insert;
 exports.retention = retention;
 exports.getIdSelect = getIdSelect;
@@ -13,6 +15,7 @@ exports.getFromInsert = getFromInsert;
 exports.getCounterDiff = getCounterDiff;
 exports.getHistory = getHistory;
 exports.deleteFromTable = deleteFromTable;
+exports.deleteDatapoint = deleteDatapoint;
 exports.update = update;
 exports.getRawEntries = getRawEntries;
 exports.getRawEntriesCount = getRawEntriesCount;
@@ -48,6 +51,32 @@ function destroy(dbName) {
 }
 function getFirstTs(dbName, table) {
     return `SELECT id, MIN(ts) AS ts FROM ${dbName}.dbo.${table} GROUP BY id;`;
+}
+/**
+ * Count the rows and the covered time range per datapoint index.
+ *
+ * One query per table instead of one per datapoint: a database that has collected data for years
+ * holds thousands of datapoints, and `GROUP BY id` lets the engine do the work in a single pass.
+ *
+ * @param dbName name of the database
+ * @param table the time series table to summarize
+ */
+function getIdCounts(dbName, table) {
+    return `SELECT id, COUNT(*) AS cnt, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM ${dbName}.dbo.${table} GROUP BY id;`;
+}
+/**
+ * Average bytes per row and total bytes of one time series table.
+ *
+ * There is no portable way to ask for the size of the rows belonging to a single datapoint, so the
+ * statistics multiply this average by the row count. The result is an estimate and has to be
+ * presented as one.
+ *
+ * @param dbName name of the database
+ * @param table the time series table to measure
+ */
+function getTableSize(dbName, table) {
+    // Pages are 8 KB; used_page_count covers data and indexes.
+    return `SELECT CASE WHEN SUM(p.row_count) > 0 THEN SUM(p.used_page_count) * 8192 / SUM(p.row_count) ELSE 0 END AS avg_row_length, SUM(p.used_page_count) * 8192 AS total_bytes FROM ${dbName}.sys.dm_db_partition_stats p WHERE p.object_id = OBJECT_ID('${dbName}.dbo.${table}') AND p.index_id IN (0, 1);`;
 }
 function insert(dbName, index, values) {
     const insertValues = {};
@@ -240,6 +269,18 @@ function deleteFromTable(dbName, table, index, start, end) {
     }
     query += ';';
     return query;
+}
+/**
+ * Remove one row from the `datapoints` lookup table.
+ *
+ * Used by the cleanup: deleting only the values would leave the ID behind, so it would keep
+ * showing up in the statistics with zero rows.
+ *
+ * @param dbName name of the database
+ * @param index the integer key of the datapoint
+ */
+function deleteDatapoint(dbName, index) {
+    return `DELETE FROM ${dbName}.dbo.datapoints WHERE id=${index};`;
 }
 function update(dbName, index, state, from, table) {
     if (!state || state.val === null || state.val === undefined) {

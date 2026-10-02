@@ -32,6 +32,8 @@ export const COMMANDS_REQUIRING_DB = new Set([
     'getRawEntries',
     'getDatapoints',
     'getDpOverview',
+    'getDpStatistics',
+    'cleanupOrphaned',
 ]);
 
 /**

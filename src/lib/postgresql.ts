@@ -26,6 +26,35 @@ export function getFirstTs(_dbName: string, table: TableName): string {
     return `SELECT id, MIN(ts) AS ts FROM ${table} GROUP BY id;`;
 }
 
+/**
+ * Count the rows and the covered time range per datapoint index.
+ *
+ * One query per table instead of one per datapoint: a database that has collected data for years
+ * holds thousands of datapoints, and `GROUP BY id` lets the engine do the work in a single pass.
+ *
+ * @param _dbName unused, PostgreSQL and SQLite connect to the target database directly name of the database
+ * @param table the time series table to summarize
+ */
+export function getIdCounts(_dbName: string, table: TableName): string {
+    return `SELECT id, COUNT(*) AS cnt, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM ${table} GROUP BY id;`;
+}
+
+/**
+ * Average bytes per row and total bytes of one time series table.
+ *
+ * There is no portable way to ask for the size of the rows belonging to a single datapoint, so the
+ * statistics multiply this average by the row count. The result is an estimate and has to be
+ * presented as one.
+ *
+ * @param _dbName unused, PostgreSQL and SQLite connect to the target database directly name of the database
+ * @param table the time series table to measure
+ */
+export function getTableSize(_dbName: string, table: TableName): string {
+    // pg_total_relation_size covers table plus indexes and TOAST; reltuples is the planner's
+    // row estimate, which is enough to derive an average width.
+    return `SELECT CASE WHEN c.reltuples > 0 THEN (pg_total_relation_size(c.oid) / c.reltuples)::bigint ELSE 0 END AS avg_row_length, pg_total_relation_size(c.oid) AS total_bytes FROM pg_class c WHERE c.relname='${table}';`;
+}
+
 export function insert(
     _dbName: string,
     index: number,
@@ -264,6 +293,19 @@ export function deleteFromTable(
     query += ';';
 
     return query;
+}
+
+/**
+ * Remove one row from the `datapoints` lookup table.
+ *
+ * Used by the cleanup: deleting only the values would leave the ID behind, so it would keep
+ * showing up in the statistics with zero rows.
+ *
+ * @param _dbName unused, PostgreSQL and SQLite connect to the target database directly name of the database
+ * @param index the integer key of the datapoint
+ */
+export function deleteDatapoint(_dbName: string, index: number): string {
+    return `DELETE FROM datapoints WHERE id=${index};`;
 }
 
 export function update(

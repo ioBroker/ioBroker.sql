@@ -23,6 +23,8 @@ const DB_COMMANDS = [
     'getRawEntries',
     'getDatapoints',
     'getDpOverview',
+    'getDpStatistics',
+    'cleanupOrphaned',
 ];
 
 // These answer from memory or only write objects, so they work before the dialect is known.

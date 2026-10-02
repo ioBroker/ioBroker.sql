@@ -369,6 +369,20 @@
                 }
             }
         },
+        "statisticsTab": {
+            "type": "panel",
+            "label": "Statistics",
+            "items": {
+                "_statistics": {
+                    "type": "custom",
+                    "i18n": true,
+                    "url": "custom/customComponents.js",
+                    "name": "SqlComponentsSet/Components/Statistics",
+                    "guiApi": 2,
+                    "sm": 12
+                }
+            }
+        },
         "dockerMysql": {
             "type": "panel",
             "label": "MySQL Docker",
