@@ -28,6 +28,7 @@ You can leave port 0 if the default port is desired.
 - **Encrypt**: Some DBs support encryption.
 - **Round real to**: Number of digits after the comma.
 - **Allow parallel requests**: Allow simultaneous SQL requests to DB.
+- **Statistics tab**: lists every ID in the database with its storage type, status (logged / logging off / state deleted), number of values, estimated size and the covered time range. The **Clean up** button first shows what would be deleted and removes it only after confirmation. States that still exist but merely have logging switched off are excluded unless you tick the checkbox, because their history is still reachable and may be wanted.
 - **Do not create database**: Activate this option if a database already created (e.g. by administrator) and the ioBroker-user does not have enough rights to create a DB.
 
 ## Default Settings
@@ -619,6 +620,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Added a statistics tab listing every logged ID with its number of values and estimated size (#247)
+* (@GermanBluefox) Added a cleanup for datapoints that are no longer logged, with a confirmation dialog showing what would be deleted (#247)
+
 ### **WORK IN PROGRESS**
 * (@DutchmanNL) PostgreSQL: "do not create database" now connects straight to the configured database instead of opening the maintenance database `postgres` first, so roles without `CONNECT` on it can be used
 * (@GermanBluefox) MySQL can now connect through a unix socket instead of host and port (#104)

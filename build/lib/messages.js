@@ -29,6 +29,8 @@ exports.COMMANDS_REQUIRING_DB = new Set([
     'getRawEntries',
     'getDatapoints',
     'getDpOverview',
+    'getDpStatistics',
+    'cleanupOrphaned',
 ]);
 /**
  * Decide whether a message has to be rejected because the dialect is not known yet.

@@ -1,3 +1,4 @@
 import DataBrowser from './DataBrowser';
+import Statistics from './Statistics';
 
-export default { DataBrowser };
+export default { DataBrowser, Statistics };

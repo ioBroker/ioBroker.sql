@@ -32,6 +32,35 @@ export function getFirstTs(dbName: string, table: TableName): string {
     return `SELECT id, MIN(ts) AS ts FROM \`${dbName}\`.${table} GROUP BY id;`;
 }
 
+/**
+ * Count the rows and the covered time range per datapoint index.
+ *
+ * One query per table instead of one per datapoint: a database that has collected data for years
+ * holds thousands of datapoints, and `GROUP BY id` lets the engine do the work in a single pass.
+ *
+ * @param dbName name of the database
+ * @param table the time series table to summarize
+ */
+export function getIdCounts(dbName: string, table: TableName): string {
+    return `SELECT id, COUNT(*) AS cnt, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM \`${dbName}\`.${table} GROUP BY id;`;
+}
+
+/**
+ * Average bytes per row and total bytes of one time series table.
+ *
+ * There is no portable way to ask for the size of the rows belonging to a single datapoint, so the
+ * statistics multiply this average by the row count. The result is an estimate and has to be
+ * presented as one.
+ *
+ * @param dbName name of the database
+ * @param table the time series table to measure
+ */
+export function getTableSize(dbName: string, table: TableName): string {
+    // information_schema knows the real storage footprint, so the estimate does not have to
+    // guess at column widths. AVG_ROW_LENGTH is 0 for an empty table.
+    return `SELECT AVG_ROW_LENGTH AS avg_row_length, DATA_LENGTH + INDEX_LENGTH AS total_bytes FROM information_schema.TABLES WHERE TABLE_SCHEMA='${dbName}' AND TABLE_NAME='${table}';`;
+}
+
 export function insert(
     dbName: string,
     index: number,
@@ -275,6 +304,19 @@ export function deleteFromTable(dbName: string, table: TableName, index: number,
     query += ';';
 
     return query;
+}
+
+/**
+ * Remove one row from the `datapoints` lookup table.
+ *
+ * Used by the cleanup: deleting only the values would leave the ID behind, so it would keep
+ * showing up in the statistics with zero rows.
+ *
+ * @param dbName name of the database
+ * @param index the integer key of the datapoint
+ */
+export function deleteDatapoint(dbName: string, index: number): string {
+    return `DELETE FROM \`${dbName}\`.datapoints WHERE id=${index};`;
 }
 
 export function update(

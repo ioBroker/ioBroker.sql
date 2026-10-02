@@ -92,5 +92,6 @@
     "If enabled, the latest Docker image will be pulled when the adapter starts.": "If enabled, the latest Docker image will be pulled when the adapter starts.",
     "Root password": "Root password",
     "Root URL": "Root URL",
-    "Defines the root URL, useful when PhpMyAdmin is behind a reverse proxy.": "Defines the root URL, useful when PhpMyAdmin is behind a reverse proxy."
+    "Defines the root URL, useful when PhpMyAdmin is behind a reverse proxy.": "Defines the root URL, useful when PhpMyAdmin is behind a reverse proxy.",
+    "Statistics": "Statistics"
 }

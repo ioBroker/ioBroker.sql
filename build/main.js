@@ -46,6 +46,7 @@ const mssql_client_1 = require("./lib/mssql-client");
 const mysql_client_1 = require("./lib/mysql-client");
 const connection_options_1 = require("./lib/connection-options");
 const messages_1 = require("./lib/messages");
+const statistics_1 = require("./lib/statistics");
 const postgresql_client_1 = require("./lib/postgresql-client");
 const sqlite3_client_1 = require("./lib/sqlite3-client");
 const errors_1 = require("./lib/errors");
@@ -54,6 +55,9 @@ const SQLFuncs = {
         init: MSSQL.init,
         destroy: MSSQL.destroy,
         getFirstTs: MSSQL.getFirstTs,
+        getIdCounts: MSSQL.getIdCounts,
+        deleteDatapoint: MSSQL.deleteDatapoint,
+        getTableSize: MSSQL.getTableSize,
         insert: MSSQL.insert,
         retention: MSSQL.retention,
         getIdSelect: MSSQL.getIdSelect,
@@ -72,6 +76,9 @@ const SQLFuncs = {
         init: MySQL.init,
         destroy: MySQL.destroy,
         getFirstTs: MySQL.getFirstTs,
+        getIdCounts: MySQL.getIdCounts,
+        deleteDatapoint: MySQL.deleteDatapoint,
+        getTableSize: MySQL.getTableSize,
         insert: MySQL.insert,
         retention: MySQL.retention,
         getIdSelect: MySQL.getIdSelect,
@@ -90,6 +97,9 @@ const SQLFuncs = {
         init: PostgreSQL.init,
         destroy: PostgreSQL.destroy,
         getFirstTs: PostgreSQL.getFirstTs,
+        getIdCounts: PostgreSQL.getIdCounts,
+        deleteDatapoint: PostgreSQL.deleteDatapoint,
+        getTableSize: PostgreSQL.getTableSize,
         insert: PostgreSQL.insert,
         retention: PostgreSQL.retention,
         getIdSelect: PostgreSQL.getIdSelect,
@@ -108,6 +118,9 @@ const SQLFuncs = {
         init: SQLite.init,
         destroy: SQLite.destroy,
         getFirstTs: SQLite.getFirstTs,
+        getIdCounts: SQLite.getIdCounts,
+        deleteDatapoint: SQLite.deleteDatapoint,
+        getTableSize: SQLite.getTableSize,
         insert: SQLite.insert,
         retention: SQLite.retention,
         getIdSelect: SQLite.getIdSelect,
@@ -175,6 +188,8 @@ function isEqual(a, b) {
     // are considered equivalent
     return true;
 }
+/** Every time series table the statistics and the cleanup have to look at */
+const STAT_TABLES = ['ts_number', 'ts_string', 'ts_bool', 'ts_counter'];
 const MAX_TASKS = 100;
 /** Maximal number of rows one `getRawEntries` call may return */
 const MAX_RAW_ENTRIES = 2000;
@@ -1272,6 +1287,12 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
         else if (msg.command === 'getDatapoints') {
             this.getDatapoints(msg);
+        }
+        else if (msg.command === 'getDpStatistics') {
+            this.getDpStatistics(msg);
+        }
+        else if (msg.command === 'cleanupOrphaned') {
+            this.cleanupOrphaned(msg);
         }
         else if (msg.command === 'getDpOverview') {
             this.getDpOverview(msg);
@@ -3417,6 +3438,169 @@ class SqlAdapter extends adapter_core_1.Adapter {
      * In contrast to `getDpOverview`, this is only one SELECT and answers immediately: `getDpOverview`
      * additionally determines the first timestamp of every datapoint and pauses 5 seconds between the types.
      */
+    /**
+     * Collect per-datapoint statistics for the whole database.
+     *
+     * Costs one `GROUP BY id` plus one size query per time series table, not one query per
+     * datapoint: a database that has collected data for years holds thousands of IDs.
+     */
+    async #collectStatistics() {
+        const client = await new Promise((resolve, reject) => this.borrowClientFromPool((err, c) => {
+            if (err || !c) {
+                this.returnClientToPool(c);
+                reject(err || new Error('No client'));
+            }
+            else {
+                resolve(c);
+            }
+        }));
+        const execute = (query) => new Promise((resolve, reject) => client.execute(query, (e, rows) => (e ? reject(e) : resolve(rows || []))));
+        try {
+            const datapoints = await execute(this.sqlFuncs.getIdSelect(this.config.dbname));
+            const counts = {};
+            const tableOfIndex = {};
+            const avgRowLength = {};
+            for (const table of STAT_TABLES) {
+                const rows = await execute(this.sqlFuncs.getIdCounts(this.config.dbname, table));
+                for (const row of rows) {
+                    // ts_counter mirrors values that also live in ts_number, so it must not
+                    // overwrite the count of the table that actually holds the series
+                    if (table === 'ts_counter' && counts[row.id]) {
+                        continue;
+                    }
+                    counts[row.id] = {
+                        cnt: Number(row.cnt),
+                        firstTs: Number(row.first_ts),
+                        lastTs: Number(row.last_ts),
+                    };
+                    tableOfIndex[row.id] = table;
+                }
+                try {
+                    const [size] = await execute(this.sqlFuncs.getTableSize(this.config.dbname, table));
+                    avgRowLength[table] = size ? Number(size.avg_row_length) : null;
+                }
+                catch (e) {
+                    // SQLite's dbstat is not compiled into every build and a restricted role may
+                    // not reach the catalog. Report "size unknown" rather than failing the request.
+                    this.log.debug(`Cannot determine the size of ${table}: ${e?.message || e}`);
+                    avgRowLength[table] = null;
+                }
+            }
+            const stats = [];
+            for (const dp of datapoints) {
+                const measured = counts[dp.id];
+                const table = tableOfIndex[dp.id] || null;
+                let objectExists = false;
+                try {
+                    objectExists = !!(await this.getForeignObjectAsync(dp.name));
+                }
+                catch {
+                    // treat an unreadable object as missing; the cleanup preview shows it either way
+                }
+                stats.push({
+                    id: dp.name,
+                    index: dp.id,
+                    type: typeof dp.type === 'number' ? storageTypes[dp.type] : null,
+                    table,
+                    count: measured?.cnt || 0,
+                    firstTs: measured?.firstTs ?? null,
+                    lastTs: measured?.lastTs ?? null,
+                    estimatedBytes: (0, statistics_1.estimateBytes)(measured?.cnt || 0, table ? avgRowLength[table] : null),
+                    status: (0, statistics_1.classifyDatapoint)(objectExists, !!this.sqlDPs[dp.name]),
+                });
+            }
+            stats.sort((a, b) => (a.id > b.id ? 1 : a.id < b.id ? -1 : 0));
+            return stats;
+        }
+        finally {
+            this.returnClientToPool(client);
+        }
+    }
+    /**
+     * Delete every stored value of the given datapoints, and their `datapoints` rows.
+     *
+     * @param victims the datapoints to remove
+     */
+    async #deleteDatapoints(victims) {
+        const client = await new Promise((resolve, reject) => this.borrowClientFromPool((err, c) => {
+            if (err || !c) {
+                this.returnClientToPool(c);
+                reject(err || new Error('No client'));
+            }
+            else {
+                resolve(c);
+            }
+        }));
+        const execute = (query) => new Promise((resolve, reject) => client.execute(query, e => (e ? reject(e) : resolve())));
+        try {
+            let rows = 0;
+            for (const victim of victims) {
+                // Delete from every table, not only the one the type suggests: a datapoint whose
+                // storage type was switched over the years has rows in more than one of them.
+                for (const table of STAT_TABLES) {
+                    await execute(this.sqlFuncs.deleteFromTable(this.config.dbname, table, victim.index));
+                }
+                await execute(this.sqlFuncs.deleteDatapoint(this.config.dbname, victim.index));
+                // Drop the in-memory mapping as well, so a state that comes back gets a fresh index
+                delete this.from[victim.id];
+                rows += victim.count;
+            }
+            return { datapoints: victims.length, rows };
+        }
+        finally {
+            this.returnClientToPool(client);
+        }
+    }
+    /**
+     * Answer `getDpStatistics` with one row per datapoint plus totals.
+     *
+     * @param msg the message to answer
+     */
+    getDpStatistics(msg) {
+        void this.#collectStatistics()
+            .then(stats => this.sendTo(msg.from, msg.command, { success: true, result: stats, summary: (0, statistics_1.summarize)(stats) }, msg.callback))
+            .catch(e => {
+            this.log.error(`Cannot collect statistics: ${(0, errors_1.formatError)(e)}`);
+            this.sendTo(msg.from, msg.command, { error: e?.message || String(e) }, msg.callback);
+        });
+    }
+    /**
+     * Answer `cleanupOrphaned`: remove the values of datapoints nobody logs any more.
+     *
+     * Without `confirm: true` nothing is deleted and the answer only reports what a confirmed run
+     * would remove, so the GUI can show the list and the counts before anything is lost. The same
+     * collection feeds both, so the preview and the deletion cannot disagree about what is
+     * orphaned.
+     *
+     * @param msg the message to answer
+     */
+    cleanupOrphaned(msg) {
+        const scope = msg.message?.scope || {};
+        const confirmed = msg.message?.confirm === true;
+        void this.#collectStatistics()
+            .then(async (stats) => {
+            const victims = (0, statistics_1.selectForCleanup)(stats, scope);
+            const preview = {
+                datapoints: victims.length,
+                rows: victims.reduce((sum, v) => sum + v.count, 0),
+                estimatedBytes: victims.some(v => v.estimatedBytes === null)
+                    ? null
+                    : victims.reduce((sum, v) => sum + (v.estimatedBytes || 0), 0),
+                items: victims,
+            };
+            if (!confirmed) {
+                this.sendTo(msg.from, msg.command, { success: true, dryRun: true, ...preview }, msg.callback);
+                return;
+            }
+            const deleted = await this.#deleteDatapoints(victims);
+            this.log.info(`Cleanup removed ${deleted.rows} values of ${deleted.datapoints} datapoint(s) that are not logged any more`);
+            this.sendTo(msg.from, msg.command, { success: true, dryRun: false, ...preview, deleted }, msg.callback);
+        })
+            .catch(e => {
+            this.log.error(`Cleanup failed: ${(0, errors_1.formatError)(e)}`);
+            this.sendTo(msg.from, msg.command, { error: e?.message || String(e) }, msg.callback);
+        });
+    }
     getDatapoints(msg) {
         const query = this.sqlFuncs.getIdSelect(this.config.dbname);
         this.log.debug(query);

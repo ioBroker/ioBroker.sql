@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.init = init;
 exports.destroy = destroy;
 exports.getFirstTs = getFirstTs;
+exports.getIdCounts = getIdCounts;
+exports.getTableSize = getTableSize;
 exports.insert = insert;
 exports.retention = retention;
 exports.getIdSelect = getIdSelect;
@@ -13,6 +15,7 @@ exports.getFromInsert = getFromInsert;
 exports.getCounterDiff = getCounterDiff;
 exports.getHistory = getHistory;
 exports.deleteFromTable = deleteFromTable;
+exports.deleteDatapoint = deleteDatapoint;
 exports.update = update;
 exports.getRawEntries = getRawEntries;
 exports.getRawEntriesCount = getRawEntriesCount;
@@ -38,6 +41,33 @@ function destroy(_dbName) {
 }
 function getFirstTs(_dbName, table) {
     return `SELECT id, MIN(ts) AS ts FROM ${table} GROUP BY id;`;
+}
+/**
+ * Count the rows and the covered time range per datapoint index.
+ *
+ * One query per table instead of one per datapoint: a database that has collected data for years
+ * holds thousands of datapoints, and `GROUP BY id` lets the engine do the work in a single pass.
+ *
+ * @param _dbName unused, PostgreSQL and SQLite connect to the target database directly name of the database
+ * @param table the time series table to summarize
+ */
+function getIdCounts(_dbName, table) {
+    return `SELECT id, COUNT(*) AS cnt, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM ${table} GROUP BY id;`;
+}
+/**
+ * Average bytes per row and total bytes of one time series table.
+ *
+ * There is no portable way to ask for the size of the rows belonging to a single datapoint, so the
+ * statistics multiply this average by the row count. The result is an estimate and has to be
+ * presented as one.
+ *
+ * @param _dbName unused, PostgreSQL and SQLite connect to the target database directly name of the database
+ * @param table the time series table to measure
+ */
+function getTableSize(_dbName, table) {
+    // dbstat is a virtual table that is not compiled into every sqlite3 build, so the caller has
+    // to treat a failure here as "size unknown" rather than as an error.
+    return `SELECT CASE WHEN SUM(ncell) > 0 THEN SUM(payload) / SUM(ncell) ELSE 0 END AS avg_row_length, SUM(pgsize) AS total_bytes FROM dbstat WHERE name='${table}';`;
 }
 function insert(_dbName, index, values) {
     const insertValues = {};
@@ -219,6 +249,18 @@ function deleteFromTable(_dbName, table, index, start, end) {
     }
     query += ';';
     return query;
+}
+/**
+ * Remove one row from the `datapoints` lookup table.
+ *
+ * Used by the cleanup: deleting only the values would leave the ID behind, so it would keep
+ * showing up in the statistics with zero rows.
+ *
+ * @param _dbName unused, PostgreSQL and SQLite connect to the target database directly name of the database
+ * @param index the integer key of the datapoint
+ */
+function deleteDatapoint(_dbName, index) {
+    return `DELETE FROM datapoints WHERE id=${index};`;
 }
 function update(_dbName, index, state, from, table) {
     if (!state || state.val === null || state.val === undefined) {
