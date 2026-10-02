@@ -414,7 +414,7 @@
         },
         "dockerPhpMyAdmin": {
             "type": "panel",
-            "label": "Grafana Docker",
+            "label": "phpMyAdmin Docker",
             "hidden": "!data.dockerPhpMyAdmin?.enabled || !data.dockerMysql?.enabled",
             "items": {
                 "dockerPhpMyAdmin.bind": {

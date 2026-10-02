@@ -77,5 +77,20 @@
     "requestInterval": "Pause between requests(ms)",
     "retention": "Storage retention",
     "Unix socket": "Unix socket",
-    "Connect through this socket instead of host and port, e.g. /var/run/mysqld/mysqld.sock": "Connect through this socket instead of host and port, e.g. /var/run/mysqld/mysqld.sock"
+    "Connect through this socket instead of host and port, e.g. /var/run/mysqld/mysqld.sock": "Connect through this socket instead of host and port, e.g. /var/run/mysqld/mysqld.sock",
+    "Use self-hosted MySQL in Docker": "Use self-hosted MySQL in Docker",
+    "docker_explanation": "The adapter can run its own MySQL server in a Docker container. Docker must be installed on this host and the ioBroker user must be allowed to use it. The container is created and started automatically, and the connection settings below are applied to this instance.",
+    "Use self-hosted PhpMyAdmin in Docker": "Use self-hosted PhpMyAdmin in Docker",
+    "Please confirm": "Please confirm",
+    "maximum datapoint count in RAM": "maximum datapoint count in RAM",
+    "MySQL Docker": "MySQL Docker",
+    "phpMyAdmin Docker": "phpMyAdmin Docker",
+    "Start container on IP": "Start container on IP",
+    "The port on which the container will be reachable on localhost": "The port on which the container will be reachable on localhost",
+    "Stop container when instance stops": "Stop container when instance stops",
+    "Auto-update Docker image": "Auto-update Docker image",
+    "If enabled, the latest Docker image will be pulled when the adapter starts.": "If enabled, the latest Docker image will be pulled when the adapter starts.",
+    "Root password": "Root password",
+    "Root URL": "Root URL",
+    "Defines the root URL, useful when PhpMyAdmin is behind a reverse proxy.": "Defines the root URL, useful when PhpMyAdmin is behind a reverse proxy."
 }
