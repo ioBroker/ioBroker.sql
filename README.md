@@ -623,6 +623,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ### **WORK IN PROGRESS**
 * (@GermanBluefox) Added a statistics tab listing every logged ID with its number of values and estimated size (#247)
 * (@GermanBluefox) Added a cleanup for datapoints that are no longer logged, with a confirmation dialog showing what would be deleted (#247)
+* (@GermanBluefox) The `Counter must have type "number"` error now names the datapoint and is logged once instead of for every value (#320)
 
 ### **WORK IN PROGRESS**
 * (@DutchmanNL) PostgreSQL: "do not create database" now connects straight to the configured database instead of opening the maintenance database `postgres` first, so roles without `CONNECT` on it can be used

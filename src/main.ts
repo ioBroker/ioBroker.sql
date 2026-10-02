@@ -36,7 +36,7 @@ import { SQLite3ClientPool, SQLite3Client, type SQLite3Options } from './lib/sql
 import type { SQLClientPool, PoolConfig } from './lib/sql-client-pool';
 import type SQLClient from './lib/sql-client';
 import type { IobDataEntry } from './lib/types';
-import { formatError } from './lib/errors';
+import { counterTypeMismatch, formatError } from './lib/errors';
 
 export interface IobDataEntryEx extends Omit<IobDataEntry, 'val'> {
     val: string | boolean | number | null;
@@ -279,6 +279,8 @@ type SQLPointConfig = {
     list: { state: IobDataEntryEx; from: number; table: TableName }[];
     inFlight: { [inFlightId: string]: { state: IobDataEntryEx; from: number; table: TableName }[] };
     isRunning?: { id: string; state: IobDataEntryEx; isCounter: boolean; cb?: (err?: Error | null) => void }[];
+    /** set once the counter/type mismatch has been reported, so it is not repeated per value */
+    counterTypeReported?: boolean;
 };
 
 function sortByTs(
@@ -1755,7 +1757,16 @@ export class SqlAdapter extends Adapter {
 
             if (settings.counter && this.sqlDPs[id].state) {
                 if (this.sqlDPs[id].type !== types.number) {
-                    this.log.error('Counter must have type "number"!');
+                    // Without the ID this is unsearchable: the message fires for every value of
+                    // the misconfigured datapoint and says nothing about which one it is. Reported
+                    // once per datapoint rather than once per value, because the repetition was
+                    // half of the problem. See https://github.com/ioBroker/ioBroker.sql/issues/320
+                    if (!this.sqlDPs[id].counterTypeReported) {
+                        this.sqlDPs[id].counterTypeReported = true;
+                        this.log.error(
+                            counterTypeMismatch(id, storageTypes[this.sqlDPs[id].type] ?? this.sqlDPs[id].type),
+                        );
+                    }
                 } else if (
                     state.val === null ||
                     this.sqlDPs[id].state.val === null ||
@@ -2417,7 +2428,7 @@ export class SqlAdapter extends Adapter {
 
         // Check SQL connection
         if (!this.clientPool) {
-            this.log.warn('No Connection to database');
+            this.log.warn(`No connection to the database, cannot store the value of "${id}"`);
             if (cb) {
                 setImmediate(() => cb(new Error('No Connection to database')));
             }
@@ -3545,7 +3556,7 @@ export class SqlAdapter extends Adapter {
      */
     #readIdIndexAndType(id: string, cb: (err: Error | null, index?: number, type?: 0 | 1 | 2) => void): void {
         if (!this.clientPool) {
-            this.log.warn('No Connection to database');
+            this.log.warn(`No connection to the database, cannot look up "${id}"`);
             setImmediate(() => cb(new Error('No Connection to database')));
             return;
         }
