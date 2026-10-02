@@ -200,7 +200,7 @@ jobs:
             # @iobroker/adapter-core, which calls process.exit(10) when js-controller cannot be
             # resolved, and js-controller is not a dependency of this repository.
             - name: Run unit tests
-              run: node node_modules/mocha/bin/mocha test/testCommons.js test/testIntegral.js test/testDockerCompose.js test/testErrors.js test/testSqlClient.js test/testConnectionOptions.js test/testMessageGuard.js test/testStatistics.js test/testPackageFiles.js --exit
+              run: node node_modules/mocha/bin/mocha test/testCommons.js test/testIntegral.js test/testDockerCompose.js test/testErrors.js test/testSqlClient.js test/testConnectionOptions.js test/testMessageGuard.js test/testStatistics.js test/testInsertStatements.js test/testPackageFiles.js --exit
 
             - name: Run SQLite tests
               run: node node_modules/mocha/bin/mocha test/testSQLite.js --exit
