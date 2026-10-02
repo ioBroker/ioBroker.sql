@@ -237,6 +237,7 @@
     "debounce": 1000,
     "retention": 31536000,
     "host": "localhost",
+    "socketPath": "",
     "port": 0,
     "user": "",
     "password": "",

@@ -20,6 +20,8 @@ import * as SQLite from './lib/sqlite';
 
 import { MSSQLClientPool, MSSQLClient, type MSSQLOptions } from './lib/mssql-client';
 import { MySQL2ClientPool, MySQL2Client, type MySQLOptions } from './lib/mysql-client';
+import { buildMySQLOptions } from './lib/connection-options';
+import { guardUninitialized } from './lib/messages';
 import { PostgreSQLClientPool, PostgreSQLClient, type PostgreSQLOptions } from './lib/postgresql-client';
 import { SQLite3ClientPool, SQLite3Client, type SQLite3Options } from './lib/sqlite3-client';
 import type { SQLClientPool, PoolConfig } from './lib/sql-client-pool';
@@ -324,6 +326,8 @@ export class SqlAdapter extends Adapter {
     private lastConnectionError: string | null = null;
     private lastConnectionErrorTs = 0;
     private connectionErrorCount = 0;
+    /** consecutive pool-borrow failures; at 5 info.connection turns false instead of staying true forever (#374) */
+    private consecutiveBorrowFailures = 0;
 
     public constructor(options: Partial<AdapterOptions> = {}) {
         super({
@@ -472,7 +476,6 @@ export class SqlAdapter extends Adapter {
             this.setConnected(false);
             return callback(new Error('No database connection'));
         }
-        this.setConnected(true);
 
         if (this.activeConnections >= this.config.maxConnections) {
             if (this.logConnectionUsage) {
@@ -487,12 +490,27 @@ export class SqlAdapter extends Adapter {
         }
         this.clientPool.borrow((err: Error | null | undefined, client?: SQLClient): void => {
             if (!err && client) {
-                // make sure we always have at least one error listener to prevent crashes
+                // Log connection-level driver errors (ECONNRESET, PROTOCOL_CONNECTION_LOST). The
+                // crash safety itself does not depend on this listener: SQLClient handles the
+                // driver's `error` event and only re-emits when someone is listening, and the pool
+                // drops the flagged client on the next borrow. This just makes the reconnect
+                // visible in the log.
                 if (client.on && client.listenerCount && !client.listenerCount('error')) {
-                    client.on('error', (err: unknown): void => this.log.warn(`SQL client error: ${formatError(err)}`));
+                    client.on('error', (err: unknown): void =>
+                        this.log.warn(`SQL connection lost, will reconnect: ${formatError(err)}`),
+                    );
                 }
+                // A real, working connection was handed out - this, not the mere existence of a pool
+                // object, is what info.connection reports (#374).
+                this.consecutiveBorrowFailures = 0;
+                this.setConnected(true);
             } else if (!client) {
                 this.activeConnections--;
+                // Repeated borrow failures (e.g. connect ETIMEDOUT while the server is down) mean the
+                // database is effectively unreachable; previously info.connection stayed true forever.
+                if (++this.consecutiveBorrowFailures >= 5) {
+                    this.setConnected(false);
+                }
             }
 
             callback(err, client);
@@ -806,17 +824,7 @@ export class SqlAdapter extends Adapter {
                     },
                 };
             } else if (this.config.dbtype === 'mysql') {
-                mySQLOptions = {
-                    host: this.config.host, // needed for PostgreSQL , MySQL
-                    user: this.config.user || '',
-                    password: this.config.password || '',
-                    port: this.config.port || undefined,
-                    ssl: this.config.encrypt
-                        ? {
-                              rejectUnauthorized: !!this.config.rejectUnauthorized,
-                          }
-                        : undefined,
-                };
+                mySQLOptions = buildMySQLOptions(this.config);
             } else if (this.config.dbtype === 'sqlite') {
                 sqLiteOptions = { fileName: this.getSqlLiteDir(this.config.fileName) };
             }
@@ -1018,17 +1026,7 @@ export class SqlAdapter extends Adapter {
                 },
             };
         } else if (config.dbtype === 'mysql') {
-            mySQLOptions = {
-                host: config.host, // needed for PostgreSQL , MySQL
-                user: config.user || '',
-                password: config.password || '',
-                port: config.port || undefined,
-                ssl: config.encrypt
-                    ? {
-                          rejectUnauthorized: !!config.rejectUnauthorized,
-                      }
-                    : undefined,
-            };
+            mySQLOptions = buildMySQLOptions(config);
         } else if (config.dbtype === 'sqlite') {
             sqLiteOptions = { fileName: this.getSqlLiteDir(config.fileName) };
         }
@@ -1425,6 +1423,18 @@ export class SqlAdapter extends Adapter {
     }
 
     processMessage(msg: ioBroker.Message): void {
+        // Answer with an error instead of dereferencing a `sqlFuncs` that is still null. Guarding
+        // here covers every database-backed command at once; the alternative would be a check at
+        // each of the ~30 `this.sqlFuncs!` uses, every one of which is only reachable from here
+        // during this window. The decision itself lives in src/lib/messages.ts so that it can be
+        // unit tested without importing this file - see the comment there.
+        const notInitialized = guardUninitialized(msg.command, !!this.sqlFuncs);
+        if (notInitialized) {
+            this.log.warn(`Cannot process "${msg.command}": the adapter is not initialized yet`);
+            this.sendTo(msg.from, msg.command, notInitialized, msg.callback);
+            return;
+        }
+
         if (msg.command === 'features') {
             this.sendTo(
                 msg.from,
@@ -4393,6 +4403,9 @@ export class SqlAdapter extends Adapter {
         config.dockerMysql.port = parseInt((config.dockerMysql.port as string) || '3306', 10) || 3306;
         config.port = config.dockerMysql.port;
         config.host = config.dockerMysql.bind || '127.0.0.1';
+        // The container is reached over TCP on the published port; a socket path left over from a
+        // previous manual setup would otherwise win over it in buildMySQLOptions().
+        config.socketPath = '';
         config.multiRequests = true;
         config.maxConnections = 100;
 
@@ -4475,6 +4488,14 @@ export class SqlAdapter extends Adapter {
         }
 
         config.port = parseInt(config.port as string, 10) || 0;
+
+        // Only MySQL can use a unix socket. The field stays visible for other dialects in older
+        // configurations, so clear it rather than letting it silently change how they connect.
+        config.socketPath = typeof config.socketPath === 'string' ? config.socketPath.trim() : '';
+        if (config.socketPath && config.dbtype !== 'mysql') {
+            this.log.warn(`A unix socket is only supported for MySQL, ignoring it for "${config.dbtype}"`);
+            config.socketPath = '';
+        }
 
         if (config.round !== null && config.round !== undefined && config.round !== '') {
             config.round = parseInt(config.round as string, 10);
@@ -4575,7 +4596,9 @@ export class SqlAdapter extends Adapter {
             await this.createUserInDocker();
         }
 
-        if (config.dbtype === 'sqlite' || this.config.host) {
+        // A MySQL socket connection has no host, so it has to open this gate on its own - otherwise
+        // the adapter would start, report nothing and never call connect() (#104).
+        if (config.dbtype === 'sqlite' || this.config.host || this.config.socketPath) {
             this.connect(async () => {
                 // `enableHistory` only writes the object and leaves the activation to `objectChange`, so
                 // subscribing after the view was read left a gap: a message that arrived in between was

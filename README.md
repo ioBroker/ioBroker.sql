@@ -19,6 +19,7 @@ You can leave port 0 if the default port is desired.
 ## Connection Settings
 - **DB Type**: Type of the SQL DB: MySQL, PostgreSQL, MS-SQL or SQLite3
 - **Host**: IP address or host name with SQL Server
+- **Unix socket** (MySQL only): Path of a local unix socket, e.g. `/var/run/mysqld/mysqld.sock`. When set, the adapter connects through that socket and ignores Host and Port, which are hidden. Useful when the server runs on the same machine — it is faster than TCP — and it is the only way to reach a database on the Docker host from a container on a macvlan network.
 - **Port**: Port of SQL Server (leave blank if not sure)
 - **Database name**: Database name. Default iobroker
 - **User**: Username for SQL. Must exist in the DB.
@@ -620,6 +621,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ## Changelog
 ### **WORK IN PROGRESS**
 * (@DutchmanNL) PostgreSQL: "do not create database" now connects straight to the configured database instead of opening the maintenance database `postgres` first, so roles without `CONNECT` on it can be used
+* (@GermanBluefox) MySQL can now connect through a unix socket instead of host and port (#104)
+* (@DutchmanNL) Fixed `info.connection` staying `true` while the database was unreachable
+* (@GermanBluefox) Fixed crash (UNCAUGHT_EXCEPTION) when the database server closes the connection: the driver's `error` event had no listener (#527)
+* (@GermanBluefox) A connection that the server dropped is now replaced instead of being handed out again
 
 ### 4.1.6 (2026-10-01)
 * (@DutchmanNL) Fixed `getCounter` on PostgreSQL: the queries used MySQL-style backtick quoting

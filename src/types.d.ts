@@ -63,6 +63,8 @@ export interface SqlAdapterConfigTyped {
     debounce: number;
     retention: number;
     host: string;
+    /** Connect through this unix socket instead of host/port (MySQL only, see #104) */
+    socketPath: string;
     port: number;
     user: string;
     password: string;
@@ -108,6 +110,8 @@ export interface SqlAdapterConfig extends SqlAdapterConfigTyped {
     debounce: number | string;
     retention: number | string;
     host: string;
+    /** Connect through this unix socket instead of host/port (MySQL only, see #104) */
+    socketPath: string;
     port: number | string;
     user: string;
     password: string;
