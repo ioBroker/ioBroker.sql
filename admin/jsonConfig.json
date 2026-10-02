@@ -41,7 +41,16 @@
                     "newLine": true,
                     "type": "text",
                     "label": "Host",
-                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled || (data.dbtype === 'mysql' && !!data.socketPath)",
+                    "sm": 12,
+                    "md": 4,
+                    "lg": 3
+                },
+                "socketPath": {
+                    "type": "text",
+                    "label": "Unix socket",
+                    "help": "Connect through this socket instead of host and port, e.g. /var/run/mysqld/mysqld.sock",
+                    "hidden": "data.dbtype !== 'mysql' || !!data.dockerMysql?.enabled",
                     "sm": 12,
                     "md": 4,
                     "lg": 3
@@ -49,7 +58,7 @@
                 "port": {
                     "type": "number",
                     "label": "Port",
-                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled",
+                    "hidden": "data.dbtype === 'sqlite' || !!data.dockerMysql?.enabled || (data.dbtype === 'mysql' && !!data.socketPath)",
                     "min": 0,
                     "max": 65565,
                     "sm": 12,
