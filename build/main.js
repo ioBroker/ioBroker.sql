@@ -46,6 +46,7 @@ const mssql_client_1 = require("./lib/mssql-client");
 const mysql_client_1 = require("./lib/mysql-client");
 const connection_options_1 = require("./lib/connection-options");
 const messages_1 = require("./lib/messages");
+const values_1 = require("./lib/values");
 const statistics_1 = require("./lib/statistics");
 const postgresql_client_1 = require("./lib/postgresql-client");
 const sqlite3_client_1 = require("./lib/sqlite3-client");
@@ -1451,7 +1452,10 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 }
                 if (this.sqlDPs[id].state && settings.changesOnly) {
                     if (!settings.changesRelogInterval) {
-                        if ((this.sqlDPs[id].state.val !== null || state.val === null) && state.ts !== state.lc) {
+                        // Compare the value, not `ts !== lc`: an alias carries the lc of its
+                        // source, so a source change its read converter rounds away still arrives
+                        // with ts === lc (#295).
+                        if ((0, values_1.isSameValue)(this.sqlDPs[id].state.val, state.val)) {
                             // remember new timestamp
                             if (!valueUnstable && !settings.disableSkippedValueLogging) {
                                 this.sqlDPs[id].skipped = state;
@@ -1462,8 +1466,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                         }
                     }
                     else if (this.sqlDPs[id].lastLogTime) {
-                        if ((this.sqlDPs[id].state.val !== null || state.val === null) &&
-                            state.ts !== state.lc &&
+                        if ((0, values_1.isSameValue)(this.sqlDPs[id].state.val, state.val) &&
                             Math.abs(this.sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000) {
                             // remember new timestamp
                             if (!valueUnstable && !settings.disableSkippedValueLogging) {
@@ -1473,7 +1476,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                                 this.log.debug(`value not changed ${id}, last-value=${this.sqlDPs[id].state.val}, new-value=${state.val}, ts=${state.ts}`);
                             return;
                         }
-                        if (state.ts !== state.lc) {
+                        if ((0, values_1.isSameValue)(this.sqlDPs[id].state.val, state.val)) {
                             settings.enableDebugLogs &&
                                 this.log.debug(`value-not-changed-relog ${id}, value=${state.val}, lastLogTime=${this.sqlDPs[id].lastLogTime}, ts=${state.ts}`);
                             ignoreDebounce = true;
