@@ -2,15 +2,15 @@ import { ConnectionFactory, type SQLConnection } from './connection-factory';
 import SQLClient from './sql-client';
 import { SQLClientPool, type PoolConfig } from './sql-client-pool';
 
-import type { Connection, ConnectionOptions as MySQLOptions } from 'mysql2';
+import { importDriver, type MySQLConnection, type MySQLModule, type MySQLOptions } from './optional-drivers';
 
 export type { MySQLOptions };
 
 class MySQL2ConnectionFactory extends ConnectionFactory {
     private createConnection: any;
-    openConnection(options: MySQLOptions, callback: (err: Error | null, connection?: Connection) => void): void {
+    openConnection(options: MySQLOptions, callback: (err: Error | null, connection?: MySQLConnection) => void): void {
         if (!this.createConnection) {
-            void import('mysql2').then(
+            void importDriver<MySQLModule>('mysql2').then(
                 mysql2 => {
                     this.createConnection = mysql2.default.createConnection;
                     this.openConnection(options, callback);
@@ -26,7 +26,7 @@ class MySQL2ConnectionFactory extends ConnectionFactory {
         connection.connect((err: Error | null): void => callback(err, connection));
     }
 
-    closeConnection(connection: Connection | null | undefined, callback: (error?: Error | null) => void): void {
+    closeConnection(connection: MySQLConnection | null | undefined, callback: (error?: Error | null) => void): void {
         if (connection) {
             connection.end(callback);
         } else {

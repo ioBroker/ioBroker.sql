@@ -2,18 +2,23 @@ import { ConnectionFactory } from './connection-factory';
 import SQLClient from './sql-client';
 import { SQLClientPool, type PoolConfig } from './sql-client-pool';
 
-import type { Database } from 'sqlite3';
+import {
+    importDriver,
+    type SQLite3Database,
+    type SQLite3DatabaseConstructor,
+    type SQLite3Module,
+} from './optional-drivers';
 
 type SQLite3Options = { fileName: string; mode?: number };
 
 export type { SQLite3Options };
 
 export class SQLite3ConnectionFactory extends ConnectionFactory {
-    private Database: typeof Database | undefined;
+    private Database: SQLite3DatabaseConstructor | undefined;
 
-    openConnection(options: SQLite3Options, callback: (err: Error | null, connection?: Database) => void): void {
+    openConnection(options: SQLite3Options, callback: (err: Error | null, connection?: SQLite3Database) => void): void {
         if (!this.Database) {
-            void import('sqlite3').then(
+            void importDriver<SQLite3Module>('sqlite3').then(
                 sqlite3 => {
                     this.Database = sqlite3.default.Database;
                     this.openConnection(options, callback);
@@ -44,7 +49,7 @@ export class SQLite3ConnectionFactory extends ConnectionFactory {
         });
     }
 
-    closeConnection(db: Database, callback?: (err?: Error | null) => void): void {
+    closeConnection(db: SQLite3Database, callback?: (err?: Error | null) => void): void {
         if (db) {
             db.close(callback);
         } else {
@@ -52,7 +57,7 @@ export class SQLite3ConnectionFactory extends ConnectionFactory {
         }
     }
 
-    execute<T>(db: Database, sql: string, callback: (err: Error | null, result?: Array<T>) => void): void {
+    execute<T>(db: SQLite3Database, sql: string, callback: (err: Error | null, result?: Array<T>) => void): void {
         db.all(sql, [], callback);
     }
 }

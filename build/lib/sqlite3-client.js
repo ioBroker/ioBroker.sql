@@ -7,11 +7,12 @@ exports.SQLite3ClientPool = exports.SQLite3Client = exports.SQLite3ConnectionFac
 const connection_factory_1 = require("./connection-factory");
 const sql_client_1 = __importDefault(require("./sql-client"));
 const sql_client_pool_1 = require("./sql-client-pool");
+const optional_drivers_1 = require("./optional-drivers");
 class SQLite3ConnectionFactory extends connection_factory_1.ConnectionFactory {
     Database;
     openConnection(options, callback) {
         if (!this.Database) {
-            void import('sqlite3').then(sqlite3 => {
+            void (0, optional_drivers_1.importDriver)('sqlite3').then(sqlite3 => {
                 this.Database = sqlite3.default.Database;
                 this.openConnection(options, callback);
             }, 
