@@ -8,12 +8,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 time series. It supports four dialects: **MySQL, PostgreSQL, MS SQL Server, SQLite**.
 
 The DB drivers (`mysql2`, `pg`, `mssql`, `sqlite3`) are **optionalDependencies** and are `import()`ed lazily at
-connect time — a missing driver must degrade to a log message, not a crash at require time.
+connect time — a missing driver must degrade to a log message, not a crash at require time. The
+*build* must not depend on them either: `src/lib/optional-drivers.ts` declares the slice of `mysql2`
+and `sqlite3` this adapter uses, and its `importDriver()` routes the specifier through a `string` so
+the type checker cannot resolve it. A literal `import('sqlite3')` — or an `import type` from the
+driver — makes tsc resolve the package and fail with TS2307 wherever npm skipped the optional
+dependency. `pg` and `mssql` survive using the driver's own types only because `@types/pg` and
+`@types/mssql` are regular devDependencies and are therefore always installed.
 
 ## Commands
 
 ```bash
-npm run build          # tsc -p tsconfig.build.json  → src/*.ts to build/
+npm run build          # build:ts + build:admin — the adapter *and* the admin component
+npm run build:ts       # tsc -p tsconfig.build.json  → src/*.ts to build/
+npm run npm            # install both dependency sets (root, then src-admin with -f)
 npm run check:ts       # type-check only (tsconfig.json has noEmit: true)
 npm run lint           # eslint (@iobroker/eslint-config); --fix handles most findings
 npx prettier --write src   # formatting (config re-exported from @iobroker/eslint-config)
@@ -69,6 +77,7 @@ SQL_USER=iobroker SQL_PASS=iobroker npx mocha 'test/testMySQL*.js' --exit   # e.
 src/main.ts              SqlAdapter — all adapter logic, lifecycle, queues, message handlers
 src/lib/<dialect>.ts     pure SQL-string builders (mysql|postgresql|mssql|sqlite)
 src/lib/<dialect>-client.ts  driver glue: ConnectionFactory + SQLClient + SQLClientPool subclasses
+src/lib/optional-drivers.ts  local types for mysql2/sqlite3 + importDriver()
 src/lib/sql-client.ts    generic connection wrapper (callback + *Async variants)
 src/lib/sql-client-pool.ts   generic connection pool (borrow/return/evict)
 ```
@@ -181,13 +190,16 @@ admin/custom/**                 the built bundle, committed to git
 ```
 
 ```bash
-npm run npm:admin      # install the component dependencies (own package.json in src-admin)
+npm run npm            # install root + component dependencies (src-admin has its own package.json)
 npm run build:admin    # tsx tasks.ts: clean, npm i, vite build, copy
 cd src-admin && npm start
 ```
 
-- `npm run build` builds **only the adapter** (`tsc`), never the component. Rebuild and commit
-  `admin/custom` yourself when `src-admin` changes; the release script does not do it.
+- `npm run build` runs **both** `build:ts` and `build:admin`, and `.releaseconfig.json`'s
+  `before_commit` makes the release script run it — so a release does regenerate `admin/custom`.
+  Outside a release nothing does it for you: rebuild and commit the bundle yourself after changing
+  `src-admin`, or the committed bundle silently lags behind the sources (which is how
+  `admin/custom/i18n` ended up one translation behind `src-admin/src/i18n`).
 - The copy step must take `src-admin/build/assets/*` along — vite puts the chunks there and
   `customComponents.js` loads them relatively. The official template copies `static/js/*` instead, which
   is a leftover of the old CRA build and silently copies nothing.
@@ -225,6 +237,12 @@ Placeholder gotcha: an empty default (`${config.x:-}`) resolves to the **number 
   gives you `any`.
 - Releases go through `@alcalzone/release-script` (`npm run release-patch|minor|major`); the changelog lives in
   both `README.md` and `io-package.json` → `common.news`. Tagging `v<semver>` triggers npm publish in CI.
+- **`exec` commands in `.releaseconfig.json` run without a shell**, so `&&` does not chain. The exec
+  plugin hands the string to `execa.command()`, which only splits it on whitespace: `"npm run check:ts
+  && npm run lint"` runs `npm` with the arguments `run check:ts && npm run lint`, npm appends the extra
+  ones to the script body, and `tsc` then sees `&&`, `npm`, `run`, `lint` as source files and fails with
+  *TS5042: Option 'project' cannot be mixed with source files on a command line*. Use the array form the
+  plugin supports instead: `["npm run check:ts", "npm run lint"]`.
 
 ## Testing conventions
 
@@ -266,6 +284,13 @@ DB job failed. When touching the tests, lint them explicitly with node+mocha glo
   `my-branch.js-controller`, which npm rejects; one in `iobroker.sql-295/` installs fine but then looks for
   `system.adapter.sql-295.0` and dies in the `before` hook with
   `Cannot read properties of undefined (reading 'common')`. Put a worktree in `<anything>/ioBroker.sql`.
+- **A `node_modules` in a *parent* directory changes what installs and what lints.** npm treats a
+  package it can resolve from an ancestor as already satisfied and drops it from the local tree *and*
+  from `package-lock.json` — that is how `pg` and 321 of the 341 `"peer": true` flags vanished from the
+  lockfile on a machine whose checkouts sit under a folder with its own `package.json`. The optional DB
+  drivers resolve from there too, which hides exactly the breakage `src/lib/optional-drivers.ts` exists
+  to prevent, and `npm run lint` can report errors coming from a foreign version of a shared dependency.
+  Verify builds, lint and lockfile changes in a checkout with no ancestor `node_modules`.
 - **`node_modules` must be a real directory there, not a symlink or junction.**
   `copyAdapterToController()` copies the whole adapter folder into `tmp/node_modules/` and its exclusion list
   does not mention `node_modules`, so the recursive copy walks into it and silently leaves a half-copied
