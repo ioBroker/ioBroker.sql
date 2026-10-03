@@ -93,5 +93,6 @@
     "Root password": "Root-Passwort",
     "Root URL": "Root-URL",
     "Defines the root URL, useful when PhpMyAdmin is behind a reverse proxy.": "Legt die Root-URL fest, nützlich wenn phpMyAdmin hinter einem Reverse-Proxy läuft.",
-    "Statistics": "Statistik"
+    "Statistics": "Statistik",
+    "The test request arrived without a configuration": "Die Testanfrage kam ohne Konfiguration an"
 }

@@ -1008,8 +1008,16 @@ export class SqlAdapter extends Adapter {
 
     async testConnection(msg: ioBroker.Message): Promise<void> {
         if (!msg?.message?.config) {
+            // Not a database problem: the request reached us without any settings. The admin builds
+            // the payload from a template and drops it silently when the result does not parse, so
+            // "invalid config" sent people looking at settings that were fine (#355).
             if (msg.callback) {
-                this.sendTo(msg.from, msg.command, { error: 'invalid config' }, msg.callback);
+                this.sendTo(
+                    msg.from,
+                    msg.command,
+                    { error: 'The test request arrived without a configuration' },
+                    msg.callback,
+                );
             }
             return;
         }
