@@ -1,4 +1,4 @@
-import type { ConnectionOptions as MySQLOptions } from 'mysql2';
+import type { MySQLOptions } from './optional-drivers';
 import type { SqlAdapterConfigTyped } from '../types';
 
 export type { MySQLOptions };

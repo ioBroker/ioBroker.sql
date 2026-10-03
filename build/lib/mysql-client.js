@@ -7,11 +7,12 @@ exports.MySQL2ClientPool = exports.MySQL2Client = void 0;
 const connection_factory_1 = require("./connection-factory");
 const sql_client_1 = __importDefault(require("./sql-client"));
 const sql_client_pool_1 = require("./sql-client-pool");
+const optional_drivers_1 = require("./optional-drivers");
 class MySQL2ConnectionFactory extends connection_factory_1.ConnectionFactory {
     createConnection;
     openConnection(options, callback) {
         if (!this.createConnection) {
-            void import('mysql2').then(mysql2 => {
+            void (0, optional_drivers_1.importDriver)('mysql2').then(mysql2 => {
                 this.createConnection = mysql2.default.createConnection;
                 this.openConnection(options, callback);
             }, 
