@@ -621,6 +621,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 ### **WORK IN PROGRESS**
+* (@GermanBluefox) Fixed buffered values being lost when the adapter stops, and unload no longer hangs when there is nothing else to write (#577)
+
+### **WORK IN PROGRESS**
 * (@GermanBluefox) "Record changes only" now compares the value instead of the controller's last-change timestamp, so an alias with a read converter no longer stores a row per source change (#295)
 
 ### **WORK IN PROGRESS**
