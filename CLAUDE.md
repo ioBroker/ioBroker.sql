@@ -257,5 +257,17 @@ DB job failed. When touching the tests, lint them explicitly with node+mocha glo
   the highest-value remaining typing improvement.
 - `SQLClientPool` does **not** open itself in the constructor; callers must call `open(opts, cb)` so that
   errors surface through the callback.
-- Local integration tests need a machine with **no** running js-controller — `test/lib/setup.js` refuses to do
-  its first-run setup otherwise.
+- Local integration tests need a machine with **no** running js-controller — `test/lib/setup.js` probes port
+  9000 and refuses to do its first-run setup otherwise. It bails out with `process.exit(0)`, so a run blocked
+  this way reports *success*: mocha exits 0 having executed nothing.
+- **The checkout directory has to be named `ioBroker.sql`.** `setup.js` derives both names from the path —
+  `appName` from `<dir>.split('.')[0]`, `adapterName` from the directory itself — and then looks up
+  `system.adapter.${adapterName.split('.').pop()}.0`. A worktree in `my-branch/` asks npm for
+  `my-branch.js-controller`, which npm rejects; one in `iobroker.sql-295/` installs fine but then looks for
+  `system.adapter.sql-295.0` and dies in the `before` hook with
+  `Cannot read properties of undefined (reading 'common')`. Put a worktree in `<anything>/ioBroker.sql`.
+- **`node_modules` must be a real directory there, not a symlink or junction.**
+  `copyAdapterToController()` copies the whole adapter folder into `tmp/node_modules/` and its exclusion list
+  does not mention `node_modules`, so the recursive copy walks into it and silently leaves a half-copied
+  adapter behind. `npm install` in the worktree takes about 20 s. Linking `tmp/` from another checkout is
+  fine and saves the js-controller download.
