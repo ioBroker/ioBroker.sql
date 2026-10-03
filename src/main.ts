@@ -1360,7 +1360,15 @@ export class SqlAdapter extends Adapter {
                 if (pendingWrites) {
                     return;
                 }
-                this.pushValuesIntoDB(id, this.sqlDPs[id].list, () => datapointDone());
+                const buffered = this.sqlDPs[id]?.list;
+                // Not every entry in sqlDPs is a configured datapoint: storeState, getHistory and
+                // the object view create stubs with `sqlDPs[id] ||= {}` just to carry an index, and
+                // those have no buffer. The datapoint can also disappear while the writes above are
+                // still in flight.
+                if (!buffered?.length) {
+                    return datapointDone();
+                }
+                this.pushValuesIntoDB(id, buffered, () => datapointDone());
             };
             const writeDone = (): void => {
                 pendingWrites--;
