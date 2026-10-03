@@ -22,6 +22,7 @@ import { MSSQLClientPool, MSSQLClient, type MSSQLOptions } from './lib/mssql-cli
 import { MySQL2ClientPool, MySQL2Client, type MySQLOptions } from './lib/mysql-client';
 import { buildMySQLOptions } from './lib/connection-options';
 import { guardUninitialized } from './lib/messages';
+import { isSameValue } from './lib/values';
 import {
     classifyDatapoint,
     estimateBytes,
@@ -1691,7 +1692,10 @@ export class SqlAdapter extends Adapter {
 
                 if (this.sqlDPs[id].state && settings.changesOnly) {
                     if (!settings.changesRelogInterval) {
-                        if ((this.sqlDPs[id].state.val !== null || state.val === null) && state.ts !== state.lc) {
+                        // Compare the value, not `ts !== lc`: an alias carries the lc of its
+                        // source, so a source change its read converter rounds away still arrives
+                        // with ts === lc (#295).
+                        if (isSameValue(this.sqlDPs[id].state.val, state.val)) {
                             // remember new timestamp
                             if (!valueUnstable && !settings.disableSkippedValueLogging) {
                                 this.sqlDPs[id].skipped = state;
@@ -1704,8 +1708,7 @@ export class SqlAdapter extends Adapter {
                         }
                     } else if (this.sqlDPs[id].lastLogTime) {
                         if (
-                            (this.sqlDPs[id].state.val !== null || state.val === null) &&
-                            state.ts !== state.lc &&
+                            isSameValue(this.sqlDPs[id].state.val, state.val) &&
                             Math.abs(this.sqlDPs[id].lastLogTime - state.ts) < settings.changesRelogInterval * 1000
                         ) {
                             // remember new timestamp
@@ -1718,7 +1721,7 @@ export class SqlAdapter extends Adapter {
                                 );
                             return;
                         }
-                        if (state.ts !== state.lc) {
+                        if (isSameValue(this.sqlDPs[id].state.val, state.val)) {
                             settings.enableDebugLogs &&
                                 this.log.debug(
                                     `value-not-changed-relog ${id}, value=${state.val}, lastLogTime=${this.sqlDPs[id].lastLogTime}, ts=${state.ts}`,
