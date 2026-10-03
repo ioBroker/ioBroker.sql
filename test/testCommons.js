@@ -133,6 +133,33 @@ describe('Test Common functions', function () {
         commons.sendResponseCounter(adapter, {}, { start: 5, end: 95 }, timeSeries);
     });
 
+    // writeNulls puts a NULL boundary marker into ts_number whenever the adapter starts or stops, and
+    // getCounterDiff's "last row before the window" subquery has no `val IS NOT NULL` filter - so that
+    // marker is the first entry getCounter sees. Treating it as the number 0 interpolates the value at
+    // the window start somewhere between 0 and the first real value, inflating the total (#577). The
+    // marker carries no counter reading and has to be dropped instead.
+    it('Test Common functions: counter ignores a NULL boundary marker before the window', function (done) {
+        const timeSeries = [
+            { ts: 0, val: null },
+            { ts: 1000, val: 100 },
+            { ts: 2000, val: 200 },
+            { ts: 3000, val: 10 },
+            { ts: 4000, val: 110 },
+            { ts: 6000, val: null },
+        ];
+
+        const adapter = {
+            sendTo: function (from, command, result, callback) {
+                // (200 - 100) + (110 - 10); reading the NULL as 0 yields 210
+                assert.strictEqual(result.result, 200);
+                done();
+            },
+            log,
+        };
+
+        commons.sendResponseCounter(adapter, {}, { start: 900, end: 5000 }, timeSeries);
+    });
+
     // "onchange" ("raw" in the e-charts UI) must be passed through untouched. aggregationLogic() has no
     // branch for it, so running it through the bucket aggregation returns one entry per interval with
     // val === null - i.e. an empty chart (issue #522).

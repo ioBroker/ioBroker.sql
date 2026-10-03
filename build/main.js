@@ -1094,8 +1094,12 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
     }
     finish(callback) {
-        let count = 0;
         const now = Date.now();
+        // How many datapoints still have to report in. `allFinished()` used to be reached through a
+        // counter shared by every write of every datapoint, which fired it as soon as any one of
+        // them happened to finish last - see #577.
+        let datapointsPending = 0;
+        let allDispatched = false;
         const allFinished = () => {
             if (this.clientPool) {
                 this.clientPool.close();
@@ -1112,9 +1116,29 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 this.finished = true;
             }
         };
+        const datapointDone = () => {
+            datapointsPending--;
+            if (allDispatched && datapointsPending <= 0) {
+                allFinished();
+            }
+        };
+        /**
+         * Write out everything one datapoint still holds, then report it done.
+         *
+         * The buffered values are flushed unconditionally. They used to be written only from inside
+         * the `skipped` and `writeNulls` branches, so a datapoint with neither - every SQLite
+         * instance, since writeNulls is forced off there - lost its buffer (#577).
+         *
+         * The counter is per datapoint. It used to be shared across all of them, so the flush ran on
+         * whichever callback happened to bring the shared count to zero and only that one datapoint's
+         * buffer was written; the same counter also let `allFinished()` close the pool while later
+         * datapoints were still being dispatched.
+         *
+         * @param id the datapoint to finish
+         */
         const finishId = (id) => {
             if (!this.sqlDPs[id]) {
-                return;
+                return datapointDone();
             }
             if (this.sqlDPs[id].relogTimeout) {
                 clearTimeout(this.sqlDPs[id].relogTimeout);
@@ -1125,16 +1149,31 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 this.sqlDPs[id].timeout = null;
             }
             const state = this.sqlDPs[id].state ? { ...this.sqlDPs[id].state } : null;
+            // Values this datapoint has to write before its buffer goes out, so that the boundary
+            // markers keep their order relative to the buffered values.
+            let pendingWrites = 0;
+            const flushBuffer = () => {
+                if (pendingWrites) {
+                    return;
+                }
+                const buffered = this.sqlDPs[id]?.list;
+                // Not every entry in sqlDPs is a configured datapoint: storeState, getHistory and
+                // the object view create stubs with `sqlDPs[id] ||= {}` just to carry an index, and
+                // those have no buffer. The datapoint can also disappear while the writes above are
+                // still in flight.
+                if (!buffered?.length) {
+                    return datapointDone();
+                }
+                this.pushValuesIntoDB(id, buffered, () => datapointDone());
+            };
+            const writeDone = () => {
+                pendingWrites--;
+                flushBuffer();
+            };
             if (this.sqlDPs[id].skipped &&
                 !(this.sqlDPs[id].config && this.sqlDPs[id].config.disableSkippedValueLogging)) {
-                count++;
-                this.pushValueIntoDB(id, this.sqlDPs[id].skipped, false, true, () => {
-                    if (!--count) {
-                        this.pushValuesIntoDB(id, this.sqlDPs[id].list, () => {
-                            allFinished();
-                        });
-                    }
-                });
+                pendingWrites++;
+                this.pushValueIntoDB(id, this.sqlDPs[id].skipped, false, true, writeDone);
                 this.sqlDPs[id].skipped = null;
             }
             const nullValue = {
@@ -1146,40 +1185,28 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 from: `system.adapter.${this.namespace}`,
             };
             if (this.sqlDPs[id].config && this.config.writeNulls) {
+                pendingWrites++;
                 if (this.sqlDPs[id].config.changesOnly && state && state.val !== null) {
-                    count++;
-                    ((_id, _state, _nullValue) => {
-                        _state.ts = now;
-                        _state.from = `system.adapter.${this.namespace}`;
-                        nullValue.ts += 4;
-                        nullValue.lc += 4; // because of MS SQL
-                        this.log.debug(`Write 1/2 "${_state.val}" _id: ${_id}`);
-                        this.pushValueIntoDB(_id, _state, false, true, () => {
-                            // terminate values with null to indicate adapter stop. timestamp + 1
-                            this.log.debug(`Write 2/2 "null" _id: ${_id}`);
-                            this.pushValueIntoDB(_id, _nullValue, false, true, () => {
-                                if (!--count) {
-                                    this.pushValuesIntoDB(id, this.sqlDPs[id].list, () => {
-                                        allFinished();
-                                    });
-                                }
-                            });
-                        });
-                    })(id, state, nullValue);
+                    state.ts = now;
+                    state.from = `system.adapter.${this.namespace}`;
+                    nullValue.ts += 4;
+                    nullValue.lc += 4; // because of MS SQL
+                    this.log.debug(`Write 1/2 "${state.val}" _id: ${id}`);
+                    this.pushValueIntoDB(id, state, false, true, () => {
+                        // terminate values with null to indicate adapter stop. timestamp + 1
+                        this.log.debug(`Write 2/2 "null" _id: ${id}`);
+                        this.pushValueIntoDB(id, nullValue, false, true, writeDone);
+                    });
                 }
                 else {
                     // terminate values with null to indicate adapter stop. timestamp + 1
-                    count++;
                     this.log.debug(`Write 0 NULL _id: ${id}`);
-                    this.pushValueIntoDB(id, nullValue, false, true, () => {
-                        if (!--count) {
-                            this.pushValuesIntoDB(id, this.sqlDPs[id].list, () => {
-                                allFinished();
-                            });
-                        }
-                    });
+                    this.pushValueIntoDB(id, nullValue, false, true, writeDone);
                 }
             }
+            // Runs straight away when this datapoint had nothing else to write, otherwise the last
+            // writeDone() gets here.
+            flushBuffer();
         };
         if (!this.subscribeAll) {
             for (const _id in this.sqlDPs) {
@@ -1228,9 +1255,13 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 continue;
             }
             dpcount++;
+            datapointsPending++;
             delay += dpcount % 50 === 0 ? 1000 : 0;
             setTimeout(finishId, delay, id);
         }
+        // Only now may a datapoint reporting in finish the whole run: the dispatch above is spread
+        // over seconds, so an early finisher must not close the pool under the ones still queued.
+        allDispatched = true;
         if (!dpcount && callback) {
             if (this.clientPool) {
                 this.clientPool.close();
