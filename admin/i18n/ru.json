@@ -93,5 +93,6 @@
     "Root password": "Пароль root",
     "Root URL": "Корневой URL",
     "Defines the root URL, useful when PhpMyAdmin is behind a reverse proxy.": "Задаёт корневой URL, полезно, когда phpMyAdmin находится за обратным прокси.",
-    "Statistics": "Статистика"
+    "Statistics": "Статистика",
+    "The test request arrived without a configuration": "Запрос на проверку пришёл без конфигурации"
 }

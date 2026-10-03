@@ -93,5 +93,6 @@
     "Root password": "Root 密码",
     "Root URL": "根 URL",
     "Defines the root URL, useful when PhpMyAdmin is behind a reverse proxy.": "定义根 URL，当 phpMyAdmin 位于反向代理之后时很有用。",
-    "Statistics": "统计"
+    "Statistics": "统计",
+    "The test request arrived without a configuration": "测试请求未附带配置"
 }

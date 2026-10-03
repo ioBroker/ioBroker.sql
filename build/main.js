@@ -823,8 +823,11 @@ class SqlAdapter extends adapter_core_1.Adapter {
     }
     async testConnection(msg) {
         if (!msg?.message?.config) {
+            // Not a database problem: the request reached us without any settings. The admin builds
+            // the payload from a template and drops it silently when the result does not parse, so
+            // "invalid config" sent people looking at settings that were fine (#355).
             if (msg.callback) {
-                this.sendTo(msg.from, msg.command, { error: 'invalid config' }, msg.callback);
+                this.sendTo(msg.from, msg.command, { error: 'The test request arrived without a configuration' }, msg.callback);
             }
             return;
         }
