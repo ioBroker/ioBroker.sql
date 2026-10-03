@@ -81,3 +81,85 @@ describe('Test insert() never concatenates statements', function () {
         });
     }
 });
+
+// Issue #304: two rows with the same (id, ts) in one batch - the same datapoint logged from two
+// sources that happened to land on the same millisecond - used to abort the whole INSERT with a
+// primary key violation.
+const DUPLICATE_GUARD = {
+    mysql: /ON DUPLICATE KEY UPDATE/i,
+    postgresql: /ON CONFLICT DO NOTHING/i,
+    sqlite: /ON CONFLICT DO NOTHING/i,
+    // No guard, and that is correct: init() creates `CREATE INDEX i_id on ...(id, ts)`, a plain
+    // non-unique index rather than a primary key, so no uniqueness conflict can arise. Adding one
+    // here to make the dialects look alike would be wrong.
+    mssql: null,
+};
+
+/** The batch from issue #304: ts 1681102802872 appears twice for id 4, from two different sources */
+function duplicateBatch() {
+    return [
+        { table: 'ts_number', state: { val: 54.7, ts: 1681102502871, ack: true }, from: 2 },
+        { table: 'ts_number', state: { val: 54.7, ts: 1681102802872, ack: true }, from: 2 },
+        { table: 'ts_number', state: { val: 54.7, ts: 1681102502853, ack: true }, from: 3 },
+        { table: 'ts_number', state: { val: 54.9, ts: 1681102802872, ack: true }, from: 3 },
+    ];
+}
+
+describe('Test insert() suppresses duplicate (id, ts) rows (#304)', function () {
+    for (const [dialect, sql] of Object.entries(DIALECTS)) {
+        const guard = DUPLICATE_GUARD[dialect];
+
+        it(`${dialect}: ${guard ? 'guards the keyed tables' : 'needs no guard, its index is not unique'}`, function () {
+            for (const table of ['ts_number', 'ts_string', 'ts_bool']) {
+                const [query] = sql.insert('iobroker', 4, [
+                    { table, state: { val: table === 'ts_string' ? 'a' : 1, ts: 100, ack: true }, from: 2 },
+                ]);
+
+                if (guard) {
+                    assert.ok(guard.test(query), `${table} is unguarded: ${query}`);
+                } else {
+                    assert.ok(
+                        !/ON DUPLICATE KEY|ON CONFLICT/i.test(query),
+                        `${table} grew a guard; check whether init() still creates a non-unique index: ${query}`,
+                    );
+                }
+            }
+        });
+
+        if (dialect === 'postgresql' || dialect === 'sqlite') {
+            it(`${dialect}: uses DO NOTHING, not DO UPDATE`, function () {
+                const [query] = sql.insert('iobroker', 4, duplicateBatch());
+
+                // The duplicate sits *inside* one statement. DO NOTHING copes with that; turning it
+                // into DO UPDATE - the obvious way to let the last value win - makes PostgreSQL
+                // raise "cannot affect row a second time" and brings the bug straight back.
+                assert.ok(!/DO UPDATE/i.test(query), `DO UPDATE reintroduces #304: ${query}`);
+            });
+        }
+    }
+
+    it('sqlite: the reported batch really inserts, against a live schema', function (done) {
+        const sqlite3 = require('sqlite3');
+        const db = new sqlite3.Database(':memory:');
+
+        db.serialize(() => {
+            // the real DDL from init()
+            db.run(
+                'CREATE TABLE ts_number (id INTEGER, ts BIGINT, val REAL, ack BOOLEAN, _from INTEGER, q INTEGER, PRIMARY KEY(id, ts))',
+            );
+
+            const [query] = DIALECTS.sqlite.insert('ignored', 4, duplicateBatch());
+            db.run(query, function (err) {
+                assert.ifError(err);
+
+                db.all('SELECT ts, val FROM ts_number ORDER BY ts', function (err, rows) {
+                    assert.ifError(err);
+                    // four input rows, three distinct timestamps - the duplicate is dropped
+                    assert.strictEqual(rows.length, 3, JSON.stringify(rows));
+                    assert.strictEqual(rows[2].val, 54.7, 'the first value for a timestamp wins');
+                    db.close(done);
+                });
+            });
+        });
+    });
+});
