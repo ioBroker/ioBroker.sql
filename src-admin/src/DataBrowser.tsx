@@ -310,12 +310,18 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
         }
     }
 
-    async loadRows(): Promise<void> {
+    /**
+     * Read the current page of entries.
+     *
+     * @param keepError true after a save or delete, so that its error is not wiped out by the reload
+     */
+    async loadRows(keepError?: boolean): Promise<void> {
         const point = this.state.selected;
         if (!point) {
             return;
         }
-        this.setState({ loadingRows: true, errorText: '' });
+        // the updater sees the error the save just set, even if React has not applied it yet
+        this.setState(prev => ({ loadingRows: true, errorText: keepError ? prev.errorText : '' }));
         try {
             const result = await this.sendToInstance('getRawEntries', {
                 id: point.id,
@@ -383,7 +389,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
         } catch (e: any) {
             this.setState({ errorText: e.message });
         }
-        await this.loadRows();
+        await this.loadRows(true);
     }
 
     async deleteEntries(entries: number[]): Promise<void> {
@@ -405,7 +411,7 @@ export default class DataBrowser extends ConfigGeneric<ConfigGenericProps, DataB
         } catch (e: any) {
             this.setState({ errorText: e.message });
         }
-        await this.loadRows();
+        await this.loadRows(true);
     }
 
     renderDatapoints(): React.JSX.Element {
