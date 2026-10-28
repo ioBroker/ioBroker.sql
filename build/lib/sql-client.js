@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_events_1 = require("node:events");
+const errors_1 = require("./errors");
 class SQLClient extends node_events_1.EventEmitter {
     options;
     factory;
@@ -145,6 +146,7 @@ class SQLClient extends node_events_1.EventEmitter {
         }
         this.factory.execute(this.connection, sql, (err, result) => {
             if (err) {
+                this.#flagIfConnectionError(err);
                 callback(err);
             }
             else {
@@ -158,12 +160,28 @@ class SQLClient extends node_events_1.EventEmitter {
         }
         return new Promise((resolve, reject) => this.factory.execute(this.connection, sql, (err, result) => {
             if (err) {
+                this.#flagIfConnectionError(err);
                 reject(err);
             }
             else {
                 resolve(result);
             }
         }));
+    }
+    /**
+     * Mark the client as broken when a statement failed because its connection is gone.
+     *
+     * mysql2 passes "connection lost" to the callback of the running statement and
+     * does not emit `error` on the connection in that case, so the `error` listener alone never saw
+     * it and the dead client was handed out again for every following statement.
+     *
+     * @param err the error of the statement
+     */
+    #flagIfConnectionError(err) {
+        if (!this.broken && (0, errors_1.isConnectionError)(err)) {
+            this.broken = true;
+            this.lastError = err;
+        }
     }
 }
 exports.default = SQLClient;

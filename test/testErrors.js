@@ -1,5 +1,5 @@
 const assert = require('node:assert');
-const { formatError, counterTypeMismatch } = require('../build/lib/errors');
+const { formatError, counterTypeMismatch, isConnectionError } = require('../build/lib/errors');
 
 describe('Test formatError', function () {
     it('unwraps an AggregateError', function () {
@@ -87,5 +87,48 @@ describe('Test counterTypeMismatch', function () {
         // storageTypes[] has no entry for every value the datapoints table could hold
         assert.ok(counterTypeMismatch('sql.0.x', 7).includes('"7"'));
         assert.ok(counterTypeMismatch('sql.0.x', undefined).includes('unknown'));
+    });
+});
+
+describe('Test isConnectionError', function () {
+    const err = (message, extra = {}) => Object.assign(new Error(message), extra);
+
+    it('recognises a dead connection for every driver', function () {
+        // mysql2
+        assert.strictEqual(
+            isConnectionError(err("Can't add new command when connection is in closed state", { fatal: true })),
+            true,
+        );
+        assert.strictEqual(
+            isConnectionError(
+                err('Connection lost: The server closed the connection.', { code: 'PROTOCOL_CONNECTION_LOST' }),
+            ),
+            true,
+        );
+        assert.strictEqual(isConnectionError(err('read ECONNRESET', { code: 'ECONNRESET' })), true);
+        // pg
+        assert.strictEqual(isConnectionError(err('Client was closed and is not queryable')), true);
+        assert.strictEqual(isConnectionError(err('Connection terminated unexpectedly')), true);
+        // mssql
+        assert.strictEqual(isConnectionError(err('Connection is closed.', { code: 'ECONNCLOSED' })), true);
+        // sqlite3
+        assert.strictEqual(
+            isConnectionError(err('SQLITE_MISUSE: Database is closed', { code: 'SQLITE_MISUSE' })),
+            true,
+        );
+    });
+
+    it('does not treat an SQL error as a dead connection', function () {
+        assert.strictEqual(
+            isConnectionError(err("Duplicate entry '1' for key 'PRIMARY'", { code: 'ER_DUP_ENTRY', fatal: false })),
+            false,
+        );
+        assert.strictEqual(
+            isConnectionError(err('You have an error in your SQL syntax', { code: 'ER_PARSE_ERROR' })),
+            false,
+        );
+        assert.strictEqual(isConnectionError(err('relation "ts_number" does not exist', { code: '42P01' })), false);
+        assert.strictEqual(isConnectionError(null), false);
+        assert.strictEqual(isConnectionError('text'), false);
     });
 });

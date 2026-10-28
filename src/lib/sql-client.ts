@@ -1,5 +1,6 @@
 import type { ConnectionFactory, SQLConnection } from './connection-factory';
 import { EventEmitter } from 'node:events';
+import { isConnectionError } from './errors';
 
 export default class SQLClient extends EventEmitter {
     private readonly options: any;
@@ -160,6 +161,7 @@ export default class SQLClient extends EventEmitter {
         }
         this.factory.execute(this.connection, sql, (err?: Error | null, result?: Array<T>): void => {
             if (err) {
+                this.#flagIfConnectionError(err);
                 callback(err);
             } else {
                 callback(null, result);
@@ -174,11 +176,28 @@ export default class SQLClient extends EventEmitter {
         return new Promise<Array<T> | undefined>((resolve, reject) =>
             this.factory.execute(this.connection, sql, (err?: Error | null, result?: Array<T>): void => {
                 if (err) {
+                    this.#flagIfConnectionError(err);
                     reject(err);
                 } else {
                     resolve(result);
                 }
             }),
         );
+    }
+
+    /**
+     * Mark the client as broken when a statement failed because its connection is gone.
+     *
+     * mysql2 passes "connection lost" to the callback of the running statement and
+     * does not emit `error` on the connection in that case, so the `error` listener alone never saw
+     * it and the dead client was handed out again for every following statement.
+     *
+     * @param err the error of the statement
+     */
+    #flagIfConnectionError(err: Error): void {
+        if (!this.broken && isConnectionError(err)) {
+            this.broken = true;
+            this.lastError = err;
+        }
     }
 }
