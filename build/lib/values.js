@@ -8,6 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isSameValue = isSameValue;
+exports.parseLimit = parseLimit;
 /**
  * Whether a new value is the same as the one that was stored last.
  *
@@ -47,5 +48,18 @@ function isSameValue(lastStored, next) {
     // Different types are a change. `'12.3'` and `12.3` are stored differently - string values go
     // into ts_string, numbers into ts_number - so collapsing them here would lose a real transition.
     return false;
+}
+/**
+ * Parses the "ignore values below/above" limit of a datapoint.
+ *
+ * `parseFloat(x) || null` turned a limit of `0` into "no limit", so "ignore values below 0" - which
+ * is also what the old `ignoreBelowZero` option is migrated to - never filtered anything.
+ *
+ * @param value the configured limit, a number or the text from the admin input
+ * @returns the limit, or null if the value is not a number
+ */
+function parseLimit(value) {
+    const limit = typeof value === 'number' ? value : parseFloat(value);
+    return Number.isFinite(limit) ? limit : null;
 }
 //# sourceMappingURL=values.js.map

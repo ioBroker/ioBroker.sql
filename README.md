@@ -620,6 +620,14 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@Schimi1983) Fixed "Record changes only" storing every string value again: the reference value was overwritten with the SQL literal (#587)
+* (@Schimi1983) "Reset DB" no longer drops the whole database when "Do not create database" is set, only the adapter's tables (#587)
+* (@Schimi1983) "Ignore values below/above" now also works with the limit 0 (#587)
+* (@Schimi1983) PostgreSQL: the password is no longer printed in the connection log (#587)
+* (@Schimi1983) Fixed a crash when a datapoint is disabled while its database ID is being looked up (#587)
+* (@Schimi1983) Disabling the logging of a datapoint with an alias ID works again (#587)
+
 ### 4.2.1 (2026-10-13)
 * (@GermanBluefox) The error of a failed save or delete in the data browser is no longer hidden by the reload of the table
 

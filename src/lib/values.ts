@@ -48,3 +48,17 @@ export function isSameValue(lastStored: unknown, next: unknown): boolean {
     // into ts_string, numbers into ts_number - so collapsing them here would lose a real transition.
     return false;
 }
+
+/**
+ * Parses the "ignore values below/above" limit of a datapoint.
+ *
+ * `parseFloat(x) || null` turned a limit of `0` into "no limit", so "ignore values below 0" - which
+ * is also what the old `ignoreBelowZero` option is migrated to - never filtered anything.
+ *
+ * @param value the configured limit, a number or the text from the admin input
+ * @returns the limit, or null if the value is not a number
+ */
+export function parseLimit(value: unknown): number | null {
+    const limit = typeof value === 'number' ? value : parseFloat(value as string);
+    return Number.isFinite(limit) ? limit : null;
+}

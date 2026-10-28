@@ -22,7 +22,7 @@ import { MSSQLClientPool, MSSQLClient, type MSSQLOptions } from './lib/mssql-cli
 import { MySQL2ClientPool, MySQL2Client, type MySQLOptions } from './lib/mysql-client';
 import { buildMySQLOptions } from './lib/connection-options';
 import { guardUninitialized } from './lib/messages';
-import { isSameValue } from './lib/values';
+import { isSameValue, parseLimit } from './lib/values';
 import {
     classifyDatapoint,
     estimateBytes,
@@ -46,7 +46,7 @@ export interface IobDataEntryEx extends Omit<IobDataEntry, 'val'> {
 
 type SQLFunc = {
     init: (dbName: string, doNotCreateDatabase?: boolean) => string[];
-    destroy: (dbName: string) => string[];
+    destroy: (dbName: string, doNotCreateDatabase?: boolean) => string[];
     getFirstTs: (dbName: string, table: 'ts_string' | 'ts_number' | 'ts_bool' | 'ts_counter') => string;
     getIdCounts: (dbName: string, table: 'ts_string' | 'ts_number' | 'ts_bool' | 'ts_counter') => string;
     deleteDatapoint: (dbName: string, index: number) => string;
@@ -425,9 +425,9 @@ export class SqlAdapter extends Adapter {
                         this.log.debug(`Removed Alias: ${id} !-> ${this.aliasMap[id]}`);
                         delete this.aliasMap[id];
                     }
-                    const sqlDP = this.sqlDPs[id];
-
+                    // the entry is stored under the alias ID, not under the real ID of the object
                     id = formerAliasId;
+                    const sqlDP = this.sqlDPs[id];
 
                     if (sqlDP?.config) {
                         this.log.info(`disabled logging of ${id}`);
@@ -641,7 +641,7 @@ export class SqlAdapter extends Adapter {
             customConfig.ignoreAboveNumber !== null &&
             customConfig.ignoreAboveNumber !== ''
         ) {
-            customConfig.ignoreAboveNumber = parseFloat(customConfig.ignoreAboveNumber as string) || null;
+            customConfig.ignoreAboveNumber = parseLimit(customConfig.ignoreAboveNumber);
         }
 
         // ignoreBelowNumber incl. ignoreBelowZero compatibility handling
@@ -650,7 +650,7 @@ export class SqlAdapter extends Adapter {
             customConfig.ignoreBelowNumber !== null &&
             customConfig.ignoreBelowNumber !== ''
         ) {
-            customConfig.ignoreBelowNumber = parseFloat(customConfig.ignoreBelowNumber as string) || null;
+            customConfig.ignoreBelowNumber = parseLimit(customConfig.ignoreBelowNumber);
         } else if (customConfig.ignoreBelowZero === 'true' || customConfig.ignoreBelowZero === true) {
             customConfig.ignoreBelowNumber = 0;
         }
@@ -871,7 +871,7 @@ export class SqlAdapter extends Adapter {
                 // straight to the configured database: a restricted role or a managed PostgreSQL often
                 // has no access to the maintenance DB "postgres" at all (#404, #285).
                 this.log.info(
-                    `Postgres connection options: ${JSON.stringify(postgreSQLOptions).replace((postgreSQLOptions.password as string) || '******', '****')}`,
+                    `Postgres connection options: ${JSON.stringify({ ...postgreSQLOptions, password: '****' })}`,
                 );
                 const _client: SQLClient = new PostgreSQLClient(postgreSQLOptions);
                 _client.on?.('error', (err: unknown): void => this.log.warn(`SQL client error: ${formatError(err)}`));
@@ -1125,7 +1125,7 @@ export class SqlAdapter extends Adapter {
 
     destroyDB(msg: ioBroker.Message): void {
         try {
-            this.allScripts(this.sqlFuncs!.destroy(this.config.dbname), 0, err => {
+            this.allScripts(this.sqlFuncs!.destroy(this.config.dbname, this.config.doNotCreateDatabase), 0, err => {
                 if (err) {
                     this.log.error(err.toString());
                     this.sendTo(msg.from, msg.command, { error: err.toString() }, msg.callback);
@@ -2388,24 +2388,26 @@ export class SqlAdapter extends Adapter {
 
             tmpState = { ...state };
 
-            this.sqlDPs[id].isRunning.push({ id, state: tmpState, cb, isCounter });
+            const waiting = this.sqlDPs[id].isRunning;
+            waiting.push({ id, state: tmpState, cb, isCounter });
 
-            if (this.sqlDPs[id].isRunning.length === 1) {
+            if (waiting.length === 1) {
                 // read or create in DB
-                return this.getId(id, type, (err, _id) => {
-                    this.log.debug(
-                        `prepareTaskCheckTypeAndDbId getId Result - isRunning length = ${this.sqlDPs[id].isRunning ? this.sqlDPs[id].isRunning.length : 'none'}`,
-                    );
-                    if (err) {
-                        this.log.warn(`Cannot get index of "${_id}": ${err}`);
-                        this.sqlDPs[_id].isRunning?.forEach(r =>
-                            r.cb?.(new Error(`Cannot get index of "${r.id}": ${err}`)),
-                        );
-                    } else {
-                        this.sqlDPs[_id].isRunning?.forEach(r => r.cb?.());
+                return this.getId(id, type, err => {
+                    // @KI_HINWEIS: the datapoint can be disabled or deleted while the lookup runs. Then
+                    // this.sqlDPs[id] is gone; reading it threw inside the driver callback (uncaught).
+                    // The waiting list is kept in a local, so its callbacks are still answered.
+                    const sqlDP = this.sqlDPs[id];
+                    this.log.debug(`prepareTaskCheckTypeAndDbId getId Result - isRunning length = ${waiting.length}`);
+                    if (sqlDP?.isRunning === waiting) {
+                        sqlDP.isRunning = undefined;
                     }
-
-                    this.sqlDPs[_id].isRunning = undefined;
+                    if (err) {
+                        this.log.warn(`Cannot get index of "${id}": ${err}`);
+                        waiting.forEach(r => r.cb?.(new Error(`Cannot get index of "${r.id}": ${err}`)));
+                    } else {
+                        waiting.forEach(r => r.cb?.());
+                    }
                 });
             }
             return;

@@ -163,3 +163,62 @@ describe('Test insert() suppresses duplicate (id, ts) rows (#304)', function () 
         });
     });
 });
+
+describe("Test insert()/update() leave the caller's state untouched", function () {
+    // pushValueIntoDB() hands over the same object that pushHistory() keeps as sqlDPs[id].state, the
+    // reference value of "record changes only" (#295). When insert() wrote the SQL literal ('on' with
+    // quotes) back into it, the next equal value was compared against "'on'" and stored again.
+    for (const [dialect, sql] of Object.entries(DIALECTS)) {
+        it(`${dialect}: insert() does not change state.val`, function () {
+            const string = { val: 'on', ts: 1, ack: true };
+            const bool = { val: true, ts: 2, ack: true };
+            const empty = { val: null, ts: 3, ack: true };
+            const query = sql.insert('iobroker', 5, [
+                { table: 'ts_string', state: string, from: 2 },
+                { table: 'ts_bool', state: bool, from: 2 },
+                { table: 'ts_number', state: empty, from: 2 },
+            ]);
+
+            assert.strictEqual(string.val, 'on');
+            assert.strictEqual(bool.val, true);
+            assert.strictEqual(empty.val, null);
+            // the statements themselves still carry the literals
+            assert.ok(
+                query.some(q => q.includes("'on'")),
+                query.join('\n'),
+            );
+            assert.ok(
+                query.some(q => q.includes('NULL')),
+                query.join('\n'),
+            );
+        });
+
+        it(`${dialect}: update() does not change state.val`, function () {
+            const state = { val: 'on', ts: 1 };
+            const query = sql.update('iobroker', 5, state, 2, 'ts_string');
+            assert.strictEqual(state.val, 'on');
+            assert.ok(query.includes("'on'"), query);
+        });
+    }
+});
+
+describe('Test destroy() keeps a database the adapter did not create', function () {
+    for (const [dialect, sql] of Object.entries(DIALECTS)) {
+        it(`${dialect}: "Do not create database" drops only the adapter tables`, function () {
+            const queries = sql.destroy('iobroker', true);
+            assert.ok(!queries.some(q => /DROP DATABASE/i.test(q)), queries.join('\n'));
+            for (const table of ['ts_counter', 'ts_number', 'ts_string', 'ts_bool', 'sources', 'datapoints']) {
+                assert.ok(
+                    queries.some(q => new RegExp(`DROP TABLE .*\\b${table};`).test(q)),
+                    `${table} missing in: ${queries.join('\n')}`,
+                );
+            }
+        });
+    }
+
+    for (const dialect of ['mysql', 'mssql']) {
+        it(`${dialect}: without the option the database is still dropped`, function () {
+            assert.ok(DIALECTS[dialect].destroy('iobroker').some(q => /DROP DATABASE/i.test(q)));
+        });
+    }
+});

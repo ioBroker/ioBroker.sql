@@ -288,8 +288,9 @@ class SqlAdapter extends adapter_core_1.Adapter {
                         this.log.debug(`Removed Alias: ${id} !-> ${this.aliasMap[id]}`);
                         delete this.aliasMap[id];
                     }
-                    const sqlDP = this.sqlDPs[id];
+                    // the entry is stored under the alias ID, not under the real ID of the object
                     id = formerAliasId;
+                    const sqlDP = this.sqlDPs[id];
                     if (sqlDP?.config) {
                         this.log.info(`disabled logging of ${id}`);
                         if (sqlDP.relogTimeout) {
@@ -489,13 +490,13 @@ class SqlAdapter extends adapter_core_1.Adapter {
         if (customConfig.ignoreAboveNumber !== undefined &&
             customConfig.ignoreAboveNumber !== null &&
             customConfig.ignoreAboveNumber !== '') {
-            customConfig.ignoreAboveNumber = parseFloat(customConfig.ignoreAboveNumber) || null;
+            customConfig.ignoreAboveNumber = (0, values_1.parseLimit)(customConfig.ignoreAboveNumber);
         }
         // ignoreBelowNumber incl. ignoreBelowZero compatibility handling
         if (customConfig.ignoreBelowNumber !== undefined &&
             customConfig.ignoreBelowNumber !== null &&
             customConfig.ignoreBelowNumber !== '') {
-            customConfig.ignoreBelowNumber = parseFloat(customConfig.ignoreBelowNumber) || null;
+            customConfig.ignoreBelowNumber = (0, values_1.parseLimit)(customConfig.ignoreBelowNumber);
         }
         else if (customConfig.ignoreBelowZero === 'true' || customConfig.ignoreBelowZero === true) {
             customConfig.ignoreBelowNumber = 0;
@@ -691,7 +692,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 // With "do not create database" this whole phase is skipped and the adapter connects
                 // straight to the configured database: a restricted role or a managed PostgreSQL often
                 // has no access to the maintenance DB "postgres" at all (#404, #285).
-                this.log.info(`Postgres connection options: ${JSON.stringify(postgreSQLOptions).replace(postgreSQLOptions.password || '******', '****')}`);
+                this.log.info(`Postgres connection options: ${JSON.stringify({ ...postgreSQLOptions, password: '****' })}`);
                 const _client = new postgresql_client_1.PostgreSQLClient(postgreSQLOptions);
                 _client.on?.('error', (err) => this.log.warn(`SQL client error: ${(0, errors_1.formatError)(err)}`));
                 return _client.connect((err) => {
@@ -931,7 +932,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
     }
     destroyDB(msg) {
         try {
-            this.allScripts(this.sqlFuncs.destroy(this.config.dbname), 0, err => {
+            this.allScripts(this.sqlFuncs.destroy(this.config.dbname, this.config.doNotCreateDatabase), 0, err => {
                 if (err) {
                     this.log.error(err.toString());
                     this.sendTo(msg.from, msg.command, { error: err.toString() }, msg.callback);
@@ -2022,19 +2023,26 @@ class SqlAdapter extends adapter_core_1.Adapter {
         if (this.sqlDPs[id].index === undefined) {
             this.sqlDPs[id].isRunning ||= [];
             tmpState = { ...state };
-            this.sqlDPs[id].isRunning.push({ id, state: tmpState, cb, isCounter });
-            if (this.sqlDPs[id].isRunning.length === 1) {
+            const waiting = this.sqlDPs[id].isRunning;
+            waiting.push({ id, state: tmpState, cb, isCounter });
+            if (waiting.length === 1) {
                 // read or create in DB
-                return this.getId(id, type, (err, _id) => {
-                    this.log.debug(`prepareTaskCheckTypeAndDbId getId Result - isRunning length = ${this.sqlDPs[id].isRunning ? this.sqlDPs[id].isRunning.length : 'none'}`);
+                return this.getId(id, type, err => {
+                    // @KI_HINWEIS: the datapoint can be disabled or deleted while the lookup runs. Then
+                    // this.sqlDPs[id] is gone; reading it threw inside the driver callback (uncaught).
+                    // The waiting list is kept in a local, so its callbacks are still answered.
+                    const sqlDP = this.sqlDPs[id];
+                    this.log.debug(`prepareTaskCheckTypeAndDbId getId Result - isRunning length = ${waiting.length}`);
+                    if (sqlDP?.isRunning === waiting) {
+                        sqlDP.isRunning = undefined;
+                    }
                     if (err) {
-                        this.log.warn(`Cannot get index of "${_id}": ${err}`);
-                        this.sqlDPs[_id].isRunning?.forEach(r => r.cb?.(new Error(`Cannot get index of "${r.id}": ${err}`)));
+                        this.log.warn(`Cannot get index of "${id}": ${err}`);
+                        waiting.forEach(r => r.cb?.(new Error(`Cannot get index of "${r.id}": ${err}`)));
                     }
                     else {
-                        this.sqlDPs[_id].isRunning?.forEach(r => r.cb?.());
+                        waiting.forEach(r => r.cb?.());
                     }
-                    this.sqlDPs[_id].isRunning = undefined;
                 });
             }
             return;

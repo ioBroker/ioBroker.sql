@@ -20,17 +20,27 @@ export function init(dbName: string, doNotCreateDatabase?: boolean): string[] {
     return commands;
 }
 
-export function destroy(dbName: string): string[] {
-    return [
+/**
+ * Statements for "Reset DB".
+ *
+ * @param dbName name of the database
+ * @param doNotCreateDatabase the database was created outside the adapter: only the adapter's tables are dropped,
+ *   because the adapter could not create the database again and other tables in it would be lost.
+ */
+export function destroy(dbName: string, doNotCreateDatabase?: boolean): string[] {
+    const commands = [
         `DROP TABLE ${dbName}.dbo.ts_counter;`,
         `DROP TABLE ${dbName}.dbo.ts_number;`,
         `DROP TABLE ${dbName}.dbo.ts_string;`,
         `DROP TABLE ${dbName}.dbo.ts_bool;`,
         `DROP TABLE ${dbName}.dbo.sources;`,
         `DROP TABLE ${dbName}.dbo.datapoints;`,
-        `DROP DATABASE ${dbName};`,
-        `DBCC FREEPROCCACHE;`,
     ];
+    if (!doNotCreateDatabase) {
+        commands.push(`DROP DATABASE ${dbName};`);
+    }
+    commands.push('DBCC FREEPROCCACHE;');
+    return commands;
 }
 
 export function getFirstTs(dbName: string, table: TableName): string {
@@ -75,7 +85,10 @@ export function insert(
     }[],
 ): string[] {
     const insertValues: { [table: string]: string[] } = {};
-    values.forEach(value => {
+    values.forEach(original => {
+        // work on a copy: the caller keeps `state` as the reference value for "record changes only" (#295),
+        // so writing the SQL literal back into it would make the next equal value look like a change
+        const value = { ...original, state: { ...original.state } };
         // state, from, db
         insertValues[value.table] ||= [];
 
@@ -327,10 +340,12 @@ export function deleteDatapoint(dbName: string, index: number): string {
 export function update(
     dbName: string,
     index: number,
-    state: { val: number | string | boolean | null | undefined; ts: number; q?: number; ack?: boolean },
+    originalState: { val: number | string | boolean | null | undefined; ts: number; q?: number; ack?: boolean },
     from: number,
     table: TableName,
 ): string {
+    // copy, so the caller's state object is not changed (see insert())
+    const state = { ...originalState };
     if (!state || state.val === null || state.val === undefined) {
         state.val = 'NULL';
     } else if (table === 'ts_bool') {
