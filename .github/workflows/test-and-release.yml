@@ -59,9 +59,10 @@ jobs:
               with:
                   node-version: ${{ matrix.node-version }}
 
+            # Ubuntu 26.04 (ubuntu-latest) has no /etc/init.d/mysql any more; MySQL (8.4, root/root) is
+            # preinstalled but disabled and has to be started through systemd
             - name: Set up MySQL
-              run: |
-                  sudo /etc/init.d/mysql start
+              run: sudo systemctl start mysql.service
 
             - name: Install Dependencies
               run: npm install
