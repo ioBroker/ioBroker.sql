@@ -1,5 +1,5 @@
 import { Adapter, type AdapterOptions, getAbsoluteDefaultDataDir } from '@iobroker/adapter-core'; // Get common adapter utils
-import { sendResponseCounter, sendResponse } from '@iobroker/aggregate';
+import { sendResponseCounter, sendResponse, parseIntervalBorders } from '@iobroker/aggregate';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join, normalize } from 'node:path';
 
@@ -3128,7 +3128,11 @@ export class SqlAdapter extends Adapter {
             ignoreNull = false; // include nulls
         }
         const logId: string = (msg.message.id ? msg.message.id : 'all') + Date.now() + Math.random();
-        const options: ioBroker.GetHistoryOptions & { id: string | null; index: number | null } = {
+        const options: ioBroker.GetHistoryOptions & {
+            id: string | null;
+            index: number | null;
+            intervalBorders?: number[];
+        } = {
             id: msg.message.id === '*' ? null : msg.message.id,
             start: msg.message.options.start,
             end: msg.message.options.end || Date.now() + 5000000,
@@ -3202,6 +3206,15 @@ export class SqlAdapter extends Adapter {
                 },
                 msg.callback,
             );
+        }
+
+        // The client can send the borders of the intervals itself, e.g. the local days of a chart: a fixed step does
+        // not fit a day with 23 or 25 hours. The database must then be read for exactly the range they cover.
+        const intervalBorders = parseIntervalBorders(msg.message.options.intervalBorders, options.limit);
+        if (intervalBorders) {
+            options.intervalBorders = intervalBorders;
+            options.start = intervalBorders[0];
+            options.end = intervalBorders[intervalBorders.length - 1];
         }
 
         if (!options.start && options.count) {
