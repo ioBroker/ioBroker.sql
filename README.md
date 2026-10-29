@@ -62,11 +62,11 @@ SQLite DB must not be installed extra. It is just a file on disk, but to install
 sudo apt-get install build-essential
 ```
 
-For windows install node.js with the "Automatically install the necessary tools..."-option and then rebuild the adapter's native modules, e.g:
+For windows install node.js with the "Automatically install the necessary tools..."-option and then rebuild the native SQLite module, e.g:
 
 ```bash
 iobroker stop sql
-iobroker rebuild sql
+iobroker rebuild sqlite3
 iobroker start sql
 ```
 
@@ -622,8 +622,8 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ### **WORK IN PROGRESS**
 * (@Schimi1983) Admin: every input has size attributes for all screen widths, "Do not create database" no longer grows wider on large screens (#583)
 * (@Schimi1983) Added the Ukrainian title and description, admin >= 7.6.20 is required (#583)
-* (@Schimi1983) `password` and `dockerMysql.rootPassword` are no longer readable by other adapters (`protectedNative`, #583)
-* (@Schimi1983) README: the reinstall hint for SQLite uses `iobroker rebuild` instead of `npm install` (#583)
+* (@Schimi1983) `password` and `dockerMysql.rootPassword` are no longer readable by other adapters (`protectedNative`, #583). Note: a script that reads `system.adapter.sql.0` with `getObject` and writes it back with `setObject` now deletes both passwords; use `extendObject` instead
+* (@Schimi1983) README: the reinstall hint for SQLite uses `iobroker rebuild sqlite3` instead of `npm install` (#583)
 * (@Schimi1983) CI: the job with the unit and SQLite tests is named `adapter-tests`, as the repository checker expects, and also runs on Node.js 26 (#583)
 
 ### 4.2.1 (2026-10-13)
