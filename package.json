@@ -21,14 +21,14 @@
     "home automation"
   ],
   "optionalDependencies": {
-    "mssql": "^12.7.5",
-    "mysql2": "^3.24.5",
+    "mssql": "^12.7.13",
+    "mysql2": "^3.24.6",
     "pg": "^8.23.1",
     "sqlite3": "^6.0.1"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.4.3",
-    "@iobroker/aggregate": "^1.0.3",
+    "@iobroker/aggregate": "^1.1.0",
     "@iobroker/plugin-docker": "^1.2.1"
   },
   "devDependencies": {
