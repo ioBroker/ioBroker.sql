@@ -2,6 +2,7 @@ import { ConnectionFactory, type SQLConnection } from './connection-factory';
 import SQLClient from './sql-client';
 import { SQLClientPool, type PoolConfig } from './sql-client-pool';
 
+import type { SqlParam } from '../types';
 import { importDriver, type MySQLConnection, type MySQLModule, type MySQLOptions } from './optional-drivers';
 
 export type { MySQLOptions };
@@ -34,23 +35,31 @@ class MySQL2ConnectionFactory extends ConnectionFactory {
         }
     }
 
+    override readonly supportsParams = true;
+
     execute<T>(
         connection: SQLConnection,
         sql: string,
         callback: (err: Error | null | undefined, results?: Array<T>) => void,
+        params?: SqlParam[],
     ): void {
         // query(), NOT execute(): mysql2's execute() prepares a server-side statement and caches it per
-        // connection, keyed by the SQL text. This adapter inlines all values by string concatenation, so
-        // every single INSERT/SELECT is a distinct SQL text and would allocate its own prepared statement -
-        // MySQL then fails with "Can't create more than max_prepared_stmt_count statements" (default 16382)
-        // after a few thousand logged values. There is nothing to prepare here anyway: no placeholders are
-        // ever bound.
-        connection.query(sql, (err: Error | null | undefined, results: Array<T>) => {
+        // connection, keyed by the SQL text. An INSERT of a batch has as many placeholders as values, so
+        // nearly every batch would be a distinct text with its own prepared statement, and MySQL fails
+        // with "Can't create more than max_prepared_stmt_count statements" (default 16382) after a while.
+        // query() with values lets mysql2 escape them on the client (quotes, backslashes, NUL) and send
+        // one plain statement.
+        const done = (err: Error | null | undefined, results: Array<T>): void => {
             if (err) {
                 return callback(err);
             }
             return callback(null, results);
-        });
+        };
+        if (params?.length) {
+            connection.query(sql, params, done);
+        } else {
+            connection.query(sql, done);
+        }
     }
 }
 

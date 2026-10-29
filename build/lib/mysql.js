@@ -19,6 +19,21 @@ exports.deleteDatapoint = deleteDatapoint;
 exports.update = update;
 exports.getRawEntries = getRawEntries;
 exports.getRawEntriesCount = getRawEntriesCount;
+// Values go into the statements as `?` placeholders, which mysql2 escapes (#587, C1). Before, strings
+// were inlined with only the single quotes removed: "it's" was stored as "its", a value ending with a
+// backslash broke the whole batch, and IDs and sources were not escaped at all.
+// The database and table names stay in the SQL text as identifiers in backticks (mysql2 does not
+// take a `?` inside backticks for a placeholder).
+/**
+ * A number that goes into the SQL text, e.g. for LIMIT, where MySQL does not accept a quoted value.
+ *
+ * @param value a number, or the text of one from a message
+ * @param fallback used if the value is not a number
+ */
+function toInt(value, fallback = 0) {
+    const n = typeof value === 'number' ? value : parseInt(value, 10);
+    return Number.isFinite(n) ? Math.trunc(n) : fallback;
+}
 function init(dbName, doNotCreateDatabase) {
     const commands = [
         `CREATE TABLE \`${dbName}\`.sources    (id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, name TEXT);`,
@@ -81,160 +96,175 @@ function getIdCounts(dbName, table) {
 function getTableSize(dbName, table) {
     // information_schema knows the real storage footprint, so the estimate does not have to
     // guess at column widths. AVG_ROW_LENGTH is 0 for an empty table.
-    return `SELECT AVG_ROW_LENGTH AS avg_row_length, DATA_LENGTH + INDEX_LENGTH AS total_bytes FROM information_schema.TABLES WHERE TABLE_SCHEMA='${dbName}' AND TABLE_NAME='${table}';`;
+    return {
+        sql: 'SELECT AVG_ROW_LENGTH AS avg_row_length, DATA_LENGTH + INDEX_LENGTH AS total_bytes FROM information_schema.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME=?;',
+        params: [dbName, table],
+    };
+}
+/**
+ * The value of a state as it is stored in its table.
+ *
+ * @param table the time series table
+ * @param val the value of the state
+ */
+function toDbValue(table, val) {
+    if (val === null || val === undefined) {
+        return null;
+    }
+    if (table === 'ts_string') {
+        return typeof val === 'object' ? JSON.stringify(val) : val.toString();
+    }
+    if (typeof val === 'boolean') {
+        return val ? 1 : 0;
+    }
+    if (table === 'ts_bool' && typeof val === 'string') {
+        return val === 'false' || val === '0' || val === '' ? 0 : 1;
+    }
+    // ts_number, ts_counter, a number in ts_bool: like the other dialects, a text that is not a number
+    // is stored as NULL ("12 kWh" too), and so are NaN and Infinity, which MySQL would reject together
+    // with the whole batch
+    const n = typeof val === 'string' && val.trim() === '' ? NaN : Number(val);
+    return Number.isFinite(n) ? n : null;
 }
 function insert(dbName, index, values) {
-    const insertValues = {};
-    values.forEach(original => {
-        // work on a copy: the caller keeps `state` as the reference value for "record changes only" (#295),
-        // so writing the SQL literal back into it would make the next equal value look like a change
-        const value = { ...original, state: { ...original.state } };
-        // state, from, db
-        insertValues[value.table] = insertValues[value.table] || [];
-        if (!value.state || value.state.val === null || value.state.val === undefined) {
-            value.state.val = 'NULL';
-        }
-        else if (value.table === 'ts_string') {
-            value.state.val = `'${value.state.val.toString().replace(/'/g, '')}'`;
-        }
-        else if (value.table === 'ts_number') {
-            if (isNaN(value.state.val)) {
-                value.state.val = 'NULL';
-            }
-        }
+    // the caller's objects are not changed: `state` is the reference value of "record changes only" (#295)
+    const rows = {};
+    for (const value of values) {
+        rows[value.table] ||= [];
+        const val = toDbValue(value.table, value.state?.val);
         if (value.table === 'ts_counter') {
-            insertValues[value.table].push(`(${index}, ${value.state.ts}, ${value.state.val})`);
+            rows[value.table].push([index, value.state.ts, val]);
         }
         else {
-            insertValues[value.table].push(`(${index}, ${value.state.ts}, ${value.state.val}, ${value.state.ack ? 1 : 0}, ${value.from || 0}, ${value.state.q || 0})`);
+            rows[value.table].push([
+                index,
+                value.state.ts,
+                val,
+                value.state.ack ? 1 : 0,
+                value.from || 0,
+                value.state.q || 0,
+            ]);
         }
-    });
-    const query = [];
-    for (const table in insertValues) {
-        if (table === 'ts_counter') {
-            // no ON DUPLICATE KEY here: ts_counter has no primary key in MySQL (unlike SQLite),
-            // so there is no uniqueness conflict to suppress
-            while (insertValues[table].length) {
-                query.push(`INSERT INTO \`${dbName}\`.ts_counter (id, ts, val) VALUES ${insertValues[table].splice(0, 500).join(',')};`);
+    }
+    const statements = [];
+    for (const table in rows) {
+        while (rows[table].length) {
+            const chunk = rows[table].splice(0, 500);
+            const placeholders = chunk.map(row => `(${row.map(() => '?').join(', ')})`).join(',');
+            const params = chunk.flat();
+            if (table === 'ts_counter') {
+                // no ON DUPLICATE KEY here: ts_counter has no primary key in MySQL (unlike SQLite),
+                // so there is no uniqueness conflict to suppress
+                statements.push({
+                    sql: `INSERT INTO \`${dbName}\`.ts_counter (id, ts, val) VALUES ${placeholders};`,
+                    params,
+                });
             }
-        }
-        else {
-            while (insertValues[table].length) {
+            else {
                 // ts_number/ts_string/ts_bool have PRIMARY KEY(id, ts). Importing history writes rows
                 // that may already exist, and a single duplicate would otherwise abort the whole batch.
                 // "id=id" is a no-op assignment, so this suppresses the duplicate key error and nothing
                 // else - INSERT IGNORE would also hide truncation and conversion errors.
-                query.push(`INSERT INTO \`${dbName}\`.${table} (id, ts, val, ack, _from, q) VALUES ${insertValues[table].splice(0, 500).join(',')} ON DUPLICATE KEY UPDATE id=id;`);
+                statements.push({
+                    sql: `INSERT INTO \`${dbName}\`.${table} (id, ts, val, ack, _from, q) VALUES ${placeholders} ON DUPLICATE KEY UPDATE id=id;`,
+                    params,
+                });
             }
         }
     }
-    return query;
+    return statements;
 }
 function retention(dbName, index, table, retention) {
     const d = new Date();
     d.setSeconds(-retention);
-    let query = `DELETE FROM \`${dbName}\`.${table} WHERE`;
-    query += ` id=${index}`;
-    query += ` AND ts < ${d.getTime()}`;
-    query += ';';
-    return query;
+    return { sql: `DELETE FROM \`${dbName}\`.${table} WHERE id=? AND ts < ?;`, params: [index, d.getTime()] };
 }
 function getIdSelect(dbName, name) {
     if (!name) {
-        return `SELECT id, type, name FROM \`${dbName}\`.datapoints;`;
+        return { sql: `SELECT id, type, name FROM \`${dbName}\`.datapoints;`, params: [] };
     }
-    return `SELECT id, type, name FROM \`${dbName}\`.datapoints WHERE name='${name}';`;
+    return { sql: `SELECT id, type, name FROM \`${dbName}\`.datapoints WHERE name=?;`, params: [name] };
 }
 function getIdInsert(dbName, name, type) {
-    return `INSERT INTO \`${dbName}\`.datapoints (name, type) VALUES('${name}', ${type});`;
+    return { sql: `INSERT INTO \`${dbName}\`.datapoints (name, type) VALUES(?, ?);`, params: [name, type] };
 }
 function getIdUpdate(dbName, id, type) {
-    return `UPDATE \`${dbName}\`.datapoints SET type=${type} WHERE id=${id};`;
+    return { sql: `UPDATE \`${dbName}\`.datapoints SET type=? WHERE id=?;`, params: [type, id] };
 }
 function getFromSelect(dbName, name) {
     if (name) {
-        return `SELECT id FROM \`${dbName}\`.sources WHERE name='${name}';`;
+        return { sql: `SELECT id FROM \`${dbName}\`.sources WHERE name=?;`, params: [name] };
     }
-    return `SELECT id, name FROM \`${dbName}\`.sources;`;
+    return { sql: `SELECT id, name FROM \`${dbName}\`.sources;`, params: [] };
 }
 function getFromInsert(dbName, values) {
-    return `INSERT INTO \`${dbName}\`.sources (name) VALUES('${values}');`;
+    return { sql: `INSERT INTO \`${dbName}\`.sources (name) VALUES(?);`, params: [values] };
 }
 function getCounterDiff(dbName, options) {
+    const { index, start, end } = options;
     // Take first real value after start
-    const subQueryStart = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=${options.index} AND ts>=${options.start} AND ts<${options.end} AND val IS NOT NULL ORDER BY ts ASC LIMIT 1`;
+    const subQueryStart = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=? AND ts>=? AND ts<? AND val IS NOT NULL ORDER BY ts ASC LIMIT 1`;
     // Take last real value before the end
-    const subQueryEnd = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=${options.index} AND ts>=${options.start} AND ts<${options.end} AND val IS NOT NULL ORDER BY ts DESC LIMIT 1`;
+    const subQueryEnd = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=? AND ts>=? AND ts<? AND val IS NOT NULL ORDER BY ts DESC LIMIT 1`;
     // Take last value before start
-    const subQueryFirst = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=${options.index} AND ts< ${options.start} ORDER BY ts DESC LIMIT 1`;
+    const subQueryFirst = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=? AND ts< ? ORDER BY ts DESC LIMIT 1`;
     // Take next value after end
-    const subQueryLast = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=${options.index} AND ts>= ${options.end} ORDER BY ts ASC LIMIT 1`;
+    const subQueryLast = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=? AND ts>= ? ORDER BY ts ASC LIMIT 1`;
     // get values from counters where counter changed from up to down (e.g. counter changed).
     // No ORDER BY here: MySQL 8 ignores it in a union member without LIMIT, and the outer
     // ORDER BY sorts the combined result anyway.
-    const subQueryCounterChanges = `SELECT ts, val FROM \`${dbName}\`.ts_counter WHERE id=${options.index} AND ts>${options.start} AND ts<${options.end} AND val IS NOT NULL`;
+    const subQueryCounterChanges = `SELECT ts, val FROM \`${dbName}\`.ts_counter WHERE id=? AND ts>? AND ts<? AND val IS NOT NULL`;
     // The ORDER BY belongs in the OUTER query, not inside the derived table: sendResponseCounter
     // consumes the rows positionally, and a derived table's ordering is not guaranteed to survive
     // the SELECT DISTINCT above it.
-    return (`SELECT DISTINCT a.ts, a.val FROM ((${subQueryFirst})\n` +
-        `UNION ALL (${subQueryStart})\n` +
-        `UNION ALL (${subQueryEnd})\n` +
-        `UNION ALL (${subQueryLast})\n` +
-        `UNION ALL (${subQueryCounterChanges})) a ORDER BY a.ts;`);
+    return {
+        sql: `SELECT DISTINCT a.ts, a.val FROM ((${subQueryFirst})\n` +
+            `UNION ALL (${subQueryStart})\n` +
+            `UNION ALL (${subQueryEnd})\n` +
+            `UNION ALL (${subQueryLast})\n` +
+            `UNION ALL (${subQueryCounterChanges})) a ORDER BY a.ts;`,
+        // in the order of the placeholders above
+        params: [index, start, index, start, end, index, start, end, index, end, index, start, end],
+    };
 }
 function getHistory(dbName, table, options) {
-    let query = `SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
+    // the values in the order of the placeholders
+    const params = [];
+    const columns = `ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}${
     // LEFT JOIN: a value stored without `from` has `_from` = 0, which has no row in `sources`.
     // With an INNER JOIN, such values were missing from every query that asked for `from`.
-    if (options.from) {
-        query += ` LEFT JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
-    }
+    options.from ? ` LEFT JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from` : ''}`;
+    let query = `SELECT ${columns}`;
     let where = '';
     if (options.index !== null) {
-        where += ` \`${dbName}\`.${table}.id=${options.index}`;
+        where += ` \`${dbName}\`.${table}.id=?`;
+        params.push(options.index);
     }
     if (options.end) {
-        where += `${where ? ' AND' : ''} \`${dbName}\`.${table}.ts < ${options.end}`;
+        where += `${where ? ' AND' : ''} \`${dbName}\`.${table}.ts < ?`;
+        params.push(options.end);
     }
     if (options.start) {
-        where += `${where ? ' AND' : ''} \`${dbName}\`.${table}.ts >= ${options.start}`;
-        let subQuery;
-        let subWhere;
-        subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
-        if (options.from) {
-            subQuery += ` LEFT JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
-        }
-        subWhere = '';
+        where += `${where ? ' AND' : ''} \`${dbName}\`.${table}.ts >= ?`;
+        params.push(options.start);
+        // add the last value before start
+        let subWhere = '';
         if (options.index !== null) {
-            subWhere += ` \`${dbName}\`.${table}.id=${options.index}`;
+            subWhere += ` \`${dbName}\`.${table}.id=?`;
+            params.push(options.index);
         }
-        if (options.ignoreNull) {
-            // subWhere += (subWhere ? " AND" : "") + " val <> NULL";
-        }
-        subWhere += `${subWhere ? ' AND' : ''} \`${dbName}\`.${table}.ts < ${options.start}`;
-        if (subWhere) {
-            subQuery += ` WHERE ${subWhere}`;
-        }
-        subQuery += ` ORDER BY \`${dbName}\`.${table}.ts DESC LIMIT 1`;
-        where += ` UNION ALL (${subQuery})`;
+        subWhere += `${subWhere ? ' AND' : ''} \`${dbName}\`.${table}.ts < ?`;
+        params.push(options.start);
+        where += ` UNION ALL ( SELECT ${columns} WHERE ${subWhere} ORDER BY \`${dbName}\`.${table}.ts DESC LIMIT 1)`;
         // add next value after end
-        subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
-        if (options.from) {
-            subQuery += ` LEFT JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
-        }
         subWhere = '';
         if (options.index !== null) {
-            subWhere += ` \`${dbName}\`.${table}.id=${options.index}`;
+            subWhere += ` \`${dbName}\`.${table}.id=?`;
+            params.push(options.index);
         }
-        if (options.ignoreNull) {
-            // subWhere += (subWhere ? " AND" : "") + " val <> NULL";
-        }
-        subWhere += `${subWhere ? ' AND' : ''} \`${dbName}\`.${table}.ts >= ${options.end}`;
-        if (subWhere) {
-            subQuery += ` WHERE ${subWhere}`;
-        }
-        subQuery += ` ORDER BY \`${dbName}\`.${table}.ts ASC LIMIT 1`;
-        where += ` UNION ALL (${subQuery})`;
+        subWhere += `${subWhere ? ' AND' : ''} \`${dbName}\`.${table}.ts >= ?`;
+        params.push(options.end ?? null);
+        where += ` UNION ALL ( SELECT ${columns} WHERE ${subWhere} ORDER BY \`${dbName}\`.${table}.ts ASC LIMIT 1)`;
     }
     if (where) {
         query += ` WHERE ${where}`;
@@ -248,22 +278,24 @@ function getHistory(dbName, table, options) {
         query += ' ASC';
     }
     if ((!options.start && options.count) || (options.aggregate === 'none' && options.count)) {
-        query += ` LIMIT ${options.count + 2}`;
+        // LIMIT does not take a quoted value, so the number goes into the text
+        query += ` LIMIT ${toInt(options.count) + 2}`;
     }
     query += ';';
-    return query;
+    return { sql: query, params };
 }
 function deleteFromTable(dbName, table, index, start, end) {
-    let query = `DELETE FROM \`${dbName}\`.${table} WHERE`;
-    query += ` id=${index}`;
+    let sql = `DELETE FROM \`${dbName}\`.${table} WHERE id=?`;
+    const params = [index];
     if (start && end) {
-        query += ` AND ts>=${start} AND ts<=${end}`;
+        sql += ' AND ts>=? AND ts<=?';
+        params.push(start, end);
     }
     else if (start) {
-        query += ` AND ts=${start}`;
+        sql += ' AND ts=?';
+        params.push(start);
     }
-    query += ';';
-    return query;
+    return { sql: `${sql};`, params };
 }
 /**
  * Remove one row from the `datapoints` lookup table.
@@ -275,56 +307,57 @@ function deleteFromTable(dbName, table, index, start, end) {
  * @param index the integer key of the datapoint
  */
 function deleteDatapoint(dbName, index) {
-    return `DELETE FROM \`${dbName}\`.datapoints WHERE id=${index};`;
+    return { sql: `DELETE FROM \`${dbName}\`.datapoints WHERE id=?;`, params: [index] };
 }
-function update(dbName, index, originalState, from, table) {
-    // copy, so the caller's state object is not changed (see insert())
-    const state = { ...originalState };
-    if (!state || state.val === null || state.val === undefined) {
-        state.val = 'NULL';
-    }
-    else if (table === 'ts_string') {
-        state.val = `'${state.val.toString().replace(/'/g, '')}'`;
-    }
-    let query = `UPDATE \`${dbName}\`.${table} SET `;
+function update(dbName, index, state, from, table) {
+    // the caller's state object is not changed (see insert())
     const vals = [];
-    if (state.val !== undefined) {
-        vals.push(`val=${state.val}`);
-    }
+    const params = [];
+    // always set, as before: an undefined value is written as NULL (and the SET is never empty)
+    vals.push('val=?');
+    params.push(toDbValue(table, state.val));
     if (state.q !== undefined) {
-        vals.push(`q=${state.q}`);
+        vals.push('q=?');
+        params.push(state.q);
     }
     if (from !== undefined) {
-        vals.push(`_from=${from}`);
+        vals.push('_from=?');
+        params.push(from);
     }
     if (state.ack !== undefined) {
-        vals.push(`ack=${state.ack ? 1 : 0}`);
+        vals.push('ack=?');
+        params.push(state.ack ? 1 : 0);
     }
-    query += vals.join(', ');
-    query += ' WHERE ';
-    query += ` id=${index}`;
-    query += ` AND ts=${state.ts}`;
-    query += ';';
-    return query;
+    params.push(index, state.ts);
+    return { sql: `UPDATE \`${dbName}\`.${table} SET ${vals.join(', ')} WHERE id=? AND ts=?;`, params };
 }
 function rawEntriesWhere(dbName, table, index, options) {
-    let where = `\`${dbName}\`.${table}.id=${index}`;
+    let sql = `\`${dbName}\`.${table}.id=?`;
+    const params = [index];
     if (options.start) {
-        where += ` AND \`${dbName}\`.${table}.ts>=${options.start}`;
+        sql += ` AND \`${dbName}\`.${table}.ts>=?`;
+        params.push(options.start);
     }
     if (options.end) {
-        where += ` AND \`${dbName}\`.${table}.ts<=${options.end}`;
+        sql += ` AND \`${dbName}\`.${table}.ts<=?`;
+        params.push(options.end);
     }
-    return where;
+    return { sql, params };
 }
 function getRawEntries(dbName, table, index, options) {
-    return (`SELECT \`${dbName}\`.${table}.ts, \`${dbName}\`.${table}.val, \`${dbName}\`.${table}.ack, \`${dbName}\`.${table}.q, \`${dbName}\`.sources.name AS 'from' FROM \`${dbName}\`.${table}` +
-        ` LEFT JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from` +
-        ` WHERE ${rawEntriesWhere(dbName, table, index, options)}` +
-        ` ORDER BY \`${dbName}\`.${table}.ts ${options.sort === 'asc' ? 'ASC' : 'DESC'}` +
-        ` LIMIT ${options.limit} OFFSET ${options.offset};`);
+    const where = rawEntriesWhere(dbName, table, index, options);
+    return {
+        sql: `SELECT \`${dbName}\`.${table}.ts, \`${dbName}\`.${table}.val, \`${dbName}\`.${table}.ack, \`${dbName}\`.${table}.q, \`${dbName}\`.sources.name AS 'from' FROM \`${dbName}\`.${table}` +
+            ` LEFT JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from` +
+            ` WHERE ${where.sql}` +
+            ` ORDER BY \`${dbName}\`.${table}.ts ${options.sort === 'asc' ? 'ASC' : 'DESC'}` +
+            // LIMIT/OFFSET do not take quoted values
+            ` LIMIT ${toInt(options.limit)} OFFSET ${toInt(options.offset)};`,
+        params: where.params,
+    };
 }
 function getRawEntriesCount(dbName, table, index, options) {
-    return `SELECT COUNT(*) AS total FROM \`${dbName}\`.${table} WHERE ${rawEntriesWhere(dbName, table, index, options)};`;
+    const where = rawEntriesWhere(dbName, table, index, options);
+    return { sql: `SELECT COUNT(*) AS total FROM \`${dbName}\`.${table} WHERE ${where.sql};`, params: where.params };
 }
 //# sourceMappingURL=mysql.js.map

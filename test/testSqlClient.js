@@ -405,3 +405,38 @@ describe('Test SQLClientPool closes expired idle connections in the eviction run
         });
     });
 });
+
+describe('Test SQLClient passes bound values to the driver', function () {
+    function recordingFactory(supportsParams) {
+        const factory = fakeFactory();
+        factory.supportsParams = supportsParams;
+        factory.calls = [];
+        factory.execute = (_connection, sql, callback, params) => {
+            factory.calls.push({ sql, params });
+            setImmediate(() => callback(null, []));
+        };
+        return factory;
+    }
+
+    it('hands SQL and values separately to a driver that binds them', async function () {
+        const factory = recordingFactory(true);
+        const client = new SQLClient({}, factory);
+        await client.executeAsync({ sql: 'SELECT id FROM t WHERE name=?', params: ["it's"] });
+        await client.executeAsync('SELECT 1');
+        assert.deepStrictEqual(factory.calls, [
+            { sql: 'SELECT id FROM t WHERE name=?', params: ["it's"] },
+            { sql: 'SELECT 1', params: undefined },
+        ]);
+    });
+
+    it('rejects a statement with values for a driver that does not bind them', function (done) {
+        const factory = recordingFactory(false);
+        const client = new SQLClient({}, factory);
+        client.execute({ sql: 'SELECT id FROM t WHERE name=?', params: ['x'] }, err => {
+            assert.match(String(err), /does not support bound parameters/);
+            assert.strictEqual(factory.calls.length, 0, 'the SQL never reached the driver without its values');
+            assert.strictEqual(client.isBroken(), false, 'not a connection error');
+            done();
+        });
+    });
+});

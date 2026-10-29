@@ -9,6 +9,11 @@ const DIALECTS = {
     sqlite: require('../build/lib/sqlite'),
 };
 
+// The statement as the server receives it: for MySQL, mysql2 escapes the bound values into the text
+const { format } = require('mysql2');
+const text = q => (typeof q === 'string' ? q : format(q.sql, q.params));
+const texts = list => list.map(text);
+
 // A statement that carries a second one after a semicolon. The trailing semicolon of the statement
 // itself is not a match - only a semicolon with another statement behind it.
 const CONCATENATED = /;\s*(INSERT|SELECT|UPDATE|DELETE)/i;
@@ -28,7 +33,7 @@ function rows() {
 describe('Test insert() never concatenates statements', function () {
     for (const [dialect, sql] of Object.entries(DIALECTS)) {
         it(`${dialect}: emits one statement per table instead of one joined query`, function () {
-            const queries = sql.insert('iobroker', 5, rows());
+            const queries = texts(sql.insert('iobroker', 5, rows()));
 
             assert.ok(Array.isArray(queries), 'insert() returns a list of statements');
             assert.strictEqual(queries.length, 2, `ts_counter and ts_number, got ${queries.length}`);
@@ -47,12 +52,14 @@ describe('Test insert() never concatenates statements', function () {
         });
 
         it(`${dialect}: keeps the statements apart for every table`, function () {
-            const queries = sql.insert('iobroker', 5, [
-                { table: 'ts_number', state: { val: 1, ts: 1, ack: true }, from: 2 },
-                { table: 'ts_string', state: { val: 'x', ts: 2, ack: true }, from: 2 },
-                { table: 'ts_bool', state: { val: true, ts: 3, ack: true }, from: 2 },
-                { table: 'ts_counter', state: { val: 4, ts: 4 }, from: 2 },
-            ]);
+            const queries = texts(
+                sql.insert('iobroker', 5, [
+                    { table: 'ts_number', state: { val: 1, ts: 1, ack: true }, from: 2 },
+                    { table: 'ts_string', state: { val: 'x', ts: 2, ack: true }, from: 2 },
+                    { table: 'ts_bool', state: { val: true, ts: 3, ack: true }, from: 2 },
+                    { table: 'ts_counter', state: { val: 4, ts: 4 }, from: 2 },
+                ]),
+            );
 
             assert.strictEqual(queries.length, 4, 'one per table');
             for (const query of queries) {
@@ -66,7 +73,7 @@ describe('Test insert() never concatenates statements', function () {
                 many.push({ table: 'ts_number', state: { val: i, ts: 1700000000000 + i, ack: true }, from: 2 });
             }
 
-            const queries = sql.insert('iobroker', 5, many);
+            const queries = texts(sql.insert('iobroker', 5, many));
 
             // 500 rows per statement, so the chunks must stay separate queries rather than being
             // glued back together with semicolons.
@@ -111,9 +118,11 @@ describe('Test insert() suppresses duplicate (id, ts) rows (#304)', function () 
 
         it(`${dialect}: ${guard ? 'guards the keyed tables' : 'needs no guard, its index is not unique'}`, function () {
             for (const table of ['ts_number', 'ts_string', 'ts_bool']) {
-                const [query] = sql.insert('iobroker', 4, [
-                    { table, state: { val: table === 'ts_string' ? 'a' : 1, ts: 100, ack: true }, from: 2 },
-                ]);
+                const [query] = texts(
+                    sql.insert('iobroker', 4, [
+                        { table, state: { val: table === 'ts_string' ? 'a' : 1, ts: 100, ack: true }, from: 2 },
+                    ]),
+                );
 
                 if (guard) {
                     assert.ok(guard.test(query), `${table} is unguarded: ${query}`);
@@ -173,11 +182,13 @@ describe("Test insert()/update() leave the caller's state untouched", function (
             const string = { val: 'on', ts: 1, ack: true };
             const bool = { val: true, ts: 2, ack: true };
             const empty = { val: null, ts: 3, ack: true };
-            const query = sql.insert('iobroker', 5, [
-                { table: 'ts_string', state: string, from: 2 },
-                { table: 'ts_bool', state: bool, from: 2 },
-                { table: 'ts_number', state: empty, from: 2 },
-            ]);
+            const query = texts(
+                sql.insert('iobroker', 5, [
+                    { table: 'ts_string', state: string, from: 2 },
+                    { table: 'ts_bool', state: bool, from: 2 },
+                    { table: 'ts_number', state: empty, from: 2 },
+                ]),
+            );
 
             assert.strictEqual(string.val, 'on');
             assert.strictEqual(bool.val, true);
@@ -195,7 +206,7 @@ describe("Test insert()/update() leave the caller's state untouched", function (
 
         it(`${dialect}: update() does not change state.val`, function () {
             const state = { val: 'on', ts: 1 };
-            const query = sql.update('iobroker', 5, state, 2, 'ts_string');
+            const query = text(sql.update('iobroker', 5, state, 2, 'ts_string'));
             assert.strictEqual(state.val, 'on');
             assert.ok(query.includes("'on'"), query);
         });
@@ -210,7 +221,9 @@ describe('Test getHistory() with `from` returns values stored without a source',
 
     for (const [dialect, sql] of Object.entries(DIALECTS)) {
         it(`${dialect}: joins sources with an outer join`, function () {
-            const query = sql.getHistory('iobroker', 'ts_number', options);
+            // MySQL returns `{ sql, params }`, the other dialects the SQL text
+            const statement = sql.getHistory('iobroker', 'ts_number', options);
+            const query = typeof statement === 'string' ? statement : statement.sql;
             assert.ok(!/INNER JOIN/i.test(query), query);
             assert.strictEqual(
                 (query.match(/LEFT (OUTER )?JOIN/gi) || []).length,
@@ -296,7 +309,7 @@ describe('Test the adapter keeps the reference value and survives a disabled dat
         const client = {
             execute(sql, callback) {
                 const rows = answers.shift();
-                if (/^INSERT/i.test(sql)) {
+                if (/^INSERT/i.test(sql.sql ?? sql)) {
                     delete adapter.sqlDPs['my.id']; // disabled meanwhile
                 }
                 setImmediate(() => callback(null, rows));
@@ -517,5 +530,104 @@ describe('Test a failed write keeps the values when the database was not reachab
                 });
             });
         });
+    });
+});
+
+describe('Test MySQL statements carry their values as bound parameters (#587)', function () {
+    const MySQL = DIALECTS.mysql;
+    const NASTY = "it's\\";
+
+    it('no value ends up in the SQL text', function () {
+        const statements = [
+            ...MySQL.insert('iobroker', 5, [{ table: 'ts_string', state: { val: NASTY, ts: 1, ack: true }, from: 2 }]),
+            MySQL.update('iobroker', 5, { val: NASTY, ts: 1 }, 2, 'ts_string'),
+            MySQL.getIdSelect('iobroker', NASTY),
+            MySQL.getIdInsert('iobroker', NASTY, 1),
+            MySQL.getFromSelect('iobroker', NASTY),
+            MySQL.getFromInsert('iobroker', NASTY),
+        ];
+        for (const statement of statements) {
+            assert.ok(!statement.sql.includes(NASTY), statement.sql);
+            assert.ok(statement.params.includes(NASTY), JSON.stringify(statement.params));
+            assert.strictEqual(
+                (statement.sql.match(/\?/g) || []).length,
+                statement.params.length,
+                `placeholders and values match: ${statement.sql}`,
+            );
+        }
+    });
+
+    it('the quote is kept and the backslash is escaped, so the batch stays valid', function () {
+        const [statement] = MySQL.insert('iobroker', 5, [
+            { table: 'ts_string', state: { val: NASTY, ts: 1, ack: true }, from: 2 },
+        ]);
+        // before: VALUES (5, 1, 'its\', 1, 2, 0) - the quote removed and the string never closed
+        assert.ok(text(statement).includes("'it\\'s\\\\'"), text(statement));
+    });
+
+    it('placeholders and values match for history and counter queries', function () {
+        const statements = [
+            MySQL.getHistory('iobroker', 'ts_number', { index: 3, start: 10, end: 20, from: true, ack: true, q: true }),
+            MySQL.getHistory('iobroker', 'ts_number', { index: null, end: 20, count: 5 }),
+            MySQL.getCounterDiff('iobroker', { index: 3, start: 10, end: 20 }),
+            MySQL.deleteFromTable('iobroker', 'ts_number', 3, 10, 20),
+            MySQL.getRawEntries('iobroker', 'ts_number', 3, { start: 1, end: 2, limit: 10, offset: 0, sort: 'asc' }),
+            MySQL.getRawEntriesCount('iobroker', 'ts_number', 3, { start: 1 }),
+            MySQL.retention('iobroker', 3, 'ts_number', 60),
+        ];
+        for (const statement of statements) {
+            assert.strictEqual(
+                (statement.sql.match(/\?/g) || []).length,
+                statement.params.length,
+                `placeholders and values match: ${statement.sql} ${JSON.stringify(statement.params)}`,
+            );
+        }
+    });
+
+    it('LIMIT and OFFSET stay numbers in the text', function () {
+        const statement = MySQL.getRawEntries('iobroker', 'ts_number', 3, {
+            limit: '10; DROP TABLE x',
+            offset: '5',
+            sort: 'desc',
+        });
+        assert.ok(/LIMIT 10 OFFSET 5;$/.test(statement.sql), statement.sql);
+        const history = MySQL.getHistory('iobroker', 'ts_number', { index: 3, end: 20, count: '10' });
+        // before: '10' + 2 was "102"
+        assert.ok(/LIMIT 12;$/.test(history.sql), history.sql);
+    });
+});
+
+describe('Test MySQL value conversion', function () {
+    const MySQL = DIALECTS.mysql;
+    const valuesOf = (table, vals) =>
+        MySQL.insert(
+            'iobroker',
+            1,
+            vals.map((val, i) => ({ table, state: { val, ts: i, ack: false }, from: 0 })),
+        )[0].params.filter((_p, i) => i % (table === 'ts_counter' ? 3 : 6) === 2);
+
+    it('numbers: text that is not a number, NaN and Infinity become NULL, like in the other dialects', function () {
+        assert.deepStrictEqual(valuesOf('ts_number', [1.5, '42', '12 kWh', '', NaN, Infinity, true, null]), [
+            1.5,
+            42,
+            null,
+            null,
+            null,
+            null,
+            1,
+            null,
+        ]);
+        assert.deepStrictEqual(valuesOf('ts_counter', [3, NaN]), [3, null]);
+    });
+
+    it('booleans and strings', function () {
+        assert.deepStrictEqual(valuesOf('ts_bool', [true, false, 'false', 'on', 1, NaN]), [1, 0, 0, 1, 1, null]);
+        assert.deepStrictEqual(valuesOf('ts_string', ['a', 5, { a: 1 }]), ['a', '5', '{"a":1}']);
+    });
+
+    it('update() always sets the value, so the SET is never empty', function () {
+        const statement = MySQL.update('iobroker', 5, { ts: 1 }, undefined, 'ts_number');
+        assert.strictEqual(statement.sql, 'UPDATE `iobroker`.ts_number SET val=? WHERE id=? AND ts=?;');
+        assert.deepStrictEqual(statement.params, [null, 5, 1]);
     });
 });

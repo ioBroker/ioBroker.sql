@@ -79,7 +79,7 @@ describe('Test insert() against a live MySQL (#304)', function () {
         await connection.query(`TRUNCATE \`${DB}\`.ts_number`);
 
         const [query] = MySQL.insert(DB, 4, duplicateBatch());
-        await connection.query(query); // used to throw ER_DUP_ENTRY
+        await connection.query(query.sql, query.params); // used to throw ER_DUP_ENTRY
 
         const [rows] = await connection.query(`SELECT ts, val, _from FROM \`${DB}\`.ts_number ORDER BY ts`);
         assert.strictEqual(rows.length, 3, `four rows, three distinct timestamps: ${JSON.stringify(rows)}`);
@@ -91,11 +91,11 @@ describe('Test insert() against a live MySQL (#304)', function () {
         await connection.query(`TRUNCATE \`${DB}\`.ts_number`);
 
         const [query] = MySQL.insert(DB, 4, duplicateBatch());
-        const unguarded = query.replace(/ ON DUPLICATE KEY UPDATE id=id/i, '');
-        assert.notStrictEqual(unguarded, query, 'precondition: the guard was in the statement');
+        const unguarded = query.sql.replace(/ ON DUPLICATE KEY UPDATE id=id/i, '');
+        assert.notStrictEqual(unguarded, query.sql, 'precondition: the guard was in the statement');
 
         await assert.rejects(
-            () => connection.query(unguarded),
+            () => connection.query(unguarded, query.params),
             err => {
                 // exactly what issue #304 shows: Duplicate entry '<id>-<ts>' for key 'PRIMARY'
                 assert.strictEqual(err.code, 'ER_DUP_ENTRY', err.message);

@@ -138,3 +138,16 @@ describe('Test the write buffer helpers (#587)', function () {
         assert.ok(MAX_KEPT_ROWS >= 100 * MAX_REQUEUED_ROWS, 'up to 100 datapoints get the full limit each');
     });
 });
+
+describe('Test statementToString', function () {
+    const { statementToString } = require('../build/lib/statement');
+
+    it('returns plain SQL as it is and appends bound values as JSON', function () {
+        assert.strictEqual(statementToString('SELECT 1'), 'SELECT 1');
+        assert.strictEqual(statementToString({ sql: 'SELECT 1', params: [] }), 'SELECT 1');
+        assert.strictEqual(
+            statementToString({ sql: 'SELECT id FROM t WHERE name=?', params: ["it's"] }),
+            'SELECT id FROM t WHERE name=? ["it\'s"]',
+        );
+    });
+});
