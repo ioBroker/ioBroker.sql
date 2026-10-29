@@ -62,12 +62,11 @@ SQLite DB must not be installed extra. It is just a file on disk, but to install
 sudo apt-get install build-essential
 ```
 
-For windows install node.js with the "Automatically install the necessary tools..."-option and then reinstall the adapter, e.g:
+For windows install node.js with the "Automatically install the necessary tools..."-option and then rebuild the native SQLite module, e.g:
 
 ```bash
-cd /opt/iobroker
 iobroker stop sql
-npm install iobroker.sql --production
+iobroker rebuild sqlite3
 iobroker start sql
 ```
 
@@ -628,6 +627,11 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (@Schimi1983) PostgreSQL: the password is no longer printed in the connection log (#587)
 * (@Schimi1983) Fixed a crash when a datapoint is disabled while its database ID is being looked up (#587)
 * (@Schimi1983) Disabling the logging of a datapoint with an alias ID works again (#587)
+* (@Schimi1983) Admin: every input has size attributes for all screen widths, "Do not create database" no longer grows wider on large screens (#583)
+* (@Schimi1983) Added the Ukrainian title and description, admin >= 7.6.20 is required (#583)
+* (@Schimi1983) `password` and `dockerMysql.rootPassword` are no longer readable by other adapters (`protectedNative`, #583). Note: a script that reads `system.adapter.sql.0` with `getObject` and writes it back with `setObject` now deletes both passwords; use `extendObject` instead
+* (@Schimi1983) README: the reinstall hint for SQLite uses `iobroker rebuild sqlite3` instead of `npm install` (#583)
+* (@Schimi1983) CI: the job with the unit and SQLite tests is named `adapter-tests`, as the repository checker expects, and also runs on Node.js 26 (#583)
 
 ### 4.2.1 (2026-10-13)
 * (@GermanBluefox) The error of a failed save or delete in the data browser is no longer hidden by the reload of the table

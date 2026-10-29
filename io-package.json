@@ -11,6 +11,7 @@
       "it": "Registrazione SQL",
       "es": "Registro de SQL",
       "pl": "Rejestrowanie SQL",
+      "uk": "Журналювання SQL",
       "zh-cn": "SQL记录"
     },
     "desc": {
@@ -23,6 +24,7 @@
       "it": "Registrazione degli stati nel DB SQL",
       "es": "Registro de estados en SQL DB",
       "pl": "Rejestrowanie stanów w SQL DB",
+      "uk": "Запис історії станів у базу даних SQL",
       "zh-cn": "将状态记录到SQL DB"
     },
     "version": "4.2.1",
@@ -155,7 +157,7 @@
     ],
     "globalDependencies": [
       {
-        "admin": ">=7.0.0"
+        "admin": ">=7.6.20"
       }
     ],
     "supportStopInstance": 10000,
@@ -232,6 +234,7 @@
       }
     ]
   },
+  "protectedNative": ["password", "dockerMysql.rootPassword"],
   "native": {
     "connLink": "",
     "debounce": 1000,
