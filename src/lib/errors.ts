@@ -150,3 +150,59 @@ export function counterTypeMismatch(id: string, storageType: string | number | u
         `Change the storage type of this datapoint to "Number", or switch the counter option off.`
     );
 }
+
+/** Driver error codes that mean the connection itself is gone, not just this one statement */
+const CONNECTION_ERROR_CODES = [
+    'PROTOCOL_CONNECTION_LOST', // mysql2: server closed the socket (e.g. after wait_timeout)
+    'ECONNRESET',
+    'EPIPE',
+    'ETIMEDOUT',
+    'ECONNCLOSED', // mssql
+    'ENOTOPEN', // mssql
+    'ESOCKET', // mssql/tedious
+];
+
+/**
+ * Messages of drivers that do not set a connection error code for a dead connection. They are only
+ * checked for errors without `code`/`errno` (or with sqlite3's `SQLITE_MISUSE`): the text of an SQL
+ * error can contain a snippet of the statement, e.g. from the `query` message, and must not count.
+ */
+const CONNECTION_ERROR_MESSAGES = [
+    /closed state/i, // mysql2: "Can't add new command when connection is in closed state"
+    /not queryable/i, // pg: "Client was closed and is not queryable"
+    /connection terminated/i, // pg
+    /database is closed/i, // sqlite3: SQLITE_MISUSE
+];
+
+/**
+ * Whether a statement failed because its connection is unusable, so the client must not go back
+ * into the pool.
+ *
+ * The `error` event of the driver connection is not enough to detect this: mysql2 hands the
+ * "connection lost" error to the callback of the statement that is running at that moment and does
+ * not emit `error` on the connection then. Every later statement fails with "Can't add new command
+ * when connection is in closed state" - through the callback again - so a client that lost its
+ * connection while a statement was running stayed in the pool forever and failed every write.
+ *
+ * @param err the error a driver passed to the callback of a statement
+ * @returns true if the connection behind the statement is gone
+ */
+export function isConnectionError(err: unknown): boolean {
+    if (!err || typeof err !== 'object') {
+        return false;
+    }
+    const error = err as { fatal?: unknown; code?: unknown; errno?: unknown; message?: unknown };
+    // mysql2 marks every error after which the connection cannot be used as fatal
+    if (error.fatal === true) {
+        return true;
+    }
+    if (typeof error.code === 'string' && CONNECTION_ERROR_CODES.includes(error.code)) {
+        return true;
+    }
+    const withoutCode = (error.code === undefined && error.errno === undefined) || error.code === 'SQLITE_MISUSE';
+    return (
+        withoutCode &&
+        typeof error.message === 'string' &&
+        CONNECTION_ERROR_MESSAGES.some(re => re.test(error.message as string))
+    );
+}

@@ -2,7 +2,7 @@ const assert = require('node:assert');
 
 // From its own module, never from build/main: that pulls in @iobroker/adapter-core, which calls
 // process.exit(10) when js-controller cannot be resolved.
-const { isSameValue } = require('../build/lib/values');
+const { isSameValue, parseLimit } = require('../build/lib/values');
 
 describe('Test isSameValue', function () {
     it('treats equal primitives as unchanged', function () {
@@ -71,5 +71,25 @@ describe('Test isSameValue', function () {
         // the alias carries the source's lc, so ts === lc arrived at the adapter
         assert.strictEqual(isSameValue(convert(12.34), convert(12.31)), true);
         assert.strictEqual(isSameValue(convert(12.34), convert(12.36)), false);
+    });
+});
+
+describe('Test parseLimit', function () {
+    // "ignore values below 0" was turned into "no limit" by `parseFloat(x) || null`
+    it('keeps 0 as a limit', function () {
+        assert.strictEqual(parseLimit('0'), 0);
+        assert.strictEqual(parseLimit(0), 0);
+        assert.strictEqual(parseLimit('-0.5'), -0.5);
+        assert.strictEqual(parseLimit(12.5), 12.5);
+        assert.strictEqual(parseLimit('12,5'), 12.5, 'decimal comma');
+    });
+
+    it('returns null for no number', function () {
+        assert.strictEqual(parseLimit('abc'), null);
+        assert.strictEqual(parseLimit(''), null);
+        assert.strictEqual(parseLimit(null), null);
+        assert.strictEqual(parseLimit(undefined), null);
+        assert.strictEqual(parseLimit(NaN), null);
+        assert.strictEqual(parseLimit(Infinity), null);
     });
 });
