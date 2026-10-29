@@ -1644,6 +1644,60 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
             );
         });
     }
+
+    // "Record changes only" must compare the plain value. insert() used to write the SQL literal
+    // ('on' with quotes) back into the state object that is kept as the reference value, so the
+    // second equal string was seen as a change and stored again. See #587
+    it(`Test ${adapterShortName}: changesOnly stores an equal string only once`, async function () {
+        this.timeout(20000);
+        const id = `${instanceName}.testValueString`;
+        const send = (command, message) => new Promise(resolve => sendTo(instanceName, command, message, resolve));
+        const set = state => new Promise(resolve => states.setState(id, state, () => resolve()));
+        const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        await objects.setObjectAsync(id, { common: { type: 'string', role: 'state' }, type: 'state' });
+        let result = await send('enableHistory', {
+            id,
+            options: {
+                changesOnly: true,
+                // otherwise the last skipped value is stored right before a change, by design
+                disableSkippedValueLogging: true,
+                debounceTime: 0,
+                blockTime: 0,
+                changesRelogInterval: 0,
+                maxLength: 0,
+            },
+        });
+        assert.strictEqual(result.error, undefined);
+        assert.strictEqual(result.success, true);
+        await wait(2000);
+
+        const start = Date.now();
+        for (const [offset, val] of [
+            [100, 'on'],
+            [200, 'on'],
+            [300, 'off'],
+            [400, 'off'],
+            [500, 'on'],
+        ]) {
+            await set({ val, ts: start + offset, ack: true });
+            await wait(300);
+        }
+        await wait(2000);
+
+        result = await send('getHistory', {
+            id,
+            options: { start, end: start + 1000, aggregate: 'none', ignoreNull: true },
+        });
+        console.log(`changesOnly string result: ${JSON.stringify(result.result)}`);
+        assert.strictEqual(result.error, undefined);
+        const values = result.result.filter(entry => entry.val !== null).map(entry => entry.val);
+        assert.deepStrictEqual(values, ['on', 'off', 'on']);
+
+        result = await send('disableHistory', { id });
+        assert.strictEqual(result.error, undefined);
+        await wait(1000);
+    });
 }
 
 module.exports.register = register;

@@ -622,6 +622,12 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ## Changelog
 ### **WORK IN PROGRESS**
 * (@Schimi1983) Fixed every write failing with "Can't add new command when connection is in closed state" until a restart: a connection the server closed while a statement was running was handed out again, because mysql2 reports that only to the statement and not as a connection error. Such a connection is also no longer handed to a write that waits for a free connection, and the reconnect is logged as a warning in this case too (#587)
+* (@Schimi1983) Fixed "Record changes only" storing every string value again: the reference value was overwritten with the SQL literal, or with the converted value when a storage type is set (#587)
+* (@Schimi1983) "Reset DB" no longer drops the whole database when "Do not create database" is set, only the adapter's tables. MSSQL: `DBCC FREEPROCCACHE` is then skipped too, as it needs server rights (#587)
+* (@Schimi1983) "Ignore values below/above" now also works with the limit 0 (users who set 0 now get the filter they configured) and accepts a decimal comma (#587)
+* (@Schimi1983) PostgreSQL: the password is no longer printed in the connection log (#587)
+* (@Schimi1983) Fixed a crash when a datapoint is disabled while its database ID is being looked up (#587)
+* (@Schimi1983) Disabling the logging of a datapoint with an alias ID works again (#587)
 
 ### 4.2.1 (2026-10-13)
 * (@GermanBluefox) The error of a failed save or delete in the data browser is no longer hidden by the reload of the table

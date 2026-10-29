@@ -11,7 +11,7 @@ export function init(_dbName: string): string[] {
     ];
 }
 
-export function destroy(_dbName: string): string[] {
+export function destroy(_dbName: string, _doNotCreateDatabase?: boolean): string[] {
     return [
         'DROP TABLE ts_counter;',
         'DROP TABLE ts_number;',
@@ -65,7 +65,10 @@ export function insert(
     }[],
 ): string[] {
     const insertValues: { [table: string]: string[] } = {};
-    values.forEach(value => {
+    values.forEach(original => {
+        // work on a copy: the caller keeps `state` as the reference value for "record changes only" (#295),
+        // so writing the SQL literal back into it would make the next equal value look like a change
+        const value = { ...original, state: { ...original.state } };
         // state, from, db
         insertValues[value.table] ||= [];
 
@@ -314,10 +317,12 @@ export function deleteDatapoint(_dbName: string, index: number): string {
 export function update(
     _dbName: string,
     index: number,
-    state: { val: number | string | boolean | null | undefined; ts: number; q?: number; ack?: boolean },
+    originalState: { val: number | string | boolean | null | undefined; ts: number; q?: number; ack?: boolean },
     from: number,
     table: 'ts_bool' | 'ts_number' | 'ts_string' | 'ts_counter',
 ): string {
+    // copy, so the caller's state object is not changed (see insert())
+    const state = { ...originalState };
     if (!state || state.val === null || state.val === undefined) {
         state.val = 'NULL';
     } else if (table === 'ts_string') {

@@ -32,16 +32,26 @@ function init(dbName, doNotCreateDatabase) {
         commands.unshift(`CREATE DATABASE \`${dbName}\` DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;`);
     return commands;
 }
-function destroy(dbName) {
-    return [
+/**
+ * Statements for "Reset DB".
+ *
+ * @param dbName name of the database
+ * @param doNotCreateDatabase the database was created outside the adapter (e.g. by a hoster): only the adapter's
+ *   tables are dropped. The adapter could not create the database again and other tables in it would be lost.
+ */
+function destroy(dbName, doNotCreateDatabase) {
+    const commands = [
         `DROP TABLE \`${dbName}\`.ts_counter;`,
         `DROP TABLE \`${dbName}\`.ts_number;`,
         `DROP TABLE \`${dbName}\`.ts_string;`,
         `DROP TABLE \`${dbName}\`.ts_bool;`,
         `DROP TABLE \`${dbName}\`.sources;`,
         `DROP TABLE \`${dbName}\`.datapoints;`,
-        `DROP DATABASE \`${dbName}\`;`,
     ];
+    if (!doNotCreateDatabase) {
+        commands.push(`DROP DATABASE \`${dbName}\`;`);
+    }
+    return commands;
 }
 function getFirstTs(dbName, table) {
     return `SELECT id, MIN(ts) AS ts FROM \`${dbName}\`.${table} GROUP BY id;`;
@@ -75,7 +85,10 @@ function getTableSize(dbName, table) {
 }
 function insert(dbName, index, values) {
     const insertValues = {};
-    values.forEach(value => {
+    values.forEach(original => {
+        // work on a copy: the caller keeps `state` as the reference value for "record changes only" (#295),
+        // so writing the SQL literal back into it would make the next equal value look like a change
+        const value = { ...original, state: { ...original.state } };
         // state, from, db
         insertValues[value.table] = insertValues[value.table] || [];
         if (!value.state || value.state.val === null || value.state.val === undefined) {
@@ -262,7 +275,9 @@ function deleteFromTable(dbName, table, index, start, end) {
 function deleteDatapoint(dbName, index) {
     return `DELETE FROM \`${dbName}\`.datapoints WHERE id=${index};`;
 }
-function update(dbName, index, state, from, table) {
+function update(dbName, index, originalState, from, table) {
+    // copy, so the caller's state object is not changed (see insert())
+    const state = { ...originalState };
     if (!state || state.val === null || state.val === undefined) {
         state.val = 'NULL';
     }

@@ -29,7 +29,7 @@ function init(_dbName) {
         'CREATE TABLE ts_counter (id INTEGER, ts INTEGER, val REAL, PRIMARY KEY(id, ts));',
     ];
 }
-function destroy(_dbName) {
+function destroy(_dbName, _doNotCreateDatabase) {
     return [
         'DROP TABLE ts_counter;',
         'DROP TABLE ts_number;',
@@ -71,7 +71,10 @@ function getTableSize(_dbName, table) {
 }
 function insert(_dbName, index, values) {
     const insertValues = {};
-    values.forEach(value => {
+    values.forEach(original => {
+        // work on a copy: the caller keeps `state` as the reference value for "record changes only" (#295),
+        // so writing the SQL literal back into it would make the next equal value look like a change
+        const value = { ...original, state: { ...original.state } };
         // state, from, db
         insertValues[value.table] ||= [];
         if (!value.state || value.state.val === null || value.state.val === undefined) {
@@ -262,7 +265,9 @@ function deleteFromTable(_dbName, table, index, start, end) {
 function deleteDatapoint(_dbName, index) {
     return `DELETE FROM datapoints WHERE id=${index};`;
 }
-function update(_dbName, index, state, from, table) {
+function update(_dbName, index, originalState, from, table) {
+    // copy, so the caller's state object is not changed (see insert())
+    const state = { ...originalState };
     if (!state || state.val === null || state.val === undefined) {
         state.val = 'NULL';
     }
