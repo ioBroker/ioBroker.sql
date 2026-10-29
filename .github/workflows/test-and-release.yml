@@ -52,16 +52,27 @@ jobs:
             matrix:
                 node-version: [22.x, 24.x]
 
+        # ubuntu-latest (Ubuntu 26) has no preinstalled MySQL any more, so like PostgreSQL and
+        # MSSQL the server runs as a service container; root/root as on the old runner image.
+        services:
+            mysql:
+                image: mysql:8.4
+                env:
+                    MYSQL_ROOT_PASSWORD: root
+                options: >-
+                    --health-cmd "mysqladmin ping -h 127.0.0.1 -proot"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 10
+                ports:
+                    - 3306:3306
+
         steps:
             - uses: actions/checkout@v7
             - name: Use Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v7
               with:
                   node-version: ${{ matrix.node-version }}
-
-            - name: Set up MySQL
-              run: |
-                  sudo /etc/init.d/mysql start
 
             - name: Install Dependencies
               run: npm install
