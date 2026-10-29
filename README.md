@@ -620,6 +620,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 ### **WORK IN PROGRESS**
+* (@GermanBluefox) `getHistory` accepts `intervalBorders`: the client can send the borders of the intervals itself, e.g. the local days of a chart. With `count` or `step` every interval after a switch of the daylight saving time ended an hour away from the midnight, so a value written at 23:59:59 was shown on the next day (ioBroker/ioBroker.echarts#1311)
 * (@Schimi1983) Fixed every write failing with "Can't add new command when connection is in closed state" until a restart: a connection the server closed while a statement was running was handed out again, because mysql2 reports that only to the statement and not as a connection error. Such a connection is also no longer handed to a write that waits for a free connection, and the reconnect is logged as a warning in this case too (#587)
 * (@Schimi1983) Fixed "Record changes only" storing every string value again: the reference value was overwritten with the SQL literal, or with the converted value when a storage type is set (#587)
 * (@Schimi1983) "Reset DB" no longer drops the whole database when "Do not create database" is set, only the adapter's tables. MSSQL: `DBCC FREEPROCCACHE` is then skipped too, as it needs server rights (#587)
