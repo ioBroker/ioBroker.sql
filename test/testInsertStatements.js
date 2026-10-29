@@ -266,3 +266,145 @@ describe('Test the adapter keeps the reference value and survives a disabled dat
         });
     });
 });
+
+describe('Test a failed write keeps the values when the database was not reachable (#587)', function () {
+    const { createAdapter } = require('./lib/stubAdapter');
+    const row = (table, ts) => ({ table, state: { val: table === 'ts_string' ? 'x' : ts, ts, ack: true }, from: 0 });
+
+    /** An adapter whose datapoint `dp` buffers `rows` and whose statements fail as `failAt` says */
+    function setup(rows, failAt, error) {
+        const adapter = createAdapter();
+        adapter.config.dbname = 'iobroker';
+        adapter.sqlFuncs = require('../build/lib/sqlite');
+        adapter.sqlDPs.dp = { index: 7, type: 0, list: rows, inFlight: {}, config: {} };
+        adapter.executed = [];
+        const client = {
+            execute(sql, callback) {
+                const n = adapter.executed.push(sql);
+                setImmediate(() => (n === failAt ? callback(error) : callback(null, [])));
+            },
+        };
+        adapter.borrowClientFromPool = cb => cb(null, client);
+        adapter.returnClientToPool = () => {};
+        adapter.checkRetention = () => {};
+        return adapter;
+    }
+
+    const lost = () =>
+        Object.assign(new Error('Connection lost: The server closed the connection.'), {
+            code: 'PROTOCOL_CONNECTION_LOST',
+            fatal: true,
+        });
+
+    it('keeps the rows of the failed statement and all after it, and passes the error on', function (done) {
+        const adapter = setup(
+            [row('ts_number', 1), row('ts_string', 2), row('ts_number', 3), row('ts_bool', 4)],
+            2,
+            lost(),
+        );
+        adapter.storeCached('dp', err => {
+            assert.match(String(err), /Connection lost/, 'the error reaches the caller (storeState)');
+            // ts_number (1, 3) was written, ts_string failed, ts_bool never ran
+            assert.strictEqual(adapter.executed.length, 2);
+            assert.deepStrictEqual(
+                adapter.sqlDPs.dp.list.map(r => r.state.ts),
+                [2, 4],
+            );
+            assert.ok(
+                adapter.logs.some(l => /kept for the next write/.test(l)),
+                adapter.logs.join('\n'),
+            );
+            done();
+        });
+    });
+
+    it('keeps everything when no connection could be borrowed', function (done) {
+        const adapter = setup([row('ts_number', 1), row('ts_number', 2)], 0);
+        adapter.borrowClientFromPool = cb =>
+            cb(Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:3306'), { code: 'ECONNREFUSED' }));
+        adapter.storeCached('dp', err => {
+            assert.ok(err);
+            assert.deepStrictEqual(
+                adapter.sqlDPs.dp.list.map(r => r.state.ts),
+                [1, 2],
+            );
+            done();
+        });
+    });
+
+    it('puts the kept rows before the values logged in the meantime', function (done) {
+        const adapter = setup([row('ts_number', 1)], 1, lost());
+        const storeCached = adapter.storeCached.bind(adapter);
+        storeCached('dp', () => {
+            assert.deepStrictEqual(
+                adapter.sqlDPs.dp.list.map(r => r.state.ts),
+                [1, 2],
+            );
+            done();
+        });
+        // logged while the write is running
+        adapter.sqlDPs.dp.list.push(row('ts_number', 2));
+    });
+
+    it('works the same through the task queue (SQLite)', function (done) {
+        const adapter = setup([row('ts_number', 1), row('ts_string', 2)], 2, lost());
+        adapter.multiRequests = false;
+        adapter.storeCached('dp', err => {
+            assert.ok(err);
+            assert.deepStrictEqual(
+                adapter.sqlDPs.dp.list.map(r => r.state.ts),
+                [2],
+            );
+            setImmediate(() => {
+                assert.strictEqual(adapter.tasks.length, 0, 'the task is done');
+                done();
+            });
+        });
+    });
+
+    it('does not keep the rows of a datapoint that is being disabled or when the adapter stops', function (done) {
+        const adapter = setup([row('ts_number', 1)], 1, lost());
+        adapter.sqlDPs.dp.config.enabled = false;
+        adapter.storeCached('dp', () => {
+            assert.deepStrictEqual(adapter.sqlDPs.dp.list, []);
+            assert.ok(
+                adapter.logs.some(l => /were not stored/.test(l)),
+                adapter.logs.join('\n'),
+            );
+
+            const stopping = setup([row('ts_number', 1)], 1, lost());
+            stopping.finished = [() => {}];
+            stopping.storeCached('dp', () => {
+                assert.deepStrictEqual(stopping.sqlDPs.dp.list, []);
+                done();
+            });
+        });
+    });
+
+    it('keeps the rows when the task queue is full', function (done) {
+        const adapter = setup([row('ts_number', 1)], 0);
+        adapter.multiRequests = false;
+        for (let i = 0; i <= 100; i++) {
+            adapter.tasks.push({ operation: 'query', query: 'SELECT 1', id: 'x' });
+        }
+        adapter.lockTasks = true; // the queue is busy
+        adapter.storeCached('dp', err => {
+            assert.match(String(err), /Cannot queue/);
+            assert.deepStrictEqual(
+                adapter.sqlDPs.dp.list.map(r => r.state.ts),
+                [1],
+            );
+            done();
+        });
+    });
+
+    it('does not keep the rows on an SQL error - they would fail again', function (done) {
+        const sqlError = Object.assign(new Error('SQLITE_ERROR: no such table: ts_number'), { code: 'SQLITE_ERROR' });
+        const adapter = setup([row('ts_number', 1), row('ts_number', 2)], 1, sqlError);
+        adapter.storeCached('dp', err => {
+            assert.match(String(err), /no such table/);
+            assert.deepStrictEqual(adapter.sqlDPs.dp.list, []);
+            done();
+        });
+    });
+});

@@ -358,3 +358,22 @@ describe('Test the adapter does not hand a broken client to a waiting borrower',
         });
     });
 });
+
+describe('Test SQLClientPool replaces connections that were idle too long (max_age, #587)', function () {
+    it('validate() rejects a client pooled longer than max_age', function (done) {
+        const pool = new SQLClientPool({}, {}, fakeFactory());
+        pool.open({ max_idle: 4, max_age: 1000 }, err => {
+            assert.ifError(err);
+            const client = new SQLClient({}, fakeFactory());
+            client.pooled_at = Date.now() - 500;
+            pool.validate(client, (err, valid) => {
+                assert.strictEqual(valid, true, 'idle shorter than max_age');
+                client.pooled_at = Date.now() - 1500;
+                pool.validate(client, (err, valid) => {
+                    assert.strictEqual(valid, false, 'idle longer than max_age, e.g. beyond wait_timeout');
+                    done();
+                });
+            });
+        });
+    });
+});

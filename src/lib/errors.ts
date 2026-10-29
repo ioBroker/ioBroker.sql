@@ -160,6 +160,12 @@ const CONNECTION_ERROR_CODES = [
     'ECONNCLOSED', // mssql
     'ENOTOPEN', // mssql
     'ESOCKET', // mssql/tedious
+    // the server cannot be reached at all (while connecting)
+    'ECONNREFUSED',
+    'EHOSTUNREACH',
+    'ENETUNREACH',
+    'ENOTFOUND',
+    'EAI_AGAIN',
 ];
 
 /**
