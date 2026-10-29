@@ -81,7 +81,7 @@ describe('Test parseLimit', function () {
         assert.strictEqual(parseLimit(0), 0);
         assert.strictEqual(parseLimit('-0.5'), -0.5);
         assert.strictEqual(parseLimit(12.5), 12.5);
-        assert.strictEqual(parseLimit('12,5'), 12);
+        assert.strictEqual(parseLimit('12,5'), 12.5, 'decimal comma');
     });
 
     it('returns null for no number', function () {

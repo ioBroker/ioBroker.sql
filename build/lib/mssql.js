@@ -55,8 +55,9 @@ function destroy(dbName, doNotCreateDatabase) {
     ];
     if (!doNotCreateDatabase) {
         commands.push(`DROP DATABASE ${dbName};`);
+        // needs ALTER SERVER STATE, which a user of an existing (hosted) database usually lacks
+        commands.push('DBCC FREEPROCCACHE;');
     }
-    commands.push('DBCC FREEPROCCACHE;');
     return commands;
 }
 function getFirstTs(dbName, table) {

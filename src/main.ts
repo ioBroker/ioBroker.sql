@@ -1992,9 +1992,9 @@ export class SqlAdapter extends Adapter {
             _settings.enableDebugLogs && this.log.debug(`Datatype ${_id}: Currently: null`);
         }
 
-        state.val = val;
-
-        this.pushValueIntoDB(_id, state, false, false, cb);
+        // A copy: `state` is the reference value of "Record changes only" (sqlDPs[id].state), and
+        // the converted value must not replace it.
+        this.pushValueIntoDB(_id, { ...state, val }, false, false, cb);
     }
 
     getAllIds(cb: (err?: Error | null) => void): void {
@@ -2394,7 +2394,7 @@ export class SqlAdapter extends Adapter {
             if (waiting.length === 1) {
                 // read or create in DB
                 return this.getId(id, type, err => {
-                    // @KI_HINWEIS: the datapoint can be disabled or deleted while the lookup runs. Then
+                    // The datapoint can be disabled or deleted while the lookup runs. Then
                     // this.sqlDPs[id] is gone; reading it threw inside the driver callback (uncaught).
                     // The waiting list is kept in a local, so its callbacks are still answered.
                     const sqlDP = this.sqlDPs[id];
@@ -2757,7 +2757,10 @@ export class SqlAdapter extends Adapter {
                                     (err, rows /* , fields */) => {
                                         this.returnClientToPool(client);
 
-                                        if (err) {
+                                        if (!this.sqlDPs[id]) {
+                                            // disabled or deleted while the row was created
+                                            cb?.(new Error(`ID ${id} no longer active`), id);
+                                        } else if (err) {
                                             this.log.error(`Cannot select ${query}: ${err}`);
                                             cb?.(err, id);
                                         } else if (rows?.[0]) {

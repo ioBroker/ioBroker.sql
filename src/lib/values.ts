@@ -59,6 +59,7 @@ export function isSameValue(lastStored: unknown, next: unknown): boolean {
  * @returns the limit, or null if the value is not a number
  */
 export function parseLimit(value: unknown): number | null {
-    const limit = typeof value === 'number' ? value : parseFloat(value as string);
+    // a decimal comma from `enableHistory` via sendTo, which the admin validation does not check
+    const limit = typeof value === 'number' ? value : parseFloat(String(value).replace(',', '.'));
     return Number.isFinite(limit) ? limit : null;
 }

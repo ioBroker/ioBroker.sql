@@ -207,6 +207,8 @@ describe('Test destroy() keeps a database the adapter did not create', function 
         it(`${dialect}: "Do not create database" drops only the adapter tables`, function () {
             const queries = sql.destroy('iobroker', true);
             assert.ok(!queries.some(q => /DROP DATABASE/i.test(q)), queries.join('\n'));
+            // server-level statements need rights a user of an existing database usually lacks
+            assert.ok(!queries.some(q => /DBCC/i.test(q)), queries.join('\n'));
             for (const table of ['ts_counter', 'ts_number', 'ts_string', 'ts_bool', 'sources', 'datapoints']) {
                 assert.ok(
                     queries.some(q => new RegExp(`DROP TABLE .*\\b${table};`).test(q)),
@@ -221,4 +223,46 @@ describe('Test destroy() keeps a database the adapter did not create', function 
             assert.ok(DIALECTS[dialect].destroy('iobroker').some(q => /DROP DATABASE/i.test(q)));
         });
     }
+});
+
+describe('Test the adapter keeps the reference value and survives a disabled datapoint', function () {
+    const { createAdapter } = require('./lib/stubAdapter');
+
+    it('pushHelper() converts a copy, not the reference value of "Record changes only"', function () {
+        const adapter = createAdapter();
+        const reference = { val: 'true', ts: 1, ack: true };
+        adapter.sqlDPs.s = { state: reference, config: { storageType: false } };
+        let pushed;
+        adapter.pushValueIntoDB = (_id, state) => (pushed = state);
+
+        adapter.pushHelper('s');
+
+        assert.strictEqual(pushed.val, true, 'the converted value is written');
+        assert.strictEqual(reference.val, 'true', 'the reference value is unchanged');
+        assert.strictEqual(adapter.sqlDPs.s.state, reference);
+    });
+
+    it('getId() answers when the datapoint is disabled while its row is created', function (done) {
+        const adapter = createAdapter();
+        adapter.config.dbname = 'iobroker';
+        adapter.sqlFuncs = require('../build/lib/mysql');
+        adapter.sqlDPs['my.id'] = { config: {}, type: null, index: null };
+        const answers = [[], [], [{ id: 7, type: 1 }]]; // select: none, insert, select: the new row
+        const client = {
+            execute(sql, callback) {
+                const rows = answers.shift();
+                if (/^INSERT/i.test(sql)) {
+                    delete adapter.sqlDPs['my.id']; // disabled meanwhile
+                }
+                setImmediate(() => callback(null, rows));
+            },
+        };
+        adapter.borrowClientFromPool = callback => callback(null, client);
+        adapter.returnClientToPool = () => {};
+
+        adapter.getId('my.id', 1, err => {
+            assert.match(String(err), /no longer active/);
+            done();
+        });
+    });
 });

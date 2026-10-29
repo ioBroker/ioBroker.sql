@@ -59,7 +59,8 @@ function isSameValue(lastStored, next) {
  * @returns the limit, or null if the value is not a number
  */
 function parseLimit(value) {
-    const limit = typeof value === 'number' ? value : parseFloat(value);
+    // a decimal comma from `enableHistory` via sendTo, which the admin validation does not check
+    const limit = typeof value === 'number' ? value : parseFloat(String(value).replace(',', '.'));
     return Number.isFinite(limit) ? limit : null;
 }
 //# sourceMappingURL=values.js.map
