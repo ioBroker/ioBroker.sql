@@ -241,6 +241,25 @@ describe('Test SQLClient detects a dead connection through a failed statement', 
         });
     });
 
+    it('notifies a listener on the client, like the error event of the connection', function (done) {
+        const factory = failingFactory();
+        const client = new SQLClient({}, factory);
+        const seen = [];
+        client.on('error', err => seen.push(err));
+
+        client.connect(() => {
+            factory.failNext = closedState();
+            client.execute('SELECT 1', () => {
+                factory.failNext = closedState();
+                client.execute('SELECT 1', () => {
+                    assert.strictEqual(seen.length, 1, 'once per broken client');
+                    assert.match(seen[0].message, /closed state/);
+                    done();
+                });
+            });
+        });
+    });
+
     it('borrow() replaces a client whose statement failed with a dead connection', function (done) {
         const factory = failingFactory();
         const pool = new SQLClientPool({}, {}, factory);
@@ -262,6 +281,79 @@ describe('Test SQLClient detects a dead connection through a failed statement', 
                         });
                     });
                 });
+            });
+        });
+    });
+});
+
+describe('Test the adapter does not hand a broken client to a waiting borrower', function () {
+    // The adapter limits the connections itself (maxConnections, poolBorrowGuard). A client given
+    // back while somebody waits went to that waiter directly, without the pool's validate(), so a
+    // client with a dead connection failed the writes of every queued waiter in turn.
+    const { createAdapter } = require('./lib/stubAdapter');
+
+    function closedState() {
+        return Object.assign(new Error("Can't add new command when connection is in closed state"), { fatal: true });
+    }
+
+    it('a waiter gets a fresh connection when the returned client is broken', function (done) {
+        const factory = fakeFactory();
+        factory.failNext = null;
+        factory.execute = (_connection, _sql, callback) => {
+            const err = factory.failNext;
+            factory.failNext = null;
+            setImmediate(() => (err ? callback(err) : callback(null, [])));
+        };
+        const pool = new SQLClientPool({}, {}, factory);
+        const adapter = createAdapter();
+        adapter.config.maxConnections = 1;
+        adapter.setConnected = () => {};
+
+        pool.open({ max_idle: 4 }, err => {
+            assert.ifError(err);
+            adapter.clientPool = pool;
+            adapter.borrowClientFromPool((err, first) => {
+                assert.ifError(err);
+                // maxConnections reached: the second borrower has to wait for the first client
+                adapter.borrowClientFromPool((err, second) => {
+                    assert.ifError(err);
+                    assert.notStrictEqual(second, first, 'the broken client is not handed to the waiter');
+                    assert.strictEqual(second.isBroken(), false);
+                    assert.strictEqual(factory.opened.length, 2, 'a new connection was opened');
+                    assert.strictEqual(adapter.activeConnections, 1);
+                    done();
+                });
+                assert.strictEqual(adapter.poolBorrowGuard.length, 1, 'precondition: one waiter');
+
+                factory.failNext = closedState();
+                first.execute('INSERT ...', err => {
+                    assert.ok(err);
+                    assert.strictEqual(first.isBroken(), true);
+                    adapter.returnClientToPool(first);
+                });
+            });
+        });
+    });
+
+    it('a waiter still gets the returned client directly when it is healthy', function (done) {
+        const factory = fakeFactory();
+        const pool = new SQLClientPool({}, {}, factory);
+        const adapter = createAdapter();
+        adapter.config.maxConnections = 1;
+        adapter.setConnected = () => {};
+
+        pool.open({ max_idle: 4 }, err => {
+            assert.ifError(err);
+            adapter.clientPool = pool;
+            adapter.borrowClientFromPool((err, first) => {
+                assert.ifError(err);
+                adapter.borrowClientFromPool((err, second) => {
+                    assert.ifError(err);
+                    assert.strictEqual(second, first);
+                    assert.strictEqual(factory.opened.length, 1);
+                    done();
+                });
+                adapter.returnClientToPool(first);
             });
         });
     });

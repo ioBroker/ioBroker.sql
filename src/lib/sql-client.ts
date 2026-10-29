@@ -198,6 +198,11 @@ export default class SQLClient extends EventEmitter {
         if (!this.broken && isConnectionError(err)) {
             this.broken = true;
             this.lastError = err;
+            // Same notification as for the `error` event of the connection, so the adapter logs the
+            // reconnect for both paths. Only when someone is listening (see the connection listener).
+            if (this.listenerCount('error')) {
+                this.emit('error', err);
+            }
         }
     }
 }

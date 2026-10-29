@@ -181,6 +181,11 @@ class SQLClient extends node_events_1.EventEmitter {
         if (!this.broken && (0, errors_1.isConnectionError)(err)) {
             this.broken = true;
             this.lastError = err;
+            // Same notification as for the `error` event of the connection, so the adapter logs the
+            // reconnect for both paths. Only when someone is listening (see the connection listener).
+            if (this.listenerCount('error')) {
+                this.emit('error', err);
+            }
         }
     }
 }

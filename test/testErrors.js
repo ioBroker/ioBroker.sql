@@ -128,6 +128,20 @@ describe('Test isConnectionError', function () {
             false,
         );
         assert.strictEqual(isConnectionError(err('relation "ts_number" does not exist', { code: '42P01' })), false);
+        // an SQL error whose text quotes the statement does not count, even if it contains a pattern
+        assert.strictEqual(
+            isConnectionError(
+                err("You have an error in your SQL syntax near 'closed state'", {
+                    code: 'ER_PARSE_ERROR',
+                    errno: 1064,
+                }),
+            ),
+            false,
+        );
+        assert.strictEqual(
+            isConnectionError(err('SQLITE_ERROR: no such column: connection terminated', { code: 'SQLITE_ERROR' })),
+            false,
+        );
         assert.strictEqual(isConnectionError(null), false);
         assert.strictEqual(isConnectionError('text'), false);
     });

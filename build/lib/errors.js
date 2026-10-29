@@ -152,7 +152,11 @@ const CONNECTION_ERROR_CODES = [
     'ENOTOPEN', // mssql
     'ESOCKET', // mssql/tedious
 ];
-/** Messages of drivers that do not set a code for a dead connection */
+/**
+ * Messages of drivers that do not set a connection error code for a dead connection. They are only
+ * checked for errors without `code`/`errno` (or with sqlite3's `SQLITE_MISUSE`): the text of an SQL
+ * error can contain a snippet of the statement, e.g. from the `query` message, and must not count.
+ */
 const CONNECTION_ERROR_MESSAGES = [
     /closed state/i, // mysql2: "Can't add new command when connection is in closed state"
     /not queryable/i, // pg: "Client was closed and is not queryable"
@@ -184,6 +188,9 @@ function isConnectionError(err) {
     if (typeof error.code === 'string' && CONNECTION_ERROR_CODES.includes(error.code)) {
         return true;
     }
-    return typeof error.message === 'string' && CONNECTION_ERROR_MESSAGES.some(re => re.test(error.message));
+    const withoutCode = (error.code === undefined && error.errno === undefined) || error.code === 'SQLITE_MISUSE';
+    return (withoutCode &&
+        typeof error.message === 'string' &&
+        CONNECTION_ERROR_MESSAGES.some(re => re.test(error.message)));
 }
 //# sourceMappingURL=errors.js.map
