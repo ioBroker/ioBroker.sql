@@ -2696,6 +2696,14 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 error: `Invalid call. End date ${JSON.stringify(options.end)} is not a valid date`,
             }, msg.callback);
         }
+        // The client can send the borders of the intervals itself, e.g. the local days of a chart: a fixed step does
+        // not fit a day with 23 or 25 hours. The database must then be read for exactly the range they cover.
+        const intervalBorders = (0, aggregate_1.parseIntervalBorders)(msg.message.options.intervalBorders, options.limit);
+        if (intervalBorders) {
+            options.intervalBorders = intervalBorders;
+            options.start = intervalBorders[0];
+            options.end = intervalBorders[intervalBorders.length - 1];
+        }
         if (!options.start && options.count) {
             options.returnNewestEntries = true;
         }
