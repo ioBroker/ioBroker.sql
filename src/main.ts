@@ -347,7 +347,7 @@ export class SqlAdapter extends Adapter {
     private dpOverviewTimeout: NodeJS.Timeout | null = null;
     private bufferChecker: NodeJS.Timeout | null = null;
     private activeConnections = 0;
-    private poolBorrowGuard: ((err: Error | null | undefined, client: SQLClient) => void)[] = []; // required until https://github.com/intellinote/sql-client/issues/7 is fixed
+    private poolBorrowGuard: ((err: Error | null | undefined, client?: SQLClient) => void)[] = []; // required until https://github.com/intellinote/sql-client/issues/7 is fixed
     private readonly logConnectionUsage = true;
     private postgresDbCreated = false;
     private lockTasks = false;
@@ -555,7 +555,17 @@ export class SqlAdapter extends Adapter {
             this.log.debug(`Return connection to pool: ${this.activeConnections} now`);
         }
         if (this.clientPool && client) {
-            if (this.poolBorrowGuard.length) {
+            if (this.poolBorrowGuard.length && client.isBroken()) {
+                // A broken client must not go to the waiter directly: it would fail its statements
+                // too, and every further waiter after it. Give it back to the pool, which drops it on
+                // the next borrow, and borrow a fresh connection for the waiter instead.
+                try {
+                    this.clientPool.return(client);
+                } catch {
+                    // Ignore
+                }
+                this.borrowClientFromPool(this.poolBorrowGuard.shift()!);
+            } else if (this.poolBorrowGuard.length) {
                 this.activeConnections++;
                 if (this.logConnectionUsage) {
                     this.log.debug(`Borrow returned connection directly: ${this.activeConnections} now`);
