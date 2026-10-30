@@ -377,3 +377,31 @@ describe('Test SQLClientPool replaces connections that were idle too long (max_a
         });
     });
 });
+
+describe('Test SQLClientPool closes expired idle connections in the eviction run (#587)', function () {
+    it('disconnects clients idle longer than max_age and broken ones, keeps the others', function (done) {
+        const pool = new SQLClientPool({}, {}, fakeFactory());
+        pool.open({ max_idle: 4, max_age: 1000 }, err => {
+            assert.ifError(err);
+            const make = (age, broken) => {
+                const client = new SQLClient({}, fakeFactory());
+                client.pooled_at = Date.now() - age;
+                client.broken = broken;
+                client.disconnected = false;
+                client.disconnect = () => (client.disconnected = true);
+                return client;
+            };
+            const fresh = make(100, false);
+            const old = make(5000, false);
+            const broken = make(100, true);
+            pool.pool.push(fresh, old, broken);
+            pool._evict(() => {
+                assert.deepStrictEqual(pool.pool, [fresh]);
+                assert.strictEqual(old.disconnected, true, 'closed before the server resets it');
+                assert.strictEqual(broken.disconnected, true);
+                assert.strictEqual(fresh.disconnected, false);
+                done();
+            });
+        });
+    });
+});

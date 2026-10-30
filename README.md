@@ -620,7 +620,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 ### **WORK IN PROGRESS**
-* (@Schimi1983) A failed write is no longer silently dropped: the error is passed on, so `storeState` reports it instead of `success: true`. If the database was not reachable, the values are kept and written with the next write of the datapoint (at most 2000 per datapoint, the oldest are dropped first, with a warning). Pooled connections that were idle for more than 60 s are replaced, so a server-side `wait_timeout` no longer breaks the next write (#587)
+* (@Schimi1983) A failed write is no longer silently dropped: the error is passed on, so `storeState` reports it instead of `success: true`. If the database was not reachable, the values are kept and written with the next write of the datapoint (at most 2000 per datapoint, the oldest are dropped first, with a warning). Pooled connections that were idle for more than 60 s are closed and replaced, so a server-side `wait_timeout` no longer resets them; the warning "SQL connection lost" every few minutes on hosted databases is gone (#587)
 
 ### 4.3.0 (2026-10-29)
 * (@GermanBluefox) `getHistory` accepts `intervalBorders`: the client can send the borders of the intervals itself, e.g. the local days of a chart. With `count` or `step` every interval after a switch of the daylight saving time ended an hour away from the midnight, so a value written at 23:59:59 was shown on the next day (ioBroker/ioBroker.echarts#1311)

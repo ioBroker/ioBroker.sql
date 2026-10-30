@@ -382,7 +382,16 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 // drops the flagged client on the next borrow. This just makes the reconnect
                 // visible in the log.
                 if (client.on && client.listenerCount && !client.listenerCount('error')) {
-                    client.on('error', (err) => this.log.warn(`SQL connection lost, will reconnect: ${(0, errors_1.formatError)(err)}`));
+                    client.on('error', (err) => {
+                        // An idle connection in the pool that the server closed (e.g. after `wait_timeout`)
+                        // is simply replaced on the next borrow - nothing was lost, so no warning.
+                        if (client.borrowed_at) {
+                            this.log.warn(`SQL connection lost, will reconnect: ${(0, errors_1.formatError)(err)}`);
+                        }
+                        else {
+                            this.log.debug(`Idle SQL connection closed by the server: ${(0, errors_1.formatError)(err)}`);
+                        }
+                    });
                 }
                 // A real, working connection was handed out - this, not the mere existence of a pool
                 // object, is what info.connection reports (#374).
@@ -660,6 +669,8 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 // close idle connections themselves (MySQL `wait_timeout`, often 60-300 s on hosted
                 // databases), and a write on such a connection fails (#587). 60 s is below the usual values.
                 poolOptions.max_age = POOL_MAX_IDLE_AGE;
+                // close expired idle connections between borrows too, before the server resets them
+                poolOptions.evictionRunInterval = POOL_MAX_IDLE_AGE / 2;
             }
             if (this.config.maxConnections) {
                 poolOptions.max_active = this.config.maxConnections + 1; // we use our own Pool limiter logic, so let library have one more to not block us too early
