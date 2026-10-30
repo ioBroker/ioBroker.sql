@@ -51,6 +51,7 @@ const statistics_1 = require("./lib/statistics");
 const postgresql_client_1 = require("./lib/postgresql-client");
 const sqlite3_client_1 = require("./lib/sqlite3-client");
 const errors_1 = require("./lib/errors");
+const write_buffer_1 = require("./lib/write-buffer");
 const SQLFuncs = {
     mssql: {
         init: MSSQL.init,
@@ -192,6 +193,8 @@ function isEqual(a, b) {
 /** Every time series table the statistics and the cleanup have to look at */
 const STAT_TABLES = ['ts_number', 'ts_string', 'ts_bool', 'ts_counter'];
 const MAX_TASKS = 100;
+/** Milliseconds a pooled connection may be idle before it is replaced (`max_age` of the pool) */
+const POOL_MAX_IDLE_AGE = 60_000;
 /** Maximal number of rows one `getRawEntries` call may return */
 const MAX_RAW_ENTRIES = 2000;
 /** How often an unchanged connection error is repeated as error in the log */
@@ -379,7 +382,16 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 // drops the flagged client on the next borrow. This just makes the reconnect
                 // visible in the log.
                 if (client.on && client.listenerCount && !client.listenerCount('error')) {
-                    client.on('error', (err) => this.log.warn(`SQL connection lost, will reconnect: ${(0, errors_1.formatError)(err)}`));
+                    client.on('error', (err) => {
+                        // An idle connection in the pool that the server closed (e.g. after `wait_timeout`)
+                        // is simply replaced on the next borrow - nothing was lost, so no warning.
+                        if (client.borrowed_at) {
+                            this.log.warn(`SQL connection lost, will reconnect: ${(0, errors_1.formatError)(err)}`);
+                        }
+                        else {
+                            this.log.debug(`Idle SQL connection closed by the server: ${(0, errors_1.formatError)(err)}`);
+                        }
+                    });
                 }
                 // A real, working connection was handed out - this, not the mere existence of a pool
                 // object, is what info.connection reports (#374).
@@ -652,6 +664,14 @@ class SqlAdapter extends adapter_core_1.Adapter {
             const poolOptions = {
                 max_idle: this.config.dbtype === 'sqlite' ? 1 : 2,
             };
+            if (this.config.dbtype !== 'sqlite') {
+                // A connection that was idle for a while is opened anew instead of being reused: servers
+                // close idle connections themselves (MySQL `wait_timeout`, often 60-300 s on hosted
+                // databases), and a write on such a connection fails (#587). 60 s is below the usual values.
+                poolOptions.max_age = POOL_MAX_IDLE_AGE;
+                // close expired idle connections between borrows too, before the server resets them
+                poolOptions.evictionRunInterval = POOL_MAX_IDLE_AGE / 2;
+            }
             if (this.config.maxConnections) {
                 poolOptions.max_active = this.config.maxConnections + 1; // we use our own Pool limiter logic, so let library have one more to not block us too early
                 poolOptions.max_wait = 10000; // hard code for now
@@ -1830,38 +1850,58 @@ class SqlAdapter extends adapter_core_1.Adapter {
     /**
      * Write one batch of values.
      *
-     * `sqlFuncs.insert()` chunks at 500 rows per statement and emits one statement per table, so a batch
-     * can be more than one query. They must be sent one by one: no driver here is configured for
-     * multi-statement batches (mysql2 needs `multipleStatements`, node-sqlite3's run() takes a single
-     * statement), and enabling that would only widen the injection surface of the `query` message.
-     * All statements share one borrowed connection, and the first failure aborts the rest - same as the
-     * single concatenated query did before.
+     * The batch is split into groups of one table with at most 500 rows, and each group is one INSERT.
+     * They must be sent one by one: no driver here is configured for multi-statement batches (mysql2
+     * needs `multipleStatements`, node-sqlite3's run() takes a single statement), and enabling that
+     * would only widen the injection surface of the `query` message. All statements share one borrowed
+     * connection, and the first failure aborts the rest.
+     *
+     * The error is passed on (#587). Before, it was only logged and the whole batch was gone, while
+     * `storeState` answered with success. If the database was not reachable - no connection from the
+     * pool, or the connection broke - the rows that were not written are passed on as well, the group
+     * that failed and all after it, so the caller can keep them for a retry. On an SQL error they are
+     * not: the same rows would fail again.
+     *
+     * @param list the rows of one datapoint
+     * @param index the database ID of the datapoint
+     * @param id the ioBroker ID, for the log and the retention check
+     * @param cb the error, and the unwritten rows if a retry makes sense
      */
-    _insertValuesIntoDB(queries, id, cb) {
+    _insertValuesIntoDB(list, index, id, cb) {
+        const groups = (0, write_buffer_1.splitBatch)(list);
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
-                this.log.error(err ? (0, errors_1.formatError)(err) : 'No client');
-                cb?.(); // BF asked (2021.12.14): may be return here err?
+                const error = err || new Error('No client');
+                this.log.error((0, errors_1.formatError)(error));
+                cb?.(error, list);
                 return;
             }
             const next = (i) => {
-                if (i >= queries.length) {
+                if (i >= groups.length) {
                     this.returnClientToPool(client);
                     this.checkRetention(id);
-                    cb?.(); // BF asked (2021.12.14): may be return here err?
+                    cb?.();
                     return;
                 }
-                this.log.debug(queries[i]);
-                client.execute(queries[i], (err /* , rows, fields */) => {
-                    if (err) {
-                        this.returnClientToPool(client);
-                        this.log.error(`Cannot insert ${queries[i]}: ${err} (id: ${id})`);
-                        cb?.(); // BF asked (2021.12.14): may be return here err?
+                const queries = this.sqlFuncs.insert(this.config.dbname, index, groups[i]);
+                const run = (q) => {
+                    if (q >= queries.length) {
+                        next(i + 1);
                         return;
                     }
-                    next(i + 1);
-                });
+                    this.log.debug(queries[q]);
+                    client.execute(queries[q], (err /* , rows, fields */) => {
+                        if (err) {
+                            this.returnClientToPool(client);
+                            this.log.error(`Cannot insert ${queries[q]}: ${err} (id: ${id})`);
+                            cb?.(err, (0, errors_1.isConnectionError)(err) ? groups.slice(i).flat() : undefined);
+                            return;
+                        }
+                        run(q + 1);
+                    });
+                };
+                run(0);
             };
             next(0);
         });
@@ -2175,6 +2215,40 @@ class SqlAdapter extends adapter_core_1.Adapter {
             }
         });
     }
+    /**
+     * Keep rows that could not be written, because the database was not reachable, for the next write
+     * of the datapoint.
+     *
+     * The rows go in front of the values logged in the meantime; beyond the cap the oldest are dropped.
+     * The order in the database does not depend on it, the rows are keyed by timestamp.
+     * If the connection broke after the server had committed the statement, its rows are sent again:
+     * the tables with a primary key ignore the duplicate, `ts_counter` (MySQL/PostgreSQL) and the MSSQL
+     * tables get it twice.
+     *
+     * Not when the adapter stops or the datapoint is being disabled: nothing would write the buffer
+     * any more.
+     *
+     * @param id the datapoint
+     * @param unwritten the rows that were not written
+     */
+    #keepForRetry(id, unwritten) {
+        const sqlDP = this.sqlDPs[id];
+        if (!sqlDP || this.finished || sqlDP.config?.enabled === false) {
+            this.log.warn(`${unwritten.length} values of ${id} were not stored, the database is not reachable`);
+            return;
+        }
+        const { list, dropped } = (0, write_buffer_1.requeue)(sqlDP.list, unwritten);
+        sqlDP.list = list;
+        // once a minute per datapoint: during an outage every value of every datapoint fails
+        const now = Date.now();
+        if (dropped || now - (this.#keptLogged.get(id) || 0) >= 60_000) {
+            this.#keptLogged.set(id, now);
+            const lost = dropped ? `, the ${dropped} oldest were dropped (limit reached)` : '';
+            this.log.warn(`Database not reachable, ${list.length} values of ${id} are kept for the next write${lost}`);
+        }
+    }
+    /** When the warning about kept values was logged last, per datapoint */
+    #keptLogged = new Map();
     storeCached(onlyId, cb) {
         let count = 0;
         for (const id in this.sqlDPs) {
@@ -2191,9 +2265,12 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 this.sqlDPs[id].inFlight[inFlightId] = this.sqlDPs[id].list;
                 this.sqlDPs[id].list = [];
                 count++;
-                this.pushValuesIntoDB(id, this.sqlDPs[id].inFlight[inFlightId], (err) => {
+                this.pushValuesIntoDB(id, this.sqlDPs[id].inFlight[inFlightId], (err, unwritten) => {
                     if (this.sqlDPs[id]?.inFlight?.[inFlightId]) {
                         delete this.sqlDPs[id].inFlight[inFlightId];
+                    }
+                    if (err && unwritten?.length) {
+                        this.#keepForRetry(id, unwritten);
                     }
                     if (!--count && cb) {
                         cb?.(err);
@@ -2220,7 +2297,9 @@ class SqlAdapter extends adapter_core_1.Adapter {
             if (this.tasks.length > MAX_TASKS) {
                 const error = `Cannot queue new requests, because more than ${MAX_TASKS}`;
                 this.log.error(error);
-                cb?.(new Error(error));
+                // the queue fills up while the database does not answer: keep the values like on a
+                // connection error instead of dropping them
+                cb?.(new Error(error), list);
             }
             else {
                 this.tasks.push({ operation: 'insert', index: this.sqlDPs[id].index, list, id, callback: cb });
@@ -2228,8 +2307,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
             }
         }
         else {
-            const queries = this.sqlFuncs.insert(this.config.dbname, this.sqlDPs[id].index, list);
-            this._insertValuesIntoDB(queries, id, cb);
+            this._insertValuesIntoDB(list, this.sqlDPs[id].index, id, cb);
         }
     }
     processTasks() {
@@ -2268,9 +2346,10 @@ class SqlAdapter extends adapter_core_1.Adapter {
                         }
                     }
                 }
-                const queries = this.sqlFuncs.insert(this.config.dbname, this.tasks[0].index, this.tasks[0].list);
-                this._insertValuesIntoDB(queries, this.tasks[0].id, () => {
-                    callbacks.forEach(cb => cb());
+                this._insertValuesIntoDB(this.tasks[0].list, this.tasks[0].index, this.tasks[0].id, (err, unwritten) => {
+                    // the lists of all merged tasks were written together: the first callback gets the
+                    // unwritten rows of all of them, the others only the error
+                    callbacks.forEach((cb, i) => cb(err, i ? undefined : unwritten));
                     this.tasks.shift();
                     this.lockTasks = false;
                     if (this.tasks.length) {
