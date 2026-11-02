@@ -19,6 +19,7 @@ exports.deleteDatapoint = deleteDatapoint;
 exports.update = update;
 exports.getRawEntries = getRawEntries;
 exports.getRawEntriesCount = getRawEntriesCount;
+const sql_string_1 = require("./sql-string");
 function init(_dbName) {
     return [
         'CREATE TABLE sources    (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT);',
@@ -84,12 +85,10 @@ function insert(_dbName, index, values) {
             value.state.val = value.state.val ? 1 : 0;
         }
         else if (value.table === 'ts_string') {
-            value.state.val = `'${value.state.val.toString().replace(/'/g, '')}'`;
+            value.state.val = (0, sql_string_1.quoteSqlString)(value.state.val);
         }
-        else if (value.table === 'ts_number') {
-            if (isNaN(value.state.val)) {
-                value.state.val = 'NULL';
-            }
+        else if (value.table === 'ts_number' || value.table === 'ts_counter') {
+            value.state.val = (0, sql_string_1.numberOrNull)(value.state.val);
         }
         if (value.table === 'ts_counter') {
             insertValues[value.table].push(`(${index}, ${value.state.ts}, ${value.state.val})`);
@@ -131,10 +130,10 @@ function getIdSelect(_dbName, name) {
     if (!name) {
         return 'SELECT id, type, name FROM datapoints;';
     }
-    return `SELECT id, type, name FROM datapoints WHERE name='${name}';`;
+    return `SELECT id, type, name FROM datapoints WHERE name=${(0, sql_string_1.quoteSqlString)(name)};`;
 }
 function getIdInsert(_dbName, name, type) {
-    return `INSERT INTO datapoints (name, type) VALUES('${name}', ${type});`;
+    return `INSERT INTO datapoints (name, type) VALUES(${(0, sql_string_1.quoteSqlString)(name)}, ${type});`;
 }
 function getIdUpdate(_dbName, id, type) {
     return `UPDATE datapoints SET type = ${type} WHERE id = ${id};`;
@@ -143,10 +142,10 @@ function getFromSelect(_dbName, name) {
     if (!name) {
         return 'SELECT id, name FROM sources;';
     }
-    return `SELECT id, name FROM sources WHERE name='${name}';`;
+    return `SELECT id, name FROM sources WHERE name=${(0, sql_string_1.quoteSqlString)(name)};`;
 }
 function getFromInsert(_dbName, values) {
-    return `INSERT INTO sources (name) VALUES('${values}');`;
+    return `INSERT INTO sources (name) VALUES(${(0, sql_string_1.quoteSqlString)(values)});`;
 }
 function getCounterDiff(_dbName, options) {
     // Take first real value after start
@@ -274,7 +273,10 @@ function update(_dbName, index, originalState, from, table) {
         state.val = 'NULL';
     }
     else if (table === 'ts_string') {
-        state.val = `'${state.val.toString().replace(/'/g, '')}'`;
+        state.val = (0, sql_string_1.quoteSqlString)(state.val);
+    }
+    else if (table === 'ts_number' || table === 'ts_counter') {
+        state.val = (0, sql_string_1.numberOrNull)(state.val);
     }
     let query = `UPDATE ${table} SET `;
     const vals = [];

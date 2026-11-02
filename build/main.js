@@ -1345,6 +1345,20 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
     }
     processMessage(msg) {
+        // A message with an unexpected shape (`getCounter` without `options`, `null` in an array, ...)
+        // used to throw in the handler and take the adapter down with UNCAUGHT_EXCEPTION. The sender
+        // gets the error instead.
+        try {
+            this.#dispatchMessage(msg);
+        }
+        catch (err) {
+            this.log.error(`Cannot process "${msg.command}" ${JSON.stringify(msg.message)}: ${(0, errors_1.formatError)(err)}`);
+            if (msg.callback) {
+                this.sendTo(msg.from, msg.command, { error: `Invalid call: ${(0, errors_1.formatError)(err)}` }, msg.callback);
+            }
+        }
+    }
+    #dispatchMessage(msg) {
         // Answer with an error instead of dereferencing a `sqlFuncs` that is still null. Guarding
         // here covers every database-backed command at once; the alternative would be a check at
         // each of the ~30 `this.sqlFuncs!` uses, every one of which is only reachable from here
@@ -1730,6 +1744,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
     }
     pushHelper(_id, state, cb) {
         if (!this.sqlDPs[_id] || (!this.sqlDPs[_id].state && !state)) {
+            cb?.();
             return;
         }
         state ||= this.sqlDPs[_id].state;
@@ -1762,7 +1777,10 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     val = val ? 1 : 0;
                 }
                 else {
-                    return this.log.info(`Do not store value "${val}" for ${_id} because no number`);
+                    this.log.info(`Do not store value "${val}" for ${_id} because no number`);
+                    // `storeState` waits for this callback; without it the message was never answered
+                    cb?.();
+                    return;
                 }
             }
             else if (_settings.storageType === 'Boolean' && typeof val !== 'boolean') {
@@ -2898,10 +2916,14 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
     }
     getCounterDiff(msg) {
-        const id = msg.message.id;
-        const start = msg.message.options.start || 0;
-        const end = msg.message.options.end || Date.now() + 5000000;
-        if (!this.sqlDPs[id]) {
+        const id = msg.message?.id;
+        const opts = msg.message?.options || {};
+        const start = opts.start ? (0, messages_1.toTimestamp)(opts.start) : 0;
+        const end = opts.end ? (0, messages_1.toTimestamp)(opts.end) : Date.now() + 5000000;
+        if (!(0, messages_1.isId)(id) || start === undefined || end === undefined) {
+            this.sendTo(msg.from, msg.command, { result: [], step: null, error: `Invalid call: ${JSON.stringify(msg.message)}` }, msg.callback);
+        }
+        else if (!this.sqlDPs[id]) {
             this.sendTo(msg.from, msg.command, { result: [], step: null, error: 'Not enabled' }, msg.callback);
         }
         else {
@@ -2931,6 +2953,9 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
         else {
             ignoreNull = false; // include nulls
+        }
+        if (msg.message.id !== '*' && !(0, messages_1.isId)(msg.message.id)) {
+            return this.sendTo(msg.from, msg.command, { result: [], step: null, error: `Invalid call: ID missing in ${JSON.stringify(msg.message)}` }, msg.callback);
         }
         const logId = (msg.message.id ? msg.message.id : 'all') + Date.now() + Math.random();
         const options = {
@@ -2973,25 +2998,22 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 options.count = 500;
             }
         }
-        try {
-            if (options.start && typeof options.start !== 'number') {
-                options.start = new Date(options.start).getTime();
+        // `new Date()` never throws: an unparsable date gave NaN, which reached the database as `ts >= NaN`.
+        // A numeric string ("1700000000000") is a timestamp too - as a date it is NaN as well.
+        if (options.start) {
+            options.start = (0, messages_1.toTimestamp)(options.start);
+            if (options.start === undefined) {
+                return this.sendTo(msg.from, msg.command, {
+                    error: `Invalid call. Start date ${JSON.stringify(msg.message.options.start)} is not a valid date`,
+                }, msg.callback);
             }
         }
-        catch {
-            return this.sendTo(msg.from, msg.command, {
-                error: `Invalid call. Start date ${JSON.stringify(options.start)} is not a valid date`,
-            }, msg.callback);
+        options.end = (0, messages_1.toTimestamp)(options.end);
+        if (options.end === undefined) {
+            return this.sendTo(msg.from, msg.command, { error: `Invalid call. End date ${JSON.stringify(msg.message.options.end)} is not a valid date` }, msg.callback);
         }
-        try {
-            if (options.end && typeof options.end !== 'number') {
-                options.end = new Date(options.end).getTime();
-            }
-        }
-        catch {
-            return this.sendTo(msg.from, msg.command, {
-                error: `Invalid call. End date ${JSON.stringify(options.end)} is not a valid date`,
-            }, msg.callback);
+        if (options.count < 0 || options.limit < 0) {
+            return this.sendTo(msg.from, msg.command, { error: `Invalid call. count and limit must not be negative` }, msg.callback);
         }
         // The client can send the borders of the intervals itself, e.g. the local days of a chart: a fixed step does
         // not fit a day with 23 or 25 hours. The database must then be read for exactly the range they cover.
@@ -3204,13 +3226,22 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 for (let i = res.length - 1; i >= 0; i--) {
                     if (res[i].state.ts === state.ts) {
                         if (state.val !== undefined) {
-                            res[i].state.val = state.val;
+                            const val = (0, messages_1.valueForTable)(res[i].table, state.val);
+                            if (val instanceof Error) {
+                                cb?.(new Error(`Cannot update ${id}: ${val.message}`));
+                                return;
+                            }
+                            res[i].state.val = val;
                         }
                         if (state.q !== undefined && res[i].state.q !== undefined) {
                             res[i].state.q = state.q;
                         }
                         if (state.from !== undefined && res[i].from !== undefined) {
                             res[i].state.from = state.from;
+                            // `from` is stored by its number (see `pushValueIntoDB`), not by the name
+                            if (this.from[state.from] !== undefined) {
+                                res[i].from = this.from[state.from];
+                            }
                         }
                         if (state.ack !== undefined) {
                             res[i].state.ack = state.ack;
@@ -3255,7 +3286,13 @@ class SqlAdapter extends adapter_core_1.Adapter {
     }
     /** Build and execute the UPDATE query for one entry of one datapoint */
     #updateInDb(id, table, index, state, cb) {
-        const query = this.sqlFuncs.update(this.config.dbname, index, state, this.from[state.from], table);
+        // the dialects write numbers and booleans into the statement as they are: check the value first
+        const val = state.val === undefined ? undefined : (0, messages_1.valueForTable)(table, state.val);
+        if (val instanceof Error) {
+            cb?.(new Error(`Cannot update ${id}: ${val.message}`));
+            return;
+        }
+        const query = this.sqlFuncs.update(this.config.dbname, index, { ts: state.ts, val, q: state.q, ack: state.ack }, state.from !== undefined ? this.from[state.from] : undefined, table);
         this.#executeQueries(id, [query], cb);
     }
     #delete(id, state, cb) {
@@ -3264,23 +3301,13 @@ class SqlAdapter extends adapter_core_1.Adapter {
         if (this.sqlDPs[id]) {
             const res = this.sqlDPs[id].list;
             if (res) {
-                if (!state.ts && !state.start && !state.end) {
+                if (state.mode === 'all') {
                     this.sqlDPs[id].list = [];
                 }
                 else {
                     for (let i = res.length - 1; i >= 0; i--) {
-                        if (state.start && state.end) {
+                        if (state.mode === 'range') {
                             if (res[i].state.ts >= state.start && res[i].state.ts <= state.end) {
-                                res.splice(i, 1);
-                            }
-                        }
-                        else if (state.start) {
-                            if (res[i].state.ts >= state.start) {
-                                res.splice(i, 1);
-                            }
-                        }
-                        else if (state.end) {
-                            if (res[i].state.ts <= state.end) {
                                 res.splice(i, 1);
                             }
                         }
@@ -3323,6 +3350,11 @@ class SqlAdapter extends adapter_core_1.Adapter {
      * (or no longer) enabled for logging, i.e., that are not in `sqlDPs`.
      */
     #readIdIndexAndType(id, cb) {
+        if (!(0, messages_1.isId)(id)) {
+            // without a name `getIdSelect` returns every datapoint, and the first row would be taken
+            setImmediate(() => cb(new Error('No ID given')));
+            return;
+        }
         if (!this.clientPool) {
             this.log.warn(`No connection to the database, cannot look up "${id}"`);
             setImmediate(() => cb(new Error('No Connection to database')));
@@ -3365,13 +3397,14 @@ class SqlAdapter extends adapter_core_1.Adapter {
     }
     /** Build the DELETE query for one table of one datapoint */
     #buildDeleteQuery(table, index, state) {
-        if (state.start && state.end) {
+        // The mode is explicit: with `if (state.start && state.end)` an unparsable start (NaN) or a
+        // start of 0 fell through to "delete every entry of the datapoint".
+        if (state.mode === 'range') {
             return this.sqlFuncs.deleteFromTable(this.config.dbname, table, index, state.start, state.end);
         }
-        if (state.ts) {
+        if (state.mode === 'one') {
             return this.sqlFuncs.deleteFromTable(this.config.dbname, table, index, state.ts);
         }
-        // delete all entries for ID
         return this.sqlFuncs.deleteFromTable(this.config.dbname, table, index);
     }
     /** Execute the given queries one after another and stop at the first error */
@@ -3403,204 +3436,84 @@ class SqlAdapter extends adapter_core_1.Adapter {
             this._executeQuery(query, id, next);
         }
     }
+    /**
+     * Execute the requests of one `update`/`delete`/`deleteAll` message and answer it once, after the last
+     * one has finished. Entries the parser refused and entries the database refused are both reported;
+     * before, a list of entries was answered with `success: true` while the writes were still running.
+     */
+    #runRequests(msg, parsed, run) {
+        const errors = [...parsed.errors];
+        const answer = () => {
+            if (!msg.callback) {
+                return;
+            }
+            this.sendTo(msg.from, msg.command, errors.length
+                ? {
+                    error: errors.length === 1 ? errors[0] : `${errors.length} errors: ${errors.join('; ')}`,
+                    errors,
+                    sqlConnected: !!this.clientPool,
+                }
+                : { success: true, sqlConnected: !!this.clientPool }, msg.callback);
+        };
+        if (!parsed.requests.length) {
+            if (errors.length) {
+                this.log.warn(`${msg.command}: ${errors.join('; ')}`);
+            }
+            answer();
+            return;
+        }
+        this.log.debug(`${msg.command} ${parsed.requests.length} items`);
+        let pending = parsed.requests.length;
+        for (const request of parsed.requests) {
+            run(request, err => {
+                if (err) {
+                    errors.push(err.message);
+                }
+                if (!--pending) {
+                    if (errors.length) {
+                        this.log.warn(`${msg.command}: ${errors.join('; ')}`);
+                    }
+                    answer();
+                }
+            });
+        }
+    }
     updateState(msg) {
-        if (!msg.message) {
-            this.log.error('updateState called with invalid data');
-            return this.sendTo(msg.from, msg.command, {
-                error: `Invalid call: ${JSON.stringify(msg)}`,
-            }, msg.callback);
-        }
-        let id;
-        if (Array.isArray(msg.message)) {
-            this.log.debug(`updateState ${msg.message.length} items`);
-            for (let i = 0; i < msg.message.length; i++) {
-                id = this.aliasMap[msg.message[i].id] ? this.aliasMap[msg.message[i].id] : msg.message[i].id;
-                if (msg.message[i].state && typeof msg.message[i].state === 'object') {
-                    this.update(id, msg.message[i].state);
-                }
-                else {
-                    this.log.warn(`Invalid state for ${JSON.stringify(msg.message[i])}`);
-                }
-            }
-        }
-        else if (msg.message.state && Array.isArray(msg.message.state)) {
-            this.log.debug(`updateState ${msg.message.state.length} items`);
-            id = this.aliasMap[msg.message.id] ? this.aliasMap[msg.message.id] : msg.message.id;
-            for (let j = 0; j < msg.message.state.length; j++) {
-                if (msg.message.state[j] && typeof msg.message.state[j] === 'object') {
-                    this.update(id, msg.message.state[j]);
-                }
-                else {
-                    this.log.warn(`Invalid state for ${JSON.stringify(msg.message.state[j])}`);
-                }
-            }
-        }
-        else if (msg.message.id && msg.message.state && typeof msg.message.state === 'object') {
-            this.log.debug('updateState 1 item');
-            id = this.aliasMap[msg.message.id] ? this.aliasMap[msg.message.id] : msg.message.id;
-            return this.update(id, msg.message.state, err => this.sendTo(msg.from, msg.command, err
-                ? { error: err.message, sqlConnected: !!this.clientPool }
-                : { success: true, sqlConnected: !!this.clientPool }, msg.callback));
-        }
-        else {
-            this.log.error('updateState called with invalid data');
-            return this.sendTo(msg.from, msg.command, {
-                error: `Invalid call: ${JSON.stringify(msg)}`,
-            }, msg.callback);
-        }
-        this.sendTo(msg.from, msg.command, {
-            success: true,
-            sqlConnected: !!this.clientPool,
-        }, msg.callback);
+        this.#runRequests(msg, (0, messages_1.parseUpdateRequests)(msg.message, id => this.aliasMap[id] || id), (request, cb) => this.update(request.id, request.state, cb));
     }
     deleteHistoryEntry(msg) {
-        if (!msg.message) {
-            this.log.error('deleteHistoryEntry called with invalid data');
-            return this.sendTo(msg.from, msg.command, {
-                error: `Invalid call: ${JSON.stringify(msg)}`,
-            }, msg.callback);
-        }
-        let id;
-        if (Array.isArray(msg.message)) {
-            this.log.debug(`deleteHistoryEntry ${msg.message.length} items`);
-            for (let i = 0; i < msg.message.length; i++) {
-                id = this.aliasMap[msg.message[i].id] ? this.aliasMap[msg.message[i].id] : msg.message[i].id;
-                // {id: 'blabla', ts: 892}
-                if (msg.message[i].ts) {
-                    this.#delete(id, { ts: msg.message[i].ts });
-                }
-                else if (msg.message[i].start) {
-                    if (typeof msg.message[i].start === 'string') {
-                        msg.message[i].start = new Date(msg.message[i].start).getTime();
-                    }
-                    if (typeof msg.message[i].end === 'string') {
-                        msg.message[i].end = new Date(msg.message[i].end).getTime();
-                    }
-                    this.#delete(id, { start: msg.message[i].start, end: msg.message[i].end || Date.now() });
-                }
-                else if (typeof msg.message[i].state === 'object' &&
-                    msg.message[i].state &&
-                    msg.message[i].state.ts) {
-                    this.#delete(id, { ts: msg.message[i].state.ts });
-                }
-                else if (typeof msg.message[i].state === 'object' &&
-                    msg.message[i].state &&
-                    msg.message[i].state.start) {
-                    if (typeof msg.message[i].state.start === 'string') {
-                        msg.message[i].state.start = new Date(msg.message[i].state.start).getTime();
-                    }
-                    if (typeof msg.message[i].state.end === 'string') {
-                        msg.message[i].state.end = new Date(msg.message[i].state.end).getTime();
-                    }
-                    this.#delete(id, {
-                        start: msg.message[i].state.start,
-                        end: msg.message[i].state.end || Date.now(),
-                    });
-                }
-                else {
-                    this.log.warn(`Invalid state for ${JSON.stringify(msg.message[i])}`);
-                }
-            }
-        }
-        else if (msg.message.state && Array.isArray(msg.message.state)) {
-            this.log.debug(`deleteHistoryEntry ${msg.message.state.length} items`);
-            id = this.aliasMap[msg.message.id] ? this.aliasMap[msg.message.id] : msg.message.id;
-            for (let j = 0; j < msg.message.state.length; j++) {
-                if (msg.message.state[j] && typeof msg.message.state[j] === 'object') {
-                    if (msg.message.state[j].ts) {
-                        this.#delete(id, { ts: msg.message.state[j].ts });
-                    }
-                    else if (msg.message.state[j].start) {
-                        if (typeof msg.message.state[j].start === 'string') {
-                            msg.message.state[j].start = new Date(msg.message.state[j].start).getTime();
-                        }
-                        if (typeof msg.message.state[j].end === 'string') {
-                            msg.message.state[j].end = new Date(msg.message.state[j].end).getTime();
-                        }
-                        this.#delete(id, {
-                            start: msg.message.state[j].start,
-                            end: msg.message.state[j].end || Date.now(),
-                        });
-                    }
-                }
-                else if (msg.message.state[j] && typeof msg.message.state[j] === 'number') {
-                    this.#delete(id, { ts: msg.message.state[j] });
-                }
-                else {
-                    this.log.warn(`Invalid state for ${JSON.stringify(msg.message.state[j])}`);
-                }
-            }
-        }
-        else if (msg.message.ts && Array.isArray(msg.message.ts)) {
-            this.log.debug(`deleteHistoryEntry ${msg.message.ts.length} items`);
-            id = this.aliasMap[msg.message.id] ? this.aliasMap[msg.message.id] : msg.message.id;
-            for (let j = 0; j < msg.message.ts.length; j++) {
-                if (msg.message.ts[j] && typeof msg.message.ts[j] === 'number') {
-                    this.#delete(id, { ts: msg.message.ts[j] });
-                }
-                else {
-                    this.log.warn(`Invalid state for ${JSON.stringify(msg.message.ts[j])}`);
-                }
-            }
-        }
-        else if (msg.message.id && msg.message.state && typeof msg.message.state === 'object') {
-            this.log.debug('deleteHistoryEntry 1 item');
-            id = this.aliasMap[msg.message.id] ? this.aliasMap[msg.message.id] : msg.message.id;
-            return this.#delete(id, { ts: msg.message.state.ts }, err => this.sendTo(msg.from, msg.command, err
-                ? { error: err.message, sqlConnected: !!this.clientPool }
-                : { success: true, sqlConnected: !!this.clientPool }, msg.callback));
-        }
-        else if (msg.message.id && msg.message.ts && typeof msg.message.ts === 'number') {
-            this.log.debug('deleteHistoryEntry 1 item');
-            id = this.aliasMap[msg.message.id] ? this.aliasMap[msg.message.id] : msg.message.id;
-            return this.#delete(id, { ts: msg.message.ts }, err => this.sendTo(msg.from, msg.command, err
-                ? { error: err.message, sqlConnected: !!this.clientPool }
-                : { success: true, sqlConnected: !!this.clientPool }, msg.callback));
-        }
-        else {
-            this.log.error('deleteHistoryEntry called with invalid data');
-            return this.sendTo(msg.from, msg.command, { error: `Invalid call: ${JSON.stringify(msg)}` }, msg.callback);
-        }
-        this.sendTo(msg.from, msg.command, {
-            success: true,
-            sqlConnected: !!this.clientPool,
-        }, msg.callback);
+        this.#runRequests(msg, (0, messages_1.parseDeleteRequests)(msg.message, false, Date.now(), id => this.aliasMap[id] || id), (request, cb) => this.#delete(request.id, this.#deleteRange(request), cb));
     }
     deleteStateAll(msg) {
-        if (!msg.message) {
-            this.log.error('deleteStateAll called with invalid data');
-            return this.sendTo(msg.from, msg.command, {
-                error: `Invalid call: ${JSON.stringify(msg)}`,
-            }, msg.callback);
+        this.#runRequests(msg, (0, messages_1.parseDeleteRequests)(msg.message, true, Date.now(), id => this.aliasMap[id] || id), (request, cb) => this.#delete(request.id, { mode: 'all' }, cb));
+    }
+    #deleteRange(request) {
+        if ('ts' in request) {
+            return { mode: 'one', ts: request.ts };
         }
-        let id;
-        if (Array.isArray(msg.message)) {
-            this.log.debug(`deleteStateAll ${msg.message.length} items`);
-            for (let i = 0; i < msg.message.length; i++) {
-                id = this.aliasMap[msg.message[i].id] ? this.aliasMap[msg.message[i].id] : msg.message[i].id;
-                this.#delete(id, {});
-            }
+        if ('start' in request) {
+            return { mode: 'range', start: request.start, end: request.end };
         }
-        else if (msg.message.id) {
-            this.log.debug('deleteStateAll 1 item');
-            id = this.aliasMap[msg.message.id] ? this.aliasMap[msg.message.id] : msg.message.id;
-            return this.#delete(id, {}, err => this.sendTo(msg.from, msg.command, err
-                ? { error: err.message, sqlConnected: !!this.clientPool }
-                : { success: true, sqlConnected: !!this.clientPool }, msg.callback));
-        }
-        else {
-            this.log.error('deleteStateAll called with invalid data');
-            return this.sendTo(msg.from, msg.command, { error: `Invalid call: ${JSON.stringify(msg)}` }, msg.callback);
-        }
-        this.sendTo(msg.from, msg.command, {
-            success: true,
-            sqlConnected: !!this.clientPool,
-        }, msg.callback);
+        return { mode: 'all' };
     }
     storeStatePushData(id, state, applyRules) {
+        if (!(0, messages_1.isId)(id)) {
+            throw new Error(`ID ${JSON.stringify(id)} is not valid`);
+        }
         if (!state || typeof state !== 'object') {
             throw new Error(`State ${JSON.stringify(state)} for ${id} is not valid`);
         }
+        // `ts` and `q` are written into the statement as numbers: refuse anything else here, the
+        // conversion in `prepareTaskReadDbId` only runs once the index of the datapoint is known
+        const ts = state.ts === undefined || state.ts === null ? Date.now() : (0, messages_1.toTimestamp)(state.ts);
+        if (ts === undefined) {
+            throw new Error(`Timestamp ${JSON.stringify(state.ts)} for ${id} is not valid`);
+        }
+        const q = (0, messages_1.toQuality)(state.q);
+        if (q === undefined) {
+            throw new Error(`Quality ${JSON.stringify(state.q)} for ${id} is not valid`);
+        }
+        state = { ...state, ts, q, ack: !!state.ack, from: typeof state.from === 'string' ? state.from : '' };
         if (!this.sqlDPs[id]?.config) {
             if (applyRules) {
                 throw new Error(`sql not enabled for ${id}, so can not apply the rules as requested`);
@@ -3717,7 +3630,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
      * datapoints that are not (or no longer) enabled for logging too.
      */
     getRawEntries(msg) {
-        if (!msg.message?.id) {
+        if (!(0, messages_1.isId)(msg.message?.id)) {
             this.log.error('getRawEntries called with invalid data');
             return this.sendTo(msg.from, msg.command, { error: `Invalid call: ${JSON.stringify(msg)}` }, msg.callback);
         }
@@ -4216,7 +4129,9 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
         if (config.maxConnections !== undefined && config.dbtype !== 'sqlite') {
             config.maxConnections = parseInt(config.maxConnections, 10);
-            if (config.maxConnections !== 0 && !config.maxConnections) {
+            if (!config.maxConnections || config.maxConnections < 1) {
+                // 0 is not "unlimited": every borrow would wait for a free connection that never comes
+                this.log.warn(`Invalid value for maximum concurrent connections "${this.config.maxConnections}", using 100`);
                 config.maxConnections = 100;
             }
         }

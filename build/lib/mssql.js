@@ -19,6 +19,7 @@ exports.deleteDatapoint = deleteDatapoint;
 exports.update = update;
 exports.getRawEntries = getRawEntries;
 exports.getRawEntriesCount = getRawEntriesCount;
+const sql_string_1 = require("./sql-string");
 function init(dbName, doNotCreateDatabase) {
     const commands = [
         `CREATE TABLE ${dbName}.dbo.sources     (id INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1), name varchar(255));`,
@@ -101,15 +102,13 @@ function insert(dbName, index, values) {
             value.state.val = 'NULL';
         }
         else if (value.table === 'ts_string') {
-            value.state.val = `'${value.state.val.toString().replace(/'/g, '')}'`;
+            value.state.val = (0, sql_string_1.quoteSqlString)(value.state.val);
         }
         else if (value.table === 'ts_bool') {
             value.state.val = value.state.val ? 1 : 0;
         }
-        else if (value.table === 'ts_number') {
-            if (isNaN(value.state.val)) {
-                value.state.val = 'NULL';
-            }
+        else if (value.table === 'ts_number' || value.table === 'ts_counter') {
+            value.state.val = (0, sql_string_1.numberOrNull)(value.state.val);
         }
         if (value.table === 'ts_counter') {
             insertValues[value.table].push(`(${index}, ${value.state.ts}, ${value.state.val})`);
@@ -151,22 +150,22 @@ function getIdSelect(dbName, name) {
     if (!name) {
         return `SELECT id, type, name FROM ${dbName}.dbo.datapoints;`;
     }
-    return `SELECT id, type, name FROM ${dbName}.dbo.datapoints WHERE name='${name}';`;
+    return `SELECT id, type, name FROM ${dbName}.dbo.datapoints WHERE name=${(0, sql_string_1.quoteSqlString)(name)};`;
 }
 function getIdInsert(dbName, name, type) {
-    return `INSERT INTO ${dbName}.dbo.datapoints (name, type) VALUES('${name}', ${type});`;
+    return `INSERT INTO ${dbName}.dbo.datapoints (name, type) VALUES(${(0, sql_string_1.quoteSqlString)(name)}, ${type});`;
 }
 function getIdUpdate(dbName, id, type) {
     return `UPDATE ${dbName}.dbo.datapoints SET type=${type} WHERE id=${id};`;
 }
 function getFromSelect(dbName, name) {
     if (name) {
-        return `SELECT id, name FROM ${dbName}.dbo.sources WHERE name='${name}';`;
+        return `SELECT id, name FROM ${dbName}.dbo.sources WHERE name=${(0, sql_string_1.quoteSqlString)(name)};`;
     }
     return `SELECT id, name FROM ${dbName}.dbo.sources;`;
 }
 function getFromInsert(dbName, values) {
-    return `INSERT INTO ${dbName}.dbo.sources (name) VALUES('${values}');`;
+    return `INSERT INTO ${dbName}.dbo.sources (name) VALUES(${(0, sql_string_1.quoteSqlString)(values)});`;
 }
 function getCounterDiff(dbName, options) {
     // Take first real value after start
@@ -308,7 +307,10 @@ function update(dbName, index, originalState, from, table) {
         state.val = state.val ? 1 : 0;
     }
     else if (table === 'ts_string') {
-        state.val = `'${state.val.toString().replace(/'/g, '')}'`;
+        state.val = (0, sql_string_1.quoteSqlString)(state.val);
+    }
+    else if (table === 'ts_number' || table === 'ts_counter') {
+        state.val = (0, sql_string_1.numberOrNull)(state.val);
     }
     let query = `UPDATE ${dbName}.dbo.${table} SET `;
     const vals = [];

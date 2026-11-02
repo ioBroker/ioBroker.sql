@@ -1,3 +1,4 @@
+import { numberOrNull, quoteSqlString } from './sql-string';
 import type { RawEntriesOptions, TableName } from '../types';
 
 export function init(dbName: string, doNotCreateDatabase?: boolean): string[] {
@@ -96,13 +97,11 @@ export function insert(
         if (!value.state || value.state.val === null || value.state.val === undefined) {
             value.state.val = 'NULL';
         } else if (value.table === 'ts_string') {
-            value.state.val = `'${value.state.val.toString().replace(/'/g, '')}'`;
+            value.state.val = quoteSqlString(value.state.val);
         } else if (value.table === 'ts_bool') {
             value.state.val = value.state.val ? 1 : 0;
-        } else if (value.table === 'ts_number') {
-            if (isNaN(value.state.val)) {
-                value.state.val = 'NULL';
-            }
+        } else if (value.table === 'ts_number' || value.table === 'ts_counter') {
+            value.state.val = numberOrNull(value.state.val);
         }
 
         if (value.table === 'ts_counter') {
@@ -153,11 +152,11 @@ export function getIdSelect(dbName: string, name?: string): string {
     if (!name) {
         return `SELECT id, type, name FROM ${dbName}.dbo.datapoints;`;
     }
-    return `SELECT id, type, name FROM ${dbName}.dbo.datapoints WHERE name='${name}';`;
+    return `SELECT id, type, name FROM ${dbName}.dbo.datapoints WHERE name=${quoteSqlString(name)};`;
 }
 
 export function getIdInsert(dbName: string, name: string, type: 0 | 1 | 2): string {
-    return `INSERT INTO ${dbName}.dbo.datapoints (name, type) VALUES('${name}', ${type});`;
+    return `INSERT INTO ${dbName}.dbo.datapoints (name, type) VALUES(${quoteSqlString(name)}, ${type});`;
 }
 
 export function getIdUpdate(dbName: string, id: number, type: 0 | 1 | 2): string {
@@ -166,13 +165,13 @@ export function getIdUpdate(dbName: string, id: number, type: 0 | 1 | 2): string
 
 export function getFromSelect(dbName: string, name?: string): string {
     if (name) {
-        return `SELECT id, name FROM ${dbName}.dbo.sources WHERE name='${name}';`;
+        return `SELECT id, name FROM ${dbName}.dbo.sources WHERE name=${quoteSqlString(name)};`;
     }
     return `SELECT id, name FROM ${dbName}.dbo.sources;`;
 }
 
 export function getFromInsert(dbName: string, values: string): string {
-    return `INSERT INTO ${dbName}.dbo.sources (name) VALUES('${values}');`;
+    return `INSERT INTO ${dbName}.dbo.sources (name) VALUES(${quoteSqlString(values)});`;
 }
 
 export function getCounterDiff(
@@ -344,7 +343,7 @@ export function update(
     dbName: string,
     index: number,
     originalState: { val: number | string | boolean | null | undefined; ts: number; q?: number; ack?: boolean },
-    from: number,
+    from: number | undefined,
     table: TableName,
 ): string {
     // copy, so the caller's state object is not changed (see insert())
@@ -354,7 +353,9 @@ export function update(
     } else if (table === 'ts_bool') {
         state.val = state.val ? 1 : 0;
     } else if (table === 'ts_string') {
-        state.val = `'${state.val.toString().replace(/'/g, '')}'`;
+        state.val = quoteSqlString(state.val);
+    } else if (table === 'ts_number' || table === 'ts_counter') {
+        state.val = numberOrNull(state.val);
     }
 
     let query = `UPDATE ${dbName}.dbo.${table} SET `;

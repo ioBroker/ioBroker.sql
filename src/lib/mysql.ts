@@ -399,7 +399,7 @@ export function update(
     dbName: string,
     index: number,
     state: { val: number | string | boolean | null | undefined; ts: number; q?: number; ack?: boolean },
-    from: number,
+    from: number | undefined,
     table: 'ts_bool' | 'ts_number' | 'ts_string' | 'ts_counter',
 ): BoundStatement {
     // the caller's state object is not changed (see insert())
