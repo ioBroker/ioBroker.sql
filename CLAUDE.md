@@ -291,6 +291,13 @@ DB job failed. When touching the tests, lint them explicitly with node+mocha glo
   drivers resolve from there too, which hides exactly the breakage `src/lib/optional-drivers.ts` exists
   to prevent, and `npm run lint` can report errors coming from a foreign version of a shared dependency.
   Verify builds, lint and lockfile changes in a checkout with no ancestor `node_modules`.
+- **npm 11.6.2 drops `pg` and the peer flags on its own as well**, in a checkout with no ancestor
+  `node_modules` too. Any `npm install` that has to rebuild the tree, e.g. after a version bump in
+  `package.json`, removes `pg` from `node_modules` and `package-lock.json` although it is a root
+  optionalDependency (its sub-packages `pg-pool` etc. stay), and strips several hundred `"peer": true`
+  flags, in `src-admin/package-lock.json` as well. A lockfile like that makes CI test PostgreSQL
+  without its driver. After every install, check `git diff package-lock.json src-admin/package-lock.json`:
+  the change must touch only the packages you updated. `npm ci` installs a lockfile as it is and is safe.
 - **`node_modules` must be a real directory there, not a symlink or junction.**
   `copyAdapterToController()` copies the whole adapter folder into `tmp/node_modules/` and its exclusion list
   does not mention `node_modules`, so the recursive copy walks into it and silently leaves a half-copied
