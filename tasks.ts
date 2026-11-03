@@ -2,6 +2,11 @@ import { deleteFoldersRecursive, npmInstall, buildReact, copyFiles } from '@iobr
 
 const src = `${__dirname}/src-admin/`;
 
+// `npm ci`, not `npm install`: npm 11.6.2 rewrites src-admin/package-lock.json on every install and
+// strips several hundred "peer": true flags, even when the lockfile and node_modules are in sync. The
+// release runs this build right before its commit, so that rewrite would end up in the release.
+const npmOptions = { clean: true };
+
 function clean(): void {
     // Only the generated component is deleted here. Everything else in `admin` (jsonConfig.json,
     // jsonCustom.json, the translations and the icon) is source and must survive.
@@ -25,14 +30,14 @@ function copyAllFiles(): void {
 if (process.argv.includes('--0-clean')) {
     clean();
 } else if (process.argv.includes('--1-npm')) {
-    npmInstall(src).catch((e: unknown) => console.error(`Cannot install npm: ${e as Error}`));
+    npmInstall(src, npmOptions).catch((e: unknown) => console.error(`Cannot install npm: ${e as Error}`));
 } else if (process.argv.includes('--2-build')) {
     buildReact(src, { vite: true }).catch((e: unknown) => console.error(`Cannot build: ${e as Error}`));
 } else if (process.argv.includes('--3-copy')) {
     copyAllFiles();
 } else {
     clean();
-    npmInstall(src)
+    npmInstall(src, npmOptions)
         .then(() => buildReact(src, { vite: true }))
         .then(() => copyAllFiles())
         .catch((e: unknown) => {
