@@ -1,18 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MAX_REQUEUED_ROWS = exports.ROWS_PER_STATEMENT = void 0;
+exports.MAX_KEPT_ROWS = exports.MAX_REQUEUED_ROWS = exports.ROWS_PER_STATEMENT = void 0;
 exports.splitBatch = splitBatch;
 exports.requeue = requeue;
+exports.requeueCap = requeueCap;
 /** Rows per INSERT: every dialect chunks its statements at this size */
 exports.ROWS_PER_STATEMENT = 500;
 /**
  * Rows of one datapoint that are kept for a retry after the database was not reachable.
  *
  * At one value every 10 s this covers more than 5 hours of outage; the oldest rows are dropped first.
- * A cap per datapoint keeps the memory bounded: a row is about 200 bytes, so 1000 datapoints cost
- * at most about 400 MB in the worst case.
  */
 exports.MAX_REQUEUED_ROWS = 2000;
+/**
+ * Rows of all datapoints together that are kept for a retry.
+ *
+ * The cap per datapoint alone does not bound the memory: a buffered row - the copy of the state that
+ * `pushHelper()` buffers - takes about 270 to 370 bytes, so 5000 datapoints with 2000 rows each would
+ * need about 3 GB. On a Raspberry Pi that ends with the adapter running out of memory, and every
+ * buffered value is lost with it. 200000 rows are about 55 to 75 MB, and up to 100 datapoints still
+ * get the full {@link MAX_REQUEUED_ROWS} each.
+ */
+exports.MAX_KEPT_ROWS = 200_000;
 /**
  * Split a batch into groups of one table with at most {@link ROWS_PER_STATEMENT} rows.
  *
@@ -55,5 +64,17 @@ function requeue(current, unwritten, cap = exports.MAX_REQUEUED_ROWS) {
     const rest = current || [];
     const dropped = Math.min(unwritten.length, Math.max(0, unwritten.length + rest.length - cap));
     return { list: [...unwritten.slice(dropped), ...rest], dropped };
+}
+/**
+ * The cap for {@link requeue}: what the buffer of one datapoint may hold after the rows of a failed
+ * write are put back, within the limit per datapoint and the limit for all datapoints together.
+ *
+ * @param buffered the rows in the buffer of the datapoint now
+ * @param keptTotal the rows of all datapoints that are kept for a retry now
+ * @param perDatapoint the limit for one datapoint
+ * @param total the limit for all datapoints together
+ */
+function requeueCap(buffered, keptTotal, perDatapoint = exports.MAX_REQUEUED_ROWS, total = exports.MAX_KEPT_ROWS) {
+    return Math.min(perDatapoint, buffered + Math.max(0, total - keptTotal));
 }
 //# sourceMappingURL=write-buffer.js.map

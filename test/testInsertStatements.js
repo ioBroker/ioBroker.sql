@@ -304,6 +304,7 @@ describe('Test a failed write keeps the values when the database was not reachab
         );
         adapter.storeCached('dp', err => {
             assert.match(String(err), /Connection lost/, 'the error reaches the caller (storeState)');
+            assert.match(String(err), /2 values are kept and written with the next write, do not send them again/);
             // ts_number (1, 3) was written, ts_string failed, ts_bool never ran
             assert.strictEqual(adapter.executed.length, 2);
             assert.deepStrictEqual(
@@ -403,8 +404,73 @@ describe('Test a failed write keeps the values when the database was not reachab
         const adapter = setup([row('ts_number', 1), row('ts_number', 2)], 1, sqlError);
         adapter.storeCached('dp', err => {
             assert.match(String(err), /no such table/);
+            assert.doesNotMatch(String(err), /kept/, 'nothing is kept, so the caller must not be told so');
             assert.deepStrictEqual(adapter.sqlDPs.dp.list, []);
             done();
+        });
+    });
+
+    it('keeps at most MAX_KEPT_ROWS of all datapoints together, with one warning for all of them', function (done) {
+        this.timeout(20000);
+        const { MAX_KEPT_ROWS, MAX_REQUEUED_ROWS } = require('../build/lib/write-buffer');
+        const adapter = createAdapter();
+        adapter.config.dbname = 'iobroker';
+        adapter.sqlFuncs = require('../build/lib/sqlite');
+        adapter.checkRetention = () => {};
+        adapter.returnClientToPool = () => {};
+        let reachable = false;
+        adapter.borrowClientFromPool = cb =>
+            cb(null, {
+                execute: (sql, callback) => setImmediate(() => (reachable ? callback(null, []) : callback(lost()))),
+            });
+        const fullRows = () => Array.from({ length: MAX_REQUEUED_ROWS }, (_, i) => row('ts_number', i + 1));
+
+        // these datapoints use up the total at the limit per datapoint, and one more comes after them
+        const full = MAX_KEPT_ROWS / MAX_REQUEUED_ROWS;
+        const ids = [];
+        for (let i = 0; i <= full; i++) {
+            ids.push(`dp${i}`);
+            adapter.sqlDPs[`dp${i}`] = { index: i + 1, type: 0, list: fullRows(), inFlight: {}, config: {} };
+        }
+        const last = ids[full];
+
+        const errors = {};
+        const writeAll = (i, cb) =>
+            i >= ids.length
+                ? cb()
+                : adapter.storeCached(ids[i], err => {
+                      errors[ids[i]] = err;
+                      writeAll(i + 1, cb);
+                  });
+
+        writeAll(0, () => {
+            assert.strictEqual(adapter.sqlDPs.dp0.list.length, MAX_REQUEUED_ROWS, 'the first ones keep all rows');
+            assert.strictEqual(adapter.sqlDPs[ids[full - 1]].list.length, MAX_REQUEUED_ROWS);
+            assert.strictEqual(adapter.sqlDPs[last].list.length, 0, 'the total is used up');
+            assert.match(String(errors.dp0), /kept and written with the next write/);
+            assert.doesNotMatch(String(errors[last]), /kept/, 'its values are dropped, not kept');
+
+            const warnings = adapter.logs.filter(l => /kept for the next write/.test(l));
+            assert.strictEqual(warnings.length, 1, `one warning for all datapoints:\n${warnings.join('\n')}`);
+
+            // dp0 is written now, so its rows no longer count and the last one can keep its rows
+            reachable = true;
+            adapter.storeCached('dp0', err => {
+                assert.ifError(err);
+                assert.ok(
+                    adapter.logs.some(l =>
+                        /While the database was not reachable, 2000 older values were dropped/.test(l),
+                    ),
+                    adapter.logs.join('\n'),
+                );
+                reachable = false;
+                adapter.sqlDPs[last].list = fullRows();
+                adapter.storeCached(last, err => {
+                    assert.match(String(err), /2000 values are kept/);
+                    assert.strictEqual(adapter.sqlDPs[last].list.length, MAX_REQUEUED_ROWS);
+                    done();
+                });
+            });
         });
     });
 });

@@ -38,7 +38,7 @@ import type { SQLClientPool, PoolConfig } from './lib/sql-client-pool';
 import type SQLClient from './lib/sql-client';
 import type { IobDataEntry } from './lib/types';
 import { counterTypeMismatch, formatError, isConnectionError } from './lib/errors';
-import { requeue, splitBatch } from './lib/write-buffer';
+import { MAX_KEPT_ROWS, MAX_REQUEUED_ROWS, requeue, requeueCap, splitBatch } from './lib/write-buffer';
 
 export interface IobDataEntryEx extends Omit<IobDataEntry, 'val'> {
     val: string | boolean | number | null;
@@ -260,6 +260,8 @@ const STAT_TABLES: StatTableName[] = ['ts_number', 'ts_string', 'ts_bool', 'ts_c
 const MAX_TASKS = 100;
 /** Milliseconds a pooled connection may be idle before it is replaced (`max_age` of the pool) */
 const POOL_MAX_IDLE_AGE = 60_000;
+/** Milliseconds between two warnings about values kept while the database is not reachable */
+const KEPT_LOG_INTERVAL = 60_000;
 /** Maximal number of rows one `getRawEntries` call may return */
 const MAX_RAW_ENTRIES = 2000;
 /** How often an unchanged connection error is repeated as error in the log */
@@ -2626,28 +2628,92 @@ export class SqlAdapter extends Adapter {
      * Not when the adapter stops or the datapoint is being disabled: nothing would write the buffer
      * any more.
      *
+     * Besides the limit per datapoint, all datapoints together keep at most {@link MAX_KEPT_ROWS} rows,
+     * so the memory stays bounded however many datapoints are logged. The warning is one line for all
+     * datapoints, at most once per {@link KEPT_LOG_INTERVAL}: during an outage every write fails.
+     *
      * @param id the datapoint
      * @param unwritten the rows that were not written
+     * @returns how many of the rows are kept
      */
-    #keepForRetry(id: string, unwritten: InsertRow[]): void {
+    #keepForRetry(id: string, unwritten: InsertRow[]): number {
         const sqlDP = this.sqlDPs[id];
         if (!sqlDP || this.finished || sqlDP.config?.enabled === false) {
             this.log.warn(`${unwritten.length} values of ${id} were not stored, the database is not reachable`);
-            return;
+            return 0;
         }
-        const { list, dropped } = requeue(sqlDP.list, unwritten);
-        sqlDP.list = list;
-        // once a minute per datapoint: during an outage every value of every datapoint fails
         const now = Date.now();
-        if (dropped || now - (this.#keptLogged.get(id) || 0) >= 60_000) {
-            this.#keptLogged.set(id, now);
-            const lost = dropped ? `, the ${dropped} oldest were dropped (limit reached)` : '';
-            this.log.warn(`Database not reachable, ${list.length} values of ${id} are kept for the next write${lost}`);
+        const report = now - this.#keptLoggedAt >= KEPT_LOG_INTERVAL;
+        if (report) {
+            this.#recountKept();
+        }
+        const { list, dropped } = requeue(sqlDP.list, unwritten, requeueCap(sqlDP.list?.length || 0, this.#keptTotal));
+        sqlDP.list = list;
+        const kept = unwritten.length - dropped;
+        if (kept) {
+            this.#kept.set(id, (this.#kept.get(id) || 0) + kept);
+            this.#keptTotal += kept;
+        }
+        this.#keptDropped += dropped;
+        if (report) {
+            this.#keptLoggedAt = now;
+            const lost = this.#takeDroppedText();
+            this.log.warn(
+                `Database not reachable, ${this.#keptTotal} values of ${this.#kept.size} datapoints are kept for the next write${lost ? `; ${lost}` : ''}`,
+            );
+        }
+        return kept;
+    }
+
+    /**
+     * Forget the kept rows of a datapoint whose buffer goes to the database now: if the write fails
+     * again, {@link #keepForRetry} counts them anew.
+     *
+     * @param id the datapoint
+     */
+    #releaseKept(id: string): void {
+        const kept = this.#kept.get(id);
+        if (kept) {
+            this.#keptTotal -= kept;
+            this.#kept.delete(id);
         }
     }
 
-    /** When the warning about kept values was logged last, per datapoint */
-    readonly #keptLogged = new Map<string, number>();
+    /**
+     * Count the kept rows again. A buffer can also be emptied by the `delete` message, and a datapoint
+     * can be removed while it still has kept rows; without this the total would only ever grow.
+     */
+    #recountKept(): void {
+        this.#keptTotal = 0;
+        for (const [id, count] of this.#kept) {
+            const kept = Math.min(count, this.sqlDPs[id]?.list?.length || 0);
+            if (kept) {
+                this.#kept.set(id, kept);
+                this.#keptTotal += kept;
+            } else {
+                this.#kept.delete(id);
+            }
+        }
+    }
+
+    /** The rows dropped because of the limits since the last warning as text, and reset the count */
+    #takeDroppedText(): string {
+        if (!this.#keptDropped) {
+            return '';
+        }
+        const text = `${this.#keptDropped} older values were dropped (at most ${MAX_REQUEUED_ROWS} per datapoint and ${MAX_KEPT_ROWS} in total are kept)`;
+        this.#keptDropped = 0;
+        return text;
+    }
+
+    /** Rows kept for a retry, per datapoint */
+    readonly #kept = new Map<string, number>();
+    /** Rows kept for a retry, all datapoints together */
+    #keptTotal = 0;
+    /** Kept rows that were dropped because of the limits since the last warning */
+    #keptDropped = 0;
+    /** When the warning about kept values was logged last */
+    #keptLoggedAt = 0;
 
     storeCached(onlyId?: string, cb?: ((err?: Error | null) => void) | null): void {
         let count = 0;
@@ -2665,13 +2731,25 @@ export class SqlAdapter extends Adapter {
                 this.sqlDPs[id].inFlight ||= {};
                 this.sqlDPs[id].inFlight[inFlightId] = this.sqlDPs[id].list;
                 this.sqlDPs[id].list = [];
+                this.#releaseKept(id);
                 count++;
                 this.pushValuesIntoDB(id, this.sqlDPs[id].inFlight[inFlightId], (err, unwritten): void => {
                     if (this.sqlDPs[id]?.inFlight?.[inFlightId]) {
                         delete this.sqlDPs[id].inFlight[inFlightId];
                     }
                     if (err && unwritten?.length) {
-                        this.#keepForRetry(id, unwritten);
+                        const kept = this.#keepForRetry(id, unwritten);
+                        if (kept) {
+                            // storeState answers with this error: a caller that sends the values again
+                            // would store them twice where the table has no unique key
+                            err = new Error(
+                                `${err.message}; ${kept} values are kept and written with the next write, do not send them again`,
+                                { cause: err },
+                            );
+                        }
+                    } else if (!err && this.#keptDropped) {
+                        // the database is back before the next warning was due: report the dropped rows now
+                        this.log.warn(`While the database was not reachable, ${this.#takeDroppedText()}`);
                     }
                     if (!--count && cb) {
                         cb?.(err);

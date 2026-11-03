@@ -122,4 +122,19 @@ describe('Test the write buffer helpers (#587)', function () {
         assert.deepStrictEqual(requeue([3, 4, 5], [1, 2], 2), { list: [3, 4, 5], dropped: 2 });
         assert.deepStrictEqual(requeue(undefined, [1], 5), { list: [1], dropped: 0 });
     });
+
+    it('requeueCap() stays within the limit per datapoint and the limit for all datapoints', function () {
+        const { requeueCap, MAX_REQUEUED_ROWS, MAX_KEPT_ROWS } = require('../build/lib/write-buffer');
+        // plenty of room in total: the limit per datapoint applies
+        assert.strictEqual(requeueCap(0, 0), MAX_REQUEUED_ROWS);
+        assert.strictEqual(requeueCap(10, 1000, 2000, 200000), 2000);
+        // the total is nearly used up: only what is left of it, on top of what is buffered already
+        assert.strictEqual(requeueCap(5, 199990, 2000, 200000), 15);
+        // the total is used up: the rows logged in the meantime stay, no kept row is added
+        assert.strictEqual(requeueCap(5, 200000, 2000, 200000), 5);
+        assert.strictEqual(requeueCap(5, 250000, 2000, 200000), 5);
+        // 5000 datapoints at the limit per datapoint would be far more than the total allows
+        assert.ok(5000 * MAX_REQUEUED_ROWS > MAX_KEPT_ROWS);
+        assert.ok(MAX_KEPT_ROWS >= 100 * MAX_REQUEUED_ROWS, 'up to 100 datapoints get the full limit each');
+    });
 });
