@@ -34,6 +34,19 @@ function toInt(value, fallback = 0) {
     const n = typeof value === 'number' ? value : parseInt(value, 10);
     return Number.isFinite(n) ? Math.trunc(n) : fallback;
 }
+/**
+ * A timestamp as it is bound: a number, or NULL when the value is none.
+ *
+ * Timestamps of `delete`, `update` and `storeState` messages come from the caller. Bound as text,
+ * `'0 OR 1=1'` is no SQL any more, but MySQL in strict mode refuses to compare it with the BIGINT
+ * column ("Truncated incorrect DOUBLE value") while MariaDB only warns. NULL matches no row on both.
+ *
+ * @param value the timestamp as given
+ */
+function toTs(value) {
+    const n = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : NaN;
+    return Number.isFinite(n) ? n : null;
+}
 function init(dbName, doNotCreateDatabase) {
     const commands = [
         `CREATE TABLE \`${dbName}\`.sources    (id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, name TEXT);`,
@@ -133,16 +146,16 @@ function insert(dbName, index, values) {
         rows[value.table] ||= [];
         const val = toDbValue(value.table, value.state?.val);
         if (value.table === 'ts_counter') {
-            rows[value.table].push([index, value.state.ts, val]);
+            rows[value.table].push([index, toTs(value.state.ts), val]);
         }
         else {
             rows[value.table].push([
                 index,
-                value.state.ts,
+                toTs(value.state.ts),
                 val,
                 value.state.ack ? 1 : 0,
                 value.from || 0,
-                value.state.q || 0,
+                toInt(value.state.q),
             ]);
         }
     }
@@ -201,7 +214,9 @@ function getFromInsert(dbName, values) {
     return { sql: `INSERT INTO \`${dbName}\`.sources (name) VALUES(?);`, params: [values] };
 }
 function getCounterDiff(dbName, options) {
-    const { index, start, end } = options;
+    const { index } = options;
+    const start = toTs(options.start);
+    const end = toTs(options.end);
     // Take first real value after start
     const subQueryStart = `SELECT ts, val FROM \`${dbName}\`.ts_number  WHERE id=? AND ts>=? AND ts<? AND val IS NOT NULL ORDER BY ts ASC LIMIT 1`;
     // Take last real value before the end
@@ -242,11 +257,11 @@ function getHistory(dbName, table, options) {
     }
     if (options.end) {
         where += `${where ? ' AND' : ''} \`${dbName}\`.${table}.ts < ?`;
-        params.push(options.end);
+        params.push(toTs(options.end));
     }
     if (options.start) {
         where += `${where ? ' AND' : ''} \`${dbName}\`.${table}.ts >= ?`;
-        params.push(options.start);
+        params.push(toTs(options.start));
         // add the last value before start
         let subWhere = '';
         if (options.index !== null) {
@@ -254,7 +269,7 @@ function getHistory(dbName, table, options) {
             params.push(options.index);
         }
         subWhere += `${subWhere ? ' AND' : ''} \`${dbName}\`.${table}.ts < ?`;
-        params.push(options.start);
+        params.push(toTs(options.start));
         where += ` UNION ALL ( SELECT ${columns} WHERE ${subWhere} ORDER BY \`${dbName}\`.${table}.ts DESC LIMIT 1)`;
         // add next value after end
         subWhere = '';
@@ -263,7 +278,7 @@ function getHistory(dbName, table, options) {
             params.push(options.index);
         }
         subWhere += `${subWhere ? ' AND' : ''} \`${dbName}\`.${table}.ts >= ?`;
-        params.push(options.end ?? null);
+        params.push(toTs(options.end));
         where += ` UNION ALL ( SELECT ${columns} WHERE ${subWhere} ORDER BY \`${dbName}\`.${table}.ts ASC LIMIT 1)`;
     }
     if (where) {
@@ -289,11 +304,11 @@ function deleteFromTable(dbName, table, index, start, end) {
     const params = [index];
     if (start && end) {
         sql += ' AND ts>=? AND ts<=?';
-        params.push(start, end);
+        params.push(toTs(start), toTs(end));
     }
     else if (start) {
         sql += ' AND ts=?';
-        params.push(start);
+        params.push(toTs(start));
     }
     return { sql: `${sql};`, params };
 }
@@ -318,7 +333,7 @@ function update(dbName, index, state, from, table) {
     params.push(toDbValue(table, state.val));
     if (state.q !== undefined) {
         vals.push('q=?');
-        params.push(state.q);
+        params.push(toInt(state.q));
     }
     if (from !== undefined) {
         vals.push('_from=?');
@@ -328,7 +343,7 @@ function update(dbName, index, state, from, table) {
         vals.push('ack=?');
         params.push(state.ack ? 1 : 0);
     }
-    params.push(index, state.ts);
+    params.push(index, toTs(state.ts));
     return { sql: `UPDATE \`${dbName}\`.${table} SET ${vals.join(', ')} WHERE id=? AND ts=?;`, params };
 }
 function rawEntriesWhere(dbName, table, index, options) {
@@ -336,11 +351,11 @@ function rawEntriesWhere(dbName, table, index, options) {
     const params = [index];
     if (options.start) {
         sql += ` AND \`${dbName}\`.${table}.ts>=?`;
-        params.push(options.start);
+        params.push(toTs(options.start));
     }
     if (options.end) {
         sql += ` AND \`${dbName}\`.${table}.ts<=?`;
-        params.push(options.end);
+        params.push(toTs(options.end));
     }
     return { sql, params };
 }

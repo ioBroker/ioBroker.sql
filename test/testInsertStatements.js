@@ -597,6 +597,34 @@ describe('Test MySQL statements carry their values as bound parameters (#587)', 
     });
 });
 
+describe('Test MySQL binds timestamps from messages as numbers (#587)', function () {
+    const MySQL = DIALECTS.mysql;
+
+    it('a timestamp that is no number is bound as NULL, a numeric string as number', function () {
+        // MySQL in strict mode refuses to compare the text with the BIGINT column, MariaDB only warns
+        assert.deepStrictEqual(MySQL.deleteFromTable('iobroker', 'ts_number', 3, '0 OR 1=1').params, [3, null]);
+        assert.deepStrictEqual(
+            MySQL.deleteFromTable('iobroker', 'ts_number', 3, '1700', '1800').params,
+            [3, 1700, 1800],
+        );
+        assert.deepStrictEqual(
+            MySQL.update('iobroker', 3, { val: 1, ts: 'x', q: '0' }, undefined, 'ts_number').params,
+            [1, 0, 3, null],
+        );
+        const history = MySQL.getHistory('iobroker', 'ts_number', { index: 3, start: '10', end: 'abc' });
+        assert.ok(!history.params.some(p => typeof p === 'string'), JSON.stringify(history.params));
+        assert.ok(
+            !MySQL.getCounterDiff('iobroker', { index: 3, start: '1', end: {} }).params.some(
+                p => typeof p === 'string',
+            ),
+        );
+        const [insert] = MySQL.insert('iobroker', 3, [
+            { table: 'ts_number', state: { val: 1, ts: '5', q: '2' }, from: 0 },
+        ]);
+        assert.deepStrictEqual(insert.params, [3, 5, 1, 0, 0, 2]);
+    });
+});
+
 describe('Test MySQL value conversion', function () {
     const MySQL = DIALECTS.mysql;
     const valuesOf = (table, vals) =>
