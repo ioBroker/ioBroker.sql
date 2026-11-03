@@ -184,8 +184,10 @@ function getCounterDiff(dbName, options) {
 }
 function getHistory(dbName, table, options) {
     let query = `SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
+    // LEFT JOIN: a value stored without `from` has `_from` = 0, which has no row in `sources`.
+    // With an INNER JOIN, such values were missing from every query that asked for `from`.
     if (options.from) {
-        query += ` INNER JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
+        query += ` LEFT JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
     }
     let where = '';
     if (options.index !== null) {
@@ -200,7 +202,7 @@ function getHistory(dbName, table, options) {
         let subWhere;
         subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
         if (options.from) {
-            subQuery += ` INNER JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
+            subQuery += ` LEFT JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
         }
         subWhere = '';
         if (options.index !== null) {
@@ -218,7 +220,7 @@ function getHistory(dbName, table, options) {
         // add next value after end
         subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, \`${dbName}\`.sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM \`${dbName}\`.${table}`;
         if (options.from) {
-            subQuery += ` INNER JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
+            subQuery += ` LEFT JOIN \`${dbName}\`.sources ON \`${dbName}\`.sources.id=\`${dbName}\`.${table}._from`;
         }
         subWhere = '';
         if (options.index !== null) {
