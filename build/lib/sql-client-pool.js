@@ -289,7 +289,13 @@ class SQLClientPool {
             const client = this.pool.shift();
             if (numToCheck === null || numToCheck === undefined || numToCheck <= 0 || numChecked < numToCheck) {
                 numChecked += 1;
-                if (newPool.length < this.poolOptions.max_idle && client) {
+                // Idle longer than max_age, or the connection is gone: close it now instead of waiting for
+                // the next borrow. Servers close idle connections themselves (MySQL `wait_timeout`), and
+                // a connection closed by us in time is not reset by the server later (#587).
+                const expired = !!client &&
+                    (client.isBroken() ||
+                        (!!client.pooled_at && Date.now() - client.pooled_at >= this.poolOptions.max_age));
+                if (newPool.length < this.poolOptions.max_idle && client && !expired) {
                     newPool.push(client);
                 }
                 else {

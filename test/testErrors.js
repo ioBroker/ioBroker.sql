@@ -106,6 +106,12 @@ describe('Test isConnectionError', function () {
             true,
         );
         assert.strictEqual(isConnectionError(err('read ECONNRESET', { code: 'ECONNRESET' })), true);
+        // the server cannot be reached at all
+        assert.strictEqual(
+            isConnectionError(err('connect ECONNREFUSED 127.0.0.1:3306', { code: 'ECONNREFUSED' })),
+            true,
+        );
+        assert.strictEqual(isConnectionError(err('getaddrinfo ENOTFOUND db.example', { code: 'ENOTFOUND' })), true);
         // pg
         assert.strictEqual(isConnectionError(err('Client was closed and is not queryable')), true);
         assert.strictEqual(isConnectionError(err('Connection terminated unexpectedly')), true);
