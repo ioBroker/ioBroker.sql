@@ -219,8 +219,10 @@ export function getHistory(
         options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''
     }${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
 
+    // LEFT JOIN: a value stored without `from` has `_from` = 0, which has no row in `sources`.
+    // With an INNER JOIN, such values were missing from every query that asked for `from`.
     if (options.from) {
-        query += ` INNER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
+        query += ` LEFT OUTER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
     }
 
     let where = '';
@@ -255,7 +257,7 @@ export function getHistory(
             options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''
         }${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
         if (options.from) {
-            subQuery += ` INNER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
+            subQuery += ` LEFT OUTER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
         }
         subWhere = '';
         if (options.index !== null) {
@@ -276,7 +278,7 @@ export function getHistory(
             options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''
         }${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
         if (options.from) {
-            subQuery += ` INNER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
+            subQuery += ` LEFT OUTER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
         }
         subWhere = '';
         if (options.index !== null) {

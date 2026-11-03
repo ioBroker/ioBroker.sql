@@ -173,8 +173,10 @@ function getCounterDiff(_dbName, options) {
 }
 function getHistory(_dbName, table, options) {
     let query = `SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM ${table}`;
+    // LEFT JOIN: a value stored without `from` has `_from` = 0, which has no row in `sources`.
+    // With an INNER JOIN, such values were missing from every query that asked for `from`.
     if (options.from) {
-        query += ` INNER JOIN sources ON sources.id=${table}._from`;
+        query += ` LEFT JOIN sources ON sources.id=${table}._from`;
     }
     let where = '';
     if (options.index !== null) {
@@ -190,7 +192,7 @@ function getHistory(_dbName, table, options) {
         let subWhere;
         subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM ${table}`;
         if (options.from) {
-            subQuery += ` INNER JOIN sources ON sources.id=${table}._from`;
+            subQuery += ` LEFT JOIN sources ON sources.id=${table}._from`;
         }
         subWhere = '';
         if (options.index !== null) {
@@ -208,7 +210,7 @@ function getHistory(_dbName, table, options) {
         // add next value after end
         subQuery = ` SELECT ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? ', ack' : ''}${options.from ? `, sources.name as 'from'` : ''}${options.q ? ', q' : ''} FROM ${table}`;
         if (options.from) {
-            subQuery += ` INNER JOIN sources ON sources.id=${table}._from`;
+            subQuery += ` LEFT JOIN sources ON sources.id=${table}._from`;
         }
         subWhere = '';
         if (options.index !== null) {

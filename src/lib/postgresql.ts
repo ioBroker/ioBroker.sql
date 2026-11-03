@@ -194,8 +194,10 @@ export function getHistory(
         options.from ? ', sources.name as from' : ''
     }${options.q ? ', q' : ''} FROM ${table}`;
 
+    // LEFT JOIN: a value stored without `from` has `_from` = 0, which has no row in `sources`.
+    // With an INNER JOIN, such values were missing from every query that asked for `from`.
     if (options.from) {
-        query += ` INNER JOIN sources ON sources.id=${table}._from`;
+        query += ` LEFT JOIN sources ON sources.id=${table}._from`;
     }
 
     let where = '';
@@ -216,7 +218,7 @@ export function getHistory(
             options.from ? ', sources.name as from' : ''
         }${options.q ? ', q' : ''} FROM ${table}`;
         if (options.from) {
-            subQuery += ` INNER JOIN sources ON sources.id=${table}._from`;
+            subQuery += ` LEFT JOIN sources ON sources.id=${table}._from`;
         }
         subWhere = '';
         if (options.index !== null) {
@@ -237,7 +239,7 @@ export function getHistory(
             options.from ? ', sources.name as from' : ''
         }${options.q ? ', q' : ''} FROM ${table}`;
         if (options.from) {
-            subQuery += ` INNER JOIN sources ON sources.id=${table}._from`;
+            subQuery += ` LEFT JOIN sources ON sources.id=${table}._from`;
         }
         subWhere = '';
         if (options.index !== null) {

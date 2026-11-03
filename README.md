@@ -619,8 +619,10 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+
 ### **WORK IN PROGRESS**
 * (copilot) Adapter requires node.js >= 22.19.0 now
+* (@GermanBluefox) Fixed: values stored without `from` were missing in `getHistory` with `from: true`, e.g. in the history data of admin
 * (@Schimi1983) A failed write is no longer silently dropped: the error is passed on, so `storeState` reports it instead of `success: true`. If the database was not reachable, the values are kept and written with the next write of the datapoint (at most 2000 per datapoint, the oldest are dropped first, with a warning). Pooled connections that were idle for more than 60 s are closed and replaced, so a server-side `wait_timeout` no longer resets them; the warning "SQL connection lost" every few minutes on hosted databases is gone (#587)
 * (@GermanBluefox) The values kept while the database is not reachable are also limited to 200000 for all datapoints together (about 70 MB), so a long outage with many datapoints can no longer exhaust the memory. The warning about them is one line per minute for all datapoints instead of one per datapoint, and the error of `storeState` says when the values were kept, so they are not sent twice (#587)
 

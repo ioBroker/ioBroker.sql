@@ -202,6 +202,51 @@ describe("Test insert()/update() leave the caller's state untouched", function (
     }
 });
 
+describe('Test getHistory() with `from` returns values stored without a source', function () {
+    // A value stored without `from` has `_from` = 0, and `sources` has no row with id 0. With an
+    // INNER JOIN such values were missing from every query with `from: true`, e.g. the history
+    // data in admin.
+    const options = { index: 5, from: true, ack: true, start: 50, end: 300 };
+
+    for (const [dialect, sql] of Object.entries(DIALECTS)) {
+        it(`${dialect}: joins sources with an outer join`, function () {
+            const query = sql.getHistory('iobroker', 'ts_number', options);
+            assert.ok(!/INNER JOIN/i.test(query), query);
+            assert.strictEqual(
+                (query.match(/LEFT (OUTER )?JOIN/gi) || []).length,
+                3,
+                `the query and both sub-queries: ${query}`,
+            );
+        });
+    }
+
+    it('sqlite: a value without a source is returned, against a live schema', function (done) {
+        const sqlite3 = require('sqlite3');
+        const db = new sqlite3.Database(':memory:');
+
+        db.serialize(() => {
+            for (const statement of DIALECTS.sqlite.init('ignored')) {
+                db.run(statement);
+            }
+            db.run("INSERT INTO sources (id, name) VALUES (1, 'system.adapter.javascript.0')");
+            db.run('INSERT INTO ts_number (id, ts, val, ack, _from, q) VALUES (5, 100, 1.5, 1, 1, 0)');
+            db.run('INSERT INTO ts_number (id, ts, val, ack, _from, q) VALUES (5, 200, 2.5, 1, 0, 0)');
+
+            db.all(DIALECTS.sqlite.getHistory('ignored', 'ts_number', options), function (err, rows) {
+                assert.ifError(err);
+                assert.deepStrictEqual(
+                    rows.map(r => [r.ts, r.from]),
+                    [
+                        [100, 'system.adapter.javascript.0'],
+                        [200, null],
+                    ],
+                );
+                db.close(done);
+            });
+        });
+    });
+});
+
 describe('Test destroy() keeps a database the adapter did not create', function () {
     for (const [dialect, sql] of Object.entries(DIALECTS)) {
         it(`${dialect}: "Do not create database" drops only the adapter tables`, function () {
