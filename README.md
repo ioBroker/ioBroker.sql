@@ -356,10 +356,35 @@ Example if your database is called 'iobroker':
 | MS-SQL  | `SELECT * FROM iobroker.dbo.datapoints ...` |
 | MySQL   | `SELECT * FROM iobroker.datapoints ...`     |
 
-## Data browser
+## Data browser and export
 The instance settings contain a tab **Data browser**: on the left all datapoints that have data in the
 database, on the right the stored values of the selected one. The values can be paged through, edited,
 deleted and new ones can be inserted. The tab needs a running instance.
+
+The export button in its toolbar writes all values of the selected datapoint in the selected time range
+into a file, oldest first:
+
+- **CSV** with the columns `ts` (milliseconds since 1970, UTC), `time` (local time), `val`, `ack`, `q` and
+  `from`. Column and decimal separator can be chosen; the preselection (`;` and `,` for most languages,
+  `,` and `.` for English and Chinese) is what Excel usually expects with the language of the admin.
+- **JSON** as an array of `{ts, val, ack, q, from}` - the format [`storeState`](#storestate) accepts, so
+  the values can be written back, e.g. to another datapoint:
+
+```javascript
+const fs = require('fs');
+const values = JSON.parse(fs.readFileSync('/opt/export/hm-rpc.0.ABC123.1.TEMPERATURE.json', 'utf8'));
+sendTo('sql.0', 'storeState', { id: 'javascript.0.temperatureCopy', state: values }, result =>
+    console.log(JSON.stringify(result)),
+);
+```
+
+In contrast to `getRawEntries`, both formats contain `ack` and the values of a boolean datapoint as
+`true`/`false` in every database, so that `storeState` creates a boolean datapoint again.
+
+The export reads the range in time windows of a few thousand values each, every one a range query on the
+`(id, ts)` index. So even for a datapoint with millions of values the database never has to skip
+millions of rows for an `OFFSET`. A very large export still takes a while and needs the memory of the
+browser for the whole file.
 
 The component is a JSON-Config `custom` component. Its sources are in `src-admin`, the built bundle in
 `admin/custom` is committed:
@@ -396,9 +421,10 @@ sendTo(
         id: 'system.adapter.admin.0.memRss',
         start: Date.now() - 3600000, // optional, inclusive
         end: Date.now(),             // optional, inclusive
-        limit: 100,                  // optional, default 100, maximum 2000
+        limit: 100,                  // optional, default 100, maximum 5000
         offset: 0,                   // optional, default 0
         sort: 'desc',                // optional, 'desc' (newest first, default) or 'asc'
+        noTotal: false,              // optional, true skips counting the entries: `total` is then missing
     },
     result => {
         if (result.error) {
@@ -419,7 +445,11 @@ The answer additionally contains `id`, `index` (the ID in the `datapoints` table
 
 The values are returned as they come from the database and are **not** converted: `ack` and boolean values
 are `0`/`1` in most databases, and `val` of a string datapoint is the stored string. `from` is `null` if no
-source was stored.
+source was stored. Only `ts` is always a number, although PostgreSQL and MS SQL deliver it as string.
+
+Counting the entries is a scan of the whole range. A caller that reads a long range in consecutive windows
+(`start`/`end` of one window inclusive) needs the count only once and can pass `noTotal: true` for all
+other requests.
 
 Like `update`, `delete` and `storeState`, this works for datapoints whose logging is disabled too, as long as
 they still have entries in the database. If the datapoint is unknown, the answer contains an `error`.
@@ -625,6 +655,8 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (@GermanBluefox) Fixed: values stored without `from` were missing in `getHistory` with `from: true`, e.g. in the history data of admin
 * (@Schimi1983) A failed write is no longer silently dropped: the error is passed on, so `storeState` reports it instead of `success: true`. If the database was not reachable, the values are kept and written with the next write of the datapoint (at most 2000 per datapoint, the oldest are dropped first, with a warning). Pooled connections that were idle for more than 60 s are closed and replaced, so a server-side `wait_timeout` no longer resets them; the warning "SQL connection lost" every few minutes on hosted databases is gone (#587)
 * (@GermanBluefox) The values kept while the database is not reachable are also limited to 200000 for all datapoints together (about 70 MB), so a long outage with many datapoints can no longer exhaust the memory. The warning about them is one line per minute for all datapoints instead of one per datapoint, and the error of `storeState` says when the values were kept, so they are not sent twice (#587)
+* (@GermanBluefox) Data browser: the values of a datapoint can be exported as CSV (e.g. for Excel) or as JSON (the format of `storeState`) for the selected time range. `getRawEntries` returns up to 5000 entries per call and accepts `noTotal` to skip the count
+* (@GermanBluefox) Data browser: PostgreSQL and MS SQL showed the time of a value as a bare number, because `getRawEntries` returned `ts` as string there
 
 ### 4.3.0 (2026-10-29)
 * (@GermanBluefox) `getHistory` accepts `intervalBorders`: the client can send the borders of the intervals itself, e.g. the local days of a chart. With `count` or `step` every interval after a switch of the daylight saving time ended an hour away from the midnight, so a value written at 23:59:59 was shown on the next day (ioBroker/ioBroker.echarts#1311)

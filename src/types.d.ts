@@ -14,6 +14,8 @@ export interface RawEntriesOptions {
     offset: number;
     /** sort order by timestamp */
     sort: 'asc' | 'desc';
+    /** skip counting the entries of the range, e.g. for the following windows of an export */
+    noTotal?: boolean;
 }
 export interface SqlCustomConfigTyped {
     enabled: boolean;
