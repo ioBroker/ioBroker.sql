@@ -2876,6 +2876,22 @@ export class SqlAdapter extends Adapter {
         return count > MAX_TASKS;
     }
 
+    /**
+     * Start the next task of the queue.
+     *
+     * With a pause between the requests (`requestInterval`) after that pause, otherwise right away.
+     * `setTimeout(fn, 0)` waits for the next timer tick, which is about 15 ms on Windows: with one
+     * insert task per datapoint, flushing 600 datapoints took about 9 s of the 10 s `stopTimeout`
+     * there, on top of the writes themselves.
+     */
+    #nextTask(): void {
+        if (this.config.requestInterval) {
+            setTimeout(() => this.processTasks(), this.config.requestInterval);
+        } else {
+            setImmediate(() => this.processTasks());
+        }
+    }
+
     processTasks(): void {
         if (this.lockTasks) {
             return this.log.debug('Tries to execute task, but last one not finished!');
@@ -2891,7 +2907,7 @@ export class SqlAdapter extends Adapter {
                     this.tasks.shift();
                     this.lockTasks = false;
                     if (this.tasks.length) {
-                        setTimeout(() => this.processTasks(), this.config.requestInterval);
+                        this.#nextTask();
                     }
                 });
             } else if (this.tasks[0].operation === 'insert') {
@@ -2924,7 +2940,7 @@ export class SqlAdapter extends Adapter {
                         this.tasks.shift();
                         this.lockTasks = false;
                         if (this.tasks.length) {
-                            setTimeout(() => this.processTasks(), this.config.requestInterval);
+                            this.#nextTask();
                         }
                     },
                 );
@@ -2935,7 +2951,7 @@ export class SqlAdapter extends Adapter {
                     this.tasks.shift();
                     this.lockTasks = false;
                     if (this.tasks.length) {
-                        setTimeout(() => this.processTasks(), this.config.requestInterval);
+                        this.#nextTask();
                     }
                 });
             } else if (this.tasks[0].operation === 'userQuery') {
@@ -2944,7 +2960,7 @@ export class SqlAdapter extends Adapter {
                     this.tasks.shift();
                     this.lockTasks = false;
                     if (this.tasks.length) {
-                        setTimeout(() => this.processTasks(), this.config.requestInterval);
+                        this.#nextTask();
                     }
                 });
             } else if (this.tasks[0].operation === 'delete') {
@@ -2953,7 +2969,7 @@ export class SqlAdapter extends Adapter {
                     this.tasks.shift();
                     this.lockTasks = false;
                     if (this.tasks.length) {
-                        setTimeout(() => this.processTasks(), this.config.requestInterval);
+                        this.#nextTask();
                     }
                 });
             } else {
@@ -2962,7 +2978,7 @@ export class SqlAdapter extends Adapter {
                 this.tasks.shift();
                 this.lockTasks = false;
                 if (this.tasks.length) {
-                    setTimeout(() => this.processTasks(), this.config.requestInterval);
+                    this.#nextTask();
                 }
             }
         }
