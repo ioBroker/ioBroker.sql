@@ -325,6 +325,89 @@ describe('Test the adapter keeps the reference value and survives a disabled dat
     });
 });
 
+describe('Test getId()/getFrom() do not share the row of an ID that differs only in case (#588)', function () {
+    const { createAdapter } = require('./lib/stubAdapter');
+    const licht = { id: 3, name: 'alias.0.Licht', type: 2 };
+
+    function mysqlAdapter() {
+        const adapter = createAdapter();
+        adapter.config.dbname = 'iobroker';
+        adapter.sqlFuncs = require('../build/lib/mysql');
+        return adapter;
+    }
+
+    /** Answers the statements in order, like a server with a case-insensitive collation, and records them */
+    function answer(adapter, answers) {
+        const statements = [];
+        const client = {
+            execute(statement, callback) {
+                statements.push(statement.sql ?? statement);
+                const rows = answers.shift();
+                setImmediate(() => callback(null, rows));
+            },
+        };
+        adapter.borrowClientFromPool = callback => callback(null, client);
+        adapter.returnClientToPool = () => {};
+        return statements;
+    }
+
+    it('getId() creates a row of its own instead of taking the one of alias.0.Licht', function (done) {
+        const adapter = mysqlAdapter();
+        adapter.sqlDPs['alias.0.licht'] = { config: {}, type: null, index: null };
+        // the lookup finds alias.0.Licht, before and after the INSERT
+        const statements = answer(adapter, [[licht], [], [licht, { id: 9, name: 'alias.0.licht', type: 0 }]]);
+
+        adapter.getId('alias.0.licht', 0, err => {
+            assert.strictEqual(err, null);
+            assert.match(statements[1], /^INSERT/);
+            assert.strictEqual(adapter.sqlDPs['alias.0.licht'].index, 9);
+            assert.strictEqual(adapter.sqlDPs['alias.0.licht'].type, 0, 'not the boolean type of alias.0.Licht');
+            done();
+        });
+    });
+
+    it('getId() for reading finds nothing instead of the series of alias.0.Licht', function (done) {
+        const adapter = mysqlAdapter();
+        adapter.sqlDPs['alias.0.licht'] = { config: {}, type: null, index: null };
+        const statements = answer(adapter, [[licht]]);
+
+        adapter.getId('alias.0.licht', null, err => {
+            assert.match(String(err), /id not found/);
+            assert.strictEqual(statements.length, 1, 'nothing inserted');
+            assert.strictEqual(adapter.sqlDPs['alias.0.licht'].index, null);
+            done();
+        });
+    });
+
+    it('getId() still takes a row whose name the database could not store exactly', function (done) {
+        const adapter = mysqlAdapter();
+        adapter.sqlDPs['alias.0.Кухня'] = { config: {}, type: null, index: null };
+        // MS SQL `varchar` returns characters outside its code page as `?`
+        const statements = answer(adapter, [[{ id: 4, name: 'alias.0.?????', type: 0 }]]);
+
+        adapter.getId('alias.0.Кухня', 0, err => {
+            assert.strictEqual(err, null);
+            assert.strictEqual(statements.length, 1, 'no second row');
+            assert.strictEqual(adapter.sqlDPs['alias.0.Кухня'].index, 4);
+            done();
+        });
+    });
+
+    it('getFrom() creates a source of its own as well', function (done) {
+        const adapter = mysqlAdapter();
+        const other = { id: 2, name: 'system.adapter.Javascript.0' };
+        const statements = answer(adapter, [[other], [], [other, { id: 5, name: 'system.adapter.javascript.0' }]]);
+
+        adapter.getFrom('system.adapter.javascript.0', err => {
+            assert.ok(!err, String(err));
+            assert.match(statements[0], /^SELECT id, name FROM/, 'the lookup returns the name to compare');
+            assert.match(statements[1], /^INSERT/);
+            assert.strictEqual(adapter.from['system.adapter.javascript.0'], 5);
+            done();
+        });
+    });
+});
+
 describe('Test a failed write keeps the values when the database was not reachable (#587)', function () {
     const { createAdapter } = require('./lib/stubAdapter');
     const row = (table, ts) => ({ table, state: { val: table === 'ts_string' ? 'x' : ts, ts, ack: true }, from: 0 });

@@ -166,7 +166,7 @@ export function getIdUpdate(dbName: string, id: number, type: 0 | 1 | 2): string
 
 export function getFromSelect(dbName: string, name?: string): string {
     if (name) {
-        return `SELECT id FROM ${dbName}.dbo.sources WHERE name='${name}';`;
+        return `SELECT id, name FROM ${dbName}.dbo.sources WHERE name='${name}';`;
     }
     return `SELECT id, name FROM ${dbName}.dbo.sources;`;
 }

@@ -211,7 +211,7 @@ export function getIdUpdate(dbName: string, id: number, type: 0 | 1 | 2): BoundS
 
 export function getFromSelect(dbName: string, name?: string): BoundStatement {
     if (name) {
-        return { sql: `SELECT id FROM \`${dbName}\`.sources WHERE name=?;`, params: [name] };
+        return { sql: `SELECT id, name FROM \`${dbName}\`.sources WHERE name=?;`, params: [name] };
     }
     return { sql: `SELECT id, name FROM \`${dbName}\`.sources;`, params: [] };
 }

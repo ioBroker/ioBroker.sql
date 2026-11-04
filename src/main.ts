@@ -24,6 +24,7 @@ import { MySQL2ClientPool, MySQL2Client, type MySQLOptions } from './lib/mysql-c
 import { buildMySQLOptions } from './lib/connection-options';
 import { guardUninitialized } from './lib/messages';
 import { isSameValue, parseLimit } from './lib/values';
+import { pickRowByName } from './lib/names';
 import { statementToString } from './lib/statement';
 import {
     classifyDatapoint,
@@ -2926,7 +2927,9 @@ export class SqlAdapter extends Adapter {
                     cb?.(err, id);
                     return;
                 }
-                if (!rows?.length) {
+                // the lookup can also return the row of an ID that differs only in case (#588)
+                const row = pickRowByName(rows, id);
+                if (!row) {
                     if (type !== null && type !== undefined) {
                         // insert
                         query = this.sqlFuncs!.getIdInsert(this.config.dbname, id, type);
@@ -2947,6 +2950,7 @@ export class SqlAdapter extends Adapter {
                                     query,
                                     (err, rows /* , fields */) => {
                                         this.returnClientToPool(client);
+                                        const row = pickRowByName(rows, id);
 
                                         if (!this.sqlDPs[id]) {
                                             // disabled or deleted while the row was created
@@ -2954,9 +2958,9 @@ export class SqlAdapter extends Adapter {
                                         } else if (err) {
                                             this.log.error(`Cannot select ${statementToString(query)}: ${err}`);
                                             cb?.(err, id);
-                                        } else if (rows?.[0]) {
-                                            this.sqlDPs[id].index = rows[0].id;
-                                            this.sqlDPs[id].type = rows[0].type;
+                                        } else if (row) {
+                                            this.sqlDPs[id].index = row.id;
+                                            this.sqlDPs[id].type = row.type;
 
                                             cb?.(null, id);
                                         } else {
@@ -2979,8 +2983,8 @@ export class SqlAdapter extends Adapter {
                         cb?.(new Error('id not found'), id);
                     }
                 } else {
-                    this.sqlDPs[id].index = rows[0].id;
-                    if (rows[0].type === null || typeof rows[0].type !== 'number') {
+                    this.sqlDPs[id].index = row.id;
+                    if (row.type === null || typeof row.type !== 'number') {
                         this.sqlDPs[id].type = type === null ? 1 : type; // default string
 
                         const query = this.sqlFuncs!.getIdUpdate(
@@ -3005,7 +3009,7 @@ export class SqlAdapter extends Adapter {
                     } else {
                         this.returnClientToPool(client);
 
-                        this.sqlDPs[id].type = rows[0].type;
+                        this.sqlDPs[id].type = row.type;
 
                         cb?.(null, id);
                     }
@@ -3025,13 +3029,15 @@ export class SqlAdapter extends Adapter {
                 this.returnClientToPool(client);
                 return cb?.(err || new Error('No client'), _from);
             }
-            client.execute<{ id: number }>(query, (err, rows /* , fields */) => {
+            client.execute<{ id: number; name: string }>(query, (err, rows /* , fields */) => {
                 if (err) {
                     this.returnClientToPool(client);
                     this.log.error(`Cannot select ${statementToString(query)}: ${err}`);
                     return cb?.(err, _from);
                 }
-                if (!rows?.length) {
+                // the lookup can also return the row of a source that differs only in case (#588)
+                const row = pickRowByName(rows, _from);
+                if (!row) {
                     // insert
                     query = this.sqlFuncs!.getFromInsert(this.config.dbname, _from);
                     this.#debugStatement(query);
@@ -3044,13 +3050,14 @@ export class SqlAdapter extends Adapter {
 
                         query = this.sqlFuncs!.getFromSelect(this.config.dbname, _from);
                         this.#debugStatement(query);
-                        client.execute<{ id: number }>(query, (err, rows /* , fields */) => {
+                        client.execute<{ id: number; name: string }>(query, (err, rows /* , fields */) => {
                             this.returnClientToPool(client);
-                            if (err || !rows?.length) {
+                            const row = pickRowByName(rows, _from);
+                            if (err || !row) {
                                 this.log.error(`Cannot select ${statementToString(query)}: ${err}`);
                                 return cb?.(err, _from);
                             }
-                            this.from[_from] = rows[0].id;
+                            this.from[_from] = row.id;
 
                             cb?.(null, _from);
                         });
@@ -3058,7 +3065,7 @@ export class SqlAdapter extends Adapter {
                 } else {
                     this.returnClientToPool(client);
 
-                    this.from[_from] = rows[0].id;
+                    this.from[_from] = row.id;
 
                     cb?.(null, _from);
                 }

@@ -147,6 +147,25 @@ describe('Test the MySQL statements with bound values against a live server (#58
         assert.strictEqual(sources.length, 1);
     });
 
+    it('a lookup also returns an ID that differs only in case, and pickRowByName() refuses it (#588)', async function () {
+        const { pickRowByName } = require('../build/lib/names');
+        await run(connection, MySQL.getIdInsert(DB, 'alias.0.Licht', 2));
+
+        let [rows] = await run(connection, MySQL.getIdSelect(DB, 'alias.0.licht'));
+        assert.deepStrictEqual(
+            rows.map(r => r.name),
+            ['alias.0.Licht'],
+            'the default collation ignores case',
+        );
+        assert.strictEqual(pickRowByName(rows, 'alias.0.licht'), undefined, 'so getId() inserts a row of its own');
+
+        await run(connection, MySQL.getIdInsert(DB, 'alias.0.licht', 0));
+        [rows] = await run(connection, MySQL.getIdSelect(DB, 'alias.0.licht'));
+        assert.strictEqual(rows.length, 2);
+        assert.strictEqual(pickRowByName(rows, 'alias.0.licht').type, 0);
+        assert.strictEqual(pickRowByName(rows, 'alias.0.Licht').type, 2);
+    });
+
     it('updates and deletes single values', async function () {
         await run(
             connection,
