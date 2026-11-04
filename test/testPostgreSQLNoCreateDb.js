@@ -179,14 +179,24 @@ describe(`Test ${__filename}`, function () {
             password: RESTRICTED_PASS,
             database: RESTRICTED_DB,
         });
+        const expectedTables = ['datapoints', 'sources', 'ts_bool', 'ts_counter', 'ts_number', 'ts_string'];
         await client.connect();
         try {
-            const res = await client.query(
-                `SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name`,
-            );
-            const tables = res.rows.map(r => r.table_name);
+            // info.connection turns true with the first pooled connection, before init() has run its
+            // CREATE TABLE statements, so give the adapter some time to create them
+            let tables = [];
+            for (let i = 0; i < 100; i++) {
+                const res = await client.query(
+                    `SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name`,
+                );
+                tables = res.rows.map(r => r.table_name);
+                if (expectedTables.every(table => tables.includes(table))) {
+                    break;
+                }
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
             console.log(`NoCreateDb tables: ${JSON.stringify(tables)}`);
-            for (const expected of ['datapoints', 'sources', 'ts_bool', 'ts_counter', 'ts_number', 'ts_string']) {
+            for (const expected of expectedTables) {
                 assert.ok(tables.includes(expected), `table ${expected} was not created`);
             }
         } finally {
