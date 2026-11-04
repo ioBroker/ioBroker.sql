@@ -262,8 +262,11 @@ const MAX_TASKS = 100;
 const POOL_MAX_IDLE_AGE = 60_000;
 /** Milliseconds between two warnings about values kept while the database is not reachable */
 const KEPT_LOG_INTERVAL = 60_000;
-/** Maximal number of rows one `getRawEntries` call may return */
-const MAX_RAW_ENTRIES = 2000;
+/**
+ * Maximal number of rows one `getRawEntries` call may return. An export of the data browser reads with
+ * this page size, and 5000 rows of numbers are still well below 1 MB as a message
+ */
+const MAX_RAW_ENTRIES = 5000;
 /** How often an unchanged connection error is repeated as error in the log */
 const REPEATED_ERROR_INTERVAL = 3_600_000;
 
@@ -4284,9 +4287,9 @@ export class SqlAdapter extends Adapter {
      * Read the stored values of one datapoint page by page.
      *
      * In contrast to `getHistory`, the rows are returned exactly as they are in the database: no aggregation,
-     * no interpolation, no border values and no rounding. Together with the total number of matching entries,
-     * so that a table can page through them. Works for datapoints that are not (or no longer) enabled for
-     * logging too.
+     * no interpolation, no border values and no rounding - only `ts` is always a number. Together with the total
+     * number of matching entries (unless `noTotal` is set), so that a table can page through them. Works for
+     * datapoints that are not (or no longer) enabled for logging too.
      */
     getRawEntries(msg: ioBroker.Message): void {
         if (!msg.message?.id) {
@@ -4309,6 +4312,7 @@ export class SqlAdapter extends Adapter {
             limit: Math.min(Math.max(parseInt(msg.message.limit, 10) || 100, 1), MAX_RAW_ENTRIES),
             offset: Math.max(parseInt(msg.message.offset, 10) || 0, 0),
             sort: msg.message.sort === 'asc' ? 'asc' : 'desc',
+            noTotal: msg.message.noTotal === true,
         };
 
         this.#readIdIndexAndType(id, (err, index, type) => {
@@ -4334,19 +4338,7 @@ export class SqlAdapter extends Adapter {
                     );
                 }
 
-                const countQuery = this.sqlFuncs!.getRawEntriesCount(this.config.dbname, table, index, options);
-                this.log.debug(countQuery);
-
-                client.execute<{ total: number | string }>(countQuery, (err, rows) => {
-                    if (err) {
-                        this.returnClientToPool(client);
-                        this.log.error(`Cannot select ${countQuery}: ${err}`);
-                        return this.sendTo(msg.from, msg.command, { error: err.message }, msg.callback);
-                    }
-
-                    // PostgreSQL returns the count of a bigint column as string
-                    const total = rows?.[0] ? parseInt(rows[0].total as string, 10) || 0 : 0;
-
+                const readEntries = (total: number | undefined): void => {
                     const query = this.sqlFuncs!.getRawEntries(this.config.dbname, table, index, options);
                     this.log.debug(query);
 
@@ -4356,6 +4348,14 @@ export class SqlAdapter extends Adapter {
                         if (err) {
                             this.log.error(`Cannot select ${query}: ${err}`);
                             return this.sendTo(msg.from, msg.command, { error: err.message }, msg.callback);
+                        }
+
+                        // PostgreSQL and MS SQL return a bigint column as string
+                        const result = rows || [];
+                        for (const row of result) {
+                            if (typeof row.ts === 'string') {
+                                row.ts = parseInt(row.ts, 10);
+                            }
                         }
 
                         this.sendTo(
@@ -4370,11 +4370,31 @@ export class SqlAdapter extends Adapter {
                                 limit: options.limit,
                                 offset: options.offset,
                                 sort: options.sort,
-                                result: rows || [],
+                                result,
                             },
                             msg.callback,
                         );
                     });
+                };
+
+                if (options.noTotal) {
+                    // the count is a scan of the whole range - the export of the data browser reads it in
+                    // windows and counts only once, with its first request
+                    return readEntries(undefined);
+                }
+
+                const countQuery = this.sqlFuncs!.getRawEntriesCount(this.config.dbname, table, index, options);
+                this.log.debug(countQuery);
+
+                client.execute<{ total: number | string }>(countQuery, (err, rows) => {
+                    if (err) {
+                        this.returnClientToPool(client);
+                        this.log.error(`Cannot select ${countQuery}: ${err}`);
+                        return this.sendTo(msg.from, msg.command, { error: err.message }, msg.callback);
+                    }
+
+                    // PostgreSQL returns the count of a bigint column as string
+                    readEntries(rows?.[0] ? parseInt(rows[0].total as string, 10) || 0 : 0);
                 });
             });
         });

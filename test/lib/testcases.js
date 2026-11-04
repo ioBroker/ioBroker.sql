@@ -1467,6 +1467,47 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
         );
     });
 
+    // the export of the data browser reads consecutive windows this way
+    it(`Test ${adapterShortName}: getRawEntries reads a window without counting, start and end inclusive`, async function () {
+        this.timeout(20000);
+        const id = `${instanceName}.testValue`;
+        const send = (command, message) => new Promise(resolve => sendTo(instanceName, command, message, resolve));
+
+        const first = await send('getRawEntries', { id, sort: 'asc', limit: 10 });
+        console.log(`getRawEntries first 10: ${JSON.stringify(first)}`);
+        assert.strictEqual(first.error, undefined);
+        assert.ok(first.total >= 10, `${first.total} >= 10`);
+        assert.strictEqual(first.result.length, 10);
+        // PostgreSQL and MS SQL deliver the bigint column as string
+        assert.strictEqual(typeof first.result[0].ts, 'number');
+
+        // MS SQL has no unique (id, ts) key, so take distinct timestamps. All entries up to the third one are
+        // in the first page, because it contains a later one too.
+        const timestamps = [...new Set(first.result.map(entry => entry.ts))];
+        assert.ok(timestamps.length >= 4, `${timestamps.length} distinct timestamps >= 4`);
+        const start = timestamps[1];
+        const end = timestamps[2];
+        const expected = first.result.filter(entry => entry.ts >= start && entry.ts <= end);
+
+        const window = await send('getRawEntries', { id, start, end, sort: 'asc', limit: 100, noTotal: true });
+        console.log(`getRawEntries window ${start} - ${end}: ${JSON.stringify(window)}`);
+        assert.strictEqual(window.error, undefined);
+        assert.strictEqual(window.total, undefined);
+        assert.strictEqual(window.limit, 100);
+        assert.deepStrictEqual(
+            window.result.map(entry => entry.ts),
+            expected.map(entry => entry.ts),
+        );
+        const key = entry => `${entry.ts}/${JSON.stringify(entry.val)}`;
+        assert.deepStrictEqual(window.result.map(key).sort(), expected.map(key).sort());
+
+        // the answer names the limit the adapter applied, which may be below the requested one
+        const capped = await send('getRawEntries', { id, limit: 1000000, noTotal: true });
+        assert.strictEqual(capped.error, undefined);
+        assert.strictEqual(capped.limit, 5000);
+        assert.strictEqual(capped.total, undefined);
+    });
+
     it(`Test ${adapterShortName}: Read minmax values from DB using GetHistory with 1mio slices`, function (done) {
         this.timeout(20000);
 
