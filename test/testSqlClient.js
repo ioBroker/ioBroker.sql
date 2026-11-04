@@ -440,3 +440,51 @@ describe('Test SQLClient passes bound values to the driver', function () {
         });
     });
 });
+
+describe('Test the MySQL factory refuses NO_BACKSLASH_ESCAPES (#587)', function () {
+    const { checkSqlMode } = require('../build/lib/mysql-client');
+
+    function fakeConnection(result) {
+        return {
+            ended: false,
+            query(sql, callback) {
+                assert.match(sql, /@@SESSION\.sql_mode/);
+                setImmediate(() => (result instanceof Error ? callback(result) : callback(null, [{ mode: result }])));
+            },
+            end(callback) {
+                this.ended = true;
+                setImmediate(() => callback?.());
+            },
+        };
+    }
+
+    it('accepts a session without the mode', function (done) {
+        const connection = fakeConnection('STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION');
+        checkSqlMode(connection, (err, conn) => {
+            assert.ifError(err);
+            assert.strictEqual(conn, connection);
+            assert.strictEqual(connection.ended, false);
+            done();
+        });
+    });
+
+    it('refuses and closes a session with NO_BACKSLASH_ESCAPES, with an error that says why', function (done) {
+        const connection = fakeConnection('IGNORE_SPACE,no_backslash_escapes');
+        checkSqlMode(connection, (err, conn) => {
+            assert.match(String(err), /NO_BACKSLASH_ESCAPES/);
+            assert.strictEqual(err.code, 'IOB_NO_BACKSLASH_ESCAPES');
+            assert.strictEqual(conn, undefined);
+            assert.strictEqual(connection.ended, true);
+            done();
+        });
+    });
+
+    it('passes the error of the check on and closes the connection', function (done) {
+        const connection = fakeConnection(new Error('Lost connection'));
+        checkSqlMode(connection, err => {
+            assert.match(String(err), /Lost connection/);
+            assert.strictEqual(connection.ended, true);
+            done();
+        });
+    });
+});

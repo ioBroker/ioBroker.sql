@@ -7,6 +7,44 @@ import { importDriver, type MySQLConnection, type MySQLModule, type MySQLOptions
 
 export type { MySQLOptions };
 
+/**
+ * Refuse a connection whose session runs with `NO_BACKSLASH_ESCAPES`.
+ *
+ * mysql2 escapes the bound values on the client, with backslashes (`'` becomes `\'`). With
+ * `NO_BACKSLASH_ESCAPES` the server reads a backslash as a plain character, so a value with `'` or
+ * `\` would end the string literal early: the statement fails, and a crafted value would be SQL
+ * again. The mode is not a default, but it can be set for the server, the user or the database.
+ * Removing it per session would silently override what the admin configured, so the connection is
+ * refused instead, with an error that says why. One query per new connection; the pool reuses them.
+ *
+ * @param connection the freshly connected mysql2 connection
+ * @param callback receives the connection, or the error after the connection was closed
+ */
+export function checkSqlMode(
+    connection: MySQLConnection,
+    callback: (err: Error | null, connection?: MySQLConnection) => void,
+): void {
+    connection.query<{ mode?: string }>('SELECT @@SESSION.sql_mode AS mode', (err, rows) => {
+        if (err) {
+            connection.end(() => callback(err));
+            return;
+        }
+        const mode = String(rows?.[0]?.mode ?? '');
+        if (mode.toUpperCase().split(',').includes('NO_BACKSLASH_ESCAPES')) {
+            const error = Object.assign(
+                new Error(
+                    "The MySQL server uses sql_mode NO_BACKSLASH_ESCAPES, so values with ' or \\ cannot be stored safely. " +
+                        'Remove NO_BACKSLASH_ESCAPES from the sql_mode of the server, of the user or of the database.',
+                ),
+                { code: 'IOB_NO_BACKSLASH_ESCAPES' },
+            );
+            connection.end(() => callback(error));
+            return;
+        }
+        callback(null, connection);
+    });
+}
+
 class MySQL2ConnectionFactory extends ConnectionFactory {
     private createConnection: any;
     openConnection(options: MySQLOptions, callback: (err: Error | null, connection?: MySQLConnection) => void): void {
@@ -24,7 +62,12 @@ class MySQL2ConnectionFactory extends ConnectionFactory {
         }
 
         const connection = this.createConnection(options);
-        connection.connect((err: Error | null): void => callback(err, connection));
+        connection.connect((err: Error | null): void => {
+            if (err) {
+                return callback(err, connection);
+            }
+            checkSqlMode(connection, callback);
+        });
     }
 
     closeConnection(connection: MySQLConnection | null | undefined, callback: (error?: Error | null) => void): void {

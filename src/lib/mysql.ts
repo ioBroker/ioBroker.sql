@@ -111,6 +111,33 @@ export function getTableSize(dbName: string, table: TableName): BoundStatement {
  * @param table the time series table
  * @param val the value of the state
  */
+/** Texts that are stored as `true` or `false` in `ts_bool`; compared trimmed and in lower case */
+const TRUE_TEXTS = ['true', 'on', 'yes', '1'];
+const FALSE_TEXTS = ['false', 'off', 'no', '0', ''];
+
+/**
+ * A value for `ts_bool`: 1, 0 or NULL.
+ *
+ * Before, every text except `false`, `0` and `''` was stored as 1, `"off"` too, and a number was
+ * stored as it was (5 in a boolean column). Now the usual texts for on and off are recognized, a
+ * number is 1 unless it is 0, and anything else is NULL, like a text in a number column.
+ *
+ * @param val the value of the state
+ */
+function toBool(val: unknown): 0 | 1 | null {
+    if (typeof val === 'number') {
+        return Number.isFinite(val) ? (val ? 1 : 0) : null;
+    }
+    if (typeof val === 'string') {
+        const text = val.trim().toLowerCase();
+        if (TRUE_TEXTS.includes(text)) {
+            return 1;
+        }
+        return FALSE_TEXTS.includes(text) ? 0 : null;
+    }
+    return null;
+}
+
 function toDbValue(table: TableName, val: unknown): SqlParam {
     if (val === null || val === undefined) {
         return null;
@@ -121,8 +148,8 @@ function toDbValue(table: TableName, val: unknown): SqlParam {
     if (typeof val === 'boolean') {
         return val ? 1 : 0;
     }
-    if (table === 'ts_bool' && typeof val === 'string') {
-        return val === 'false' || val === '0' || val === '' ? 0 : 1;
+    if (table === 'ts_bool') {
+        return toBool(val);
     }
     // ts_number, ts_counter, a number in ts_bool: like the other dialects, a text that is not a number
     // is stored as NULL ("12 kWh" too), and so are NaN and Infinity, which MySQL would reject together
