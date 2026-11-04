@@ -1,6 +1,8 @@
 import type { ConnectionFactory, SQLConnection } from './connection-factory';
 import { EventEmitter } from 'node:events';
 import { isConnectionError } from './errors';
+import { isBoundStatement } from './statement';
+import type { SqlParam, SqlStatement } from '../types';
 
 export default class SQLClient extends EventEmitter {
     private readonly options: any;
@@ -149,17 +151,17 @@ export default class SQLClient extends EventEmitter {
         return Promise.resolve();
     }
 
-    execute<T>(sql: string, callback: (err: Error | null, result?: Array<T>) => void): void {
+    execute<T>(statement: SqlStatement, callback: (err: Error | null, result?: Array<T>) => void): void {
         if (!this.connection) {
             return this.connect(err => {
                 if (err) {
                     callback(err);
                 } else {
-                    this.execute(sql, callback);
+                    this.execute(statement, callback);
                 }
             });
         }
-        this.factory.execute(this.connection, sql, (err?: Error | null, result?: Array<T>): void => {
+        this.#run(statement, (err?: Error | null, result?: Array<T>): void => {
             if (err) {
                 this.#flagIfConnectionError(err);
                 callback(err);
@@ -169,12 +171,12 @@ export default class SQLClient extends EventEmitter {
         });
     }
 
-    async executeAsync<T>(sql: string): Promise<Array<T> | undefined> {
+    async executeAsync<T>(statement: SqlStatement): Promise<Array<T> | undefined> {
         if (!this.connection) {
             await this.connectAsync();
         }
         return new Promise<Array<T> | undefined>((resolve, reject) =>
-            this.factory.execute(this.connection, sql, (err?: Error | null, result?: Array<T>): void => {
+            this.#run(statement, (err?: Error | null, result?: Array<T>): void => {
                 if (err) {
                     this.#flagIfConnectionError(err);
                     reject(err);
@@ -183,6 +185,26 @@ export default class SQLClient extends EventEmitter {
                 }
             }),
         );
+    }
+
+    /**
+     * Hand a statement to the driver, with its values if it has any.
+     *
+     * @param statement plain SQL or SQL with values
+     * @param callback the result of the driver
+     */
+    #run<T>(statement: SqlStatement, callback: (err?: Error | null, result?: Array<T>) => void): void {
+        if (!isBoundStatement(statement)) {
+            this.factory.execute(this.connection, statement, callback);
+            return;
+        }
+        if (!this.factory.supportsParams) {
+            // never run the SQL without its values: the placeholders would end up in the database
+            callback(new Error('This database driver does not support bound parameters'));
+            return;
+        }
+        const params: SqlParam[] = statement.params;
+        this.factory.execute(this.connection, statement.sql, callback, params);
     }
 
     /**

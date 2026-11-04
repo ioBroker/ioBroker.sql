@@ -651,6 +651,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ## Changelog
 
 ### **WORK IN PROGRESS**
+* (@Schimi1983) MySQL: values, datapoint IDs and sources are passed as bound parameters instead of being inlined. Text values keep their single quotes (`it's` was stored as `its`), a value ending with a backslash no longer makes the whole batch fail, and the `delete`/`update`/`storeState` messages cannot inject SQL any more. `NaN`/`Infinity` are stored as NULL instead of failing the batch (#587)
 * (copilot) Adapter requires node.js >= 22.19.0 now
 * (@GermanBluefox) Fixed: values stored without `from` were missing in `getHistory` with `from: true`, e.g. in the history data of admin
 * (@Schimi1983) A failed write is no longer silently dropped: the error is passed on, so `storeState` reports it instead of `success: true`. If the database was not reachable, the values are kept and written with the next write of the datapoint (at most 2000 per datapoint, the oldest are dropped first, with a warning). Pooled connections that were idle for more than 60 s are closed and replaced, so a server-side `wait_timeout` no longer resets them; the warning "SQL connection lost" every few minutes on hosted databases is gone (#587)

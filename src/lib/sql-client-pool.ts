@@ -1,5 +1,6 @@
 import type { ConnectionFactory } from './connection-factory';
 import SQLClient from './sql-client';
+import type { SqlStatement } from '../types';
 
 export type PoolConfig = {
     min_idle?: number;
@@ -140,7 +141,7 @@ export class SQLClientPool {
         callback?.();
     }
 
-    execute<T>(sql: string, callback: (err: Error | null, result?: Array<T>) => void): void {
+    execute<T>(sql: SqlStatement, callback: (err: Error | null, result?: Array<T>) => void): void {
         this.borrow((err, client) => {
             if (err) {
                 callback(err);

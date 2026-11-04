@@ -2,6 +2,18 @@ export type DbType = 'sqlite' | 'postgresql' | 'mysql' | 'mssql';
 export type TableName = 'ts_string' | 'ts_number' | 'ts_bool' | 'ts_counter';
 export type StorageType = '' | 'String' | 'Number' | 'Boolean';
 
+/** A value that the driver puts into a statement in place of a `?` placeholder */
+export type SqlParam = string | number | boolean | null;
+
+/** A statement whose values are passed separately, so the driver escapes them */
+export interface BoundStatement {
+    sql: string;
+    params: SqlParam[];
+}
+
+/** What the dialect functions return: plain SQL, or SQL with bound values */
+export type SqlStatement = string | BoundStatement;
+
 /** Options of the `getRawEntries` message, already sanitized by the adapter */
 export interface RawEntriesOptions {
     /** oldest timestamp to return (inclusive) */

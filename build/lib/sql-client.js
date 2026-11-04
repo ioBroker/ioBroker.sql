@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_events_1 = require("node:events");
 const errors_1 = require("./errors");
+const statement_1 = require("./statement");
 class SQLClient extends node_events_1.EventEmitter {
     options;
     factory;
@@ -133,18 +134,18 @@ class SQLClient extends node_events_1.EventEmitter {
         }
         return Promise.resolve();
     }
-    execute(sql, callback) {
+    execute(statement, callback) {
         if (!this.connection) {
             return this.connect(err => {
                 if (err) {
                     callback(err);
                 }
                 else {
-                    this.execute(sql, callback);
+                    this.execute(statement, callback);
                 }
             });
         }
-        this.factory.execute(this.connection, sql, (err, result) => {
+        this.#run(statement, (err, result) => {
             if (err) {
                 this.#flagIfConnectionError(err);
                 callback(err);
@@ -154,11 +155,11 @@ class SQLClient extends node_events_1.EventEmitter {
             }
         });
     }
-    async executeAsync(sql) {
+    async executeAsync(statement) {
         if (!this.connection) {
             await this.connectAsync();
         }
-        return new Promise((resolve, reject) => this.factory.execute(this.connection, sql, (err, result) => {
+        return new Promise((resolve, reject) => this.#run(statement, (err, result) => {
             if (err) {
                 this.#flagIfConnectionError(err);
                 reject(err);
@@ -167,6 +168,25 @@ class SQLClient extends node_events_1.EventEmitter {
                 resolve(result);
             }
         }));
+    }
+    /**
+     * Hand a statement to the driver, with its values if it has any.
+     *
+     * @param statement plain SQL or SQL with values
+     * @param callback the result of the driver
+     */
+    #run(statement, callback) {
+        if (!(0, statement_1.isBoundStatement)(statement)) {
+            this.factory.execute(this.connection, statement, callback);
+            return;
+        }
+        if (!this.factory.supportsParams) {
+            // never run the SQL without its values: the placeholders would end up in the database
+            callback(new Error('This database driver does not support bound parameters'));
+            return;
+        }
+        const params = statement.params;
+        this.factory.execute(this.connection, statement.sql, callback, params);
     }
     /**
      * Mark the client as broken when a statement failed because its connection is gone.

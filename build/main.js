@@ -47,6 +47,7 @@ const mysql_client_1 = require("./lib/mysql-client");
 const connection_options_1 = require("./lib/connection-options");
 const messages_1 = require("./lib/messages");
 const values_1 = require("./lib/values");
+const statement_1 = require("./lib/statement");
 const statistics_1 = require("./lib/statistics");
 const postgresql_client_1 = require("./lib/postgresql-client");
 const sqlite3_client_1 = require("./lib/sqlite3-client");
@@ -362,6 +363,19 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 void this.finish(callback);
             },
         });
+    }
+    /**
+     * Log a statement on debug level.
+     *
+     * Only built when debug is on: a batch carries up to 3000 bound values, and turning them into text
+     * for every write would cost CPU even when nothing is logged.
+     *
+     * @param statement plain SQL or SQL with values
+     */
+    #debugStatement(statement) {
+        if (this.log.level === 'debug' || this.log.level === 'silly') {
+            this.log.debug((0, statement_1.statementToString)(statement));
+        }
     }
     borrowClientFromPool(callback) {
         if (!this.clientPool) {
@@ -1744,7 +1758,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
     }
     getAllIds(cb) {
         const query = this.sqlFuncs.getIdSelect(this.config.dbname);
-        this.log.debug(query);
+        this.#debugStatement(query);
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
@@ -1753,7 +1767,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
             client.execute(query, (err, rows) => {
                 this.returnClientToPool(client);
                 if (err) {
-                    this.log.error(`Cannot select ${query}: ${err}`);
+                    this.log.error(`Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`);
                     return cb?.(err);
                 }
                 if (rows?.length) {
@@ -1773,7 +1787,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
     }
     getAllFroms(cb) {
         const query = this.sqlFuncs.getFromSelect(this.config.dbname);
-        this.log.debug(query);
+        this.#debugStatement(query);
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
@@ -1782,7 +1796,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
             client.execute(query, (err, rows /* , fields */) => {
                 this.returnClientToPool(client);
                 if (err) {
-                    this.log.error(`Cannot select ${query}: ${err}`);
+                    this.log.error(`Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`);
                     return cb?.(err);
                 }
                 if (rows?.length) {
@@ -1795,7 +1809,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
         });
     }
     _checkRetention(query, cb) {
-        this.log.debug(query);
+        this.#debugStatement(query);
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
@@ -1806,7 +1820,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 client.execute(query, (err) => {
                     this.returnClientToPool(client);
                     if (err) {
-                        this.log.warn(`Retention: Cannot delete ${query}: ${err}`);
+                        this.log.warn(`Retention: Cannot delete ${(0, statement_1.statementToString)(query)}: ${err}`);
                     }
                     cb?.();
                 });
@@ -1895,11 +1909,11 @@ class SqlAdapter extends adapter_core_1.Adapter {
                         next(i + 1);
                         return;
                     }
-                    this.log.debug(queries[q]);
+                    this.#debugStatement(queries[q]);
                     client.execute(queries[q], (err /* , rows, fields */) => {
                         if (err) {
                             this.returnClientToPool(client);
-                            this.log.error(`Cannot insert ${queries[q]}: ${err} (id: ${id})`);
+                            this.log.error(`Cannot insert ${(0, statement_1.statementToString)(queries[q])}: ${err} (id: ${id})`);
                             cb?.(err, (0, errors_1.isConnectionError)(err) ? groups.slice(i).flat() : undefined);
                             return;
                         }
@@ -1912,7 +1926,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
         });
     }
     _executeQuery(query, id, cb) {
-        this.log.debug(query);
+        this.#debugStatement(query);
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
@@ -1923,7 +1937,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 client.execute(query, (err) => {
                     this.returnClientToPool(client);
                     if (err) {
-                        this.log.error(`Cannot query ${query}: ${err} (id: ${id})`);
+                        this.log.error(`Cannot query ${(0, statement_1.statementToString)(query)}: ${err} (id: ${id})`);
                     }
                     cb?.(err);
                 });
@@ -2031,7 +2045,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
             this.sqlDPs[task.id].type !== this.sqlDPs[task.id].dbType) {
             this.sqlDPs[task.id].dbType = this.sqlDPs[task.id].type;
             const query = this.sqlFuncs.getIdUpdate(this.config.dbname, this.sqlDPs[task.id].index, this.sqlDPs[task.id].type);
-            this.log.debug(query);
+            this.#debugStatement(query);
             return this.borrowClientFromPool((err, client) => {
                 if (err || !client) {
                     this.returnClientToPool(client);
@@ -2041,7 +2055,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 client.execute(query, err => {
                     this.returnClientToPool(client);
                     if (err) {
-                        this.log.error(`error updating history config for ${task.id} to pin datatype: ${query}: ${err}`);
+                        this.log.error(`error updating history config for ${task.id} to pin datatype: ${(0, statement_1.statementToString)(query)}: ${err}`);
                     }
                     else {
                         this.log.info(`changed history configuration to pin detected datatype for ${task.id}`);
@@ -2477,7 +2491,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
     // may be it is required to cache all the data in memory
     getId(id, type, cb) {
         let query = this.sqlFuncs.getIdSelect(this.config.dbname, id);
-        this.log.debug(query);
+        this.#debugStatement(query);
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
@@ -2492,7 +2506,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 }
                 if (err) {
                     this.returnClientToPool(client);
-                    this.log.error(`Cannot select ${query}: ${err}`);
+                    this.log.error(`Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`);
                     cb?.(err, id);
                     return;
                 }
@@ -2500,16 +2514,16 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     if (type !== null && type !== undefined) {
                         // insert
                         query = this.sqlFuncs.getIdInsert(this.config.dbname, id, type);
-                        this.log.debug(query);
+                        this.#debugStatement(query);
                         client.execute(query, (err /* , rows, fields */) => {
                             if (err) {
                                 this.returnClientToPool(client);
-                                this.log.error(`Cannot insert ${query}: ${err}`);
+                                this.log.error(`Cannot insert ${(0, statement_1.statementToString)(query)}: ${err}`);
                                 cb?.(err, id);
                             }
                             else {
                                 query = this.sqlFuncs.getIdSelect(this.config.dbname, id);
-                                this.log.debug(query);
+                                this.#debugStatement(query);
                                 client.execute(query, (err, rows /* , fields */) => {
                                     this.returnClientToPool(client);
                                     if (!this.sqlDPs[id]) {
@@ -2517,7 +2531,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                                         cb?.(new Error(`ID ${id} no longer active`), id);
                                     }
                                     else if (err) {
-                                        this.log.error(`Cannot select ${query}: ${err}`);
+                                        this.log.error(`Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`);
                                         cb?.(err, id);
                                     }
                                     else if (rows?.[0]) {
@@ -2526,8 +2540,8 @@ class SqlAdapter extends adapter_core_1.Adapter {
                                         cb?.(null, id);
                                     }
                                     else {
-                                        this.log.error(`No result for select ${query}: after insert`);
-                                        cb?.(new Error(`No result for select ${query}: after insert`), id);
+                                        this.log.error(`No result for select ${(0, statement_1.statementToString)(query)}: after insert`);
+                                        cb?.(new Error(`No result for select ${(0, statement_1.statementToString)(query)}: after insert`), id);
                                     }
                                 });
                             }
@@ -2543,11 +2557,11 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     if (rows[0].type === null || typeof rows[0].type !== 'number') {
                         this.sqlDPs[id].type = type === null ? 1 : type; // default string
                         const query = this.sqlFuncs.getIdUpdate(this.config.dbname, this.sqlDPs[id].index, this.sqlDPs[id].type);
-                        this.log.debug(query);
+                        this.#debugStatement(query);
                         client.execute(query, err => {
                             this.returnClientToPool(client);
                             if (err) {
-                                this.log.error(`error updating history config for ${id} to pin datatype: ${query}: ${err}`);
+                                this.log.error(`error updating history config for ${id} to pin datatype: ${(0, statement_1.statementToString)(query)}: ${err}`);
                             }
                             else {
                                 this.log.info(`changed history configuration to pin detected datatype for ${id}`);
@@ -2568,7 +2582,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
     getFrom(_from, cb) {
         // const sources    = (this.config.dbtype !== 'postgresql' ? (this.config.dbname + '.') : '') + 'sources';
         let query = this.sqlFuncs.getFromSelect(this.config.dbname, _from);
-        this.log.debug(query);
+        this.#debugStatement(query);
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
@@ -2577,25 +2591,25 @@ class SqlAdapter extends adapter_core_1.Adapter {
             client.execute(query, (err, rows /* , fields */) => {
                 if (err) {
                     this.returnClientToPool(client);
-                    this.log.error(`Cannot select ${query}: ${err}`);
+                    this.log.error(`Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`);
                     return cb?.(err, _from);
                 }
                 if (!rows?.length) {
                     // insert
                     query = this.sqlFuncs.getFromInsert(this.config.dbname, _from);
-                    this.log.debug(query);
+                    this.#debugStatement(query);
                     client.execute(query, err => {
                         if (err) {
                             this.returnClientToPool(client);
-                            this.log.error(`Cannot insert ${query}: ${err}`);
+                            this.log.error(`Cannot insert ${(0, statement_1.statementToString)(query)}: ${err}`);
                             return cb?.(err, _from);
                         }
                         query = this.sqlFuncs.getFromSelect(this.config.dbname, _from);
-                        this.log.debug(query);
+                        this.#debugStatement(query);
                         client.execute(query, (err, rows /* , fields */) => {
                             this.returnClientToPool(client);
                             if (err || !rows?.length) {
-                                this.log.error(`Cannot select ${query}: ${err}`);
+                                this.log.error(`Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`);
                                 return cb?.(err, _from);
                             }
                             this.from[_from] = rows[0].id;
@@ -2704,7 +2718,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
         callback(cache, !!options.returnNewestEntries && !!options.count && cache.length >= options.count, anyInflight, earliestTs);
     }
     #getDataFromDB(query, options, callback) {
-        this.log.debug(query);
+        this.#debugStatement(query);
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
@@ -2742,7 +2756,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
     }
     getDataFromDB(table, options, callback) {
         const query = this.sqlFuncs.getHistory(this.config.dbname, table, options);
-        this.log.debug(query);
+        this.#debugStatement(query);
         if (!this.multiRequests) {
             if (this.tasks.length > MAX_TASKS) {
                 this.log.error(`Cannot queue new requests, because more than ${MAX_TASKS}`);
@@ -2761,7 +2775,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
     }
     getCounterDataFromDB(options, callback) {
         const query = this.sqlFuncs.getCounterDiff(this.config.dbname, options);
-        this.log.debug(query);
+        this.#debugStatement(query);
         if (!this.multiRequests) {
             if (this.tasks.length > MAX_TASKS) {
                 const error = `Cannot queue new requests, because more than ${MAX_TASKS}`;
@@ -3211,7 +3225,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
             return;
         }
         const query = this.sqlFuncs.getIdSelect(this.config.dbname, id);
-        this.log.debug(query);
+        this.#debugStatement(query);
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
@@ -3221,7 +3235,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
             client.execute(query, (err, rows) => {
                 this.returnClientToPool(client);
                 if (err) {
-                    this.log.error(`Cannot select ${query}: ${err}`);
+                    this.log.error(`Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`);
                     cb(err);
                 }
                 else if (!rows?.length) {
@@ -3631,11 +3645,11 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 }
                 const readEntries = (total) => {
                     const query = this.sqlFuncs.getRawEntries(this.config.dbname, table, index, options);
-                    this.log.debug(query);
+                    this.#debugStatement(query);
                     client.execute(query, (err, rows) => {
                         this.returnClientToPool(client);
                         if (err) {
-                            this.log.error(`Cannot select ${query}: ${err}`);
+                            this.log.error(`Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`);
                             return this.sendTo(msg.from, msg.command, { error: err.message }, msg.callback);
                         }
                         // PostgreSQL and MS SQL return a bigint column as string
@@ -3664,11 +3678,11 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     return readEntries(undefined);
                 }
                 const countQuery = this.sqlFuncs.getRawEntriesCount(this.config.dbname, table, index, options);
-                this.log.debug(countQuery);
+                this.#debugStatement(countQuery);
                 client.execute(countQuery, (err, rows) => {
                     if (err) {
                         this.returnClientToPool(client);
-                        this.log.error(`Cannot select ${countQuery}: ${err}`);
+                        this.log.error(`Cannot select ${(0, statement_1.statementToString)(countQuery)}: ${err}`);
                         return this.sendTo(msg.from, msg.command, { error: err.message }, msg.callback);
                     }
                     // PostgreSQL returns the count of a bigint column as string
@@ -3849,7 +3863,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
     }
     getDatapoints(msg) {
         const query = this.sqlFuncs.getIdSelect(this.config.dbname);
-        this.log.debug(query);
+        this.#debugStatement(query);
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
@@ -3858,7 +3872,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
             client.execute(query, (err, rows) => {
                 this.returnClientToPool(client);
                 if (err) {
-                    this.log.error(`Cannot select ${query}: ${err}`);
+                    this.log.error(`Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`);
                     return this.sendTo(msg.from, msg.command, { error: err.message }, msg.callback);
                 }
                 const result = (rows || [])
@@ -3875,20 +3889,20 @@ class SqlAdapter extends adapter_core_1.Adapter {
     getDpOverview(msg) {
         const result = [];
         const query = this.sqlFuncs.getIdSelect(this.config.dbname);
-        this.log.info(query);
+        this.log.info((0, statement_1.statementToString)(query));
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
                 return this.sendTo(msg.from, msg.command, {
-                    error: `Cannot select ${query}: ${err || 'no client'}`,
+                    error: `Cannot select ${(0, statement_1.statementToString)(query)}: ${err || 'no client'}`,
                 }, msg.callback);
             }
             client.execute(query, (err, rows /* , fields */) => {
                 if (err) {
                     this.returnClientToPool(client);
-                    this.log.error(`Cannot select ${query}: ${err}`);
+                    this.log.error(`Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`);
                     this.sendTo(msg.from, msg.command, {
-                        error: `Cannot select ${query}: ${err}`,
+                        error: `Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`,
                     }, msg.callback);
                     return;
                 }
@@ -3922,13 +3936,13 @@ class SqlAdapter extends adapter_core_1.Adapter {
             }
             else {
                 const query = this.sqlFuncs.getFirstTs(this.config.dbname, dbNames[typeId]);
-                this.log.info(query);
+                this.log.info((0, statement_1.statementToString)(query));
                 client.execute(query, (err, rows /* , fields */) => {
                     if (err) {
                         this.returnClientToPool(client);
-                        this.log.error(`Cannot select ${query}: ${err}`);
+                        this.log.error(`Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`);
                         this.sendTo(msg.from, msg.command, {
-                            error: `Cannot select ${query}: ${err}`,
+                            error: `Cannot select ${(0, statement_1.statementToString)(query)}: ${err}`,
                         }, msg.callback);
                         return;
                     }
