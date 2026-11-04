@@ -105,12 +105,6 @@ export function getTableSize(dbName: string, table: TableName): BoundStatement {
     };
 }
 
-/**
- * The value of a state as it is stored in its table.
- *
- * @param table the time series table
- * @param val the value of the state
- */
 /** Texts that are stored as `true` or `false` in `ts_bool`; compared trimmed and in lower case */
 const TRUE_TEXTS = ['true', 'on', 'yes', '1'];
 const FALSE_TEXTS = ['false', 'off', 'no', '0', ''];
@@ -138,6 +132,12 @@ function toBool(val: unknown): 0 | 1 | null {
     return null;
 }
 
+/**
+ * The value of a state as it is stored in its table.
+ *
+ * @param table the time series table
+ * @param val the value of the state
+ */
 function toDbValue(table: TableName, val: unknown): SqlParam {
     if (val === null || val === undefined) {
         return null;
@@ -151,7 +151,7 @@ function toDbValue(table: TableName, val: unknown): SqlParam {
     if (table === 'ts_bool') {
         return toBool(val);
     }
-    // ts_number, ts_counter, a number in ts_bool: like the other dialects, a text that is not a number
+    // ts_number, ts_counter: like the other dialects, a text that is not a number
     // is stored as NULL ("12 kWh" too), and so are NaN and Infinity, which MySQL would reject together
     // with the whole batch
     const n = typeof val === 'string' && val.trim() === '' ? NaN : Number(val);

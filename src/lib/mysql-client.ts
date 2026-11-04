@@ -7,22 +7,43 @@ import { importDriver, type MySQLConnection, type MySQLModule, type MySQLOptions
 
 export type { MySQLOptions };
 
+/** Called with the server's `sql_mode` when `NO_BACKSLASH_ESCAPES` was removed from a session */
+export type SqlModeAdjusted = (serverMode: string) => void;
+
 /**
- * Refuse a connection whose session runs with `NO_BACKSLASH_ESCAPES`.
+ * The `sql_mode` without `NO_BACKSLASH_ESCAPES`, or `null` if it does not contain the mode.
+ *
+ * @param mode the comma-separated `sql_mode` of a session
+ */
+export function withoutNoBackslashEscapes(mode: string): string | null {
+    const modes = mode.split(',').filter(m => m.trim());
+    const kept = modes.filter(m => m.trim().toUpperCase() !== 'NO_BACKSLASH_ESCAPES');
+    return kept.length === modes.length ? null : kept.join(',');
+}
+
+/**
+ * Make sure the session of a new connection does not run with `NO_BACKSLASH_ESCAPES`.
  *
  * mysql2 escapes the bound values on the client, with backslashes (`'` becomes `\'`). With
  * `NO_BACKSLASH_ESCAPES` the server reads a backslash as a plain character, so a value with `'` or
  * `\` would end the string literal early: the statement fails, and a crafted value would be SQL
- * again. The mode is not a default, but it can be set for the server, the user or the database.
- * Removing it per session would silently override what the admin configured, so the connection is
- * refused instead, with an error that says why. One query per new connection; the pool reuses them.
+ * again. The mode is not a default, but it can be set globally (server option, `SET GLOBAL`) or by
+ * `init_connect`; MySQL has no `sql_mode` per user or per database.
+ *
+ * The mode is removed for this session only, which changes neither the server's global setting nor
+ * other clients. Refusing the connection instead would stop all logging after an update on a server
+ * where the adapter used to work, and on a hosted database the user usually cannot change the global
+ * mode. Only if the mode cannot be removed is the connection closed and refused.
+ * One query per new connection, two when the mode is set; the pool reuses the connections.
  *
  * @param connection the freshly connected mysql2 connection
  * @param callback receives the connection, or the error after the connection was closed
+ * @param onAdjusted called when the mode was removed, to log it
  */
 export function checkSqlMode(
     connection: MySQLConnection,
     callback: (err: Error | null, connection?: MySQLConnection) => void,
+    onAdjusted?: SqlModeAdjusted,
 ): void {
     connection.query<{ mode?: string }>('SELECT @@SESSION.sql_mode AS mode', (err, rows) => {
         if (err) {
@@ -30,22 +51,36 @@ export function checkSqlMode(
             return;
         }
         const mode = String(rows?.[0]?.mode ?? '');
-        if (mode.toUpperCase().split(',').includes('NO_BACKSLASH_ESCAPES')) {
-            const error = Object.assign(
-                new Error(
-                    "The MySQL server uses sql_mode NO_BACKSLASH_ESCAPES, so values with ' or \\ cannot be stored safely. " +
-                        'Remove NO_BACKSLASH_ESCAPES from the sql_mode of the server, of the user or of the database.',
-                ),
-                { code: 'IOB_NO_BACKSLASH_ESCAPES' },
-            );
-            connection.end(() => callback(error));
+        const adjusted = withoutNoBackslashEscapes(mode);
+        if (adjusted === null) {
+            callback(null, connection);
             return;
         }
-        callback(null, connection);
+        // Bound like any value. Mode names contain no quotes or backslashes, so this statement is
+        // safe although the mode is still active while it runs.
+        connection.query('SET SESSION sql_mode = ?', [adjusted], err => {
+            if (err) {
+                const error = Object.assign(
+                    new Error(
+                        `The MySQL server uses sql_mode NO_BACKSLASH_ESCAPES, so values with ' or \\ cannot be stored safely, and it could not be removed for the session: ${err.message}. ` +
+                            'Remove NO_BACKSLASH_ESCAPES from the global sql_mode of the server.',
+                    ),
+                    { code: 'IOB_NO_BACKSLASH_ESCAPES', cause: err },
+                );
+                connection.end(() => callback(error));
+                return;
+            }
+            onAdjusted?.(mode);
+            callback(null, connection);
+        });
     });
 }
 
 class MySQL2ConnectionFactory extends ConnectionFactory {
+    constructor(private readonly onSqlModeAdjusted?: SqlModeAdjusted) {
+        super();
+    }
+
     private createConnection: any;
     openConnection(options: MySQLOptions, callback: (err: Error | null, connection?: MySQLConnection) => void): void {
         if (!this.createConnection) {
@@ -66,7 +101,7 @@ class MySQL2ConnectionFactory extends ConnectionFactory {
             if (err) {
                 return callback(err, connection);
             }
-            checkSqlMode(connection, callback);
+            checkSqlMode(connection, callback, this.onSqlModeAdjusted);
         });
     }
 
@@ -107,13 +142,13 @@ class MySQL2ConnectionFactory extends ConnectionFactory {
 }
 
 export class MySQL2Client extends SQLClient {
-    constructor(sqlConnection: MySQLOptions) {
-        super(sqlConnection, new MySQL2ConnectionFactory());
+    constructor(sqlConnection: MySQLOptions, onSqlModeAdjusted?: SqlModeAdjusted) {
+        super(sqlConnection, new MySQL2ConnectionFactory(onSqlModeAdjusted));
     }
 }
 
 export class MySQL2ClientPool extends SQLClientPool {
-    constructor(poolOptions: PoolConfig, sqlOptions: MySQLOptions) {
-        super(poolOptions, sqlOptions, new MySQL2ConnectionFactory());
+    constructor(poolOptions: PoolConfig, sqlOptions: MySQLOptions, onSqlModeAdjusted?: SqlModeAdjusted) {
+        super(poolOptions, sqlOptions, new MySQL2ConnectionFactory(onSqlModeAdjusted));
     }
 }

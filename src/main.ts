@@ -979,7 +979,14 @@ export class SqlAdapter extends Adapter {
                 if (this.config.dbtype === 'mssql' && msSQLOptions) {
                     this.clientPool = new MSSQLClientPool(poolOptions, msSQLOptions);
                 } else if (this.config.dbtype === 'mysql' && mySQLOptions) {
-                    this.clientPool = new MySQL2ClientPool(poolOptions, mySQLOptions);
+                    this.clientPool = new MySQL2ClientPool(poolOptions, mySQLOptions, serverMode => {
+                        if (!this.#sqlModeLogged) {
+                            this.#sqlModeLogged = true;
+                            this.log.info(
+                                `The MySQL server runs with sql_mode "${serverMode}". NO_BACKSLASH_ESCAPES is removed for the connections of this adapter, because the values are escaped with backslashes.`,
+                            );
+                        }
+                    });
                 } else if (this.config.dbtype === 'sqlite' && sqLiteOptions) {
                     this.clientPool = new SQLite3ClientPool(poolOptions, sqLiteOptions);
                 } else if (this.config.dbtype === 'postgresql' && postgreSQLOptions) {
@@ -2734,6 +2741,9 @@ export class SqlAdapter extends Adapter {
     #keptDropped = 0;
     /** When the warning about kept values was logged last */
     #keptLoggedAt = 0;
+
+    /** Whether the removed `NO_BACKSLASH_ESCAPES` was logged; the pool opens a new connection every minute */
+    #sqlModeLogged = false;
 
     storeCached(onlyId?: string, cb?: ((err?: Error | null) => void) | null): void {
         let count = 0;
