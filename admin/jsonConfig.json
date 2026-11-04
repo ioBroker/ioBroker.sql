@@ -1,5 +1,8 @@
 {
     "type": "tabs",
+    "tabsStyle": {
+        "width": "calc(100% - 100px)"
+    },
     "i18n": true,
     "items": {
         "dbTab": {
