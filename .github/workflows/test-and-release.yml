@@ -191,6 +191,13 @@ jobs:
             matrix:
                 node-version: [22.x, 24.x, 26.x]
                 os: [ubuntu-latest, windows-latest, macos-latest]
+                # macOS runners are scarce: jobs waited for hours and were then cancelled without ever
+                # getting a runner, which left every PR red. One Node.js version covers the platform.
+                exclude:
+                    - os: macos-latest
+                      node-version: 24.x
+                    - os: macos-latest
+                      node-version: 26.x
 
         steps:
             - uses: actions/checkout@v7
