@@ -651,6 +651,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ## Changelog
 
 ### **WORK IN PROGRESS**
+* (@Schimi1983) MySQL: a server whose `sql_mode` contains `NO_BACKSLASH_ESCAPES` is refused with an error that says how to fix it - with that mode, values with `'` or `\` cannot be stored safely. Booleans: `on`/`yes`/`true`/`1` are stored as true, `off`/`no`/`false`/`0` and an empty text as false, any other text as NULL instead of true; a number is true unless it is 0 (#587)
 * (@Schimi1983) MySQL: values, datapoint IDs and sources are passed as bound parameters instead of being inlined. Text values keep their single quotes (`it's` was stored as `its`), a value ending with a backslash no longer makes the whole batch fail, and the `delete`/`update`/`storeState` messages cannot inject SQL any more. `NaN`/`Infinity` are stored as NULL instead of failing the batch (#587)
 * (copilot) Adapter requires node.js >= 22.19.0 now
 * (@GermanBluefox) Fixed: values stored without `from` were missing in `getHistory` with `from: true`, e.g. in the history data of admin

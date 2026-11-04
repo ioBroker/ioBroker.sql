@@ -733,6 +733,11 @@ describe('Test MySQL value conversion', function () {
 
     it('booleans and strings', function () {
         assert.deepStrictEqual(valuesOf('ts_bool', [true, false, 'false', 'on', 1, NaN]), [1, 0, 0, 1, 1, null]);
+        // the usual texts for on and off, a number is 1 unless 0, anything else NULL (before: 1, and 5 as 5)
+        assert.deepStrictEqual(
+            valuesOf('ts_bool', ['off', ' Yes ', 'NO', 'TRUE', '', 'abc', 5, 0, -1, Infinity, { a: 1 }]),
+            [0, 1, 0, 1, 0, null, 1, 0, 1, null, null],
+        );
         assert.deepStrictEqual(valuesOf('ts_string', ['a', 5, { a: 1 }]), ['a', '5', '{"a":1}']);
     });
 

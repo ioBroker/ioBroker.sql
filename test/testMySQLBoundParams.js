@@ -180,6 +180,19 @@ describe('Test the MySQL statements with bound values against a live server (#58
         assert.strictEqual(rows.length, 0);
     });
 
+    it('refuses a session with NO_BACKSLASH_ESCAPES against the real server', function (done) {
+        const { checkSqlMode } = require('../build/lib/mysql-client');
+        const mysql = require('mysql2');
+        const raw = mysql.createConnection({ host: HOST, user: USER, password: PASS, connectTimeout: 5000 });
+        raw.query("SET SESSION sql_mode = CONCAT(@@SESSION.sql_mode, ',NO_BACKSLASH_ESCAPES')", err => {
+            assert.ifError(err);
+            checkSqlMode(raw, err => {
+                assert.match(String(err), /NO_BACKSLASH_ESCAPES/);
+                done();
+            });
+        });
+    });
+
     it('treats a value from a message as a value, not as SQL', async function () {
         // `delete`/`update` messages hand their ts through; inlined, this text deleted every row
         await run(
