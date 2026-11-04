@@ -147,7 +147,7 @@ export function getFromSelect(_dbName: string, name?: string): string {
     if (!name) {
         return 'SELECT id, name FROM sources;';
     }
-    return `SELECT id FROM sources WHERE name='${name}';`;
+    return `SELECT id, name FROM sources WHERE name='${name}';`;
 }
 
 export function getFromInsert(_dbName: string, values: string): string {

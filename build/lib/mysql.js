@@ -206,7 +206,7 @@ function getIdUpdate(dbName, id, type) {
 }
 function getFromSelect(dbName, name) {
     if (name) {
-        return { sql: `SELECT id FROM \`${dbName}\`.sources WHERE name=?;`, params: [name] };
+        return { sql: `SELECT id, name FROM \`${dbName}\`.sources WHERE name=?;`, params: [name] };
     }
     return { sql: `SELECT id, name FROM \`${dbName}\`.sources;`, params: [] };
 }

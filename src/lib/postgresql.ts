@@ -144,7 +144,7 @@ export function getIdUpdate(_dbName: string, id: number, type: 0 | 1 | 2): strin
 
 export function getFromSelect(_dbName: string, name?: string): string {
     if (name) {
-        return `SELECT id FROM sources WHERE name='${name}';`;
+        return `SELECT id, name FROM sources WHERE name='${name}';`;
     }
     return 'SELECT id, name FROM sources;';
 }

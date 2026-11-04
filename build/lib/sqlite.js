@@ -143,7 +143,7 @@ function getFromSelect(_dbName, name) {
     if (!name) {
         return 'SELECT id, name FROM sources;';
     }
-    return `SELECT id FROM sources WHERE name='${name}';`;
+    return `SELECT id, name FROM sources WHERE name='${name}';`;
 }
 function getFromInsert(_dbName, values) {
     return `INSERT INTO sources (name) VALUES('${values}');`;

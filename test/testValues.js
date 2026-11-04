@@ -151,3 +151,34 @@ describe('Test statementToString', function () {
         );
     });
 });
+
+describe('Test pickRowByName (#588)', function () {
+    const { pickRowByName } = require('../build/lib/names');
+    const licht = { id: 1, name: 'alias.0.Licht', type: 2 };
+
+    it('takes the row with exactly this name, wherever it is in the result', function () {
+        const own = { id: 2, name: 'alias.0.licht', type: 0 };
+        assert.strictEqual(pickRowByName([licht, own], 'alias.0.licht'), own);
+        assert.strictEqual(pickRowByName([own, licht], 'alias.0.Licht'), licht);
+    });
+
+    it('never takes the row of an ID that differs only in case or trailing spaces', function () {
+        // what MySQL/MariaDB and MS SQL return for these lookups with their default collations
+        assert.strictEqual(pickRowByName([licht], 'alias.0.licht'), undefined);
+        assert.strictEqual(pickRowByName([licht], 'ALIAS.0.LICHT'), undefined);
+        assert.strictEqual(pickRowByName([licht], 'alias.0.Licht '), undefined);
+        assert.strictEqual(pickRowByName([{ id: 3, name: 'alias.0.Licht  ' }], 'alias.0.Licht'), undefined);
+    });
+
+    it('takes a row whose name the database could not store exactly', function () {
+        // MS SQL `varchar`: characters outside the code page come back as `?`
+        const kitchen = { id: 4, name: 'alias.0.?????', type: 0 };
+        assert.strictEqual(pickRowByName([kitchen], 'alias.0.Кухня'), kitchen);
+    });
+
+    it('returns nothing for no rows', function () {
+        assert.strictEqual(pickRowByName([], 'alias.0.Licht'), undefined);
+        assert.strictEqual(pickRowByName(undefined, 'alias.0.Licht'), undefined);
+        assert.strictEqual(pickRowByName(null, 'alias.0.Licht'), undefined);
+    });
+});

@@ -161,7 +161,7 @@ function getIdUpdate(dbName, id, type) {
 }
 function getFromSelect(dbName, name) {
     if (name) {
-        return `SELECT id FROM ${dbName}.dbo.sources WHERE name='${name}';`;
+        return `SELECT id, name FROM ${dbName}.dbo.sources WHERE name='${name}';`;
     }
     return `SELECT id, name FROM ${dbName}.dbo.sources;`;
 }
