@@ -34,6 +34,8 @@ export interface MySQLOptions {
 /** The `mysql2` connection surface this adapter uses. */
 export interface MySQLConnection {
     end(callback?: (err?: Error | null) => void): void;
+    query<T>(sql: string, callback: (err: Error | null, rows?: T[]) => void): void;
+    query<T>(sql: string, values: unknown[], callback: (err: Error | null, rows?: T[]) => void): void;
 }
 
 /** The `sqlite3` database surface this adapter uses. */

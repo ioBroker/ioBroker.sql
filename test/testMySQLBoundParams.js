@@ -180,6 +180,46 @@ describe('Test the MySQL statements with bound values against a live server (#58
         assert.strictEqual(rows.length, 0);
     });
 
+    it('removes NO_BACKSLASH_ESCAPES from a session, so quotes and backslashes are stored exactly', async function () {
+        const { checkSqlMode } = require('../build/lib/mysql-client');
+        const raw = await require('mysql2/promise').createConnection({
+            host: HOST,
+            user: USER,
+            password: PASS,
+            connectTimeout: 5000,
+            charset: 'utf8mb4',
+        });
+        try {
+            await raw.query("SET SESSION sql_mode = CONCAT(@@SESSION.sql_mode, ',NO_BACKSLASH_ESCAPES')");
+            // checkSqlMode() takes the callback connection of mysql2, not the promise wrapper
+            const reported = await new Promise((resolve, reject) => {
+                let mode = null;
+                checkSqlMode(
+                    raw.connection,
+                    err => (err ? reject(err) : resolve(mode)),
+                    serverMode => (mode = serverMode),
+                );
+            });
+            assert.match(reported, /NO_BACKSLASH_ESCAPES/);
+
+            const [[{ mode }]] = await raw.query('SELECT @@SESSION.sql_mode AS mode');
+            assert.ok(!/NO_BACKSLASH_ESCAPES/i.test(mode), mode);
+
+            const val = "it's C:\\temp\\";
+            await run(
+                raw,
+                MySQL.insert(DB, 12, [{ table: 'ts_string', state: { val, ts: 1, ack: true }, from: 1 }])[0],
+            );
+            const [rows] = await raw.query(`SELECT val FROM \`${DB}\`.ts_string WHERE id=12`);
+            assert.deepStrictEqual(
+                rows.map(r => r.val),
+                [val],
+            );
+        } finally {
+            await raw.end();
+        }
+    });
+
     it('treats a value from a message as a value, not as SQL', async function () {
         // `delete`/`update` messages hand their ts through; inlined, this text deleted every row
         await run(

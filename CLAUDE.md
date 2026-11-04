@@ -27,7 +27,7 @@ npm run lint           # eslint (@iobroker/eslint-config); --fix handles most fi
 npx prettier --write src   # formatting (config re-exported from @iobroker/eslint-config)
 ```
 
-Minimum runtime is **Node.js 22** (`engines.node`), and CI covers 22.x and 24.x.
+Minimum runtime is **Node.js 22** (`engines.node`), and CI covers 22.x, 24.x and 26.x - on macOS only 22.x, because macOS runners are scarce and their jobs used to be cancelled after hours without a runner. The database jobs (MySQL, PostgreSQL, MSSQL) run on 22.x and 24.x.
 
 **Build before testing.** The integration tests start js-controller on the compiled `build/main.js`, so
 `npm run build:ts` (or the full `npm run build`) has to run first. `build/` is committed to git — the release

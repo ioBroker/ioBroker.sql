@@ -440,3 +440,101 @@ describe('Test SQLClient passes bound values to the driver', function () {
         });
     });
 });
+
+describe('Test the MySQL factory removes NO_BACKSLASH_ESCAPES from its sessions (#587)', function () {
+    const { checkSqlMode, withoutNoBackslashEscapes } = require('../build/lib/mysql-client');
+
+    /**
+     * A connection whose session runs with `mode`; `setError` makes the SET fail.
+     *
+     * @param mode the session's sql_mode, or an Error for the SELECT
+     * @param setError the error of `SET SESSION sql_mode`
+     */
+    function fakeConnection(mode, setError) {
+        return {
+            ended: false,
+            set: null,
+            query(sql, values, callback) {
+                if (typeof values === 'function') {
+                    callback = values;
+                    values = undefined;
+                }
+                if (/^SET SESSION sql_mode = \?$/.test(sql)) {
+                    this.set = values[0];
+                    setImmediate(() => callback(setError || null));
+                    return;
+                }
+                assert.match(sql, /@@SESSION\.sql_mode/);
+                setImmediate(() => (mode instanceof Error ? callback(mode) : callback(null, [{ mode }])));
+            },
+            end(callback) {
+                this.ended = true;
+                setImmediate(() => callback?.());
+            },
+        };
+    }
+
+    it('withoutNoBackslashEscapes() removes only that mode, in any case', function () {
+        assert.strictEqual(withoutNoBackslashEscapes('STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'), null);
+        assert.strictEqual(withoutNoBackslashEscapes(''), null);
+        assert.strictEqual(
+            withoutNoBackslashEscapes('IGNORE_SPACE,no_backslash_escapes,STRICT_ALL_TABLES'),
+            'IGNORE_SPACE,STRICT_ALL_TABLES',
+        );
+        assert.strictEqual(withoutNoBackslashEscapes('NO_BACKSLASH_ESCAPES'), '');
+        assert.strictEqual(withoutNoBackslashEscapes(',NO_BACKSLASH_ESCAPES'), '', 'no stray comma');
+    });
+
+    it('accepts a session without the mode, with one query', function (done) {
+        const connection = fakeConnection('STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION');
+        checkSqlMode(
+            connection,
+            (err, conn) => {
+                assert.ifError(err);
+                assert.strictEqual(conn, connection);
+                assert.strictEqual(connection.set, null, 'nothing set');
+                assert.strictEqual(connection.ended, false);
+                done();
+            },
+            () => assert.fail('nothing to report'),
+        );
+    });
+
+    it('removes NO_BACKSLASH_ESCAPES from the session and reports the mode of the server', function (done) {
+        const connection = fakeConnection('IGNORE_SPACE,no_backslash_escapes');
+        let reported = null;
+        checkSqlMode(
+            connection,
+            (err, conn) => {
+                assert.ifError(err);
+                assert.strictEqual(conn, connection);
+                assert.strictEqual(connection.set, 'IGNORE_SPACE');
+                assert.strictEqual(reported, 'IGNORE_SPACE,no_backslash_escapes');
+                assert.strictEqual(connection.ended, false);
+                done();
+            },
+            mode => (reported = mode),
+        );
+    });
+
+    it('refuses and closes the connection if the mode cannot be removed, with an error that says why', function (done) {
+        const connection = fakeConnection('NO_BACKSLASH_ESCAPES', new Error('Access denied'));
+        checkSqlMode(connection, (err, conn) => {
+            assert.match(String(err), /NO_BACKSLASH_ESCAPES/);
+            assert.match(String(err), /Access denied/);
+            assert.strictEqual(err.code, 'IOB_NO_BACKSLASH_ESCAPES');
+            assert.strictEqual(conn, undefined);
+            assert.strictEqual(connection.ended, true);
+            done();
+        });
+    });
+
+    it('passes the error of the check on and closes the connection', function (done) {
+        const connection = fakeConnection(new Error('Lost connection'));
+        checkSqlMode(connection, err => {
+            assert.match(String(err), /Lost connection/);
+            assert.strictEqual(connection.ended, true);
+            done();
+        });
+    });
+});
