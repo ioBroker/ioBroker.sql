@@ -652,6 +652,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ### **WORK IN PROGRESS**
 * (@Schimi1983) MySQL: if the server's `sql_mode` contains `NO_BACKSLASH_ESCAPES`, the adapter removes it for its own connections and says so in the log - with that mode, values with `'` or `\` cannot be stored safely. The server's setting and other clients are not changed. Booleans: `on`/`yes`/`true`/`1` are stored as true, `off`/`no`/`false`/`0` and an empty text as false, any other text as NULL instead of true; a number is true unless it is 0 (#587)
+* (@Schimi1983) Stopping with many datapoints no longer loses values: the buffers of all datapoints are written at once instead of 50 per second, which did not finish within the 10 s stop timeout beyond about 450 datapoints. SQLite: buffered values of more than 100 datapoints no longer hit the task limit ("Cannot queue new requests"), a datapoint has one queued insert that takes further values (#587)
 * (@Schimi1983) MySQL: values, datapoint IDs and sources are passed as bound parameters instead of being inlined. Text values keep their single quotes (`it's` was stored as `its`), a value ending with a backslash no longer makes the whole batch fail, and the `delete`/`update`/`storeState` messages cannot inject SQL any more. `NaN`/`Infinity` are stored as NULL instead of failing the batch (#587)
 * (copilot) Adapter requires node.js >= 22.19.0 now
 * (@GermanBluefox) Fixed: values stored without `from` were missing in `getHistory` with `from: true`, e.g. in the history data of admin

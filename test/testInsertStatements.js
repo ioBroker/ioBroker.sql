@@ -523,23 +523,6 @@ describe('Test a failed write keeps the values when the database was not reachab
         });
     });
 
-    it('keeps the rows when the task queue is full', function (done) {
-        const adapter = setup([row('ts_number', 1)], 0);
-        adapter.multiRequests = false;
-        for (let i = 0; i <= 100; i++) {
-            adapter.tasks.push({ operation: 'query', query: 'SELECT 1', id: 'x' });
-        }
-        adapter.lockTasks = true; // the queue is busy
-        adapter.storeCached('dp', err => {
-            assert.match(String(err), /Cannot queue/);
-            assert.deepStrictEqual(
-                adapter.sqlDPs.dp.list.map(r => r.state.ts),
-                [1],
-            );
-            done();
-        });
-    });
-
     it('does not keep the rows on an SQL error - they would fail again', function (done) {
         const sqlError = Object.assign(new Error('SQLITE_ERROR: no such table: ts_number'), { code: 'SQLITE_ERROR' });
         const adapter = setup([row('ts_number', 1), row('ts_number', 2)], 1, sqlError);
@@ -613,6 +596,101 @@ describe('Test a failed write keeps the values when the database was not reachab
                 });
             });
         });
+    });
+});
+
+describe('Test flushing many datapoints (#587, C5)', function () {
+    const { createAdapter } = require('./lib/stubAdapter');
+    const row = ts => ({ table: 'ts_number', state: { val: ts, ts, ack: true }, from: 0 });
+
+    function adapterWith(count) {
+        const adapter = createAdapter();
+        adapter.config.dbname = 'iobroker';
+        adapter.sqlFuncs = require('../build/lib/sqlite');
+        for (let i = 0; i < count; i++) {
+            adapter.sqlDPs[`dp${i}`] = { index: i + 1, type: 0, list: [row(1000 + i)], inFlight: {}, config: {} };
+        }
+        return adapter;
+    }
+
+    it('SQLite: the task queue takes the buffers of more than 100 datapoints', function (done) {
+        const adapter = adapterWith(250);
+        adapter.multiRequests = false;
+        const written = [];
+        adapter._insertValuesIntoDB = (list, index, id, cb) => {
+            written.push(id);
+            setImmediate(() => cb());
+        };
+        adapter.storeCached(undefined, err => {
+            assert.ifError(err);
+        });
+        const check = () => {
+            if (written.length < 250 && adapter.tasks.length) {
+                return setTimeout(check, 20);
+            }
+            assert.strictEqual(written.length, 250, 'every datapoint was written');
+            assert.ok(!adapter.logs.some(l => /Cannot queue/.test(l)), adapter.logs.join('\n'));
+            done();
+        };
+        check();
+    });
+
+    it('SQLite: a datapoint gets one queued insert, further rows join it', function () {
+        const adapter = adapterWith(1);
+        adapter.multiRequests = false;
+        adapter.lockTasks = true; // something else is being written
+        adapter.tasks.push({ operation: 'query', query: 'SELECT 1', id: 'x' });
+        const results = [];
+        adapter.pushValuesIntoDB('dp0', [row(1)], (err, unwritten) => results.push(['a', err, unwritten?.length]));
+        adapter.pushValuesIntoDB('dp0', [row(2)], (err, unwritten) => results.push(['b', err, unwritten?.length]));
+        assert.strictEqual(adapter.tasks.length, 2, 'one query, one insert');
+        assert.strictEqual(adapter.tasks[1].list.length, 2);
+        // the first callback gets the unwritten rows of both, the second only the error
+        const error = new Error('lost');
+        adapter.tasks[1].callback(error, adapter.tasks[1].list);
+        assert.deepStrictEqual(results, [
+            ['a', error, 2],
+            ['b', error, undefined],
+        ]);
+    });
+
+    it('stop: waits for a flush that is still running before closing the pool', function (done) {
+        const adapter = adapterWith(200);
+        adapter.multiRequests = false;
+        adapter.config.writeNulls = false;
+        let closedAfter = -1;
+        const written = [];
+        adapter.clientPool = { close: () => (closedAfter = written.length) };
+        adapter.setConnected = () => {};
+        adapter._insertValuesIntoDB = (list, index, id, cb) => {
+            if (closedAfter >= 0) {
+                return cb(new Error('No database connection'));
+            }
+            written.push(id);
+            setImmediate(() => cb());
+        };
+        adapter.storeCached(); // e.g. the 10-minute flush: the rows are in flight now
+        adapter.finish(() => {
+            assert.strictEqual(written.length, 200, 'every in-flight row was written');
+            assert.strictEqual(closedAfter, 200, 'the pool was closed only afterwards');
+            done();
+        });
+    });
+
+    it('stop: all datapoints are flushed at once, not 1 s per 50', function (done) {
+        const adapter = adapterWith(600);
+        adapter.config.writeNulls = false;
+        const flushed = new Set();
+        adapter.pushValuesIntoDB = (id, list, cb) => {
+            flushed.add(id);
+            setImmediate(() => cb());
+        };
+        adapter.finish(() => {
+            assert.strictEqual(flushed.size, 600);
+            done();
+        });
+        // before: the last of 600 datapoints was dispatched after 12 s, beyond the 10 s stopTimeout
+        setTimeout(() => assert.strictEqual(flushed.size, 600, 'all dispatched within 50 ms'), 50);
     });
 });
 

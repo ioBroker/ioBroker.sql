@@ -1048,7 +1048,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
     // execute custom query
     query(msg) {
         if (!this.multiRequests) {
-            if (this.tasks.length > MAX_TASKS) {
+            if (this.#queueFull()) {
                 const error = `Cannot queue new requests, because more than ${MAX_TASKS}`;
                 this.log.error(error);
                 this.sendTo(msg.from, msg.command, { error }, msg.callback);
@@ -1159,6 +1159,13 @@ class SqlAdapter extends adapter_core_1.Adapter {
         let datapointsPending = 0;
         let allDispatched = false;
         const allFinished = () => {
+            // A flush of the buffers (every 10 min, or because a buffer was full) can still be running
+            // or queued: its rows are no longer in `list` but in `inFlight`. Closing the pool now
+            // would fail them. Wait until they are done; the controller's stopTimeout is the limit.
+            if (this.#writesInFlight > 0) {
+                this.#onWritesDone = allFinished;
+                return;
+            }
             if (this.clientPool) {
                 this.clientPool.close();
                 this.activeConnections = 0;
@@ -1210,10 +1217,12 @@ class SqlAdapter extends adapter_core_1.Adapter {
             // Values this datapoint has to write before its buffer goes out, so that the boundary
             // markers keep their order relative to the buffered values.
             let pendingWrites = 0;
+            let flushed = false;
             const flushBuffer = () => {
-                if (pendingWrites) {
+                if (pendingWrites || flushed) {
                     return;
                 }
+                flushed = true;
                 const buffered = this.sqlDPs[id]?.list;
                 // Not every entry in sqlDPs is a configured datapoint: storeState, getHistory and
                 // the object view create stubs with `sqlDPs[id] ||= {}` just to carry an index, and
@@ -1306,28 +1315,33 @@ class SqlAdapter extends adapter_core_1.Adapter {
             return;
         }
         this.finished = [callback];
-        let dpcount = 0;
-        let delay = 0;
-        for (const id in this.sqlDPs) {
-            if (!Object.prototype.hasOwnProperty.call(this.sqlDPs, id)) {
-                continue;
-            }
-            dpcount++;
-            datapointsPending++;
-            delay += dpcount % 50 === 0 ? 1000 : 0;
-            setTimeout(finishId, delay, id);
+        // All datapoints at once. The dispatch used to be staggered by 1 s per 50 datapoints, so
+        // beyond about 450 datapoints the last ones were only started after the 10 s `stopTimeout`
+        // and their values were lost (#587). The load is limited elsewhere: by the connection limit
+        // (`maxConnections`, writes wait in poolBorrowGuard) and, for SQLite, by the task queue,
+        // which takes any number of inserts.
+        const ids = Object.keys(this.sqlDPs);
+        datapointsPending = ids.length;
+        const dpcount = ids.length;
+        for (const id of ids) {
+            finishId(id);
         }
-        // Only now may a datapoint reporting in finish the whole run: the dispatch above is spread
-        // over seconds, so an early finisher must not close the pool under the ones still queued.
+        // Only now may a datapoint reporting in finish the whole run: an early finisher must not
+        // close the pool under the ones still being dispatched.
         allDispatched = true;
-        if (!dpcount && callback) {
+        if (dpcount && datapointsPending <= 0) {
+            allFinished();
+        }
+        if (!dpcount) {
             if (this.clientPool) {
                 this.clientPool.close();
                 this.activeConnections = 0;
                 this.clientPool = null;
                 this.setConnected(false);
             }
-            callback();
+            // so that a second finish() (stopInstance message, then unload) does not wait forever
+            this.finished = true;
+            callback?.();
         }
     }
     processMessage(msg) {
@@ -1845,7 +1859,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 else {
                     const query = this.sqlFuncs.retention(this.config.dbname, this.sqlDPs[id].index, dbNames[this.sqlDPs[id].type], this.sqlDPs[id].config.retention);
                     if (!this.multiRequests) {
-                        if (this.tasks.length > MAX_TASKS) {
+                        if (this.#queueFull()) {
                             return this.log.error(`Cannot queue new requests, because more than ${MAX_TASKS}`);
                         }
                         const start = this.tasks.length === 1;
@@ -2336,6 +2350,18 @@ class SqlAdapter extends adapter_core_1.Adapter {
     #keptLoggedAt = 0;
     /** Whether the removed `NO_BACKSLASH_ESCAPES` was logged; the pool opens a new connection every minute */
     #sqlModeLogged = false;
+    /** Writes started by storeCached() that have not called back yet */
+    #writesInFlight = 0;
+    /** Waiting for #writesInFlight to reach 0 (the stop, before the pool is closed) */
+    #onWritesDone = null;
+    #writeFinished() {
+        if (--this.#writesInFlight <= 0) {
+            this.#writesInFlight = 0;
+            const done = this.#onWritesDone;
+            this.#onWritesDone = null;
+            done?.();
+        }
+    }
     storeCached(onlyId, cb) {
         let count = 0;
         for (const id in this.sqlDPs) {
@@ -2353,7 +2379,9 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 this.sqlDPs[id].list = [];
                 this.#releaseKept(id);
                 count++;
+                this.#writesInFlight++;
                 this.pushValuesIntoDB(id, this.sqlDPs[id].inFlight[inFlightId], (err, unwritten) => {
+                    this.#writeFinished();
                     if (this.sqlDPs[id]?.inFlight?.[inFlightId]) {
                         delete this.sqlDPs[id].inFlight[inFlightId];
                     }
@@ -2391,20 +2419,70 @@ class SqlAdapter extends adapter_core_1.Adapter {
             return;
         }
         if (!this.multiRequests) {
-            if (this.tasks.length > MAX_TASKS) {
-                const error = `Cannot queue new requests, because more than ${MAX_TASKS}`;
-                this.log.error(error);
-                // the queue fills up while the database does not answer: keep the values like on a
-                // connection error instead of dropping them
-                cb?.(new Error(error), list);
-            }
-            else {
-                this.tasks.push({ operation: 'insert', index: this.sqlDPs[id].index, list, id, callback: cb });
-                this.tasks.length === 1 && this.processTasks();
-            }
+            this.#queueInsert(id, list, cb);
         }
         else {
             this._insertValuesIntoDB(list, this.sqlDPs[id].index, id, cb);
+        }
+    }
+    /**
+     * Queue the rows of a datapoint for the task queue (SQLite, or `multiRequests` off).
+     *
+     * A queued insert of the same datapoint takes the rows instead of a new task, so there is at most
+     * one waiting insert per datapoint. That is why inserts do not count for `MAX_TASKS`: with more
+     * than 100 datapoints, every flush of the buffers (every 10 minutes and on stop) hit the limit and
+     * the values of the remaining datapoints were dropped (#587).
+     *
+     * @param id the datapoint
+     * @param list the rows to write
+     * @param cb the result of the write
+     */
+    #queueInsert(id, list, cb) {
+        const index = this.sqlDPs[id].index;
+        // the first task is being written while the queue is locked, it must not grow
+        for (let i = this.lockTasks ? 1 : 0; i < this.tasks.length; i++) {
+            const task = this.tasks[i];
+            if (task.operation === 'insert' && task.index === index) {
+                task.list = task.list.concat(list);
+                const previous = task.callback;
+                // the rows of both are written together: the first callback gets the unwritten rows
+                // of all of them (see processTasks), the second only the error
+                task.callback = previous
+                    ? (err, unwritten) => {
+                        previous(err, unwritten);
+                        cb?.(err);
+                    }
+                    : cb;
+                return;
+            }
+        }
+        this.tasks.push({ operation: 'insert', index, list, id, callback: cb });
+        this.tasks.length === 1 && this.processTasks();
+    }
+    /** Whether the task queue is full; queued inserts are not counted, see #queueInsert() */
+    #queueFull() {
+        let count = 0;
+        for (const task of this.tasks) {
+            if (task.operation !== 'insert') {
+                count++;
+            }
+        }
+        return count > MAX_TASKS;
+    }
+    /**
+     * Start the next task of the queue.
+     *
+     * With a pause between the requests (`requestInterval`) after that pause, otherwise right away.
+     * `setTimeout(fn, 0)` waits for the next timer tick, which is about 15 ms on Windows: with one
+     * insert task per datapoint, flushing 600 datapoints took about 9 s of the 10 s `stopTimeout`
+     * there, on top of the writes themselves.
+     */
+    #nextTask() {
+        if (this.config.requestInterval) {
+            setTimeout(() => this.processTasks(), this.config.requestInterval);
+        }
+        else {
+            setImmediate(() => this.processTasks());
         }
     }
     processTasks() {
@@ -2420,7 +2498,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     this.tasks.shift();
                     this.lockTasks = false;
                     if (this.tasks.length) {
-                        setTimeout(() => this.processTasks(), this.config.requestInterval);
+                        this.#nextTask();
                     }
                 });
             }
@@ -2450,7 +2528,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     this.tasks.shift();
                     this.lockTasks = false;
                     if (this.tasks.length) {
-                        setTimeout(() => this.processTasks(), this.config.requestInterval);
+                        this.#nextTask();
                     }
                 });
             }
@@ -2461,7 +2539,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     this.tasks.shift();
                     this.lockTasks = false;
                     if (this.tasks.length) {
-                        setTimeout(() => this.processTasks(), this.config.requestInterval);
+                        this.#nextTask();
                     }
                 });
             }
@@ -2471,7 +2549,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     this.tasks.shift();
                     this.lockTasks = false;
                     if (this.tasks.length) {
-                        setTimeout(() => this.processTasks(), this.config.requestInterval);
+                        this.#nextTask();
                     }
                 });
             }
@@ -2481,7 +2559,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     this.tasks.shift();
                     this.lockTasks = false;
                     if (this.tasks.length) {
-                        setTimeout(() => this.processTasks(), this.config.requestInterval);
+                        this.#nextTask();
                     }
                 });
             }
@@ -2491,7 +2569,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 this.tasks.shift();
                 this.lockTasks = false;
                 if (this.tasks.length) {
-                    setTimeout(() => this.processTasks(), this.config.requestInterval);
+                    this.#nextTask();
                 }
             }
         }
@@ -2772,7 +2850,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
         const query = this.sqlFuncs.getHistory(this.config.dbname, table, options);
         this.#debugStatement(query);
         if (!this.multiRequests) {
-            if (this.tasks.length > MAX_TASKS) {
+            if (this.#queueFull()) {
                 this.log.error(`Cannot queue new requests, because more than ${MAX_TASKS}`);
                 callback?.(new Error(`Cannot queue new requests, because more than ${MAX_TASKS}`));
             }
@@ -2791,7 +2869,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
         const query = this.sqlFuncs.getCounterDiff(this.config.dbname, options);
         this.#debugStatement(query);
         if (!this.multiRequests) {
-            if (this.tasks.length > MAX_TASKS) {
+            if (this.#queueFull()) {
                 const error = `Cannot queue new requests, because more than ${MAX_TASKS}`;
                 this.log.error(error);
                 callback?.(new Error(error));
@@ -3299,7 +3377,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
             this.#executeQueries(id, queries, cb);
         };
         if (!this.multiRequests) {
-            if (this.tasks.length > MAX_TASKS) {
+            if (this.#queueFull()) {
                 const error = `Cannot queue new requests, because more than ${MAX_TASKS}`;
                 this.log.error(error);
                 cb?.(new Error(error));
