@@ -9,6 +9,7 @@ exports.toQuality = toQuality;
 exports.parseDeleteRequests = parseDeleteRequests;
 exports.parseUpdateRequests = parseUpdateRequests;
 exports.valueForTable = valueForTable;
+const values_1 = require("./values");
 /**
  * Messages that cannot be answered before the SQL dialect is known, i.e. before `sqlFuncs` has been
  * picked from the configuration in `main()`.
@@ -285,10 +286,9 @@ function valueForTable(table, val) {
         if (typeof val === 'boolean') {
             return val;
         }
-        if (val === 1 || val === 0 || val === 'true' || val === 'false') {
-            return val === 1 || val === 'true';
-        }
-        return new Error(`Value ${JSON.stringify(val)} is not a boolean`);
+        // the same texts as for logged values (`toBool`), but a value that is none is refused here
+        const b = (0, values_1.toBool)(val);
+        return b === null ? new Error(`Value ${JSON.stringify(val)} is not a boolean`) : b === 1;
     }
     // ts_string: objects are stored as JSON, like the logged values
     if (typeof val === 'string') {

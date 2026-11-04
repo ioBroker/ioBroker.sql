@@ -654,6 +654,30 @@ describe('Test flushing many datapoints (#587, C5)', function () {
         ]);
     });
 
+    it('SQLite: every flush merged into one insert tells storeState that its values are kept', function () {
+        const adapter = adapterWith(1);
+        adapter.multiRequests = false;
+        adapter.lockTasks = true; // something else is being written
+        adapter.tasks.push({ operation: 'query', query: 'SELECT 1', id: 'x' });
+        const errors = [];
+        adapter.storeCached('dp0', err => errors.push(err));
+        adapter.sqlDPs.dp0.list.push(row(2));
+        adapter.storeCached('dp0', err => errors.push(err));
+        assert.strictEqual(adapter.tasks.length, 2, 'both flushes are one insert');
+
+        const lost = Object.assign(new Error('Connection lost'), { code: 'PROTOCOL_CONNECTION_LOST', fatal: true });
+        adapter.tasks[1].callback(lost, adapter.tasks[1].list);
+        assert.strictEqual(errors.length, 2);
+        for (const err of errors) {
+            assert.match(String(err), /kept and written with the next write, do not send them again/);
+        }
+        assert.deepStrictEqual(
+            adapter.sqlDPs.dp0.list.map(r => r.state.ts),
+            [1000, 2],
+            'the rows of both flushes are kept once',
+        );
+    });
+
     it('SQLite: rows that arrive after a delete message are not written before it', function () {
         const adapter = adapterWith(1);
         adapter.multiRequests = false;

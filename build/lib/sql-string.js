@@ -1,4 +1,9 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.quoteSqlString = quoteSqlString;
+exports.numberOrNull = numberOrNull;
+exports.boolOrNull = boolOrNull;
+const values_1 = require("./values");
 /**
  * Quoting for values that are written into an SQL statement as text.
  *
@@ -12,9 +17,6 @@
  * a string literal: `'` is doubled. A NUL byte can never be part of a literal and is dropped.
  * MySQL escapes with a backslash; its dialect module binds the values instead of quoting them.
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.quoteSqlString = quoteSqlString;
-exports.numberOrNull = numberOrNull;
 /**
  * Return `value` as an SQL string literal, including the surrounding quotes.
  *
@@ -34,5 +36,22 @@ function quoteSqlString(value) {
  */
 function numberOrNull(value) {
     return typeof value === 'number' && Number.isFinite(value) ? String(value) : 'NULL';
+}
+/**
+ * Return `value` as an SQL boolean literal for `ts_bool`, or `NULL` when it is none (see `toBool`).
+ *
+ * @param value the value to write
+ * @param numeric `true` for a column that takes 1/0 (SQLite, MS SQL `BIT`), `false` for a real
+ *        `BOOLEAN` (PostgreSQL), which refuses a number
+ */
+function boolOrNull(value, numeric) {
+    const b = typeof value === 'boolean' ? (value ? 1 : 0) : (0, values_1.toBool)(value);
+    if (b === null) {
+        return 'NULL';
+    }
+    if (numeric) {
+        return String(b);
+    }
+    return b ? 'TRUE' : 'FALSE';
 }
 //# sourceMappingURL=sql-string.js.map

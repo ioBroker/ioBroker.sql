@@ -87,6 +87,9 @@ function insert(_dbName, index, values) {
         else if (value.table === 'ts_number' || value.table === 'ts_counter') {
             value.state.val = (0, sql_string_1.numberOrNull)(value.state.val);
         }
+        else if (value.table === 'ts_bool') {
+            value.state.val = (0, sql_string_1.boolOrNull)(value.state.val, false);
+        }
         if (value.table === 'ts_counter') {
             insertValues[value.table].push(`(${index}, ${value.state.ts}, ${value.state.val})`);
         }
@@ -272,6 +275,9 @@ function update(_dbName, index, originalState, from, table) {
     }
     else if (table === 'ts_number' || table === 'ts_counter') {
         state.val = (0, sql_string_1.numberOrNull)(state.val);
+    }
+    else if (table === 'ts_bool') {
+        state.val = (0, sql_string_1.boolOrNull)(state.val, false);
     }
     let query = `UPDATE ${table} SET `;
     const vals = [];

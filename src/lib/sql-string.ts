@@ -1,3 +1,4 @@
+import { toBool } from './values';
 /**
  * Quoting for values that are written into an SQL statement as text.
  *
@@ -32,4 +33,22 @@ export function quoteSqlString(value: unknown): string {
  */
 export function numberOrNull(value: unknown): string {
     return typeof value === 'number' && Number.isFinite(value) ? String(value) : 'NULL';
+}
+
+/**
+ * Return `value` as an SQL boolean literal for `ts_bool`, or `NULL` when it is none (see `toBool`).
+ *
+ * @param value the value to write
+ * @param numeric `true` for a column that takes 1/0 (SQLite, MS SQL `BIT`), `false` for a real
+ *        `BOOLEAN` (PostgreSQL), which refuses a number
+ */
+export function boolOrNull(value: unknown, numeric: boolean): string {
+    const b = typeof value === 'boolean' ? (value ? 1 : 0) : toBool(value);
+    if (b === null) {
+        return 'NULL';
+    }
+    if (numeric) {
+        return String(b);
+    }
+    return b ? 'TRUE' : 'FALSE';
 }

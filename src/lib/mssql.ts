@@ -1,4 +1,4 @@
-import { numberOrNull, quoteSqlString } from './sql-string';
+import { boolOrNull, numberOrNull, quoteSqlString } from './sql-string';
 import type { RawEntriesOptions, TableName } from '../types';
 
 export function init(dbName: string, doNotCreateDatabase?: boolean): string[] {
@@ -99,7 +99,7 @@ export function insert(
         } else if (value.table === 'ts_string') {
             value.state.val = quoteSqlString(value.state.val);
         } else if (value.table === 'ts_bool') {
-            value.state.val = value.state.val ? 1 : 0;
+            value.state.val = boolOrNull(value.state.val, true);
         } else if (value.table === 'ts_number' || value.table === 'ts_counter') {
             value.state.val = numberOrNull(value.state.val);
         }
@@ -351,7 +351,7 @@ export function update(
     if (!state || state.val === null || state.val === undefined) {
         state.val = 'NULL';
     } else if (table === 'ts_bool') {
-        state.val = state.val ? 1 : 0;
+        state.val = boolOrNull(state.val, true);
     } else if (table === 'ts_string') {
         state.val = quoteSqlString(state.val);
     } else if (table === 'ts_number' || table === 'ts_counter') {

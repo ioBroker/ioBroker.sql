@@ -1,4 +1,4 @@
-import { numberOrNull, quoteSqlString } from './sql-string';
+import { boolOrNull, numberOrNull, quoteSqlString } from './sql-string';
 import type { RawEntriesOptions, TableName } from '../types';
 
 export function init(_dbName: string, _doNotCreateDatabase?: boolean): string[] {
@@ -79,6 +79,8 @@ export function insert(
             value.state.val = quoteSqlString(value.state.val);
         } else if (value.table === 'ts_number' || value.table === 'ts_counter') {
             value.state.val = numberOrNull(value.state.val);
+        } else if (value.table === 'ts_bool') {
+            value.state.val = boolOrNull(value.state.val, false);
         }
 
         if (value.table === 'ts_counter') {
@@ -327,6 +329,8 @@ export function update(
         state.val = quoteSqlString(state.val);
     } else if (table === 'ts_number' || table === 'ts_counter') {
         state.val = numberOrNull(state.val);
+    } else if (table === 'ts_bool') {
+        state.val = boolOrNull(state.val, false);
     }
 
     let query = `UPDATE ${table} SET `;

@@ -105,7 +105,7 @@ function insert(dbName, index, values) {
             value.state.val = (0, sql_string_1.quoteSqlString)(value.state.val);
         }
         else if (value.table === 'ts_bool') {
-            value.state.val = value.state.val ? 1 : 0;
+            value.state.val = (0, sql_string_1.boolOrNull)(value.state.val, true);
         }
         else if (value.table === 'ts_number' || value.table === 'ts_counter') {
             value.state.val = (0, sql_string_1.numberOrNull)(value.state.val);
@@ -304,7 +304,7 @@ function update(dbName, index, originalState, from, table) {
         state.val = 'NULL';
     }
     else if (table === 'ts_bool') {
-        state.val = state.val ? 1 : 0;
+        state.val = (0, sql_string_1.boolOrNull)(state.val, true);
     }
     else if (table === 'ts_string') {
         state.val = (0, sql_string_1.quoteSqlString)(state.val);

@@ -2804,6 +2804,9 @@ export class SqlAdapter extends Adapter {
         }
     }
 
+    /** Errors of failed inserts whose rows were kept for a retry; weak, so they go with the error */
+    readonly #keptErrors = new WeakSet<Error>();
+
     storeCached(onlyId?: string, cb?: ((err?: Error | null) => void) | null): void {
         let count = 0;
         for (const id in this.sqlDPs) {
@@ -2831,6 +2834,9 @@ export class SqlAdapter extends Adapter {
                     if (err && unwritten?.length) {
                         const kept = this.#keepForRetry(id, unwritten);
                         if (kept) {
+                            // the other callbacks of a merged insert (#queueInsert) get the same error
+                            // object, but not the rows: they are kept with this one
+                            this.#keptErrors.add(err);
                             // storeState answers with this error: a caller that sends the values again
                             // would store them twice where the table has no unique key
                             err = new Error(
@@ -2838,6 +2844,12 @@ export class SqlAdapter extends Adapter {
                                 { cause: err },
                             );
                         }
+                    } else if (err && this.#keptErrors.has(err)) {
+                        // rows of this flush were merged into an insert whose rows are kept (see above)
+                        err = new Error(
+                            `${err.message}; the values are kept and written with the next write, do not send them again`,
+                            { cause: err },
+                        );
                     } else if (!err && this.#keptDropped) {
                         // the database is back before the next warning was due: report the dropped rows now
                         this.log.warn(`While the database was not reachable, ${this.#takeDroppedText()}`);

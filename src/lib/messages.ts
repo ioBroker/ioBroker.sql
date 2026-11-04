@@ -1,3 +1,4 @@
+import { toBool } from './values';
 /** The shape `processMessage` answers with when it cannot serve a message yet */
 export type NotInitializedResponse = {
     result: [];
@@ -303,10 +304,9 @@ export function valueForTable(table: string, val: unknown): string | number | bo
         if (typeof val === 'boolean') {
             return val;
         }
-        if (val === 1 || val === 0 || val === 'true' || val === 'false') {
-            return val === 1 || val === 'true';
-        }
-        return new Error(`Value ${JSON.stringify(val)} is not a boolean`);
+        // the same texts as for logged values (`toBool`), but a value that is none is refused here
+        const b = toBool(val);
+        return b === null ? new Error(`Value ${JSON.stringify(val)} is not a boolean`) : b === 1;
     }
     // ts_string: objects are stored as JSON, like the logged values
     if (typeof val === 'string') {

@@ -217,12 +217,15 @@ describe('Message validation: values per table', function () {
         }
     });
 
-    it('boolean tables take booleans and 0/1/"true"/"false"', function () {
+    it('boolean tables take booleans, numbers and the texts for on and off', function () {
         assert.strictEqual(valueForTable('ts_bool', true), true);
         assert.strictEqual(valueForTable('ts_bool', 0), false);
+        assert.strictEqual(valueForTable('ts_bool', 2), true);
         assert.strictEqual(valueForTable('ts_bool', 'true'), true);
         assert.strictEqual(valueForTable('ts_bool', 'false'), false);
-        for (const val of ['abc', 2, 'TRUE OR 1=1', {}]) {
+        assert.strictEqual(valueForTable('ts_bool', ' Off '), false);
+        assert.strictEqual(valueForTable('ts_bool', 'yes'), true);
+        for (const val of ['abc', 'TRUE OR 1=1', {}, NaN]) {
             assert.ok(valueForTable('ts_bool', val) instanceof Error, JSON.stringify(val));
         }
     });
@@ -250,6 +253,29 @@ describe('SQL string literals (PostgreSQL, SQLite, MSSQL)', function () {
         assert.strictEqual(numberOrNull(-0), '0');
         for (const val of [NaN, Infinity, -Infinity, '5', null, undefined, true]) {
             assert.strictEqual(numberOrNull(val), 'NULL', JSON.stringify(val));
+        }
+    });
+
+    it('booleans: the same mapping for all dialects, as a literal each column takes', function () {
+        const { boolOrNull } = require('../build/lib/sql-string');
+        const vals = [true, false, 'on', 'off', ' YES ', 'no', '', '1', '0', 5, 0, 'abc', NaN, {}];
+        assert.deepStrictEqual(
+            vals.map(v => boolOrNull(v, true)),
+            ['1', '0', '1', '0', '1', '0', '0', '1', '0', '1', '0', 'NULL', 'NULL', 'NULL'],
+        );
+        assert.deepStrictEqual(vals.map(v => boolOrNull(v, false)).slice(0, 4), ['TRUE', 'FALSE', 'TRUE', 'FALSE']);
+        for (const [name, dialect] of Object.entries(DIALECTS)) {
+            const sql = dialect
+                .insert('db', 4, [
+                    { table: 'ts_bool', from: 1, state: { ts: 1, val: 'off', ack: true, q: 0 } },
+                    { table: 'ts_bool', from: 1, state: { ts: 2, val: 'abc', ack: true, q: 0 } },
+                ])
+                .join('\n');
+            const off = name === 'postgresql' ? 'FALSE' : '0';
+            assert.ok(sql.includes(`(4, 1, ${off},`), `${name}: ${sql}`);
+            assert.ok(sql.includes('(4, 2, NULL,'), `${name}: ${sql}`);
+            const update = dialect.update('db', 4, { ts: 1, val: 'on' }, undefined, 'ts_bool');
+            assert.ok(update.includes(`val=${name === 'postgresql' ? 'TRUE' : '1'}`), `${name}: ${update}`);
         }
     });
 
