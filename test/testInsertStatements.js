@@ -654,6 +654,28 @@ describe('Test flushing many datapoints (#587, C5)', function () {
         ]);
     });
 
+    it('SQLite: rows that arrive after a delete message are not written before it', function () {
+        const adapter = adapterWith(1);
+        adapter.multiRequests = false;
+        adapter.lockTasks = true; // something else is being written
+        adapter.tasks.push({ operation: 'query', query: 'SELECT 1', id: 'x' });
+        adapter.pushValuesIntoDB('dp0', [row(1)]);
+        // e.g. deleteAll from the data browser, while the insert above still waits
+        adapter.tasks.push({ operation: 'query', query: 'DELETE FROM ts_number WHERE id=1', id: 'dp0' });
+        adapter.pushValuesIntoDB('dp0', [row(2)]);
+        assert.deepStrictEqual(
+            adapter.tasks.map(t => `${t.operation}:${t.list?.length ?? ''}`),
+            ['query:', 'insert:1', 'query:', 'insert:1'],
+            'the second rows come after the delete',
+        );
+
+        // a read in between changes nothing, the rows still join the waiting insert
+        adapter.tasks.push({ operation: 'select', query: 'SELECT 2', options: {}, callback: () => {} });
+        adapter.pushValuesIntoDB('dp0', [row(3)]);
+        assert.strictEqual(adapter.tasks.length, 5);
+        assert.strictEqual(adapter.tasks[3].list.length, 2);
+    });
+
     it('stop: waits for a flush that is still running before closing the pool', function (done) {
         const adapter = adapterWith(200);
         adapter.multiRequests = false;

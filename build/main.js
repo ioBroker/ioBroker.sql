@@ -2429,9 +2429,14 @@ class SqlAdapter extends adapter_core_1.Adapter {
      * Queue the rows of a datapoint for the task queue (SQLite, or `multiRequests` off).
      *
      * A queued insert of the same datapoint takes the rows instead of a new task, so there is at most
-     * one waiting insert per datapoint. That is why inserts do not count for `MAX_TASKS`: with more
-     * than 100 datapoints, every flush of the buffers (every 10 minutes and on stop) hit the limit and
-     * the values of the remaining datapoints were dropped (#587).
+     * one waiting insert per datapoint between two tasks that change data. That is why inserts do not
+     * count for `MAX_TASKS`: with more than 100 datapoints, every flush of the buffers (every 10 minutes
+     * and on stop) hit the limit and the values of the remaining datapoints were dropped (#587).
+     *
+     * The rows never join an insert that waits before a task changing data (a `delete`/`update`
+     * message, a retention delete, a user query): they would be written before it, although they
+     * arrived after it, and e.g. `deleteAll` would remove values that came in after the request.
+     * Reading tasks (`select`) do not matter.
      *
      * @param id the datapoint
      * @param list the rows to write
@@ -2439,10 +2444,17 @@ class SqlAdapter extends adapter_core_1.Adapter {
      */
     #queueInsert(id, list, cb) {
         const index = this.sqlDPs[id].index;
-        // the first task is being written while the queue is locked, it must not grow
-        for (let i = this.lockTasks ? 1 : 0; i < this.tasks.length; i++) {
+        // from the end, up to the last task that changes data; the first task is being written while
+        // the queue is locked, it must not grow
+        for (let i = this.tasks.length - 1; i >= (this.lockTasks ? 1 : 0); i--) {
             const task = this.tasks[i];
-            if (task.operation === 'insert' && task.index === index) {
+            if (task.operation !== 'insert') {
+                if (task.operation === 'select') {
+                    continue;
+                }
+                break;
+            }
+            if (task.index === index) {
                 task.list = task.list.concat(list);
                 const previous = task.callback;
                 // the rows of both are written together: the first callback gets the unwritten rows
