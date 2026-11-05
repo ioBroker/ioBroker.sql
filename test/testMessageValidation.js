@@ -279,20 +279,43 @@ describe('SQL string literals (PostgreSQL, SQLite, MSSQL)', function () {
         }
     });
 
+    it('PostgreSQL: escape string literals, safe with standard_conforming_strings off', function () {
+        const { quotePgString } = require('../build/lib/sql-string');
+        const nasty = "\\'; DROP TABLE datapoints; --";
+        // with a plain literal and the setting off, \' was an escaped quote and the rest SQL
+        assert.strictEqual(quotePgString(nasty), "E'\\\\''; DROP TABLE datapoints; --'");
+        assert.strictEqual(quotePgString('C:\\temp\\'), "E'C:\\\\temp\\\\'");
+        assert.strictEqual(quotePgString("it's"), "E'it''s'");
+        assert.strictEqual(quotePgString('a\0b'), "E'ab'");
+        const pg = DIALECTS.postgresql;
+        assert.ok(pg.getIdSelect('db', nasty).includes("name=E'\\\\''; DROP"), pg.getIdSelect('db', nasty));
+        const [insert] = pg.insert('db', 4, [
+            { table: 'ts_string', from: 1, state: { ts: 1, val: nasty, ack: true, q: 0 } },
+        ]);
+        assert.ok(insert.includes("E'\\\\''; DROP TABLE datapoints; --'"), insert);
+        assert.ok(!/[^E]'\\'/.test(insert), insert);
+    });
+
     for (const [name, dialect] of Object.entries(DIALECTS)) {
+        // PostgreSQL quotes with escape string literals, see quotePgString()
+        const p = name === 'postgresql' ? 'E' : '';
+
         it(`${name}: datapoint and source names are quoted`, function () {
             const id = "x' OR name<>'";
-            assert.ok(dialect.getIdSelect('db', id).includes("name='x'' OR name<>'''"), dialect.getIdSelect('db', id));
             assert.ok(
-                dialect.getIdInsert('db', id, 0).includes("VALUES('x'' OR name<>''', 0)"),
+                dialect.getIdSelect('db', id).includes(`name=${p}'x'' OR name<>'''`),
+                dialect.getIdSelect('db', id),
+            );
+            assert.ok(
+                dialect.getIdInsert('db', id, 0).includes(`VALUES(${p}'x'' OR name<>''', 0)`),
                 dialect.getIdInsert('db', id, 0),
             );
             assert.ok(
-                dialect.getFromSelect('db', id).includes("name='x'' OR name<>'''"),
+                dialect.getFromSelect('db', id).includes(`name=${p}'x'' OR name<>'''`),
                 dialect.getFromSelect('db', id),
             );
             assert.ok(
-                dialect.getFromInsert('db', id).includes("VALUES('x'' OR name<>''')"),
+                dialect.getFromInsert('db', id).includes(`VALUES(${p}'x'' OR name<>''')`),
                 dialect.getFromInsert('db', id),
             );
         });
@@ -306,7 +329,7 @@ describe('SQL string literals (PostgreSQL, SQLite, MSSQL)', function () {
                 { table: 'ts_counter', from: 1, state: { ts: 5, val: NaN } },
             ];
             const sql = dialect.insert('db', 4, rows).join('\n');
-            assert.ok(sql.includes("'it''s'"), sql);
+            assert.ok(sql.includes(`${p}'it''s'`), sql);
             assert.ok(!/Infinity|NaN/.test(sql), sql);
             assert.ok(sql.includes('(4, 2, NULL,'), sql);
             assert.ok(sql.includes('(4, 3, NULL,'), sql);
@@ -320,7 +343,7 @@ describe('SQL string literals (PostgreSQL, SQLite, MSSQL)', function () {
             assert.ok(update.includes('val=NULL'), update);
             assert.ok(!update.includes('_from'), update);
             const updateStr = dialect.update('db', 4, { ts: 1, val: "it's" }, 2, 'ts_string');
-            assert.ok(updateStr.includes("val='it''s'"), updateStr);
+            assert.ok(updateStr.includes(`val=${p}'it''s'`), updateStr);
             assert.ok(updateStr.includes('_from=2'), updateStr);
         });
     }

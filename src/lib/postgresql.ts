@@ -1,4 +1,4 @@
-import { boolOrNull, numberOrNull, quoteSqlString } from './sql-string';
+import { boolOrNull, numberOrNull, quotePgString } from './sql-string';
 import type { RawEntriesOptions, TableName } from '../types';
 
 export function init(_dbName: string, _doNotCreateDatabase?: boolean): string[] {
@@ -76,7 +76,7 @@ export function insert(
         if (!value.state || value.state.val === null || value.state.val === undefined) {
             value.state.val = 'NULL';
         } else if (value.table === 'ts_string') {
-            value.state.val = quoteSqlString(value.state.val);
+            value.state.val = quotePgString(value.state.val);
         } else if (value.table === 'ts_number' || value.table === 'ts_counter') {
             value.state.val = numberOrNull(value.state.val);
         } else if (value.table === 'ts_bool') {
@@ -132,11 +132,11 @@ export function getIdSelect(_dbName: string, name?: string): string {
     if (!name) {
         return 'SELECT id, type, name FROM datapoints;';
     }
-    return `SELECT id, type, name FROM datapoints WHERE name=${quoteSqlString(name)};`;
+    return `SELECT id, type, name FROM datapoints WHERE name=${quotePgString(name)};`;
 }
 
 export function getIdInsert(_dbName: string, name: string, type: 0 | 1 | 2): string {
-    return `INSERT INTO datapoints (name, type) VALUES(${quoteSqlString(name)}, ${type});`;
+    return `INSERT INTO datapoints (name, type) VALUES(${quotePgString(name)}, ${type});`;
 }
 
 export function getIdUpdate(_dbName: string, id: number, type: 0 | 1 | 2): string {
@@ -145,13 +145,13 @@ export function getIdUpdate(_dbName: string, id: number, type: 0 | 1 | 2): strin
 
 export function getFromSelect(_dbName: string, name?: string): string {
     if (name) {
-        return `SELECT id, name FROM sources WHERE name=${quoteSqlString(name)};`;
+        return `SELECT id, name FROM sources WHERE name=${quotePgString(name)};`;
     }
     return 'SELECT id, name FROM sources;';
 }
 
 export function getFromInsert(dbName: string, values: string): string {
-    return `INSERT INTO sources (name) VALUES(${quoteSqlString(values)});`;
+    return `INSERT INTO sources (name) VALUES(${quotePgString(values)});`;
 }
 
 export function getCounterDiff(
@@ -326,7 +326,7 @@ export function update(
     if (!state || state.val === null || state.val === undefined) {
         state.val = 'NULL';
     } else if (table === 'ts_string') {
-        state.val = quoteSqlString(state.val);
+        state.val = quotePgString(state.val);
     } else if (table === 'ts_number' || table === 'ts_counter') {
         state.val = numberOrNull(state.val);
     } else if (table === 'ts_bool') {
