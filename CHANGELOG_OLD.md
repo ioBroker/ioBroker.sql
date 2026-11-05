@@ -1,4 +1,7 @@
 # Older changes
+## 4.1.5 (2026-08-28)
+* (@GermanBluefox) Updated packages
+
 ## 4.1.4 (2026-08-27)
 * (@GermanBluefox) Connection errors no longer start with the useless class name `AggregateError`: the log now shows only the real reason, e.g. `connect ECONNREFUSED 127.0.0.1:3306; connect ECONNREFUSED ::1:3306`
 
