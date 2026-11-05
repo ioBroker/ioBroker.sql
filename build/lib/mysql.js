@@ -19,6 +19,7 @@ exports.deleteDatapoint = deleteDatapoint;
 exports.update = update;
 exports.getRawEntries = getRawEntries;
 exports.getRawEntriesCount = getRawEntriesCount;
+const values_1 = require("./values");
 // Values go into the statements as `?` placeholders, which mysql2 escapes (#587, C1). Before, strings
 // were inlined with only the single quotes removed: "it's" was stored as "its", a value ending with a
 // backslash broke the whole batch, and IDs and sources were not escaped at all.
@@ -114,31 +115,6 @@ function getTableSize(dbName, table) {
         params: [dbName, table],
     };
 }
-/** Texts that are stored as `true` or `false` in `ts_bool`; compared trimmed and in lower case */
-const TRUE_TEXTS = ['true', 'on', 'yes', '1'];
-const FALSE_TEXTS = ['false', 'off', 'no', '0', ''];
-/**
- * A value for `ts_bool`: 1, 0 or NULL.
- *
- * Before, every text except `false`, `0` and `''` was stored as 1, `"off"` too, and a number was
- * stored as it was (5 in a boolean column). Now the usual texts for on and off are recognized, a
- * number is 1 unless it is 0, and anything else is NULL, like a text in a number column.
- *
- * @param val the value of the state
- */
-function toBool(val) {
-    if (typeof val === 'number') {
-        return Number.isFinite(val) ? (val ? 1 : 0) : null;
-    }
-    if (typeof val === 'string') {
-        const text = val.trim().toLowerCase();
-        if (TRUE_TEXTS.includes(text)) {
-            return 1;
-        }
-        return FALSE_TEXTS.includes(text) ? 0 : null;
-    }
-    return null;
-}
 /**
  * The value of a state as it is stored in its table.
  *
@@ -156,7 +132,7 @@ function toDbValue(table, val) {
         return val ? 1 : 0;
     }
     if (table === 'ts_bool') {
-        return toBool(val);
+        return (0, values_1.toBool)(val);
     }
     // ts_number, ts_counter: like the other dialects, a text that is not a number
     // is stored as NULL ("12 kWh" too), and so are NaN and Infinity, which MySQL would reject together

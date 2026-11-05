@@ -1,3 +1,4 @@
+import { boolOrNull, numberOrNull, quoteSqlString } from './sql-string';
 import type { RawEntriesOptions, TableName } from '../types';
 
 export function init(_dbName: string, _doNotCreateDatabase?: boolean): string[] {
@@ -75,11 +76,11 @@ export function insert(
         if (!value.state || value.state.val === null || value.state.val === undefined) {
             value.state.val = 'NULL';
         } else if (value.table === 'ts_string') {
-            value.state.val = `'${value.state.val.toString().replace(/'/g, '')}'`;
-        } else if (value.table === 'ts_number') {
-            if (isNaN(value.state.val)) {
-                value.state.val = 'NULL';
-            }
+            value.state.val = quoteSqlString(value.state.val);
+        } else if (value.table === 'ts_number' || value.table === 'ts_counter') {
+            value.state.val = numberOrNull(value.state.val);
+        } else if (value.table === 'ts_bool') {
+            value.state.val = boolOrNull(value.state.val, false);
         }
 
         if (value.table === 'ts_counter') {
@@ -131,11 +132,11 @@ export function getIdSelect(_dbName: string, name?: string): string {
     if (!name) {
         return 'SELECT id, type, name FROM datapoints;';
     }
-    return `SELECT id, type, name FROM datapoints WHERE name='${name}';`;
+    return `SELECT id, type, name FROM datapoints WHERE name=${quoteSqlString(name)};`;
 }
 
 export function getIdInsert(_dbName: string, name: string, type: 0 | 1 | 2): string {
-    return `INSERT INTO datapoints (name, type) VALUES('${name}', ${type});`;
+    return `INSERT INTO datapoints (name, type) VALUES(${quoteSqlString(name)}, ${type});`;
 }
 
 export function getIdUpdate(_dbName: string, id: number, type: 0 | 1 | 2): string {
@@ -144,13 +145,13 @@ export function getIdUpdate(_dbName: string, id: number, type: 0 | 1 | 2): strin
 
 export function getFromSelect(_dbName: string, name?: string): string {
     if (name) {
-        return `SELECT id, name FROM sources WHERE name='${name}';`;
+        return `SELECT id, name FROM sources WHERE name=${quoteSqlString(name)};`;
     }
     return 'SELECT id, name FROM sources;';
 }
 
 export function getFromInsert(dbName: string, values: string): string {
-    return `INSERT INTO sources (name) VALUES('${values}');`;
+    return `INSERT INTO sources (name) VALUES(${quoteSqlString(values)});`;
 }
 
 export function getCounterDiff(
@@ -317,7 +318,7 @@ export function update(
     _dbName: string,
     index: number,
     originalState: { val: number | string | boolean | null | undefined; ts: number; q?: number; ack?: boolean },
-    from: number,
+    from: number | undefined,
     table: 'ts_bool' | 'ts_number' | 'ts_string' | 'ts_counter',
 ): string {
     // copy, so the caller's state object is not changed (see insert())
@@ -325,7 +326,11 @@ export function update(
     if (!state || state.val === null || state.val === undefined) {
         state.val = 'NULL';
     } else if (table === 'ts_string') {
-        state.val = `'${state.val.toString().replace(/'/g, '')}'`;
+        state.val = quoteSqlString(state.val);
+    } else if (table === 'ts_number' || table === 'ts_counter') {
+        state.val = numberOrNull(state.val);
+    } else if (table === 'ts_bool') {
+        state.val = boolOrNull(state.val, false);
     }
 
     let query = `UPDATE ${table} SET `;

@@ -63,3 +63,31 @@ export function parseLimit(value: unknown): number | null {
     const limit = typeof value === 'number' ? value : parseFloat(String(value).replace(',', '.'));
     return Number.isFinite(limit) ? limit : null;
 }
+
+/** Texts that are stored as `true` or `false` in `ts_bool`; compared trimmed and in lower case */
+const TRUE_TEXTS = ['true', 'on', 'yes', '1'];
+const FALSE_TEXTS = ['false', 'off', 'no', '0', ''];
+
+/**
+ * A value for `ts_bool`: 1, 0 or NULL - the same for all dialects.
+ *
+ * The usual texts for on and off are recognized, a number is 1 unless it is 0, and anything else
+ * is NULL, like a text in a number column. Before, MySQL stored every text except `false`, `0` and
+ * `''` as true, PostgreSQL failed the batch on a text or a number, SQLite and MS SQL stored any
+ * non-empty text (`off` too) as true.
+ *
+ * @param val the value of the state
+ */
+export function toBool(val: unknown): 0 | 1 | null {
+    if (typeof val === 'number') {
+        return Number.isFinite(val) ? (val ? 1 : 0) : null;
+    }
+    if (typeof val === 'string') {
+        const text = val.trim().toLowerCase();
+        if (TRUE_TEXTS.includes(text)) {
+            return 1;
+        }
+        return FALSE_TEXTS.includes(text) ? 0 : null;
+    }
+    return null;
+}

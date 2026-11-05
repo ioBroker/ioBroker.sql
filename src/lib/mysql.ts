@@ -1,3 +1,4 @@
+import { toBool } from './values';
 import type { BoundStatement, RawEntriesOptions, SqlParam, TableName } from '../types';
 
 // Values go into the statements as `?` placeholders, which mysql2 escapes (#587, C1). Before, strings
@@ -103,33 +104,6 @@ export function getTableSize(dbName: string, table: TableName): BoundStatement {
         sql: 'SELECT AVG_ROW_LENGTH AS avg_row_length, DATA_LENGTH + INDEX_LENGTH AS total_bytes FROM information_schema.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME=?;',
         params: [dbName, table],
     };
-}
-
-/** Texts that are stored as `true` or `false` in `ts_bool`; compared trimmed and in lower case */
-const TRUE_TEXTS = ['true', 'on', 'yes', '1'];
-const FALSE_TEXTS = ['false', 'off', 'no', '0', ''];
-
-/**
- * A value for `ts_bool`: 1, 0 or NULL.
- *
- * Before, every text except `false`, `0` and `''` was stored as 1, `"off"` too, and a number was
- * stored as it was (5 in a boolean column). Now the usual texts for on and off are recognized, a
- * number is 1 unless it is 0, and anything else is NULL, like a text in a number column.
- *
- * @param val the value of the state
- */
-function toBool(val: unknown): 0 | 1 | null {
-    if (typeof val === 'number') {
-        return Number.isFinite(val) ? (val ? 1 : 0) : null;
-    }
-    if (typeof val === 'string') {
-        const text = val.trim().toLowerCase();
-        if (TRUE_TEXTS.includes(text)) {
-            return 1;
-        }
-        return FALSE_TEXTS.includes(text) ? 0 : null;
-    }
-    return null;
 }
 
 /**
@@ -399,7 +373,7 @@ export function update(
     dbName: string,
     index: number,
     state: { val: number | string | boolean | null | undefined; ts: number; q?: number; ack?: boolean },
-    from: number,
+    from: number | undefined,
     table: 'ts_bool' | 'ts_number' | 'ts_string' | 'ts_counter',
 ): BoundStatement {
     // the caller's state object is not changed (see insert())
