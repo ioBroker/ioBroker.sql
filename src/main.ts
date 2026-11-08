@@ -3598,6 +3598,15 @@ export class SqlAdapter extends Adapter {
             options.returnNewestEntries = true;
         }
 
+        if (options.id && this.aliasMap[options.id]) {
+            options.id = this.aliasMap[options.id];
+        }
+
+        // "Round real to" of the datapoint, which normalizeCustomConfig() defaults to the one of the instance.
+        // It rounds what is read and leaves the stored values as they are, like the setting of the instance.
+        const configuredRound =
+            (options.id ? this.sqlDPs[options.id]?.config?.round : undefined) ?? this.config.round ?? undefined;
+
         if (
             msg.message.options.round !== null &&
             msg.message.options.round !== undefined &&
@@ -3605,16 +3614,12 @@ export class SqlAdapter extends Adapter {
         ) {
             msg.message.options.round = parseInt(msg.message.options.round, 10);
             if (!isFinite(msg.message.options.round) || msg.message.options.round < 0) {
-                options.round = this.config.round === null ? undefined : this.config.round;
+                options.round = configuredRound;
             } else {
                 options.round = Math.pow(10, parseInt(msg.message.options.round, 10));
             }
         } else {
-            options.round = this.config.round === null ? undefined : this.config.round;
-        }
-
-        if (options.id && this.aliasMap[options.id]) {
-            options.id = this.aliasMap[options.id];
+            options.round = configuredRound;
         }
 
         if ((options.aggregate === 'percentile' && options.percentile! < 0) || options.percentile! > 100) {
@@ -4747,8 +4752,10 @@ export class SqlAdapter extends Adapter {
                     }
 
                     this.log.info(`initialisation result: ${JSON.stringify(result)}`);
-                    this.getFirstTsForIds(client, 0, result, msg);
                 }
+
+                // Also with an empty table: this returns the connection and sends the answer.
+                this.getFirstTsForIds(client, 0, result, msg);
             });
         });
     }

@@ -871,3 +871,101 @@ describe('Test MySQL value conversion', function () {
         assert.deepStrictEqual(statement.params, [null, 5, 1]);
     });
 });
+
+describe('Test getDpOverview (#587, C6)', function () {
+    const { createAdapter } = require('./lib/stubAdapter');
+
+    function adapterWithRows(rowsPerQuery) {
+        const adapter = createAdapter();
+        adapter.config.dbname = 'iobroker';
+        adapter.sqlFuncs = require('../build/lib/sqlite');
+        adapter.answers = [];
+        adapter.returned = [];
+        adapter.sendTo = (from, command, message) => adapter.answers.push(message);
+        adapter.client = {
+            execute: (query, cb) => cb(null, rowsPerQuery(query)),
+        };
+        adapter.borrowClientFromPool = cb => cb(null, adapter.client);
+        adapter.returnClientToPool = client => adapter.returned.push(client);
+        return adapter;
+    }
+
+    it('answers and returns the connection when the datapoints table is empty', function () {
+        const adapter = adapterWithRows(() => []);
+        adapter.getDpOverview({ from: 'x', command: 'getDpOverview', callback: {} });
+        assert.deepStrictEqual(adapter.answers, [{ success: true, result: {} }]);
+        // with maxConnections = 1 (SQLite) a connection that never comes back blocks every further request
+        assert.deepStrictEqual(adapter.returned, [adapter.client]);
+    });
+});
+
+describe('Test the default of "round" in getHistory (#587, C6)', function () {
+    const { createAdapter } = require('./lib/stubAdapter');
+
+    /** Run getHistory and return the options it reads the data with */
+    function roundOf(adapter, id, options) {
+        let captured;
+        adapter.getCachedData = opts => (captured = opts);
+        adapter.getHistorySql({
+            from: 'x',
+            command: 'getHistory',
+            callback: {},
+            message: { id, options: { start: 1, end: 2, ...options } },
+        });
+        assert.ok(captured, adapter.logs.join('\n'));
+        return captured.round;
+    }
+
+    function adapterWith(instanceRound, datapointRound) {
+        const adapter = createAdapter();
+        adapter.config.round = instanceRound;
+        adapter.sqlDPs['a.0.b'] = { index: 1, type: 0, config: { round: datapointRound } };
+        return adapter;
+    }
+
+    it('the setting of the datapoint wins over the one of the instance', function () {
+        assert.strictEqual(roundOf(adapterWith(1000, 10), 'a.0.b'), 10);
+    });
+
+    it('a datapoint rounds to integers with 0 digits', function () {
+        assert.strictEqual(roundOf(adapterWith(1000, 1), 'a.0.b'), 1);
+    });
+
+    it('without a setting of the datapoint the one of the instance applies', function () {
+        // normalizeCustomConfig() copies the instance setting into the datapoint when its field is empty
+        assert.strictEqual(roundOf(adapterWith(1000, 1000), 'a.0.b'), 1000);
+        // a datapoint that is not logged (any more) has no config at all
+        const adapter = adapterWith(1000, 10);
+        adapter.sqlDPs['a.0.other'] = { index: 2, type: 0 };
+        assert.strictEqual(roundOf(adapter, 'a.0.other'), 1000);
+    });
+
+    it('no rounding when neither is set', function () {
+        assert.strictEqual(roundOf(adapterWith(null, null), 'a.0.b'), undefined);
+    });
+
+    it('the option of the message wins, an invalid one falls back to the datapoint', function () {
+        assert.strictEqual(roundOf(adapterWith(1000, 10), 'a.0.b', { round: 3 }), 1000);
+        assert.strictEqual(roundOf(adapterWith(1, 10), 'a.0.b', { round: 0 }), 1);
+        assert.strictEqual(roundOf(adapterWith(1000, 10), 'a.0.b', { round: 'x' }), 10);
+        assert.strictEqual(roundOf(adapterWith(1000, 10), 'a.0.b', { round: -1 }), 10);
+    });
+
+    it('an alias ID reads the setting of the datapoint it logs to', function () {
+        const adapter = adapterWith(1000, 10);
+        adapter.aliasMap['a.0.real'] = 'a.0.b';
+        assert.strictEqual(roundOf(adapter, 'a.0.real'), 10);
+    });
+
+    it('the settings of the datapoints do not apply to a request for all of them', function () {
+        assert.strictEqual(roundOf(adapterWith(1000, 10), '*'), 1000);
+    });
+});
+
+describe('Test the default of the phpMyAdmin container (#587, C6)', function () {
+    it('the containers listen on localhost only, unless the user chooses otherwise', function () {
+        const { native } = require('../io-package.json');
+        assert.strictEqual(native.dockerMysql.bind, '127.0.0.1');
+        assert.strictEqual(native.dockerPhpMyAdmin.bind, '127.0.0.1');
+    });
+});

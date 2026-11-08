@@ -270,7 +270,7 @@ Possible options:
 - **q** - if *q* field should be included in answer
 - **addId** - if *id* field should be included in answer
 - **limit** - do not return more entries than limit
-- **round** - round result to number of digits after decimal point
+- **round** - round result to number of digits after decimal point. Default: "Round real to" of the datapoint, then of the instance. The stored values are not changed.
 - **ignoreNull** - if null values should be included (false), replaced by last not null value (true) or replaced with 0 (0)
 - **removeBorderValues** - By default, additional border values are returned to optimize charting. Set this option to true if this is not wanted (e.g. for script data processing)
 - **returnNewestEntries** - The returned data are always sorted by timestamp ascending. When using aggregate "none" and also providing "count" or "limit", this means that normally the oldest entries are returned (unless no start data is provided). Set this option to true to get the newest entries instead.
@@ -649,6 +649,11 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@GermanBluefox) `getDpOverview` with an empty `datapoints` table answers again and returns its connection. Before, the request never got an answer and the connection stayed borrowed, which with SQLite (one connection) blocked every further request (#587)
+* (@GermanBluefox) "Round real to" of a datapoint now applies to `getHistory`. Before, the field was shown but had no effect, only the setting of the instance counted. As with the instance setting, the values are rounded when read, the stored values stay as they are (#587)
+* (@GermanBluefox) phpMyAdmin container: new instances listen on `127.0.0.1` by default instead of on all network interfaces. Existing instances keep their setting; to reach phpMyAdmin from another machine, choose the IP in the instance settings (#587)
+
 ### 4.4.0 (2026-11-05)
 * (@Schimi1983) Booleans are stored the same in all databases: `on`/`yes`/`true`/`1` as true, `off`/`no`/`false`/`0` and an empty text as false, any other text as NULL. Before, PostgreSQL failed the whole batch on such a text or a number, SQLite and MS SQL stored `off` as true. `storeState` says "values are kept, do not send them again" also when its values were written together with others of the same datapoint (#587)
 * (@Schimi1983) Messages are checked before they reach the database: `update`, `delete`, `deleteRange`, `deleteAll`, `storeState`, `getHistory` and `getCounter` refuse an entry without an ID, with a timestamp that is not a point in time, or with a value that does not fit the stored type, and report it in the answer instead of writing it into the SQL. Before, a `deleteRange` with an unparsable `start` deleted the whole history of the datapoint, a `delete` without an ID the history of the first datapoint of the table, a `start` given as a numeric string became `NaN`, and a value with a quote or a quote in a datapoint ID broke the statement (PostgreSQL, SQLite, MSSQL: quotes are now stored as they are instead of being removed, `Infinity` is stored as NULL). `storeState` with a value that is not a number for a numeric datapoint is answered again instead of waiting forever; a list of entries is answered after the last entry was written, with the errors of the entries that failed; a message with an unexpected shape no longer stops the adapter; "Maximum concurrent connections" of 0 no longer blocks every write (#587)
