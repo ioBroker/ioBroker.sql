@@ -23,7 +23,7 @@ You can leave port 0 if the default port is desired.
 - **Port**: Port of SQL Server (leave blank if not sure)
 - **Database name**: Database name. Default iobroker
 - **User**: Username for SQL. Must exist in the DB.
-- **Password**: Password for SQL.
+- **Password**: Password for SQL. It is stored encrypted in ioBroker.
 - **Password confirm**: Just repeat password here.
 - **Encrypt**: Some DBs support encryption.
 - **Round real to**: Number of digits after the comma.
@@ -649,6 +649,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@Schimi1983) The database password is stored encrypted (`encryptedNative`). A password saved with an older version is encrypted once on the first start, the instance then restarts by itself. Note: after going back to 4.4.1 or older, enter the password in the instance settings again (#587)
+
 ### 4.4.1 (2026-11-08)
 * (@GermanBluefox) `getDpOverview` with an empty `datapoints` table answers again and returns its connection. Before, the request never got an answer and the connection stayed borrowed, which with SQLite (one connection) blocked every further request (#587)
 * (@GermanBluefox) "Round real to" of a datapoint now applies to `getHistory`. Before, the field was shown but had no effect, only the setting of the instance counted. As with the instance setting, the values are rounded when read, the stored values stay as they are (#587)

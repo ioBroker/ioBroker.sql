@@ -147,6 +147,16 @@ describe(`Test ${__filename}`, function () {
 
     tests.register(it, sendTo, adapterShortName, true, 0, 2);
 
+    it(`Test ${__filename}: the plain-text password was stored encrypted (#587)`, async function () {
+        if (!process.env.SQL_PASS) {
+            // no password, nothing to encrypt
+            this.skip();
+        }
+        // setAdapterConfig() wrote it as plain text, as an instance of <= 4.4.1 has it
+        const obj = await objects.getObject('system.adapter.sql.0');
+        assert.ok(obj.native.password.startsWith('$/aes-192-cbc:'), 'password is still plain text');
+    });
+
     it(`Test ${__filename}: Check Datapoint Types`, function (done) {
         this.timeout(5000);
 

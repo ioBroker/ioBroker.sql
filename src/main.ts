@@ -34,6 +34,7 @@ import {
     type UpdateState,
 } from './lib/messages';
 import { isSameValue, parseLimit } from './lib/values';
+import { isPlainPassword } from './lib/password';
 import { pickRowByName } from './lib/names';
 import { statementToString } from './lib/statement';
 import {
@@ -5120,8 +5121,45 @@ export class SqlAdapter extends Adapter {
         }
     }
 
+    /**
+     * Encrypt a database password that is still stored as plain text (once, after the update from
+     * <= 4.4.1, see `isPlainPassword()`).
+     *
+     * js-controller has already run the plain text through its decryption, so `this.config.password`
+     * is garbage at this point; the raw value from the instance object is the right one. It is used
+     * for this start and written back encrypted with `updateConfig()`, which encrypts every
+     * `encryptedNative` attribute. The change of the instance object restarts the instance once.
+     *
+     * Deliberately no "already migrated" flag in `native`: a default for it in
+     * io-package.json could reach existing instances on an upgrade and skip the migration, which
+     * would leave them with a wrong password. The prefix of the stored value says it reliably.
+     */
+    async migratePassword(): Promise<void> {
+        let raw: unknown;
+        try {
+            const obj = await this.getForeignObjectAsync(`system.adapter.${this.namespace}`);
+            raw = obj?.native?.password;
+        } catch (e) {
+            this.log.error(`Cannot read object "system.adapter.${this.namespace}": ${e}`);
+            return;
+        }
+        if (!isPlainPassword(raw)) {
+            return;
+        }
+        this.config.password = raw;
+        try {
+            await this.updateConfig({ password: raw });
+            this.log.info('The database password is stored encrypted now, the instance restarts once');
+        } catch (e) {
+            // the plain value still works for this start; the next start tries again
+            this.log.warn(`Cannot store the database password encrypted: ${e}`);
+        }
+    }
+
     async main(): Promise<void> {
         this.setConnected(false);
+
+        await this.migratePassword();
 
         // set default history if not yet set
         try {
