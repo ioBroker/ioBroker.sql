@@ -649,7 +649,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 4.4.1 (2026-11-08)
 * (@GermanBluefox) `getDpOverview` with an empty `datapoints` table answers again and returns its connection. Before, the request never got an answer and the connection stayed borrowed, which with SQLite (one connection) blocked every further request (#587)
 * (@GermanBluefox) "Round real to" of a datapoint now applies to `getHistory`. Before, the field was shown but had no effect, only the setting of the instance counted. As with the instance setting, the values are rounded when read, the stored values stay as they are (#587)
 * (@GermanBluefox) phpMyAdmin container: new instances listen on `127.0.0.1` by default instead of on all network interfaces. Existing instances keep their setting; to reach phpMyAdmin from another machine, choose the IP in the instance settings (#587)
@@ -703,13 +703,6 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (@DutchmanNL) Fixed `info.connection` staying `true` while the database was unreachable
 * (@GermanBluefox) Fixed crash (UNCAUGHT_EXCEPTION) when the database server closes the connection: the driver's `error` event had no listener (#527)
 * (@GermanBluefox) A connection that the server dropped is now replaced instead of being handed out again
-
-### 4.1.6 (2026-10-01)
-* (@DutchmanNL) Fixed `getCounter` on PostgreSQL: the queries used MySQL-style backtick quoting
-* (@DutchmanNL) Fixed `getCounter` on SQLite: `ORDER BY`/`LIMIT` is not allowed on a compound-select member
-* (@DutchmanNL) Fixed `getCounter` on MS SQL: the counter subquery filtered on `ts_number` instead of `ts_counter`
-* (@GermanBluefox) `getCounter` now sorts in the outer query on all dialects, so the row order no longer depends on the query plan
-* (@DutchmanNL) Added `getCounter` test coverage for all four dialects
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 
