@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.quoteSqlString = quoteSqlString;
+exports.quotePgString = quotePgString;
 exports.numberOrNull = numberOrNull;
 exports.boolOrNull = boolOrNull;
 const values_1 = require("./values");
@@ -13,8 +14,9 @@ const values_1 = require("./values");
  * best and an injected statement at worst. Datapoint IDs and `from` names come from the object
  * tree, string values from the states and from `storeState`/`update` messages.
  *
- * Standard SQL (PostgreSQL with `standard_conforming_strings`, SQLite, MSSQL) knows only one escape in
- * a string literal: `'` is doubled. A NUL byte can never be part of a literal and is dropped.
+ * Standard SQL (SQLite, MSSQL) knows only one escape in a string literal: `'` is doubled. A NUL byte
+ * can never be part of a literal and is dropped. PostgreSQL reads backslashes in a plain literal as
+ * escapes when `standard_conforming_strings` is off, so it gets its own quoting (`quotePgString`).
  * MySQL escapes with a backslash; its dialect module binds the values instead of quoting them.
  */
 /**
@@ -25,6 +27,21 @@ const values_1 = require("./values");
 function quoteSqlString(value) {
     const text = typeof value === 'string' ? value : String(value);
     return `'${text.replace(/\0/g, '').replace(/'/g, "''")}'`;
+}
+/**
+ * Return `value` as a PostgreSQL escape string literal (`E'...'`), including the prefix and quotes.
+ *
+ * A plain `'...'` literal depends on `standard_conforming_strings`: with it off - possible per
+ * database, per role or in postgresql.conf, although the default is on since 9.1 - a backslash
+ * escapes the next character, so `\'; DROP TABLE datapoints; --` turned the doubled quote into an
+ * escaped one plus a closing quote, and the rest was executed. An escape string literal reads
+ * backslashes as escapes with either setting, so doubling both `\` and `'` is always right.
+ *
+ * @param value the text to quote; anything else is converted with `String()`
+ */
+function quotePgString(value) {
+    const text = typeof value === 'string' ? value : String(value);
+    return `E'${text.replace(/\0/g, '').replace(/\\/g, '\\\\').replace(/'/g, "''")}'`;
 }
 /**
  * Return `value` as an SQL number literal, or `NULL` when it is not a finite number.
