@@ -276,7 +276,7 @@
     },
     "dockerPhpMyAdmin": {
       "enabled": false,
-      "bind": "0.0.0.0",
+      "bind": "127.0.0.1",
       "stopIfInstanceStopped": true,
       "port": "8080",
       "autoImageUpdate": true

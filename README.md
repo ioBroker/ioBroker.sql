@@ -270,7 +270,7 @@ Possible options:
 - **q** - if *q* field should be included in answer
 - **addId** - if *id* field should be included in answer
 - **limit** - do not return more entries than limit
-- **round** - round result to number of digits after decimal point
+- **round** - round result to number of digits after decimal point. Default: "Round real to" of the datapoint, then of the instance. The stored values are not changed.
 - **ignoreNull** - if null values should be included (false), replaced by last not null value (true) or replaced with 0 (0)
 - **removeBorderValues** - By default, additional border values are returned to optimize charting. Set this option to true if this is not wanted (e.g. for script data processing)
 - **returnNewestEntries** - The returned data are always sorted by timestamp ascending. When using aggregate "none" and also providing "count" or "limit", this means that normally the oldest entries are returned (unless no start data is provided). Set this option to true to get the newest entries instead.
@@ -650,6 +650,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 ### **WORK IN PROGRESS**
+* (@GermanBluefox) `getDpOverview` with an empty `datapoints` table answers again and returns its connection. Before, the request never got an answer and the connection stayed borrowed, which with SQLite (one connection) blocked every further request (#587)
+* (@GermanBluefox) "Round real to" of a datapoint now applies to `getHistory`. Before, the field was shown but had no effect, only the setting of the instance counted. As with the instance setting, the values are rounded when read, the stored values stay as they are (#587)
+* (@GermanBluefox) phpMyAdmin container: new instances listen on `127.0.0.1` by default instead of on all network interfaces. Existing instances keep their setting; to reach phpMyAdmin from another machine, choose the IP in the instance settings (#587)
 * (@Schimi1983) PostgreSQL: text values, datapoint IDs and sources are written as escape string literals (`E'...'`), so a backslash can no longer end a value early when `standard_conforming_strings` is off for the database or the user (#587)
 
 ### 4.4.0 (2026-11-05)
