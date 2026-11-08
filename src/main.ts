@@ -5130,36 +5130,47 @@ export class SqlAdapter extends Adapter {
      * for this start and written back encrypted with `updateConfig()`, which encrypts every
      * `encryptedNative` attribute. The change of the instance object restarts the instance once.
      *
+     * Returns `true` when the encrypted value was written, i.e. a restart is on its way.
+     *
      * Deliberately no "already migrated" flag in `native`: a default for it in
      * io-package.json could reach existing instances on an upgrade and skip the migration, which
      * would leave them with a wrong password. The prefix of the stored value says it reliably.
      */
-    async migratePassword(): Promise<void> {
+    async migratePassword(): Promise<boolean> {
         let raw: unknown;
         try {
             const obj = await this.getForeignObjectAsync(`system.adapter.${this.namespace}`);
             raw = obj?.native?.password;
         } catch (e) {
             this.log.error(`Cannot read object "system.adapter.${this.namespace}": ${e}`);
-            return;
+            return false;
         }
         if (!isPlainPassword(raw)) {
-            return;
+            return false;
         }
         this.config.password = raw;
         try {
             await this.updateConfig({ password: raw });
             this.log.info('The database password is stored encrypted now, the instance restarts once');
+            return true;
         } catch (e) {
             // the plain value still works for this start; the next start tries again
             this.log.warn(`Cannot store the database password encrypted: ${e}`);
+            return false;
         }
     }
 
     async main(): Promise<void> {
         this.setConnected(false);
 
-        await this.migratePassword();
+        if (await this.migratePassword()) {
+            // js-controller stops the instance within a few hundred ms because its object changed.
+            // Starting the connection and the subscriptions in the meantime only produced "DB closed"
+            // errors in the log. `delay()` never resolves once the stop has begun; if no restart comes
+            // (an instance not started by js-controller, e.g. in the tests), the start goes on with
+            // the plain value.
+            await this.delay(3000);
+        }
 
         // set default history if not yet set
         try {
