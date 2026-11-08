@@ -82,7 +82,7 @@ function insert(_dbName, index, values) {
             value.state.val = 'NULL';
         }
         else if (value.table === 'ts_string') {
-            value.state.val = (0, sql_string_1.quoteSqlString)(value.state.val);
+            value.state.val = (0, sql_string_1.quotePgString)(value.state.val);
         }
         else if (value.table === 'ts_number' || value.table === 'ts_counter') {
             value.state.val = (0, sql_string_1.numberOrNull)(value.state.val);
@@ -130,22 +130,22 @@ function getIdSelect(_dbName, name) {
     if (!name) {
         return 'SELECT id, type, name FROM datapoints;';
     }
-    return `SELECT id, type, name FROM datapoints WHERE name=${(0, sql_string_1.quoteSqlString)(name)};`;
+    return `SELECT id, type, name FROM datapoints WHERE name=${(0, sql_string_1.quotePgString)(name)};`;
 }
 function getIdInsert(_dbName, name, type) {
-    return `INSERT INTO datapoints (name, type) VALUES(${(0, sql_string_1.quoteSqlString)(name)}, ${type});`;
+    return `INSERT INTO datapoints (name, type) VALUES(${(0, sql_string_1.quotePgString)(name)}, ${type});`;
 }
 function getIdUpdate(_dbName, id, type) {
     return `UPDATE datapoints SET type = ${type} WHERE id = ${id};`;
 }
 function getFromSelect(_dbName, name) {
     if (name) {
-        return `SELECT id, name FROM sources WHERE name=${(0, sql_string_1.quoteSqlString)(name)};`;
+        return `SELECT id, name FROM sources WHERE name=${(0, sql_string_1.quotePgString)(name)};`;
     }
     return 'SELECT id, name FROM sources;';
 }
 function getFromInsert(dbName, values) {
-    return `INSERT INTO sources (name) VALUES(${(0, sql_string_1.quoteSqlString)(values)});`;
+    return `INSERT INTO sources (name) VALUES(${(0, sql_string_1.quotePgString)(values)});`;
 }
 function getCounterDiff(_dbName, options) {
     // Take first real value after start
@@ -271,7 +271,7 @@ function update(_dbName, index, originalState, from, table) {
         state.val = 'NULL';
     }
     else if (table === 'ts_string') {
-        state.val = (0, sql_string_1.quoteSqlString)(state.val);
+        state.val = (0, sql_string_1.quotePgString)(state.val);
     }
     else if (table === 'ts_number' || table === 'ts_counter') {
         state.val = (0, sql_string_1.numberOrNull)(state.val);

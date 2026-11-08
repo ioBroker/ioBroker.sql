@@ -653,6 +653,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (@GermanBluefox) `getDpOverview` with an empty `datapoints` table answers again and returns its connection. Before, the request never got an answer and the connection stayed borrowed, which with SQLite (one connection) blocked every further request (#587)
 * (@GermanBluefox) "Round real to" of a datapoint now applies to `getHistory`. Before, the field was shown but had no effect, only the setting of the instance counted. As with the instance setting, the values are rounded when read, the stored values stay as they are (#587)
 * (@GermanBluefox) phpMyAdmin container: new instances listen on `127.0.0.1` by default instead of on all network interfaces. Existing instances keep their setting; to reach phpMyAdmin from another machine, choose the IP in the instance settings (#587)
+* (@Schimi1983) PostgreSQL: text values, datapoint IDs and sources are written as escape string literals (`E'...'`), so a backslash can no longer end a value early when `standard_conforming_strings` is off for the database or the user (#587)
 
 ### 4.4.0 (2026-11-05)
 * (@Schimi1983) Booleans are stored the same in all databases: `on`/`yes`/`true`/`1` as true, `off`/`no`/`false`/`0` and an empty text as false, any other text as NULL. Before, PostgreSQL failed the whole batch on such a text or a number, SQLite and MS SQL stored `off` as true. `storeState` says "values are kept, do not send them again" also when its values were written together with others of the same datapoint (#587)
