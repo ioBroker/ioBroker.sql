@@ -910,6 +910,13 @@ export class SqlAdapter extends Adapter {
                           }
                         : undefined,
                 };
+                if (this.config.pgSynchronousCommitOff) {
+                    // Relax commit durability for this adapter's sessions only (sent in the startup
+                    // packet, so every pooled connection gets it). Unlike fsync=off this cannot corrupt
+                    // the database; a crash of the PostgreSQL server can lose the last few hundred
+                    // milliseconds of committed values.
+                    postgreSQLOptions.options = '-c synchronous_commit=off';
+                }
             } else if (this.config.dbtype === 'mssql') {
                 msSQLOptions = {
                     server: this.config.host, // needed for MSSQL
@@ -4971,6 +4978,8 @@ export class SqlAdapter extends Adapter {
         if (config.writeNulls === undefined) {
             config.writeNulls = true;
         }
+
+        config.pgSynchronousCommitOff = !!config.pgSynchronousCommitOff;
 
         config.retention = parseInt(config.retention as string, 10) || 0;
         if (config.retention === -1) {

@@ -193,6 +193,18 @@
                     "lg": 4,
                     "xl": 4
                 },
+                "pgSynchronousCommitOff": {
+                    "newLine": true,
+                    "type": "checkbox",
+                    "hidden": "data.dbtype !== 'postgresql'",
+                    "label": "Relax PostgreSQL commit durability (synchronous_commit=off)",
+                    "help": "Commits no longer wait for the write-ahead log to be flushed to disk. Strongly reduces disk load and wear. If the PostgreSQL server crashes, the values stored in the last few hundred milliseconds can be lost - the database itself cannot be corrupted.",
+                    "xs": 12,
+                    "sm": 12,
+                    "md": 8,
+                    "lg": 8,
+                    "xl": 8
+                },
                 "_testConnection": {
                     "newLine": true,
                     "variant": "contained",
