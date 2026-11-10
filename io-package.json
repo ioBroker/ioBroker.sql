@@ -262,6 +262,7 @@
     "changesMinDelta": 0,
     "writeNulls": true,
     "doNotCreateDatabase": false,
+    "pgSynchronousCommitOff": false,
     "maxLength": 0,
     "blockTime": 0,
     "debounceTime": 0,

@@ -30,6 +30,7 @@ You can leave port 0 if the default port is desired.
 - **Allow parallel requests**: Allow simultaneous SQL requests to DB.
 - **Statistics tab**: lists every ID in the database with its storage type, status (logged / logging off / state deleted), number of values, estimated size and the covered time range. The **Clean up** button first shows what would be deleted and removes it only after confirmation. States that still exist but merely have logging switched off are excluded unless you tick the checkbox, because their history is still reachable and may be wanted.
 - **Do not create database**: Activate this option if a database already created (e.g. by administrator) and the ioBroker-user does not have enough rights to create a DB.
+- **Relax PostgreSQL commit durability**: PostgreSQL only, off by default. Runs the adapter's own connections with `synchronous_commit=off`, so a commit no longer waits until the write-ahead log is flushed to disk. This strongly reduces disk I/O and wear, e.g. on SD cards and consumer SSDs. If the PostgreSQL server crashes, the values stored in the last few hundred milliseconds can be lost; unlike `fsync=off` this setting cannot corrupt the database. Other clients of the same server are not affected.
 
 ## Default Settings
 - **Debounce Time** - Protection against unstable values to make sure that only stable values are logged when the value did not change in the defined amount of Milliseconds. ATTENTION: If values change more often than this setting effectively, no value will be logged (because any value is unstable)
@@ -651,6 +652,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 ## Changelog
 ### **WORK IN PROGRESS**
 * (@Schimi1983) The database password is stored encrypted (`encryptedNative`). A password saved with an older version is encrypted once on the first start, the instance then restarts by itself. Note: after going back to 4.4.1 or older, enter the password in the instance settings again (#587)
+* (@DutchmanNL) PostgreSQL: new opt-in setting "Relax PostgreSQL commit durability" runs the adapter's connections with `synchronous_commit=off`, so commits no longer wait for the disk flush. This strongly reduces disk I/O and wear. A crash of the PostgreSQL server can lose the values of the last few hundred milliseconds; the database cannot be corrupted (#516)
 
 ### 4.4.1 (2026-11-08)
 * (@GermanBluefox) `getDpOverview` with an empty `datapoints` table answers again and returns its connection. Before, the request never got an answer and the connection stayed borrowed, which with SQLite (one connection) blocked every further request (#587)
