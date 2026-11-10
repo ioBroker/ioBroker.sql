@@ -23,7 +23,7 @@ You can leave port 0 if the default port is desired.
 - **Port**: Port of SQL Server (leave blank if not sure)
 - **Database name**: Database name. Default iobroker
 - **User**: Username for SQL. Must exist in the DB.
-- **Password**: Password for SQL.
+- **Password**: Password for SQL. It is stored encrypted in ioBroker.
 - **Password confirm**: Just repeat password here.
 - **Encrypt**: Some DBs support encryption.
 - **Round real to**: Number of digits after the comma.
@@ -651,6 +651,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 ### **WORK IN PROGRESS**
+* (@Schimi1983) The database password is stored encrypted (`encryptedNative`). A password saved with an older version is encrypted once on the first start, the instance then restarts by itself. Note: after going back to 4.4.1 or older, enter the password in the instance settings again (#587)
 * (@DutchmanNL) PostgreSQL: new opt-in setting "Relax PostgreSQL commit durability" runs the adapter's connections with `synchronous_commit=off`, so commits no longer wait for the disk flush. This strongly reduces disk I/O and wear. A crash of the PostgreSQL server can lose the values of the last few hundred milliseconds; the database cannot be corrupted (#516)
 
 ### 4.4.1 (2026-11-08)
