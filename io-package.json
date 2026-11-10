@@ -234,6 +234,9 @@
       }
     ]
   },
+  "encryptedNative": [
+    "password"
+  ],
   "protectedNative": [
     "password",
     "dockerMysql.rootPassword"
