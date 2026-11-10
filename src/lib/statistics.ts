@@ -41,14 +41,19 @@ export type DatapointStat = {
 /**
  * Decide how a datapoint should be classified.
  *
- * @param objectExists whether the ioBroker object for this ID still exists
+ * A datapoint this instance logs right now is `active`, whether an object with its ID exists or
+ * not: with an alias (`aliasId` in the custom settings) the values are stored under the alias name,
+ * which has no object of its own. Checking the object first called every logged alias
+ * `objectMissing`, and a confirmed cleanup deleted its history (#587).
+ *
+ * @param objectExists whether an ioBroker object or a custom setting for this ID still exists
  * @param loggingEnabled whether this instance currently logs the ID
  */
 export function classifyDatapoint(objectExists: boolean, loggingEnabled: boolean): DatapointStatus {
-    if (!objectExists) {
-        return 'objectMissing';
+    if (loggingEnabled) {
+        return 'active';
     }
-    return loggingEnabled ? 'active' : 'loggingDisabled';
+    return objectExists ? 'loggingDisabled' : 'objectMissing';
 }
 
 /**

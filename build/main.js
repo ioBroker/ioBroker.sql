@@ -3729,12 +3729,23 @@ class SqlAdapter extends adapter_core_1.Adapter {
         });
     }
     /**
-     * Return all datapoints that have an entry in the `datapoints` table - no matter whether their logging is
-     * still enabled or not.
+     * Names under which this instance stores values according to the custom settings: the alias
+     * name if one is configured, otherwise the ID - with logging enabled or not.
      *
-     * In contrast to `getDpOverview`, this is only one SELECT and answers immediately: `getDpOverview`
-     * additionally determines the first timestamp of every datapoint and pauses 5 seconds between the types.
+     * One view read instead of one object read per datapoint. Errors are thrown, not swallowed (see
+     * `#collectStatistics`).
      */
+    async #configuredNames() {
+        const names = new Set();
+        const doc = await this.getObjectViewAsync('system', 'custom', {});
+        for (const row of doc?.rows || []) {
+            const custom = row.value?.[this.namespace];
+            if (custom) {
+                names.add(custom.aliasId || row.id);
+            }
+        }
+        return names;
+    }
     /**
      * Collect per-datapoint statistics for the whole database.
      *
@@ -3783,16 +3794,20 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     avgRowLength[table] = null;
                 }
             }
+            // Names that still have custom settings of this instance, also with logging switched off.
+            // With an alias the values are stored under the alias name, which has no object.
+            const configured = await this.#configuredNames();
             const stats = [];
             for (const dp of datapoints) {
                 const measured = counts[dp.id];
                 const table = tableOfIndex[dp.id] || null;
-                let objectExists = false;
-                try {
+                const loggingEnabled = !!this.sqlDPs[dp.name];
+                let objectExists = loggingEnabled || configured.has(dp.name);
+                if (!objectExists) {
+                    // An error of the object database must not be read as "the object is gone":
+                    // a confirmed cleanup would then delete the history of every datapoint. It
+                    // fails the request instead (previously caught and treated as missing).
                     objectExists = !!(await this.getForeignObjectAsync(dp.name));
-                }
-                catch {
-                    // treat an unreadable object as missing; the cleanup preview shows it either way
                 }
                 stats.push({
                     id: dp.name,
@@ -3803,7 +3818,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     firstTs: measured?.firstTs ?? null,
                     lastTs: measured?.lastTs ?? null,
                     estimatedBytes: (0, statistics_1.estimateBytes)(measured?.cnt || 0, table ? avgRowLength[table] : null),
-                    status: (0, statistics_1.classifyDatapoint)(objectExists, !!this.sqlDPs[dp.name]),
+                    status: (0, statistics_1.classifyDatapoint)(objectExists, loggingEnabled),
                 });
             }
             stats.sort((a, b) => (a.id > b.id ? 1 : a.id < b.id ? -1 : 0));
@@ -3838,8 +3853,8 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     await execute(this.sqlFuncs.deleteFromTable(this.config.dbname, table, victim.index));
                 }
                 await execute(this.sqlFuncs.deleteDatapoint(this.config.dbname, victim.index));
-                // Drop the in-memory mapping as well, so a state that comes back gets a fresh index
-                delete this.from[victim.id];
+                // No in-memory index to drop: only datapoints that are not logged are removed, and
+                // the index cache lives in `sqlDPs`. (`this.from` maps source names, not datapoints.)
                 rows += victim.count;
             }
             return { datapoints: victims.length, rows };
@@ -3898,6 +3913,15 @@ class SqlAdapter extends adapter_core_1.Adapter {
             this.sendTo(msg.from, msg.command, { error: e?.message || String(e) }, msg.callback);
         });
     }
+    /**
+     * Return all datapoints that have an entry in the `datapoints` table - no matter whether their logging is
+     * still enabled or not.
+     *
+     * In contrast to `getDpOverview`, this is only one SELECT and answers immediately: `getDpOverview`
+     * additionally determines the first timestamp of every datapoint and pauses 5 seconds between the types.
+     *
+     * @param msg the message to answer
+     */
     getDatapoints(msg) {
         const query = this.sqlFuncs.getIdSelect(this.config.dbname);
         this.#debugStatement(query);

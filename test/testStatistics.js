@@ -24,8 +24,12 @@ function stat(overrides) {
 describe('Test classifyDatapoint', function () {
     it('calls a datapoint whose object is gone objectMissing', function () {
         assert.strictEqual(classifyDatapoint(false, false), 'objectMissing');
-        // a deleted state cannot be logged, but the flag must not change the verdict
-        assert.strictEqual(classifyDatapoint(false, true), 'objectMissing');
+    });
+
+    it('calls a logged datapoint without an object of its own active (alias, #587)', function () {
+        // the values of an alias are stored under the alias name, which has no object; it was
+        // listed as objectMissing before and a confirmed cleanup deleted its history
+        assert.strictEqual(classifyDatapoint(false, true), 'active');
     });
 
     it('separates a disabled datapoint from a deleted one', function () {
