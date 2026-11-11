@@ -7,10 +7,28 @@
  * cannot be resolved, and js-controller is not a dependency of this repository.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.resolveStatus = resolveStatus;
 exports.classifyDatapoint = classifyDatapoint;
 exports.estimateBytes = estimateBytes;
 exports.summarize = summarize;
 exports.selectForCleanup = selectForCleanup;
+/**
+ * Determine the status of one datapoint of the `datapoints` table.
+ *
+ * The object database is only asked for names that are neither logged nor configured, so a logged
+ * alias never depends on an object with its name. An error of the object database is not caught:
+ * read as "object missing" it would make a confirmed cleanup delete the history of every datapoint
+ * that is not logged, so the whole request fails instead and nothing is deleted. When in doubt, the
+ * data is kept.
+ *
+ * @param name the name of the datapoint in the `datapoints` table
+ * @param sources where logging, custom settings and objects are looked up
+ */
+async function resolveStatus(name, sources) {
+    const loggingEnabled = sources.isLogged(name);
+    const exists = loggingEnabled || sources.configured.has(name) || (await sources.objectExists(name));
+    return classifyDatapoint(exists, loggingEnabled);
+}
 /**
  * Decide how a datapoint should be classified.
  *

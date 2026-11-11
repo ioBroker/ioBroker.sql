@@ -38,12 +38,13 @@ import { isPlainPassword } from './lib/password';
 import { pickRowByName } from './lib/names';
 import { statementToString } from './lib/statement';
 import {
-    classifyDatapoint,
     estimateBytes,
+    resolveStatus,
     selectForCleanup,
     summarize,
     type CleanupScope,
     type DatapointStat,
+    type StatusSources,
     type TableName as StatTableName,
 } from './lib/statistics';
 import { PostgreSQLClientPool, PostgreSQLClient, type PostgreSQLOptions } from './lib/postgresql-client';
@@ -4545,21 +4546,18 @@ export class SqlAdapter extends Adapter {
 
             // Names that still have custom settings of this instance, also with logging switched off.
             // With an alias the values are stored under the alias name, which has no object.
-            const configured = await this.#configuredNames();
+            const sources: StatusSources = {
+                isLogged: name => !!this.sqlDPs[name],
+                configured: await this.#configuredNames(),
+                // errors are not caught on purpose, see resolveStatus()
+                objectExists: async name => !!(await this.getForeignObjectAsync(name)),
+            };
 
             const stats: DatapointStat[] = [];
             for (const dp of datapoints) {
                 const measured = counts[dp.id];
                 const table = tableOfIndex[dp.id] || null;
-                const loggingEnabled = !!this.sqlDPs[dp.name];
-
-                let objectExists = loggingEnabled || configured.has(dp.name);
-                if (!objectExists) {
-                    // An error of the object database must not be read as "the object is gone":
-                    // a confirmed cleanup would then delete the history of every datapoint. It
-                    // fails the request instead (previously caught and treated as missing).
-                    objectExists = !!(await this.getForeignObjectAsync(dp.name));
-                }
+                const status = await resolveStatus(dp.name, sources);
 
                 stats.push({
                     id: dp.name,
@@ -4570,7 +4568,7 @@ export class SqlAdapter extends Adapter {
                     firstTs: measured?.firstTs ?? null,
                     lastTs: measured?.lastTs ?? null,
                     estimatedBytes: estimateBytes(measured?.cnt || 0, table ? avgRowLength[table] : null),
-                    status: classifyDatapoint(objectExists, loggingEnabled),
+                    status,
                 });
             }
 
