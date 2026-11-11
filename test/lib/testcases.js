@@ -1300,6 +1300,27 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
         );
     });
 
+    it(`Test ${adapterShortName}: cleanupOrphaned keeps logged aliases (#587)`, function (done) {
+        this.timeout(15000);
+        // The alias IDs have no object of their own, but are logged right now. Before the fix the
+        // dry run listed them as `objectMissing`, and `confirm: true` deleted their history.
+        sendTo(instanceName, 'cleanupOrphaned', {}, result => {
+            assert.strictEqual(result.error, undefined);
+            assert.strictEqual(result.dryRun, true);
+            const ids = result.items.map(item => item.id);
+            for (const alias of [`${instanceName}.testValue2-alias`, `${instanceName}.testValueDebounce alias`]) {
+                assert.ok(!ids.includes(alias), `${alias} would be deleted: ${JSON.stringify(ids)}`);
+            }
+            sendTo(instanceName, 'getDpStatistics', {}, stats => {
+                assert.strictEqual(stats.error, undefined);
+                const alias = stats.result.find(s => s.id === `${instanceName}.testValue2-alias`);
+                assert.ok(alias, 'the alias has a row in the statistics');
+                assert.strictEqual(alias.status, 'active');
+                done();
+            });
+        });
+    });
+
     it(`Test ${adapterShortName}: Remove Alias-ID`, function (done) {
         this.timeout(5000);
 

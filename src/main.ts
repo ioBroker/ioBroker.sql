@@ -38,12 +38,13 @@ import { isPlainPassword } from './lib/password';
 import { pickRowByName } from './lib/names';
 import { statementToString } from './lib/statement';
 import {
-    classifyDatapoint,
     estimateBytes,
+    resolveStatus,
     selectForCleanup,
     summarize,
     type CleanupScope,
     type DatapointStat,
+    type StatusSources,
     type TableName as StatTableName,
 } from './lib/statistics';
 import { PostgreSQLClientPool, PostgreSQLClient, type PostgreSQLOptions } from './lib/postgresql-client';
@@ -4462,12 +4463,24 @@ export class SqlAdapter extends Adapter {
     }
 
     /**
-     * Return all datapoints that have an entry in the `datapoints` table - no matter whether their logging is
-     * still enabled or not.
+     * Names under which this instance stores values according to the custom settings: the alias
+     * name if one is configured, otherwise the ID - with logging enabled or not.
      *
-     * In contrast to `getDpOverview`, this is only one SELECT and answers immediately: `getDpOverview`
-     * additionally determines the first timestamp of every datapoint and pauses 5 seconds between the types.
+     * One view read instead of one object read per datapoint. Errors are thrown, not swallowed (see
+     * `#collectStatistics`).
      */
+    async #configuredNames(): Promise<Set<string>> {
+        const names = new Set<string>();
+        const doc = await this.getObjectViewAsync('system', 'custom', {});
+        for (const row of doc?.rows || []) {
+            const custom = (row.value as Record<string, { aliasId?: string } | undefined> | null)?.[this.namespace];
+            if (custom) {
+                names.add(custom.aliasId || row.id);
+            }
+        }
+        return names;
+    }
+
     /**
      * Collect per-datapoint statistics for the whole database.
      *
@@ -4531,17 +4544,20 @@ export class SqlAdapter extends Adapter {
                 }
             }
 
+            // Names that still have custom settings of this instance, also with logging switched off.
+            // With an alias the values are stored under the alias name, which has no object.
+            const sources: StatusSources = {
+                isLogged: name => !!this.sqlDPs[name],
+                configured: await this.#configuredNames(),
+                // errors are not caught on purpose, see resolveStatus()
+                objectExists: async name => !!(await this.getForeignObjectAsync(name)),
+            };
+
             const stats: DatapointStat[] = [];
             for (const dp of datapoints) {
                 const measured = counts[dp.id];
                 const table = tableOfIndex[dp.id] || null;
-
-                let objectExists = false;
-                try {
-                    objectExists = !!(await this.getForeignObjectAsync(dp.name));
-                } catch {
-                    // treat an unreadable object as missing; the cleanup preview shows it either way
-                }
+                const status = await resolveStatus(dp.name, sources);
 
                 stats.push({
                     id: dp.name,
@@ -4552,7 +4568,7 @@ export class SqlAdapter extends Adapter {
                     firstTs: measured?.firstTs ?? null,
                     lastTs: measured?.lastTs ?? null,
                     estimatedBytes: estimateBytes(measured?.cnt || 0, table ? avgRowLength[table] : null),
-                    status: classifyDatapoint(objectExists, !!this.sqlDPs[dp.name]),
+                    status,
                 });
             }
 
@@ -4592,9 +4608,8 @@ export class SqlAdapter extends Adapter {
                     await execute(this.sqlFuncs!.deleteFromTable(this.config.dbname, table, victim.index));
                 }
                 await execute(this.sqlFuncs!.deleteDatapoint(this.config.dbname, victim.index));
-
-                // Drop the in-memory mapping as well, so a state that comes back gets a fresh index
-                delete this.from[victim.id];
+                // No in-memory index to drop: only datapoints that are not logged are removed, and
+                // the index cache lives in `sqlDPs`. (`this.from` maps source names, not datapoints.)
                 rows += victim.count;
             }
             return { datapoints: victims.length, rows };
@@ -4667,6 +4682,15 @@ export class SqlAdapter extends Adapter {
             });
     }
 
+    /**
+     * Return all datapoints that have an entry in the `datapoints` table - no matter whether their logging is
+     * still enabled or not.
+     *
+     * In contrast to `getDpOverview`, this is only one SELECT and answers immediately: `getDpOverview`
+     * additionally determines the first timestamp of every datapoint and pauses 5 seconds between the types.
+     *
+     * @param msg the message to answer
+     */
     getDatapoints(msg: ioBroker.Message): void {
         const query = this.sqlFuncs!.getIdSelect(this.config.dbname);
         this.#debugStatement(query);

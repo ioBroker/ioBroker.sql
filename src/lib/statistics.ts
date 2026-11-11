@@ -38,17 +38,50 @@ export type DatapointStat = {
     status: DatapointStatus;
 };
 
+/** Where the status of a datapoint comes from (see `resolveStatus`) */
+export interface StatusSources {
+    /** whether this instance logs the name right now (`sqlDPs` is keyed by the logging name) */
+    isLogged: (name: string) => boolean;
+    /** names with custom settings of this instance: aliasId or ID, logging on or off */
+    configured: ReadonlySet<string>;
+    /** whether an object with this ID exists; rejects on an error of the object database */
+    objectExists: (name: string) => Promise<boolean>;
+}
+
+/**
+ * Determine the status of one datapoint of the `datapoints` table.
+ *
+ * The object database is only asked for names that are neither logged nor configured, so a logged
+ * alias never depends on an object with its name. An error of the object database is not caught:
+ * read as "object missing" it would make a confirmed cleanup delete the history of every datapoint
+ * that is not logged, so the whole request fails instead and nothing is deleted. When in doubt, the
+ * data is kept.
+ *
+ * @param name the name of the datapoint in the `datapoints` table
+ * @param sources where logging, custom settings and objects are looked up
+ */
+export async function resolveStatus(name: string, sources: StatusSources): Promise<DatapointStatus> {
+    const loggingEnabled = sources.isLogged(name);
+    const exists = loggingEnabled || sources.configured.has(name) || (await sources.objectExists(name));
+    return classifyDatapoint(exists, loggingEnabled);
+}
+
 /**
  * Decide how a datapoint should be classified.
  *
- * @param objectExists whether the ioBroker object for this ID still exists
+ * A datapoint this instance logs right now is `active`, whether an object with its ID exists or
+ * not: with an alias (`aliasId` in the custom settings) the values are stored under the alias name,
+ * which has no object of its own. Checking the object first called every logged alias
+ * `objectMissing`, and a confirmed cleanup deleted its history (#587).
+ *
+ * @param objectExists whether an ioBroker object or a custom setting for this ID still exists
  * @param loggingEnabled whether this instance currently logs the ID
  */
 export function classifyDatapoint(objectExists: boolean, loggingEnabled: boolean): DatapointStatus {
-    if (!objectExists) {
-        return 'objectMissing';
+    if (loggingEnabled) {
+        return 'active';
     }
-    return loggingEnabled ? 'active' : 'loggingDisabled';
+    return objectExists ? 'loggingDisabled' : 'objectMissing';
 }
 
 /**
