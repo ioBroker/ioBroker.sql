@@ -39,20 +39,22 @@ describe('Test the character set and collation of the MySQL tables against a liv
                 connectTimeout: 5000,
                 multipleStatements: false,
             });
-            await connection.query(`DROP DATABASE IF EXISTS \`${OWN}\``);
-            await connection.query(`DROP DATABASE IF EXISTS \`${HOSTER}\``);
-            // the adapter creates the database itself
-            for (const statement of MySQL.init(OWN)) {
-                await run(connection, statement);
-            }
-            // "Do not create database": a hoster created it with an old default
-            await connection.query(`CREATE DATABASE \`${HOSTER}\` DEFAULT CHARACTER SET latin1`);
-            for (const statement of MySQL.init(HOSTER, true)) {
-                await run(connection, statement);
-            }
         } catch (e) {
+            // only a missing server skips the tests; an error of the statements below fails them
             unreachable = `${e.code || ''} ${e.message}`.trim();
             connection = null;
+            return;
+        }
+        await connection.query(`DROP DATABASE IF EXISTS \`${OWN}\``);
+        await connection.query(`DROP DATABASE IF EXISTS \`${HOSTER}\``);
+        // the adapter creates the database itself
+        for (const statement of MySQL.init(OWN)) {
+            await run(connection, statement);
+        }
+        // "Do not create database": a hoster created it with an old default
+        await connection.query(`CREATE DATABASE \`${HOSTER}\` DEFAULT CHARACTER SET latin1`);
+        for (const statement of MySQL.init(HOSTER, true)) {
+            await run(connection, statement);
         }
     });
 
