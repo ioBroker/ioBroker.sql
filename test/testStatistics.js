@@ -3,7 +3,13 @@ const sqlite3 = require('sqlite3');
 
 // Imported from their own modules, never from build/main: that would pull in
 // @iobroker/adapter-core, which calls process.exit(10) when js-controller cannot be resolved.
-const { classifyDatapoint, estimateBytes, summarize, selectForCleanup } = require('../build/lib/statistics');
+const {
+    classifyDatapoint,
+    estimateBytes,
+    summarize,
+    selectForCleanup,
+    resolveStatus,
+} = require('../build/lib/statistics');
 const SQLite = require('../build/lib/sqlite');
 
 function stat(overrides) {
@@ -24,8 +30,12 @@ function stat(overrides) {
 describe('Test classifyDatapoint', function () {
     it('calls a datapoint whose object is gone objectMissing', function () {
         assert.strictEqual(classifyDatapoint(false, false), 'objectMissing');
-        // a deleted state cannot be logged, but the flag must not change the verdict
-        assert.strictEqual(classifyDatapoint(false, true), 'objectMissing');
+    });
+
+    it('calls a logged datapoint without an object of its own active (alias, #587)', function () {
+        // the values of an alias are stored under the alias name, which has no object; it was
+        // listed as objectMissing before and a confirmed cleanup deleted its history
+        assert.strictEqual(classifyDatapoint(false, true), 'active');
     });
 
     it('separates a disabled datapoint from a deleted one', function () {
@@ -212,5 +222,69 @@ describe('Test the statistics and cleanup SQL against SQLite', function () {
                 });
             });
         });
+    });
+});
+
+describe('Test resolveStatus (#587)', function () {
+    const objects = new Set(['javascript.0.x']);
+    function sources(overrides) {
+        const asked = [];
+        return {
+            asked,
+            isLogged: name => name === 'alias.logged',
+            configured: new Set(['alias.logged', 'alias.off']),
+            objectExists: async name => {
+                asked.push(name);
+                return objects.has(name);
+            },
+            ...overrides,
+        };
+    }
+
+    it('a datapoint logged under an alias name without an object is active', async function () {
+        const src = sources();
+        assert.strictEqual(await resolveStatus('alias.logged', src), 'active');
+        // the object database is not asked at all
+        assert.deepStrictEqual(src.asked, []);
+    });
+
+    it('an alias with logging switched off is loggingDisabled, not objectMissing', async function () {
+        const src = sources();
+        assert.strictEqual(await resolveStatus('alias.off', src), 'loggingDisabled');
+        assert.deepStrictEqual(src.asked, []);
+    });
+
+    it('other names are looked up as objects', async function () {
+        const src = sources();
+        assert.strictEqual(await resolveStatus('javascript.0.x', src), 'loggingDisabled');
+        assert.strictEqual(await resolveStatus('gone.0.x', src), 'objectMissing');
+        assert.deepStrictEqual(src.asked, ['javascript.0.x', 'gone.0.x']);
+    });
+
+    it('an error of the object database fails instead of meaning "missing"', async function () {
+        const src = sources({
+            objectExists: async () => {
+                throw new Error('Connection is closed.');
+            },
+        });
+        await assert.rejects(resolveStatus('javascript.0.x', src), /Connection is closed/);
+        // logged and configured names do not need the object database and still resolve
+        assert.strictEqual(await resolveStatus('alias.logged', src), 'active');
+    });
+
+    it('nothing is selected for the cleanup when the status cannot be resolved', async function () {
+        const src = sources({
+            objectExists: async () => {
+                throw new Error('DB closed');
+            },
+        });
+        // the same order as #collectStatistics(): resolve every status first, then select
+        const resolveAll = async names =>
+            Promise.all(names.map(async id => stat({ id, status: await resolveStatus(id, src) })));
+        let selected = null;
+        await assert.rejects(async () => {
+            selected = selectForCleanup(await resolveAll(['alias.logged', 'gone.0.x']));
+        }, /DB closed/);
+        assert.strictEqual(selected, null);
     });
 });
