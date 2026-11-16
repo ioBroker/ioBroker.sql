@@ -20,21 +20,38 @@ exports.update = update;
 exports.getRawEntries = getRawEntries;
 exports.getRawEntriesCount = getRawEntriesCount;
 const sql_string_1 = require("./sql-string");
+/**
+ * `nvarchar` keeps every character: `varchar` stores only the code page of the collation, so `alias.0.Кухня`
+ * or an emoji came back as `?`. The collation compares case-sensitively like ioBroker IDs (#588); `_SC`
+ * makes 4-byte characters (emojis) compare as one character. Trailing spaces are still ignored by `=` (SQL
+ * Server pads every comparison), so `pickRowByName()` keeps `alias.0.Tor` and `alias.0.Tor ` apart.
+ */
+const NAME = 'nvarchar(255) COLLATE Latin1_General_100_CS_AS_SC';
+/**
+ * Statements that create the database (unless it exists already) and the tables of the adapter.
+ *
+ * Only new tables get `NAME` and `nvarchar(max)` for `ts_string`; existing tables are not changed. The README
+ * explains how to convert them by hand.
+ *
+ * @param dbName name of the database
+ * @param doNotCreateDatabase the database was created outside the adapter (e.g. by a hoster)
+ */
 function init(dbName, doNotCreateDatabase) {
+    const db = (0, sql_string_1.quoteMsIdentifier)(dbName);
     const commands = [
-        `CREATE TABLE ${dbName}.dbo.sources     (id INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1), name varchar(255));`,
-        `CREATE TABLE ${dbName}.dbo.datapoints  (id INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1), name varchar(255), type INTEGER);`,
-        `CREATE TABLE ${dbName}.dbo.ts_number   (id INTEGER, ts BIGINT, val REAL, ack BIT, _from INTEGER, q INTEGER);`,
-        `CREATE INDEX i_id on ${dbName}.dbo.ts_number (id, ts);`,
-        `CREATE TABLE ${dbName}.dbo.ts_string   (id INTEGER, ts BIGINT, val TEXT, ack BIT, _from INTEGER, q INTEGER);`,
-        `CREATE INDEX i_id on ${dbName}.dbo.ts_string (id, ts);`,
-        `CREATE TABLE ${dbName}.dbo.ts_bool     (id INTEGER, ts BIGINT, val BIT,  ack BIT, _from INTEGER, q INTEGER);`,
-        `CREATE INDEX i_id on ${dbName}.dbo.ts_bool (id, ts);`,
-        `CREATE TABLE ${dbName}.dbo.ts_counter  (id INTEGER, ts BIGINT, val REAL);`,
-        `CREATE INDEX i_id on ${dbName}.dbo.ts_counter (id, ts);`,
+        `CREATE TABLE ${db}.dbo.sources     (id INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1), name ${NAME});`,
+        `CREATE TABLE ${db}.dbo.datapoints  (id INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1), name ${NAME}, type INTEGER);`,
+        `CREATE TABLE ${db}.dbo.ts_number   (id INTEGER, ts BIGINT, val REAL, ack BIT, _from INTEGER, q INTEGER);`,
+        `CREATE INDEX i_id on ${db}.dbo.ts_number (id, ts);`,
+        `CREATE TABLE ${db}.dbo.ts_string   (id INTEGER, ts BIGINT, val nvarchar(max), ack BIT, _from INTEGER, q INTEGER);`,
+        `CREATE INDEX i_id on ${db}.dbo.ts_string (id, ts);`,
+        `CREATE TABLE ${db}.dbo.ts_bool     (id INTEGER, ts BIGINT, val BIT,  ack BIT, _from INTEGER, q INTEGER);`,
+        `CREATE INDEX i_id on ${db}.dbo.ts_bool (id, ts);`,
+        `CREATE TABLE ${db}.dbo.ts_counter  (id INTEGER, ts BIGINT, val REAL);`,
+        `CREATE INDEX i_id on ${db}.dbo.ts_counter (id, ts);`,
     ];
     if (!doNotCreateDatabase) {
-        commands.unshift(`CREATE DATABASE ${dbName};`);
+        commands.unshift(`CREATE DATABASE ${db};`);
     }
     return commands;
 }
@@ -47,22 +64,22 @@ function init(dbName, doNotCreateDatabase) {
  */
 function destroy(dbName, doNotCreateDatabase) {
     const commands = [
-        `DROP TABLE ${dbName}.dbo.ts_counter;`,
-        `DROP TABLE ${dbName}.dbo.ts_number;`,
-        `DROP TABLE ${dbName}.dbo.ts_string;`,
-        `DROP TABLE ${dbName}.dbo.ts_bool;`,
-        `DROP TABLE ${dbName}.dbo.sources;`,
-        `DROP TABLE ${dbName}.dbo.datapoints;`,
+        `DROP TABLE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_counter;`,
+        `DROP TABLE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number;`,
+        `DROP TABLE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_string;`,
+        `DROP TABLE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_bool;`,
+        `DROP TABLE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources;`,
+        `DROP TABLE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.datapoints;`,
     ];
     if (!doNotCreateDatabase) {
-        commands.push(`DROP DATABASE ${dbName};`);
+        commands.push(`DROP DATABASE ${(0, sql_string_1.quoteMsIdentifier)(dbName)};`);
         // needs ALTER SERVER STATE, which a user of an existing (hosted) database usually lacks
         commands.push('DBCC FREEPROCCACHE;');
     }
     return commands;
 }
 function getFirstTs(dbName, table) {
-    return `SELECT id, MIN(ts) AS ts FROM ${dbName}.dbo.${table} GROUP BY id;`;
+    return `SELECT id, MIN(ts) AS ts FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table} GROUP BY id;`;
 }
 /**
  * Count the rows and the covered time range per datapoint index.
@@ -74,7 +91,7 @@ function getFirstTs(dbName, table) {
  * @param table the time series table to summarize
  */
 function getIdCounts(dbName, table) {
-    return `SELECT id, COUNT(*) AS cnt, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM ${dbName}.dbo.${table} GROUP BY id;`;
+    return `SELECT id, COUNT(*) AS cnt, MIN(ts) AS first_ts, MAX(ts) AS last_ts FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table} GROUP BY id;`;
 }
 /**
  * Average bytes per row and total bytes of one time series table.
@@ -88,7 +105,7 @@ function getIdCounts(dbName, table) {
  */
 function getTableSize(dbName, table) {
     // Pages are 8 KB; used_page_count covers data and indexes.
-    return `SELECT CASE WHEN SUM(p.row_count) > 0 THEN SUM(p.used_page_count) * 8192 / SUM(p.row_count) ELSE 0 END AS avg_row_length, SUM(p.used_page_count) * 8192 AS total_bytes FROM ${dbName}.sys.dm_db_partition_stats p WHERE p.object_id = OBJECT_ID('${dbName}.dbo.${table}') AND p.index_id IN (0, 1);`;
+    return `SELECT CASE WHEN SUM(p.row_count) > 0 THEN SUM(p.used_page_count) * 8192 / SUM(p.row_count) ELSE 0 END AS avg_row_length, SUM(p.used_page_count) * 8192 AS total_bytes FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.sys.dm_db_partition_stats p WHERE p.object_id = OBJECT_ID(${(0, sql_string_1.quoteNString)(`${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}`)}) AND p.index_id IN (0, 1);`;
 }
 function insert(dbName, index, values) {
     const insertValues = {};
@@ -102,7 +119,7 @@ function insert(dbName, index, values) {
             value.state.val = 'NULL';
         }
         else if (value.table === 'ts_string') {
-            value.state.val = (0, sql_string_1.quoteSqlString)(value.state.val);
+            value.state.val = (0, sql_string_1.quoteNString)(value.state.val);
         }
         else if (value.table === 'ts_bool') {
             value.state.val = (0, sql_string_1.boolOrNull)(value.state.val, true);
@@ -126,12 +143,12 @@ function insert(dbName, index, values) {
     for (const table in insertValues) {
         if (table === 'ts_counter') {
             while (insertValues[table].length) {
-                query.push(`INSERT INTO ${dbName}.dbo.ts_counter (id, ts, val) VALUES ${insertValues[table].splice(0, 500).join(',')};`);
+                query.push(`INSERT INTO ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_counter (id, ts, val) VALUES ${insertValues[table].splice(0, 500).join(',')};`);
             }
         }
         else {
             while (insertValues[table].length) {
-                query.push(`INSERT INTO ${dbName}.dbo.${table} (id, ts, val, ack, _from, q) VALUES ${insertValues[table].splice(0, 500).join(',')};`);
+                query.push(`INSERT INTO ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table} (id, ts, val, ack, _from, q) VALUES ${insertValues[table].splice(0, 500).join(',')};`);
             }
         }
     }
@@ -140,7 +157,7 @@ function insert(dbName, index, values) {
 function retention(dbName, index, table, retention) {
     const d = new Date();
     d.setSeconds(-retention);
-    let query = `DELETE FROM ${dbName}.dbo.${table} WHERE`;
+    let query = `DELETE FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table} WHERE`;
     query += ` id=${index}`;
     query += ` AND ts < ${d.getTime()}`;
     query += ';';
@@ -148,37 +165,37 @@ function retention(dbName, index, table, retention) {
 }
 function getIdSelect(dbName, name) {
     if (!name) {
-        return `SELECT id, type, name FROM ${dbName}.dbo.datapoints;`;
+        return `SELECT id, type, name FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.datapoints;`;
     }
-    return `SELECT id, type, name FROM ${dbName}.dbo.datapoints WHERE name=${(0, sql_string_1.quoteSqlString)(name)};`;
+    return `SELECT id, type, name FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.datapoints WHERE name=${(0, sql_string_1.quoteNString)(name)};`;
 }
 function getIdInsert(dbName, name, type) {
-    return `INSERT INTO ${dbName}.dbo.datapoints (name, type) VALUES(${(0, sql_string_1.quoteSqlString)(name)}, ${type});`;
+    return `INSERT INTO ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.datapoints (name, type) VALUES(${(0, sql_string_1.quoteNString)(name)}, ${type});`;
 }
 function getIdUpdate(dbName, id, type) {
-    return `UPDATE ${dbName}.dbo.datapoints SET type=${type} WHERE id=${id};`;
+    return `UPDATE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.datapoints SET type=${type} WHERE id=${id};`;
 }
 function getFromSelect(dbName, name) {
     if (name) {
-        return `SELECT id, name FROM ${dbName}.dbo.sources WHERE name=${(0, sql_string_1.quoteSqlString)(name)};`;
+        return `SELECT id, name FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources WHERE name=${(0, sql_string_1.quoteNString)(name)};`;
     }
-    return `SELECT id, name FROM ${dbName}.dbo.sources;`;
+    return `SELECT id, name FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources;`;
 }
 function getFromInsert(dbName, values) {
-    return `INSERT INTO ${dbName}.dbo.sources (name) VALUES(${(0, sql_string_1.quoteSqlString)(values)});`;
+    return `INSERT INTO ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources (name) VALUES(${(0, sql_string_1.quoteNString)(values)});`;
 }
 function getCounterDiff(dbName, options) {
     // Take first real value after start
-    const subQueryStart = `SELECT TOP 1 val, ts FROM ${dbName}.dbo.ts_number WHERE ${dbName}.dbo.ts_number.id=${options.index} AND ${dbName}.dbo.ts_number.ts>=${options.start} AND ${dbName}.dbo.ts_number.ts<${options.end} AND ${dbName}.dbo.ts_number.val IS NOT NULL ORDER BY ${dbName}.dbo.ts_number.ts ASC`;
+    const subQueryStart = `SELECT TOP 1 val, ts FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number WHERE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.id=${options.index} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.ts>=${options.start} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.ts<${options.end} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.val IS NOT NULL ORDER BY ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.ts ASC`;
     // Take last real value before the end
-    const subQueryEnd = `SELECT TOP 1 val, ts FROM ${dbName}.dbo.ts_number WHERE ${dbName}.dbo.ts_number.id=${options.index} AND ${dbName}.dbo.ts_number.ts>=${options.start} AND ${dbName}.dbo.ts_number.ts<${options.end} AND ${dbName}.dbo.ts_number.val IS NOT NULL ORDER BY ${dbName}.dbo.ts_number.ts DESC`;
+    const subQueryEnd = `SELECT TOP 1 val, ts FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number WHERE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.id=${options.index} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.ts>=${options.start} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.ts<${options.end} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.val IS NOT NULL ORDER BY ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.ts DESC`;
     // Take last value before start
-    const subQueryFirst = `SELECT TOP 1 val, ts FROM ${dbName}.dbo.ts_number WHERE ${dbName}.dbo.ts_number.id=${options.index} AND ${dbName}.dbo.ts_number.ts< ${options.start} ORDER BY ${dbName}.dbo.ts_number.ts DESC`;
+    const subQueryFirst = `SELECT TOP 1 val, ts FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number WHERE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.id=${options.index} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.ts< ${options.start} ORDER BY ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.ts DESC`;
     // Take next value after end
-    const subQueryLast = `SELECT TOP 1 val, ts FROM ${dbName}.dbo.ts_number WHERE ${dbName}.dbo.ts_number.id=${options.index} AND ${dbName}.dbo.ts_number.ts>=${options.end} ORDER BY ${dbName}.dbo.ts_number.ts ASC`;
+    const subQueryLast = `SELECT TOP 1 val, ts FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number WHERE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.id=${options.index} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.ts>=${options.end} ORDER BY ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_number.ts ASC`;
     // get values from counters where counter values changed. No ORDER BY here: T-SQL forbids it in a
     // union member without TOP, and the outer ORDER BY sorts the combined result anyway.
-    const subQueryCounterChanges = `SELECT val, ts FROM ${dbName}.dbo.ts_counter WHERE ${dbName}.dbo.ts_counter.id=${options.index} AND ${dbName}.dbo.ts_counter.ts>${options.start} AND ${dbName}.dbo.ts_counter.ts<${options.end} AND ${dbName}.dbo.ts_counter.val IS NOT NULL`;
+    const subQueryCounterChanges = `SELECT val, ts FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_counter WHERE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_counter.id=${options.index} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_counter.ts>${options.start} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_counter.ts<${options.end} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.ts_counter.val IS NOT NULL`;
     // Same shape as the other dialects: DISTINCT over the union, ordered by ts in the OUTER query -
     // sendResponseCounter consumes the rows positionally, so the order must be guaranteed here.
     return (`SELECT DISTINCT a.ts, a.val FROM ((${subQueryFirst})\n` +
@@ -192,21 +209,21 @@ function getHistory(dbName, table, options) {
     if ((!options.start && options.count) || (options.aggregate === 'none' && options.count)) {
         query += ` TOP ${options.count}`;
     }
-    query += ` ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
+    query += ` ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}`;
     // LEFT JOIN: a value stored without `from` has `_from` = 0, which has no row in `sources`.
     // With an INNER JOIN, such values were missing from every query that asked for `from`.
     if (options.from) {
-        query += ` LEFT OUTER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
+        query += ` LEFT OUTER JOIN ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources ON ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources.id=${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}._from`;
     }
     let where = '';
     if (options.index !== null) {
-        where += ` ${dbName}.dbo.${table}.id=${options.index}`;
+        where += ` ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.id=${options.index}`;
     }
     if (options.end) {
-        where += `${where ? ` AND` : ''} ${dbName}.dbo.${table}.ts < ${options.end}`;
+        where += `${where ? ` AND` : ''} ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts < ${options.end}`;
     }
     if (options.start) {
-        where += `${where ? ` AND` : ''} ${dbName}.dbo.${table}.ts >= ${options.start}`;
+        where += `${where ? ` AND` : ''} ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts >= ${options.start}`;
     }
     if ((!options.start && options.count) || (options.aggregate === 'none' && options.count)) {
         where += ` ORDER BY ts`;
@@ -223,40 +240,40 @@ function getHistory(dbName, table, options) {
         // add last value before start
         let subQuery;
         let subWhere;
-        subQuery = ` SELECT TOP 1 ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
+        subQuery = ` SELECT TOP 1 ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}`;
         if (options.from) {
-            subQuery += ` LEFT OUTER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
+            subQuery += ` LEFT OUTER JOIN ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources ON ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources.id=${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}._from`;
         }
         subWhere = '';
         if (options.index !== null) {
-            subWhere += ` ${dbName}.dbo.${table}.id=${options.index}`;
+            subWhere += ` ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.id=${options.index}`;
         }
         if (options.ignoreNull) {
             //subWhere += (subWhere ? ` AND` : '') + ` val <> NULL`;
         }
-        subWhere += `${subWhere ? ` AND` : ''} ${dbName}.dbo.${table}.ts < ${options.start}`;
+        subWhere += `${subWhere ? ` AND` : ''} ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts < ${options.start}`;
         if (subWhere) {
             subQuery += ` WHERE ${subWhere}`;
         }
-        subQuery += ` ORDER BY ${dbName}.dbo.${table}.ts DESC`;
+        subQuery += ` ORDER BY ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts DESC`;
         where += ` UNION ALL SELECT * FROM (${subQuery}) a`;
         // add next value after end
-        subQuery = ` SELECT TOP 1 ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${dbName}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${dbName}.dbo.${table}`;
+        subQuery = ` SELECT TOP 1 ts, val${options.index === null ? `, ${table}.id as id` : ''}${options.ack ? `, ack` : ''}${options.from ? `, ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources.name as 'from'` : ''}${options.q ? `, q` : ''} FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}`;
         if (options.from) {
-            subQuery += ` LEFT OUTER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from`;
+            subQuery += ` LEFT OUTER JOIN ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources ON ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources.id=${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}._from`;
         }
         subWhere = '';
         if (options.index !== null) {
-            subWhere += ` ${dbName}.dbo.${table}.id=${options.index}`;
+            subWhere += ` ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.id=${options.index}`;
         }
         if (options.ignoreNull) {
             //subWhere += (subWhere ? ` AND` : '') + ` val <> NULL`;
         }
-        subWhere += `${subWhere ? ` AND` : ''} ${dbName}.dbo.${table}.ts >= ${options.end}`;
+        subWhere += `${subWhere ? ` AND` : ''} ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts >= ${options.end}`;
         if (subWhere) {
             subQuery += ` WHERE ${subWhere}`;
         }
-        subQuery += ` ORDER BY ${dbName}.dbo.${table}.ts ASC`;
+        subQuery += ` ORDER BY ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts ASC`;
         where += ` UNION ALL SELECT * FROM (${subQuery}) b`;
     }
     if (where) {
@@ -274,13 +291,13 @@ function getHistory(dbName, table, options) {
     return query;
 }
 function deleteFromTable(dbName, table, index, start, end) {
-    let query = `DELETE FROM ${dbName}.dbo.${table} WHERE`;
+    let query = `DELETE FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table} WHERE`;
     query += ` id=${index}`;
     if (start && end) {
-        query += ` AND ${dbName}.dbo.${table}.ts>=${start} AND ${dbName}.dbo.${table}.ts<=${end}`;
+        query += ` AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts>=${start} AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts<=${end}`;
     }
     else if (start) {
-        query += ` AND ${dbName}.dbo.${table}.ts=${start}`;
+        query += ` AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts=${start}`;
     }
     query += ';';
     return query;
@@ -295,7 +312,7 @@ function deleteFromTable(dbName, table, index, start, end) {
  * @param index the integer key of the datapoint
  */
 function deleteDatapoint(dbName, index) {
-    return `DELETE FROM ${dbName}.dbo.datapoints WHERE id=${index};`;
+    return `DELETE FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.datapoints WHERE id=${index};`;
 }
 function update(dbName, index, originalState, from, table) {
     // copy, so the caller's state object is not changed (see insert())
@@ -307,12 +324,12 @@ function update(dbName, index, originalState, from, table) {
         state.val = (0, sql_string_1.boolOrNull)(state.val, true);
     }
     else if (table === 'ts_string') {
-        state.val = (0, sql_string_1.quoteSqlString)(state.val);
+        state.val = (0, sql_string_1.quoteNString)(state.val);
     }
     else if (table === 'ts_number' || table === 'ts_counter') {
         state.val = (0, sql_string_1.numberOrNull)(state.val);
     }
-    let query = `UPDATE ${dbName}.dbo.${table} SET `;
+    let query = `UPDATE ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table} SET `;
     const vals = [];
     if (state.val !== undefined) {
         vals.push(`val=${state.val}`);
@@ -331,23 +348,23 @@ function update(dbName, index, originalState, from, table) {
     return query;
 }
 function rawEntriesWhere(dbName, table, index, options) {
-    let where = `${dbName}.dbo.${table}.id=${index}`;
+    let where = `${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.id=${index}`;
     if (options.start) {
-        where += ` AND ${dbName}.dbo.${table}.ts>=${options.start}`;
+        where += ` AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts>=${options.start}`;
     }
     if (options.end) {
-        where += ` AND ${dbName}.dbo.${table}.ts<=${options.end}`;
+        where += ` AND ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts<=${options.end}`;
     }
     return where;
 }
 function getRawEntries(dbName, table, index, options) {
-    return (`SELECT ${dbName}.dbo.${table}.ts, ${dbName}.dbo.${table}.val, ${dbName}.dbo.${table}.ack, ${dbName}.dbo.${table}.q, ${dbName}.dbo.sources.name AS 'from' FROM ${dbName}.dbo.${table}` +
-        ` LEFT OUTER JOIN ${dbName}.dbo.sources ON ${dbName}.dbo.sources.id=${dbName}.dbo.${table}._from` +
+    return (`SELECT ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts, ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.val, ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ack, ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.q, ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources.name AS 'from' FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}` +
+        ` LEFT OUTER JOIN ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources ON ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.sources.id=${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}._from` +
         ` WHERE ${rawEntriesWhere(dbName, table, index, options)}` +
-        ` ORDER BY ${dbName}.dbo.${table}.ts ${options.sort === 'asc' ? 'ASC' : 'DESC'}` +
+        ` ORDER BY ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table}.ts ${options.sort === 'asc' ? 'ASC' : 'DESC'}` +
         ` OFFSET ${options.offset} ROWS FETCH NEXT ${options.limit} ROWS ONLY;`);
 }
 function getRawEntriesCount(dbName, table, index, options) {
-    return `SELECT COUNT(*) AS total FROM ${dbName}.dbo.${table} WHERE ${rawEntriesWhere(dbName, table, index, options)};`;
+    return `SELECT COUNT(*) AS total FROM ${(0, sql_string_1.quoteMsIdentifier)(dbName)}.dbo.${table} WHERE ${rawEntriesWhere(dbName, table, index, options)};`;
 }
 //# sourceMappingURL=mssql.js.map
