@@ -13,7 +13,7 @@
         "@iobroker/build-tools": "^3.0.3",
         "@iobroker/eslint-config": "^2.3.4",
         "@iobroker/gui-components": "^10.3.16",
-        "@iobroker/json-config": "^10.1.12",
+        "@iobroker/json-config": "^10.1.20",
         "@module-federation/runtime": "^2.9.3",
         "@module-federation/vite": "^1.23.9",
         "@mui/icons-material": "^9.5.0",
