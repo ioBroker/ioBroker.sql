@@ -32,18 +32,50 @@ function toTs(value: unknown): number | null {
     return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Character set for every text column, named per column so that it does not depend on the default of the
+ * database - a database created by a hoster ("Do not create database") often still has `latin1` or `utf8`.
+ *
+ * `utf8` is utf8mb3 in MySQL/MariaDB: it has no 4-byte characters, so a string value with an emoji failed
+ * ("Incorrect string value") and was lost. `utf8mb4` stores every character.
+ */
+const TEXT = 'TEXT CHARACTER SET utf8mb4';
+
+/**
+ * The `name` columns are looked up with `WHERE name=?`. With a case-insensitive collation (`utf8_general_ci`
+ * of a database the adapter created before, `utf8mb4_0900_ai_ci`, ...) `alias.0.licht` also finds
+ * `alias.0.Licht`, although ioBroker IDs are case-sensitive (#588). `utf8mb4_bin` compares case and accents
+ * exactly.
+ *
+ * It is still a PAD SPACE collation on MySQL and MariaDB: trailing spaces do not count, so
+ * `WHERE name='alias.0.Tor '` also finds `alias.0.Tor`. The binary collations without that
+ * (`utf8mb4_0900_bin` on MySQL 8, `utf8mb4_nopad_bin` on MariaDB) each exist on only one of the two servers.
+ * `pickRowByName()` takes only the row with exactly the name, so the adapter keeps such IDs apart anyway.
+ */
+const NAME = `${TEXT} COLLATE utf8mb4_bin`;
+
+/**
+ * Statements that create the database (unless it exists already) and the tables of the adapter.
+ *
+ * Only new tables get the character set and collation of `TEXT`/`NAME`. Existing tables are not changed:
+ * converting a large `ts_string` table takes long and locks it. `pickRowByName()` keeps the series of IDs
+ * that differ only in case apart there as well; the README explains how to convert the tables by hand.
+ *
+ * @param dbName name of the database
+ * @param doNotCreateDatabase the database was created outside the adapter (e.g. by a hoster)
+ */
 export function init(dbName: string, doNotCreateDatabase?: boolean): string[] {
     const commands = [
-        `CREATE TABLE \`${dbName}\`.sources    (id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, name TEXT);`,
-        `CREATE TABLE \`${dbName}\`.datapoints (id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, name TEXT, type INTEGER);`,
+        `CREATE TABLE \`${dbName}\`.sources    (id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, name ${NAME});`,
+        `CREATE TABLE \`${dbName}\`.datapoints (id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, name ${NAME}, type INTEGER);`,
         `CREATE TABLE \`${dbName}\`.ts_number  (id INTEGER, ts BIGINT, val REAL,    ack BOOLEAN, _from INTEGER, q INTEGER, PRIMARY KEY(id, ts));`,
-        `CREATE TABLE \`${dbName}\`.ts_string  (id INTEGER, ts BIGINT, val TEXT,    ack BOOLEAN, _from INTEGER, q INTEGER, PRIMARY KEY(id, ts));`,
+        `CREATE TABLE \`${dbName}\`.ts_string  (id INTEGER, ts BIGINT, val ${TEXT}, ack BOOLEAN, _from INTEGER, q INTEGER, PRIMARY KEY(id, ts));`,
         `CREATE TABLE \`${dbName}\`.ts_bool    (id INTEGER, ts BIGINT, val BOOLEAN, ack BOOLEAN, _from INTEGER, q INTEGER, PRIMARY KEY(id, ts));`,
         `CREATE TABLE \`${dbName}\`.ts_counter (id INTEGER, ts BIGINT, val REAL);`,
     ];
 
     !doNotCreateDatabase &&
-        commands.unshift(`CREATE DATABASE \`${dbName}\` DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;`);
+        commands.unshift(`CREATE DATABASE \`${dbName}\` DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_bin;`);
 
     return commands;
 }

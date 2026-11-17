@@ -149,6 +149,12 @@ describe('Test the MySQL statements with bound values against a live server (#58
 
     it('a lookup also returns an ID that differs only in case, and pickRowByName() refuses it (#588)', async function () {
         const { pickRowByName } = require('../build/lib/names');
+        // Tables created by init() compare names exactly (utf8mb4_bin, see testMySQLCharset.js). A table
+        // created by an older version still has a case-insensitive collation; that is the case
+        // pickRowByName() is there for.
+        await connection.query(
+            `ALTER TABLE \`${DB}\`.datapoints MODIFY name TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci`,
+        );
         await run(connection, MySQL.getIdInsert(DB, 'alias.0.Licht', 2));
 
         let [rows] = await run(connection, MySQL.getIdSelect(DB, 'alias.0.licht'));

@@ -94,6 +94,20 @@ Pay attention to the authentication method. The new encryption algorithm in MySQ
 
 ![Windows](img/WindowsMySQLinstaller.png)
 
+#### Emojis and upper/lower case in an existing database
+
+Tables that the adapter creates now store every character (also emojis) and keep IDs apart that differ only in upper/lower case (`alias.0.Licht` and `alias.0.licht`). Tables that already exist are not changed automatically, because converting a large table takes a while and blocks it.
+
+If you want this for an existing database: stop the SQL instance, make a backup of the database, and run these three commands, e.g. in phpMyAdmin (replace `iobroker` with the name of your database):
+
+```sql
+ALTER TABLE `iobroker`.datapoints MODIFY name TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+ALTER TABLE `iobroker`.sources MODIFY name TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+ALTER TABLE `iobroker`.ts_string MODIFY val TEXT CHARACTER SET utf8mb4;
+```
+
+Then start the instance again. Without this, everything keeps working as before; only values with emojis cannot be stored.
+
 ## Structure of the DBs
 The default Database name is `iobroker`, but it can be changed in the configuration.
 ### Sources
@@ -647,6 +661,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 <!--
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
+* (@Schimi1983) MySQL/MariaDB: new tables use `utf8mb4`, so values, IDs and sources with emojis are stored instead of failing, and the names compare case-sensitively (`utf8mb4_bin`), also in a database created by a hoster. Existing tables are not changed; the README explains how to convert them (#588)
 -->
 
 ## Changelog
