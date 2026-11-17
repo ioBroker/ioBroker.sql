@@ -1598,6 +1598,42 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
         );
     });
 
+    it(`Test ${adapterShortName}: new datapoints are not slowed down by the type lookup (#587)`, function (done) {
+        // The first value of a datapoint whose type is not known yet goes through the type lookup queue.
+        // Every entry of it used to be followed by a pause of 50 ms, so the first values of 100 new
+        // datapoints took more than 5 s - after a start with 2000 datapoints, well over a minute.
+        this.timeout(25000);
+
+        const customNow = Date.now();
+        const entries = [];
+        for (let i = 0; i < 100; i++) {
+            entries.push({ id: `my.own.new.dp${i}-${customNow}`, state: { val: i, ack: true, ts: customNow - 1000 } });
+        }
+        const started = Date.now();
+        sendTo(instanceName, 'storeState', entries, result => {
+            const took = Date.now() - started;
+            assert.strictEqual(result.success, true);
+            assert.strictEqual(result.successCount, 100);
+            assert.ok(took < 4000, `storeState for 100 new datapoints took ${took} ms`);
+
+            setTimeout(() => {
+                sendTo(
+                    instanceName,
+                    'getHistory',
+                    { id: entries[99].id, options: { start: customNow - 5000, count: 10, aggregate: 'none' } },
+                    result => {
+                        // without an object the value is stored as text
+                        assert.deepStrictEqual(
+                            result.result.map(r => String(r.val)),
+                            ['99'],
+                        );
+                        done();
+                    },
+                );
+            }, 1000);
+        });
+    });
+
     it(`Test ${adapterShortName}: storeState error for unknown Id with rules parameter`, function (done) {
         this.timeout(25000);
 
