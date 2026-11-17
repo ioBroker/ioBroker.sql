@@ -2419,6 +2419,10 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 : []
             : Object.keys(this.sqlDPs);
         for (const id of ids) {
+            // `ids` is a snapshot; `for...in` skipped datapoints that were deleted during the loop
+            if (!this.sqlDPs[id]) {
+                continue;
+            }
             const _settings = this.sqlDPs[id].config || {};
             if (_settings && this.sqlDPs[id]?.list?.length) {
                 if (_settings.enableDebugLogs) {
