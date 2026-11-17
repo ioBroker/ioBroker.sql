@@ -54,7 +54,11 @@ Most of these values can be pre-defined in the instance settings and are then pr
 Use `localhost\instance` for the host and check TCP/IP connections enabled.
 https://msdn.microsoft.com/en-us/library/bb909712(v=vs.90).aspx
 
-Tables that the adapter creates now store every character (e.g. Cyrillic letters or emojis, before they became `?`) and keep IDs apart that differ only in upper/lower case. Tables that already exist are not changed automatically. To convert them: stop the SQL instance, make a backup of the database, run these commands (replace `iobroker` with the name of your database) and start the instance again. Characters that were already stored as `?` cannot be restored.
+SQL Server 2012 or newer is needed.
+
+Tables that the adapter creates now store every character (e.g. Cyrillic letters or emojis, before they became `?`) and keep IDs apart that differ only in upper/lower case. Tables that already exist are not changed automatically and keep working as before.
+
+To convert existing tables: stop the SQL instance and make a backup of the database. Datapoints whose ID already contains a `?` instead of a special character (look for `?` in the `name` column of `datapoints`) would get a new, empty history after the conversion; rename them first with the correct ID, e.g. `UPDATE [iobroker].dbo.datapoints SET name = N'alias.0.Кухня' WHERE id = 12;`. Then run these commands (replace `iobroker` with the name of your database) and start the instance again. The last command rewrites the whole `ts_string` table, which takes a while on a large database. Characters in values that were already stored as `?` cannot be restored.
 
 ```sql
 ALTER TABLE [iobroker].dbo.datapoints ALTER COLUMN name nvarchar(255) COLLATE Latin1_General_100_CS_AS_SC;

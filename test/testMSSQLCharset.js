@@ -14,6 +14,8 @@ const PASS = process.env.SQL_PASS || 'Password12!';
 // the brackets.
 const OWN = '__iob-charset-own__';
 const HOSTER = '__iob-charset-hoster__';
+// tables as versions before #588 created them
+const OLD = '__iob-charset-old__';
 
 const NAMES = ['alias.0.Кухня', 'alias.0.Küche 😀'];
 
@@ -46,7 +48,7 @@ describe('Test the Unicode columns and literals of MS SQL against a live server 
             pool = null;
             return;
         }
-        for (const db of [OWN, HOSTER]) {
+        for (const db of [OWN, HOSTER, OLD]) {
             await query(`IF DB_ID(N'${db}') IS NOT NULL DROP DATABASE [${db}]`);
         }
         // the adapter creates the database itself
@@ -58,11 +60,21 @@ describe('Test the Unicode columns and literals of MS SQL against a live server 
         for (const statement of MSSQL.init(HOSTER, true)) {
             await query(statement);
         }
+        // the schema of the tables before #588, with a datapoint and a source written the old way
+        await query(`CREATE DATABASE [${OLD}] COLLATE SQL_Latin1_General_CP1_CI_AS`);
+        await query(
+            `CREATE TABLE [${OLD}].dbo.sources (id INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1), name varchar(255))`,
+        );
+        await query(
+            `CREATE TABLE [${OLD}].dbo.datapoints (id INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1), name varchar(255), type INTEGER)`,
+        );
+        await query(`INSERT INTO [${OLD}].dbo.datapoints (name, type) VALUES('alias.0.Кухня', 0)`);
+        await query(`INSERT INTO [${OLD}].dbo.sources (name) VALUES('system.adapter.Кухня.0')`);
     });
 
     after(async function () {
         if (pool) {
-            for (const db of [OWN, HOSTER]) {
+            for (const db of [OWN, HOSTER, OLD]) {
                 await query(`IF DB_ID(N'${db}') IS NOT NULL DROP DATABASE [${db}]`).catch(() => {});
             }
             await pool.close();
@@ -162,6 +174,33 @@ describe('Test the Unicode columns and literals of MS SQL against a live server 
             await query(MSSQL.getFirstTs(db, 'ts_string'));
         });
     }
+
+    it('tables of an older version (varchar names): the stored row is found, no new rows', async function () {
+        const [row] = await query(`SELECT name FROM [${OLD}].dbo.datapoints`);
+        // the old column keeps only the code page: this is how such an ID is stored today
+        assert.notStrictEqual(row.name, 'alias.0.Кухня');
+
+        // with N'...' the column is compared in Unicode and the stored row is not found (the review of #626)
+        assert.strictEqual((await query(MSSQL.getIdSelect(OLD, 'alias.0.Кухня'))).length, 0);
+
+        // the adapter reads the column types once after connecting
+        MSSQL.setNameColumnTypes(OLD, await query(MSSQL.getNameColumnTypes(OLD)));
+        const ids = await query(MSSQL.getIdSelect(OLD, 'alias.0.Кухня'));
+        assert.strictEqual(ids.length, 1);
+        const sources = await query(MSSQL.getFromSelect(OLD, 'system.adapter.Кухня.0'));
+        assert.strictEqual(sources.length, 1);
+
+        // nothing was inserted
+        const [{ n }] = await query(`SELECT COUNT(*) AS n FROM [${OLD}].dbo.datapoints`);
+        assert.strictEqual(n, 1);
+    });
+
+    it('new tables are detected as nvarchar and keep the Unicode literals', async function () {
+        MSSQL.setNameColumnTypes(OWN, await query(MSSQL.getNameColumnTypes(OWN)));
+        assert.ok(MSSQL.getIdSelect(OWN, 'alias.0.Кухня').includes("name=N'alias.0.Кухня'"));
+        MSSQL.setNameColumnTypes(OLD, await query(MSSQL.getNameColumnTypes(OLD)));
+        assert.ok(MSSQL.getIdSelect(OLD, 'alias.0.Кухня').includes("name='alias.0.Кухня'"));
+    });
 
     it('Reset DB drops the tables and the database with a "-" in its name', async function () {
         for (const statement of MSSQL.destroy(OWN)) {
