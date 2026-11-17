@@ -74,7 +74,7 @@ describe('Test the character set and collation of the MySQL tables against a liv
     });
 
     for (const db of [OWN, HOSTER]) {
-        it(`${db}: the name columns compare exactly, the text columns are utf8mb4`, async function () {
+        it(`${db}: the name columns are case-sensitive, the text columns are utf8mb4`, async function () {
             const [rows] = await connection.query(
                 'SELECT TABLE_NAME AS t, COLUMN_NAME AS c, CHARACTER_SET_NAME AS cs, COLLATION_NAME AS co ' +
                     "FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=? AND DATA_TYPE='text' ORDER BY t, c",
@@ -98,6 +98,18 @@ describe('Test the character set and collation of the MySQL tables against a liv
                 rows.map(r => r.name),
                 ['alias.0.licht'],
             );
+        });
+
+        it(`${db}: IDs that differ only in a trailing space are kept apart by pickRowByName()`, async function () {
+            // utf8mb4_bin is a PAD SPACE collation on MySQL and MariaDB: `WHERE name=?` ignores trailing
+            // spaces, so each lookup may return both rows. The adapter takes only the exact one.
+            const { pickRowByName } = require('../build/lib/names');
+            await run(connection, MySQL.getIdInsert(db, 'alias.0.Tor', 0));
+            await run(connection, MySQL.getIdInsert(db, 'alias.0.Tor ', 1));
+            for (const name of ['alias.0.Tor', 'alias.0.Tor ']) {
+                const [rows] = await run(connection, MySQL.getIdSelect(db, name));
+                assert.strictEqual(pickRowByName(rows, name)?.name, name);
+            }
         });
 
         it(`${db}: an emoji in a string value, an ID and a source is stored`, async function () {

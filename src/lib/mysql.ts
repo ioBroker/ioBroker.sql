@@ -43,8 +43,14 @@ const TEXT = 'TEXT CHARACTER SET utf8mb4';
 
 /**
  * The `name` columns are looked up with `WHERE name=?`. With a case-insensitive collation (`utf8_general_ci`
- * of a database the adapter created, `utf8mb4_0900_ai_ci`, ...) `alias.0.licht` also finds `alias.0.Licht`,
- * although ioBroker IDs are case-sensitive (#588). `utf8mb4_bin` compares exactly, as ioBroker does.
+ * of a database the adapter created before, `utf8mb4_0900_ai_ci`, ...) `alias.0.licht` also finds
+ * `alias.0.Licht`, although ioBroker IDs are case-sensitive (#588). `utf8mb4_bin` compares case and accents
+ * exactly.
+ *
+ * It is still a PAD SPACE collation on MySQL and MariaDB: trailing spaces do not count, so
+ * `WHERE name='alias.0.Tor '` also finds `alias.0.Tor`. The binary collations without that
+ * (`utf8mb4_0900_bin` on MySQL 8, `utf8mb4_nopad_bin` on MariaDB) each exist on only one of the two servers.
+ * `pickRowByName()` takes only the row with exactly the name, so the adapter keeps such IDs apart anyway.
  */
 const NAME = `${TEXT} COLLATE utf8mb4_bin`;
 

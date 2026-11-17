@@ -15,9 +15,11 @@ function caseFolded(name) {
  * lookup only found other names.
  *
  * ioBroker IDs are case-sensitive, but MySQL/MariaDB and MS SQL compare `name` with the collation of
- * the column, and their defaults (`utf8_general_ci`, which the adapter uses for a database it creates,
- * `utf8mb4_0900_ai_ci`, `SQL_Latin1_General_CP1_CI_AS`) ignore case and, with PAD SPACE, trailing
- * spaces. `WHERE name='alias.0.licht'` therefore also returns the row of `alias.0.Licht`. Taking
+ * the column, and their defaults (`utf8_general_ci`, which the adapter used for a database it created
+ * before, `utf8mb4_0900_ai_ci`, `SQL_Latin1_General_CP1_CI_AS`) ignore case and, with PAD SPACE, trailing
+ * spaces. `WHERE name='alias.0.licht'` therefore also returns the row of `alias.0.Licht`. New MySQL
+ * tables get `utf8mb4_bin`, which is case-sensitive but still ignores trailing spaces, and the tables
+ * of older versions are not converted (see `init()` in `mysql.ts`). Taking
  * `rows[0]` gave both datapoints one series, and the type of the first one, so the values of the
  * second were even converted into it. See https://github.com/ioBroker/ioBroker.sql/issues/588
  *
