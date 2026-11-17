@@ -54,6 +54,18 @@ Most of these values can be pre-defined in the instance settings and are then pr
 Use `localhost\instance` for the host and check TCP/IP connections enabled.
 https://msdn.microsoft.com/en-us/library/bb909712(v=vs.90).aspx
 
+SQL Server 2012 or newer is needed.
+
+Tables that the adapter creates now store every character (e.g. Cyrillic letters or emojis, before they became `?`) and keep IDs apart that differ only in upper/lower case. Tables that already exist are not changed automatically and keep working as before.
+
+To convert existing tables: stop the SQL instance and make a backup of the database. Datapoints whose ID already contains a `?` instead of a special character (look for `?` in the `name` column of `datapoints`) would get a new, empty history after the conversion; rename them first with the correct ID, e.g. `UPDATE [iobroker].dbo.datapoints SET name = N'alias.0.Кухня' WHERE id = 12;`. Then run these commands (replace `iobroker` with the name of your database) and start the instance again. The last command rewrites the whole `ts_string` table, which takes a while on a large database. Characters in values that were already stored as `?` cannot be restored.
+
+```sql
+ALTER TABLE [iobroker].dbo.datapoints ALTER COLUMN name nvarchar(255) COLLATE Latin1_General_100_CS_AS_SC;
+ALTER TABLE [iobroker].dbo.sources ALTER COLUMN name nvarchar(255) COLLATE Latin1_General_100_CS_AS_SC;
+ALTER TABLE [iobroker].dbo.ts_string ALTER COLUMN val nvarchar(max);
+```
+
 ### SQLite:
 is a "file"-DB and cannot manage too many events. If you have a big amount of data, use the real DB, like PostgreSQL and co.
 
@@ -664,6 +676,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@Schimi1983) MS SQL: new tables store names and string values as Unicode (`nvarchar`, `N'...'`), so Cyrillic letters or emojis no longer become `?`, and the names compare case-sensitively. The database name is put in brackets, so a name like `io-broker` works. Existing tables are not changed; the README explains how to convert them (#588)
+
 ### 4.5.1 (2026-11-17)
 * (@Schimi1983) "Clean up" no longer deletes the history of datapoints that are logged under an alias name, and stops with an error instead of deleting everything when the object database cannot be read (#587)
 * (@Schimi1983) MySQL/MariaDB: new tables use `utf8mb4`, so values, IDs and sources with emojis are stored instead of failing, and the names compare case-sensitively (`utf8mb4_bin`), also in a database created by a hoster. Existing tables are not changed; the README explains how to convert them (#588)
