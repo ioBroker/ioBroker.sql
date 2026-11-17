@@ -664,7 +664,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 4.5.1 (2026-11-17)
 * (@Schimi1983) "Clean up" no longer deletes the history of datapoints that are logged under an alias name, and stops with an error instead of deleting everything when the object database cannot be read (#587)
 * (@Schimi1983) MySQL/MariaDB: new tables use `utf8mb4`, so values, IDs and sources with emojis are stored instead of failing, and the names compare case-sensitively (`utf8mb4_bin`), also in a database created by a hoster. Existing tables are not changed; the README explains how to convert them (#588)
 
@@ -708,9 +708,6 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (@Schimi1983) README: the reinstall hint for SQLite uses `iobroker rebuild sqlite3` instead of `npm install` (#583)
 * (@Schimi1983) CI: the job with the unit and SQLite tests is named `adapter-tests`, as the repository checker expects, and also runs on Node.js 26 (#583)
 * (@GermanBluefox) Updated packages, `@iobroker/aggregate` 1.1.0
-
-### 4.2.1 (2026-10-13)
-* (@GermanBluefox) The error of a failed save or delete in the data browser is no longer hidden by the reload of the table
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 

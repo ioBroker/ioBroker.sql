@@ -1,4 +1,7 @@
 # Older changes
+## 4.2.1 (2026-10-13)
+* (@GermanBluefox) The error of a failed save or delete in the data browser is no longer hidden by the reload of the table
+
 ## 4.2.0 (2026-10-03)
 * (@GermanBluefox) `npm run build:ts` no longer needs the optional `mysql2` and `sqlite3` drivers to be installed
 * (@GermanBluefox) Fixed buffered values being lost when the adapter stops, and unload no longer hangs when there is nothing else to write (#577)
