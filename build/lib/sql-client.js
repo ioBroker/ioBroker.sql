@@ -155,6 +155,32 @@ class SQLClient extends node_events_1.EventEmitter {
             }
         });
     }
+    /**
+     * Read the rows of a query batch by batch, see `ConnectionFactory.executeStreamed()`.
+     *
+     * @param sql plain SQL without bound values
+     * @param batchSize maximum number of rows per `onRows` call
+     * @param onRows receives the rows batch by batch
+     * @param callback `streamed` is false if the driver cannot stream; then nothing was read
+     */
+    executeStreamed(sql, batchSize, onRows, callback) {
+        if (!this.connection) {
+            return this.connect(err => {
+                if (err) {
+                    callback(err, false);
+                }
+                else {
+                    this.executeStreamed(sql, batchSize, onRows, callback);
+                }
+            });
+        }
+        this.factory.executeStreamed(this.connection, sql, batchSize, onRows, (err, streamed) => {
+            if (err) {
+                this.#flagIfConnectionError(err);
+            }
+            callback(err || null, streamed);
+        });
+    }
     async executeAsync(statement) {
         if (!this.connection) {
             await this.connectAsync();
