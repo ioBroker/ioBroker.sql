@@ -667,7 +667,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 4.6.0 (2026-11-19)
 * (@GermanBluefox) Added the message "help": a description of all messages for AI agents (e.g. pi-agent), and `common.supportedMessages.help`
 
 ### 4.5.1 (2026-11-17)
@@ -698,22 +698,6 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (@GermanBluefox) Data browser: PostgreSQL and MS SQL showed the time of a value as a bare number, because `getRawEntries` returned `ts` as string there
 * (@GermanBluefox) MySQL/MariaDB and MS SQL: datapoints whose IDs differ only in case (e.g. `alias.0.Licht` and `alias.0.licht`) or by trailing spaces no longer write into one series with the type of the first one. The second one gets its own row from now on; values that were already mixed stay where they are (#588)
 * (@GermanBluefox) MS SQL: `@azure/msal-node`, a dependency of the driver, was updated to 7.2.0 because of CVE-2026-109461 (GHSA-xcx6-jx8p-x3h5). It concerns the Azure authorization code flow, which the adapter does not use
-
-### 4.3.0 (2026-10-29)
-* (@GermanBluefox) `getHistory` accepts `intervalBorders`: the client can send the borders of the intervals itself, e.g. the local days of a chart. With `count` or `step` every interval after a switch of the daylight saving time ended an hour away from the midnight, so a value written at 23:59:59 was shown on the next day (ioBroker/ioBroker.echarts#1311)
-* (@Schimi1983) Fixed every write failing with "Can't add new command when connection is in closed state" until a restart: a connection the server closed while a statement was running was handed out again, because mysql2 reports that only to the statement and not as a connection error. Such a connection is also no longer handed to a write that waits for a free connection, and the reconnect is logged as a warning in this case too (#587)
-* (@Schimi1983) Fixed "Record changes only" storing every string value again: the reference value was overwritten with the SQL literal, or with the converted value when a storage type is set (#587)
-* (@Schimi1983) "Reset DB" no longer drops the whole database when "Do not create database" is set, only the adapter's tables. MSSQL: `DBCC FREEPROCCACHE` is then skipped too, as it needs server rights (#587)
-* (@Schimi1983) "Ignore values below/above" now also works with the limit 0 (users who set 0 now get the filter they configured) and accepts a decimal comma (#587)
-* (@Schimi1983) PostgreSQL: the password is no longer printed in the connection log (#587)
-* (@Schimi1983) Fixed a crash when a datapoint is disabled while its database ID is being looked up (#587)
-* (@Schimi1983) Disabling the logging of a datapoint with an alias ID works again (#587)
-* (@Schimi1983) Admin: every input has size attributes for all screen widths, "Do not create database" no longer grows wider on large screens (#583)
-* (@Schimi1983) Added the Ukrainian title and description, admin >= 7.6.20 is required (#583)
-* (@Schimi1983) `password` and `dockerMysql.rootPassword` are no longer readable by other adapters (`protectedNative`, #583). Note: a script that reads `system.adapter.sql.0` with `getObject` and writes it back with `setObject` now deletes both passwords; use `extendObject` instead
-* (@Schimi1983) README: the reinstall hint for SQLite uses `iobroker rebuild sqlite3` instead of `npm install` (#583)
-* (@Schimi1983) CI: the job with the unit and SQLite tests is named `adapter-tests`, as the repository checker expects, and also runs on Node.js 26 (#583)
-* (@GermanBluefox) Updated packages, `@iobroker/aggregate` 1.1.0
 
 [Older changelogs can be found there](CHANGELOG_OLD.md)
 
