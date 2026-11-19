@@ -161,6 +161,12 @@
       }
     ],
     "supportStopInstance": 10000,
+    "supportedMessages": {
+      "help": true,
+      "custom": true,
+      "getHistory": true,
+      "stopInstance": 10000
+    },
     "stopTimeout": 10000,
     "plugins": {
       "sentry": {

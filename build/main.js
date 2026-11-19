@@ -54,6 +54,7 @@ const statistics_1 = require("./lib/statistics");
 const postgresql_client_1 = require("./lib/postgresql-client");
 const sqlite3_client_1 = require("./lib/sqlite3-client");
 const errors_1 = require("./lib/errors");
+const help_1 = require("./lib/help");
 const write_buffer_1 = require("./lib/write-buffer");
 const SQLFuncs = {
     mssql: {
@@ -1378,7 +1379,13 @@ class SqlAdapter extends adapter_core_1.Adapter {
             this.sendTo(msg.from, msg.command, notInitialized, msg.callback);
             return;
         }
-        if (msg.command === 'features') {
+        if (msg.command === 'help') {
+            // what the instance answers, for AI agents and script authors; needs no database
+            if (msg.callback) {
+                this.sendTo(msg.from, msg.command, { help: help_1.HELP, commands: help_1.COMMANDS }, msg.callback);
+            }
+        }
+        else if (msg.command === 'features') {
             this.sendTo(msg.from, msg.command, { supportedFeatures: ['update', 'delete', 'deleteRange', 'deleteAll', 'storeState'] }, msg.callback);
         }
         else if (msg.command === 'getHistory') {

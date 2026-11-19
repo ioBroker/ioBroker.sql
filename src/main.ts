@@ -53,6 +53,7 @@ import type { SQLClientPool, PoolConfig } from './lib/sql-client-pool';
 import type SQLClient from './lib/sql-client';
 import type { IobDataEntry } from './lib/types';
 import { counterTypeMismatch, formatError, isConnectionError } from './lib/errors';
+import { COMMANDS, HELP } from './lib/help';
 import { MAX_KEPT_ROWS, MAX_REQUEUED_ROWS, requeue, requeueCap, splitBatch } from './lib/write-buffer';
 
 export interface IobDataEntryEx extends Omit<IobDataEntry, 'val'> {
@@ -1619,7 +1620,12 @@ export class SqlAdapter extends Adapter {
             return;
         }
 
-        if (msg.command === 'features') {
+        if (msg.command === 'help') {
+            // what the instance answers, for AI agents and script authors; needs no database
+            if (msg.callback) {
+                this.sendTo(msg.from, msg.command, { help: HELP, commands: COMMANDS }, msg.callback);
+            }
+        } else if (msg.command === 'features') {
             this.sendTo(
                 msg.from,
                 msg.command,
