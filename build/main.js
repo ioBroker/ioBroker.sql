@@ -3070,11 +3070,11 @@ class SqlAdapter extends adapter_core_1.Adapter {
         else {
             options.round = configuredRound;
         }
-        if ((options.aggregate === 'percentile' && options.percentile < 0) || options.percentile > 100) {
+        if (options.aggregate === 'percentile' && (options.percentile < 0 || options.percentile > 100)) {
             this.log.error(`Invalid percentile value: ${options.percentile}, use 50 as default`);
             options.percentile = 50;
         }
-        if ((options.aggregate === 'quantile' && options.quantile < 0) || options.quantile > 1) {
+        if (options.aggregate === 'quantile' && (options.quantile < 0 || options.quantile > 1)) {
             this.log.error(`Invalid quantile value: ${options.quantile}, use 0.5 as default`);
             options.quantile = 0.5;
         }

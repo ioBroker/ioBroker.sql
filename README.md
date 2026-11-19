@@ -667,6 +667,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Fixed: getHistory checks the range of `percentile` (0-100) and `quantile` (0-1) only for these aggregates (misplaced parentheses in the check)
+
 ### 4.6.0 (2026-11-19)
 * (@GermanBluefox) Added the message "help": a description of all messages for AI agents (e.g. pi-agent), and `common.supportedMessages.help`
 
