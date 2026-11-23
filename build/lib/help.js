@@ -5,11 +5,17 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HELP = exports.COMMANDS = void 0;
-/** Every command `#dispatchMessage` answers; `write` = it changes data, settings or the instance */
+/**
+ * Every command `#dispatchMessage` answers; `write` = it changes data, settings or the instance; `standard` = it
+ * follows the shared catalog of sendTo commands (HELP.md of ioBroker.assistant), the same in history, sql, influxdb
+ * and recorder
+ */
 exports.COMMANDS = [
     { command: 'help', write: false },
-    { command: 'getHistory', write: false },
+    { command: 'getHistory', write: false, standard: 'history.getHistory' },
     { command: 'getCounter', write: false },
+    { command: 'aggregate', write: false, standard: 'history.aggregate' },
+    { command: 'lastChange', write: false, standard: 'history.lastChange' },
     { command: 'getEnabledDPs', write: false },
     { command: 'getDatapoints', write: false },
     { command: 'getDpOverview', write: false },
@@ -48,7 +54,8 @@ Tables (native.dbname of the instance, default "iobroker", qualifies them in MyS
   strings in single quotes. Example (MySQL): SELECT ts, val FROM \`iobroker\`.ts_number WHERE id = (SELECT id
   FROM \`iobroker\`.datapoints WHERE name = 'hm-rpc.0.ABC.1.TEMPERATURE') ORDER BY ts DESC LIMIT 10
 
-Commands (sendTo sql.0):
+Commands (sendTo sql.0): getHistory, aggregate and lastChange are standard commands of the shared catalog of
+ioBroker (family history): the same names, parameters and answers in history, sql, influxdb and recorder.
 - getHistory {id, options: {start?, end?, aggregate?, count?, step?, ...}}: the course of one state:
   {result: [{ts, val, ack?, from?, q?, id?}], step, sessionId}, on an error {result: [], error}. options is
   required (may be {}).
@@ -69,6 +76,15 @@ Commands (sendTo sql.0):
 - getCounter {id, options?: {start?, end?}}: how much a counter (a rising meter reading, e.g. kWh) rose between
   start (default: the beginning) and end (default now), a reset or a replaced meter included (setting "counter"
   of the state): {result: number}. Only for a logged state, else {error: "Not enabled"}.
+- aggregate {id, start, end?, fn, value?}: one number for a period: {value, ts?, unit?, count}. fn: min, max (ts =
+  when), avg (the mean of the stored values), sum, count (with value: how often the state became it, e.g. true),
+  delta (how much a counter rose, resets included), first, last, integral (value × hours: W gives Wh), duration
+  (with value: how many seconds the state had it). end: default now. count: the stored values in the period, at
+  most 50000 (else reason TOO_MANY_VALUES). Errors: {error, reason} (reason BAD_REQUEST for a wrong parameter).
+  Computed from the values of getHistory (aggregate none).
+- lastChange {id, value?, before?}: when the state last changed (to value): {ts, val}; before: only the values
+  before this time. A value logged again does not count as a change. Reason NOT_FOUND if it never had the value;
+  only the newest 10000 stored values are searched: limited true = it had it already then.
 - getEnabledDPs {}: the states this instance logs: {[id]: their settings (enabled, changesOnly, debounceTime,
   blockTime, changesMinDelta, changesRelogInterval, retention in s, maxLength, counter, storageType, aliasId,
   ...)}.
@@ -110,8 +126,10 @@ How to talk to the user:
 - Find the state first (search the objects); name states by their name, give times in local time and values
   with their unit.
 - A state has a history only if it is or was logged (getEnabledDPs, getDatapoints). For a longer period request
-  one value per interval (e.g. aggregate average with count 24 to 200) instead of every stored value. Prefer
-  getHistory; write a SELECT only for what it cannot answer, and read dbtype and dbname from the instance first.
+  one value per interval (e.g. aggregate average with count 24 to 200) instead of every stored value. For one
+  number of a period (the highest value, how often, how long, how much) use the command aggregate, for "when was
+  it last ..." lastChange. Prefer these and getHistory; write a SELECT only for what they cannot answer, and read
+  dbtype and dbname from the instance first.
 - Send only SELECT statements with query. Any other statement only on the user's explicit request.
 - query (other than SELECT), delete, deleteRange, deleteAll, update, storeState, cleanupOrphaned, destroy,
   enableHistory, disableHistory and stopInstance change the database, the settings or the instance: never

@@ -58,4 +58,18 @@ describe('Test help', function () {
             assert.ok(line.length <= 120, line);
         }
     });
+
+    it('marks the standard commands of the shared catalog', function () {
+        const marked = COMMANDS.filter(c => c.standard).map(c => [c.command, c.standard]);
+        assert.deepStrictEqual(marked, [
+            ['getHistory', 'history.getHistory'],
+            ['aggregate', 'history.aggregate'],
+            ['lastChange', 'history.lastChange'],
+        ]);
+        for (const { command, write, standard } of COMMANDS.filter(c => c.standard)) {
+            assert.strictEqual(write, false, command);
+            assert.strictEqual(standard, `history.${command}`);
+        }
+        assert.ok(HELP.includes('standard commands of the shared catalog'));
+    });
 });
