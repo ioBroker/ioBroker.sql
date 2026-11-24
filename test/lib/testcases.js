@@ -343,6 +343,29 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
         );
     });
 
+    it(`Test ${adapterShortName}: aggregate and lastChange of the shared catalog`, async function () {
+        this.timeout(25000);
+        const ask = (command, message) => new Promise(resolve => sendTo(instanceName, command, message, resolve));
+        const id = `${instanceName}.testValue`;
+        const period = { id, start: now, end: now + 30000 };
+
+        const max = await ask('aggregate', { ...period, fn: 'max' });
+        console.log(JSON.stringify(max));
+        assert.strictEqual(max.value, 3);
+        assert.strictEqual(max.ts, now + 19000);
+        assert.strictEqual((await ask('aggregate', { ...period, fn: 'min' })).value, 1);
+        // the value 2 written three times is one change to 2
+        assert.strictEqual((await ask('aggregate', { ...period, fn: 'count', value: 2 })).value, 1);
+        const last = await ask('lastChange', { id, before: now + 30000 });
+        assert.strictEqual(last.ts, now + 19000);
+        assert.strictEqual(Number(last.val), 3);
+        assert.deepStrictEqual(await ask('lastChange', { id, value: 2, before: now + 30000 }), {
+            ts: now + 10000,
+            val: 2,
+        });
+        assert.strictEqual((await ask('aggregate', { id, fn: 'median' })).reason, 'BAD_REQUEST');
+    });
+
     it(`Test ${adapterShortName}: Read average from DB using GetHistory`, function (done) {
         this.timeout(25000);
 
