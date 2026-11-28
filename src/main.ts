@@ -53,6 +53,14 @@ import type { SQLClientPool, PoolConfig } from './lib/sql-client-pool';
 import type SQLClient from './lib/sql-client';
 import type { IobDataEntry } from './lib/types';
 import { counterTypeMismatch, formatError, isConnectionError } from './lib/errors';
+import { COMMANDS, HELP } from './lib/help';
+import {
+    aggregate,
+    lastChange,
+    readThroughGetHistory,
+    type StandardAnswer,
+    type ValueSource,
+} from './lib/standardHistory';
 import { MAX_KEPT_ROWS, MAX_REQUEUED_ROWS, requeue, requeueCap, splitBatch } from './lib/write-buffer';
 
 export interface IobDataEntryEx extends Omit<IobDataEntry, 'val'> {
@@ -284,6 +292,8 @@ const KEPT_LOG_INTERVAL = 60_000;
 const MAX_RAW_ENTRIES = 5000;
 /** How often an unchanged connection error is repeated as error in the log */
 const REPEATED_ERROR_INTERVAL = 3_600_000;
+/** How long `aggregate` and `lastChange` wait for the answer of the own `getHistory` */
+const STANDARD_TIMEOUT = 120_000;
 
 type SQLPointConfig = {
     realId: string;
@@ -380,7 +390,10 @@ export class SqlAdapter extends Adapter {
     private bufferChecker: NodeJS.Timeout | null = null;
     private activeConnections = 0;
     private poolBorrowGuard: ((err: Error | null | undefined, client?: SQLClient) => void)[] = []; // required until https://github.com/intellinote/sql-client/issues/7 is fixed
-    private readonly logConnectionUsage = true;
+    /** Borrow/return of every connection on debug level; the texts are only built when debug is on. */
+    private get logConnectionUsage(): boolean {
+        return this.#isDebug();
+    }
     private postgresDbCreated = false;
     private lockTasks = false;
     private sqlFuncs: SQLFunc | null = null;
@@ -534,6 +547,14 @@ export class SqlAdapter extends Adapter {
     }
 
     /**
+     * Whether debug lines are written at all. A template string passed to `log.debug()` is built before the
+     * call, also when the level is `info`; on the paths that run for every value, check this first.
+     */
+    #isDebug(): boolean {
+        return this.log.level === 'debug' || this.log.level === 'silly';
+    }
+
+    /**
      * Log a statement on debug level.
      *
      * Only built when debug is on: a batch carries up to 3000 bound values, and turning them into text
@@ -542,7 +563,7 @@ export class SqlAdapter extends Adapter {
      * @param statement plain SQL or SQL with values
      */
     #debugStatement(statement: SqlStatement): void {
-        if (this.log.level === 'debug' || this.log.level === 'silly') {
+        if (this.#isDebug()) {
             this.log.debug(statementToString(statement));
         }
     }
@@ -1619,7 +1640,12 @@ export class SqlAdapter extends Adapter {
             return;
         }
 
-        if (msg.command === 'features') {
+        if (msg.command === 'help') {
+            // what the instance answers, for AI agents and script authors; needs no database
+            if (msg.callback) {
+                this.sendTo(msg.from, msg.command, { help: HELP, commands: COMMANDS }, msg.callback);
+            }
+        } else if (msg.command === 'features') {
             this.sendTo(
                 msg.from,
                 msg.command,
@@ -1630,6 +1656,10 @@ export class SqlAdapter extends Adapter {
             this.getHistorySql(msg);
         } else if (msg.command === 'getCounter') {
             this.getCounterDiff(msg);
+        } else if (msg.command === 'aggregate') {
+            void this.answerStandard(msg, aggregate);
+        } else if (msg.command === 'lastChange') {
+            void this.answerStandard(msg, lastChange);
         } else if (msg.command === 'test') {
             void this.testConnection(msg);
         } else if (msg.command === 'destroy') {
@@ -2519,10 +2549,14 @@ export class SqlAdapter extends Adapter {
         task.cb?.();
         task.cb = null;
 
-        setTimeout(() => {
+        // The queue has one entry per value, not per datapoint: every value that arrives before the type
+        // of its datapoint is known waits here. A pause of 50 ms per entry limited the start with many
+        // datapoints to 20 values per second (2000 datapoints: more than a minute and a half, with the
+        // values piling up in memory). The lookups still run one after the other.
+        setImmediate(() => {
             this.tasksReadType.shift();
             this.processReadTypes();
-        }, 50);
+        });
     }
 
     prepareTaskReadDbId(
@@ -2687,17 +2721,22 @@ export class SqlAdapter extends Adapter {
             return cb?.();
         }
 
-        this.log.debug(
-            `pushValueIntoDB called for ${id} (type: ${this.sqlDPs[id].type}, ID: ${this.sqlDPs[id].index}) and state: ${JSON.stringify(state)}`,
-        );
+        // runs for every value: no JSON.stringify unless the line is written
+        if (this.#isDebug()) {
+            this.log.debug(
+                `pushValueIntoDB called for ${id} (type: ${this.sqlDPs[id].type}, ID: ${this.sqlDPs[id].index}) and state: ${JSON.stringify(state)}`,
+            );
+        }
 
         this.prepareTaskCheckTypeAndDbId(id, state, isCounter, (err?: Error | null): void => {
             if (!this.sqlDPs[id]) {
                 return cb?.();
             }
-            this.log.debug(
-                `pushValueIntoDB-prepareTaskCheckTypeAndDbId RESULT for ${id} (type: ${this.sqlDPs[id].type}, ID: ${this.sqlDPs[id].index}) and state: ${JSON.stringify(state)}: ${err}`,
-            );
+            if (this.#isDebug()) {
+                this.log.debug(
+                    `pushValueIntoDB-prepareTaskCheckTypeAndDbId RESULT for ${id} (type: ${this.sqlDPs[id].type}, ID: ${this.sqlDPs[id].index}) and state: ${JSON.stringify(state)}: ${err}`,
+                );
+            }
             if (err) {
                 return cb?.(err);
             }
@@ -2853,11 +2892,19 @@ export class SqlAdapter extends Adapter {
 
     storeCached(onlyId?: string, cb?: ((err?: Error | null) => void) | null): void {
         let count = 0;
-        for (const id in this.sqlDPs) {
-            if (!Object.prototype.hasOwnProperty.call(this.sqlDPs, id) || (onlyId !== undefined && onlyId !== id)) {
+        // With `onlyId` (a full buffer, for every value with maxLength 0) only that datapoint: looping
+        // over all datapoints to find it cost O(n) per value.
+        const ids =
+            onlyId !== undefined
+                ? Object.prototype.hasOwnProperty.call(this.sqlDPs, onlyId)
+                    ? [onlyId]
+                    : []
+                : Object.keys(this.sqlDPs);
+        for (const id of ids) {
+            // `ids` is a snapshot; `for...in` skipped datapoints that were deleted during the loop
+            if (!this.sqlDPs[id]) {
                 continue;
             }
-
             const _settings = this.sqlDPs[id].config || {};
             if (_settings && this.sqlDPs[id]?.list?.length) {
                 if (_settings.enableDebugLogs) {
@@ -3483,6 +3530,26 @@ export class SqlAdapter extends Adapter {
         }
     }
 
+    /**
+     * Answer `aggregate` or `lastChange` of the shared catalog of sendTo commands (family history): computed from the
+     * stored values, read with the own `getHistory` (as a message to this instance, so getHistory stays as it is)
+     */
+    async answerStandard(
+        msg: ioBroker.Message,
+        command: (message: unknown, source: ValueSource) => Promise<StandardAnswer>,
+    ): Promise<void> {
+        const answer = await command(msg.message, {
+            read: readThroughGetHistory(message =>
+                this.sendToAsync(this.namespace, 'getHistory', message, { timeout: STANDARD_TIMEOUT }),
+            ),
+            unit: async id =>
+                ((await this.getForeignObjectAsync(id))?.common as ioBroker.StateCommon | undefined)?.unit,
+        });
+        if (msg.callback) {
+            this.sendTo(msg.from, msg.command, answer, msg.callback);
+        }
+    }
+
     getCounterDiff(msg: ioBroker.Message): void {
         const id: string = msg.message?.id;
         const opts = msg.message?.options || {};
@@ -3666,12 +3733,12 @@ export class SqlAdapter extends Adapter {
             options.round = configuredRound;
         }
 
-        if ((options.aggregate === 'percentile' && options.percentile! < 0) || options.percentile! > 100) {
+        if (options.aggregate === 'percentile' && (options.percentile! < 0 || options.percentile! > 100)) {
             this.log.error(`Invalid percentile value: ${options.percentile}, use 50 as default`);
             options.percentile = 50;
         }
 
-        if ((options.aggregate === 'quantile' && options.quantile! < 0) || options.quantile! > 1) {
+        if (options.aggregate === 'quantile' && (options.quantile! < 0 || options.quantile! > 1)) {
             this.log.error(`Invalid quantile value: ${options.quantile}, use 0.5 as default`);
             options.quantile = 0.5;
         }

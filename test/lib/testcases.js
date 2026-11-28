@@ -343,6 +343,29 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
         );
     });
 
+    it(`Test ${adapterShortName}: aggregate and lastChange of the shared catalog`, async function () {
+        this.timeout(25000);
+        const ask = (command, message) => new Promise(resolve => sendTo(instanceName, command, message, resolve));
+        const id = `${instanceName}.testValue`;
+        const period = { id, start: now, end: now + 30000 };
+
+        const max = await ask('aggregate', { ...period, fn: 'max' });
+        console.log(JSON.stringify(max));
+        assert.strictEqual(max.value, 3);
+        assert.strictEqual(max.ts, now + 19000);
+        assert.strictEqual((await ask('aggregate', { ...period, fn: 'min' })).value, 1);
+        // the value 2 written three times is one change to 2
+        assert.strictEqual((await ask('aggregate', { ...period, fn: 'count', value: 2 })).value, 1);
+        const last = await ask('lastChange', { id, before: now + 30000 });
+        assert.strictEqual(last.ts, now + 19000);
+        assert.strictEqual(Number(last.val), 3);
+        assert.deepStrictEqual(await ask('lastChange', { id, value: 2, before: now + 30000 }), {
+            ts: now + 10000,
+            val: 2,
+        });
+        assert.strictEqual((await ask('aggregate', { id, fn: 'median' })).reason, 'BAD_REQUEST');
+    });
+
     it(`Test ${adapterShortName}: Read average from DB using GetHistory`, function (done) {
         this.timeout(25000);
 
@@ -1596,6 +1619,42 @@ function register(it, sendTo, adapterShortName, writeNulls, assumeExistingData, 
                 }, 1000);
             },
         );
+    });
+
+    it(`Test ${adapterShortName}: new datapoints are not slowed down by the type lookup (#587)`, function (done) {
+        // The first value of a datapoint whose type is not known yet goes through the type lookup queue.
+        // Every entry of it used to be followed by a pause of 50 ms, so the first values of 100 new
+        // datapoints took more than 5 s - after a start with 2000 datapoints, well over a minute.
+        this.timeout(25000);
+
+        const customNow = Date.now();
+        const entries = [];
+        for (let i = 0; i < 100; i++) {
+            entries.push({ id: `my.own.new.dp${i}-${customNow}`, state: { val: i, ack: true, ts: customNow - 1000 } });
+        }
+        const started = Date.now();
+        sendTo(instanceName, 'storeState', entries, result => {
+            const took = Date.now() - started;
+            assert.strictEqual(result.success, true);
+            assert.strictEqual(result.successCount, 100);
+            assert.ok(took < 4000, `storeState for 100 new datapoints took ${took} ms`);
+
+            setTimeout(() => {
+                sendTo(
+                    instanceName,
+                    'getHistory',
+                    { id: entries[99].id, options: { start: customNow - 5000, count: 10, aggregate: 'none' } },
+                    result => {
+                        // without an object the value is stored as text
+                        assert.deepStrictEqual(
+                            result.result.map(r => String(r.val)),
+                            ['99'],
+                        );
+                        done();
+                    },
+                );
+            }, 1000);
+        });
     });
 
     it(`Test ${adapterShortName}: storeState error for unknown Id with rules parameter`, function (done) {
