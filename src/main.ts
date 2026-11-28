@@ -53,6 +53,14 @@ import type { SQLClientPool, PoolConfig } from './lib/sql-client-pool';
 import type SQLClient from './lib/sql-client';
 import type { IobDataEntry } from './lib/types';
 import { counterTypeMismatch, formatError, isConnectionError } from './lib/errors';
+import { COMMANDS, HELP } from './lib/help';
+import {
+    aggregate,
+    lastChange,
+    readThroughGetHistory,
+    type StandardAnswer,
+    type ValueSource,
+} from './lib/standardHistory';
 import { MAX_KEPT_ROWS, MAX_REQUEUED_ROWS, requeue, requeueCap, splitBatch } from './lib/write-buffer';
 
 export interface IobDataEntryEx extends Omit<IobDataEntry, 'val'> {
@@ -284,6 +292,8 @@ const KEPT_LOG_INTERVAL = 60_000;
 const MAX_RAW_ENTRIES = 5000;
 /** How often an unchanged connection error is repeated as error in the log */
 const REPEATED_ERROR_INTERVAL = 3_600_000;
+/** How long `aggregate` and `lastChange` wait for the answer of the own `getHistory` */
+const STANDARD_TIMEOUT = 120_000;
 
 type SQLPointConfig = {
     realId: string;
@@ -1630,7 +1640,12 @@ export class SqlAdapter extends Adapter {
             return;
         }
 
-        if (msg.command === 'features') {
+        if (msg.command === 'help') {
+            // what the instance answers, for AI agents and script authors; needs no database
+            if (msg.callback) {
+                this.sendTo(msg.from, msg.command, { help: HELP, commands: COMMANDS }, msg.callback);
+            }
+        } else if (msg.command === 'features') {
             this.sendTo(
                 msg.from,
                 msg.command,
@@ -1641,6 +1656,10 @@ export class SqlAdapter extends Adapter {
             this.getHistorySql(msg);
         } else if (msg.command === 'getCounter') {
             this.getCounterDiff(msg);
+        } else if (msg.command === 'aggregate') {
+            void this.answerStandard(msg, aggregate);
+        } else if (msg.command === 'lastChange') {
+            void this.answerStandard(msg, lastChange);
         } else if (msg.command === 'test') {
             void this.testConnection(msg);
         } else if (msg.command === 'destroy') {
@@ -3476,6 +3495,26 @@ export class SqlAdapter extends Adapter {
         }
     }
 
+    /**
+     * Answer `aggregate` or `lastChange` of the shared catalog of sendTo commands (family history): computed from the
+     * stored values, read with the own `getHistory` (as a message to this instance, so getHistory stays as it is)
+     */
+    async answerStandard(
+        msg: ioBroker.Message,
+        command: (message: unknown, source: ValueSource) => Promise<StandardAnswer>,
+    ): Promise<void> {
+        const answer = await command(msg.message, {
+            read: readThroughGetHistory(message =>
+                this.sendToAsync(this.namespace, 'getHistory', message, { timeout: STANDARD_TIMEOUT }),
+            ),
+            unit: async id =>
+                ((await this.getForeignObjectAsync(id))?.common as ioBroker.StateCommon | undefined)?.unit,
+        });
+        if (msg.callback) {
+            this.sendTo(msg.from, msg.command, answer, msg.callback);
+        }
+    }
+
     getCounterDiff(msg: ioBroker.Message): void {
         const id: string = msg.message?.id;
         const opts = msg.message?.options || {};
@@ -3659,12 +3698,12 @@ export class SqlAdapter extends Adapter {
             options.round = configuredRound;
         }
 
-        if ((options.aggregate === 'percentile' && options.percentile! < 0) || options.percentile! > 100) {
+        if (options.aggregate === 'percentile' && (options.percentile! < 0 || options.percentile! > 100)) {
             this.log.error(`Invalid percentile value: ${options.percentile}, use 50 as default`);
             options.percentile = 50;
         }
 
-        if ((options.aggregate === 'quantile' && options.quantile! < 0) || options.quantile! > 1) {
+        if (options.aggregate === 'quantile' && (options.quantile! < 0 || options.quantile! > 1)) {
             this.log.error(`Invalid quantile value: ${options.quantile}, use 0.5 as default`);
             options.quantile = 0.5;
         }

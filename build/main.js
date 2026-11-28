@@ -54,6 +54,8 @@ const statistics_1 = require("./lib/statistics");
 const postgresql_client_1 = require("./lib/postgresql-client");
 const sqlite3_client_1 = require("./lib/sqlite3-client");
 const errors_1 = require("./lib/errors");
+const help_1 = require("./lib/help");
+const standardHistory_1 = require("./lib/standardHistory");
 const write_buffer_1 = require("./lib/write-buffer");
 const SQLFuncs = {
     mssql: {
@@ -207,6 +209,8 @@ const KEPT_LOG_INTERVAL = 60_000;
 const MAX_RAW_ENTRIES = 5000;
 /** How often an unchanged connection error is repeated as error in the log */
 const REPEATED_ERROR_INTERVAL = 3_600_000;
+/** How long `aggregate` and `lastChange` wait for the answer of the own `getHistory` */
+const STANDARD_TIMEOUT = 120_000;
 function sortByTs(a, b) {
     const aTs = a.ts;
     const bTs = b.ts;
@@ -1388,7 +1392,13 @@ class SqlAdapter extends adapter_core_1.Adapter {
             this.sendTo(msg.from, msg.command, notInitialized, msg.callback);
             return;
         }
-        if (msg.command === 'features') {
+        if (msg.command === 'help') {
+            // what the instance answers, for AI agents and script authors; needs no database
+            if (msg.callback) {
+                this.sendTo(msg.from, msg.command, { help: help_1.HELP, commands: help_1.COMMANDS }, msg.callback);
+            }
+        }
+        else if (msg.command === 'features') {
             this.sendTo(msg.from, msg.command, { supportedFeatures: ['update', 'delete', 'deleteRange', 'deleteAll', 'storeState'] }, msg.callback);
         }
         else if (msg.command === 'getHistory') {
@@ -1396,6 +1406,12 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
         else if (msg.command === 'getCounter') {
             this.getCounterDiff(msg);
+        }
+        else if (msg.command === 'aggregate') {
+            void this.answerStandard(msg, standardHistory_1.aggregate);
+        }
+        else if (msg.command === 'lastChange') {
+            void this.answerStandard(msg, standardHistory_1.lastChange);
         }
         else if (msg.command === 'test') {
             void this.testConnection(msg);
@@ -2959,6 +2975,19 @@ class SqlAdapter extends adapter_core_1.Adapter {
             this.#getDataFromDB(query, options, callback);
         }
     }
+    /**
+     * Answer `aggregate` or `lastChange` of the shared catalog of sendTo commands (family history): computed from the
+     * stored values, read with the own `getHistory` (as a message to this instance, so getHistory stays as it is)
+     */
+    async answerStandard(msg, command) {
+        const answer = await command(msg.message, {
+            read: (0, standardHistory_1.readThroughGetHistory)(message => this.sendToAsync(this.namespace, 'getHistory', message, { timeout: STANDARD_TIMEOUT })),
+            unit: async (id) => (await this.getForeignObjectAsync(id))?.common?.unit,
+        });
+        if (msg.callback) {
+            this.sendTo(msg.from, msg.command, answer, msg.callback);
+        }
+    }
     getCounterDiff(msg) {
         const id = msg.message?.id;
         const opts = msg.message?.options || {};
@@ -3090,11 +3119,11 @@ class SqlAdapter extends adapter_core_1.Adapter {
         else {
             options.round = configuredRound;
         }
-        if ((options.aggregate === 'percentile' && options.percentile < 0) || options.percentile > 100) {
+        if (options.aggregate === 'percentile' && (options.percentile < 0 || options.percentile > 100)) {
             this.log.error(`Invalid percentile value: ${options.percentile}, use 50 as default`);
             options.percentile = 50;
         }
-        if ((options.aggregate === 'quantile' && options.quantile < 0) || options.quantile > 1) {
+        if (options.aggregate === 'quantile' && (options.quantile < 0 || options.quantile > 1)) {
             this.log.error(`Invalid quantile value: ${options.quantile}, use 0.5 as default`);
             options.quantile = 0.5;
         }
