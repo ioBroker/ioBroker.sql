@@ -326,6 +326,57 @@ describe(`Test ${__filename}`, function () {
         assert.strictEqual(streamedBatches(log), 0);
     });
 
+    // A streamed read whose connection dies must still answer, and give its client back to the pool. The
+    // read is made to wait for a table lock, so that its backend can be terminated while the cursor is open.
+    it(`Test ${__filename}: a streamed read whose connection is terminated answers with an error`, async function () {
+        this.timeout(120000);
+        const options = { start: START, end: END, count: 50, aggregate: 'average', round: ROUND };
+        const locker = new Client({
+            host: '127.0.0.1',
+            port: 5432,
+            user: SUPER_USER,
+            password: SUPER_PASS,
+            database: DB_NAME,
+        });
+        await locker.connect();
+        let pending;
+        try {
+            await locker.query('BEGIN');
+            await locker.query('LOCK TABLE ts_number IN ACCESS EXCLUSIVE MODE');
+            pending = sendToAsync('getHistory', { id: DP, options });
+
+            let pid;
+            for (let i = 0; i < 100 && !pid; i++) {
+                const res = await locker.query(
+                    `SELECT pid FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid() AND wait_event_type = 'Lock' AND query LIKE 'SELECT ts, val%'`,
+                    [DB_NAME],
+                );
+                pid = res.rows[0]?.pid;
+                if (!pid) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            assert.ok(pid, 'the streamed read never waited for the lock');
+            await locker.query('SELECT pg_terminate_backend($1)', [pid]);
+        } finally {
+            await locker.query('ROLLBACK').catch(() => {});
+            await locker.end();
+        }
+
+        const result = await Promise.race([pending, new Promise(resolve => setTimeout(() => resolve(null), 30000))]);
+        assert.ok(result, 'no answer within 30 s after the connection of the read was terminated');
+        assert.ok(result.error, 'the answer has no error');
+
+        // the dead client is not used again: the next read gets a new connection and is streamed again
+        const { result: next, log } = await withLog(
+            () => sendToAsync('getHistory', { id: DP, options }),
+            /Send after aggregation/,
+        );
+        assert.ok(!next.error, `getHistory after the termination: ${next.error}`);
+        assert.strictEqual(streamedBatches(log), 3);
+        assert.deepStrictEqual(next.result, expectedFor(rawRows, 'average'));
+    });
+
     after(`Test ${__filename} Stop js-controller`, function (done) {
         this.timeout(60000);
         setup.stopController(function (normalTerminated) {
