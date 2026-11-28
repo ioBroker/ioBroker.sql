@@ -671,6 +671,9 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@Schimi1983) Faster start with many datapoints: the first value of each datapoint no longer waits 50 ms in the type lookup, and debug texts with the value are only built when debug logging is on (#587)
+
 ### 4.7.0 (2026-11-23)
 * (@GermanBluefox) Fixed: getHistory checks the range of `percentile` (0-100) and `quantile` (0-1) only for these aggregates (misplaced parentheses in the check)
 * (@GermanBluefox) Added the standard commands of the shared catalog: history.aggregate (one number for a period: min, max, avg, sum, count, delta, first, last, integral, duration) and history.lastChange; getHistory is marked as history.getHistory
