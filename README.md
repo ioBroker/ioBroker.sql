@@ -687,6 +687,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 * (@DutchmanNL) PostgreSQL: an aggregated `getHistory` of one datapoint reads the rows in batches of 2000 (pg-cursor) and aggregates them batch by batch, instead of holding the whole range in memory first. The answer stays the same; without pg-cursor, with pg-native, and for `integralTotal` the values are read as before (#516)
 * (@Schimi1983) MS SQL: new tables store names and string values as Unicode (`nvarchar`, `N'...'`), so Cyrillic letters or emojis no longer become `?`, and the names compare case-sensitively. The database name is put in brackets, so a name like `io-broker` works. Existing tables are not changed; the README explains how to convert them (#588)
 * (@Schimi1983) Faster start with many datapoints: the first value of each datapoint no longer waits 50 ms in the type lookup, and debug texts with the value are only built when debug logging is on (#587)
+* (@Schimi1983) While the database is not reachable, the values are kept for the next write without trying a new connection for every value, and without an error line per value; writes waiting for a connection no longer stay in memory until the database is back. The regular flush of the buffers and the stop use at most 10 connections at once instead of up to 100 (#587)
 
 ### 4.7.0 (2026-11-23)
 * (@GermanBluefox) Fixed: getHistory checks the range of `percentile` (0-100) and `quantile` (0-1) only for these aggregates (misplaced parentheses in the check)

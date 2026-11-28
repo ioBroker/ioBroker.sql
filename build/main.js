@@ -200,6 +200,22 @@ const STAT_TABLES = ['ts_number', 'ts_string', 'ts_bool', 'ts_counter'];
 const MAX_TASKS = 100;
 /** Milliseconds a pooled connection may be idle before it is replaced (`max_age` of the pool) */
 const POOL_MAX_IDLE_AGE = 60_000;
+/**
+ * Connections the inserts use at most at the same time (or `maxConnections`, if lower). The flush of
+ * all buffers (every 10 minutes and on stop) starts one insert per datapoint; with the default of 100
+ * connections it opened up to 100 connections at once, and the pool closed all but two right after.
+ * Hosted databases often allow fewer connections per user ("Too many connections"). The other inserts
+ * wait and get a returned connection directly (#587).
+ */
+const INSERT_CONNECTIONS = 10;
+/**
+ * Milliseconds after a failed connect in which no new connect is tried: the writes in between keep
+ * their rows for the next write at once, instead of every value starting a connect and waiting for
+ * its timeout while the database is down (#587).
+ */
+const UNREACHABLE_RETRY_DELAY = 5_000;
+/** Code of the error a borrow fails with while the database is known to be unreachable */
+const DB_UNREACHABLE = 'IOB_DB_UNREACHABLE';
 /** Milliseconds between two warnings about values kept while the database is not reachable */
 const KEPT_LOG_INTERVAL = 60_000;
 /**
@@ -397,14 +413,38 @@ class SqlAdapter extends adapter_core_1.Adapter {
             this.log.debug((0, statement_1.statementToString)(statement));
         }
     }
-    borrowClientFromPool(callback) {
+    /**
+     * Borrow a connection, at most `limit` at the same time; beyond that the callback waits for a
+     * returned connection.
+     *
+     * After a failed connect the database counts as unreachable: for {@link UNREACHABLE_RETRY_DELAY}
+     * every borrow fails at once with the error code {@link DB_UNREACHABLE}, then one borrow at a time
+     * checks whether the server is back.
+     *
+     * @param callback gets the connection, or the error
+     * @param limit connections at the same time, `maxConnections` by default
+     */
+    borrowClientFromPool(callback, limit = this.config.maxConnections) {
         if (!this.clientPool) {
             this.setConnected(false);
             return callback(new Error('No database connection'));
         }
-        if (this.activeConnections >= this.config.maxConnections) {
+        let probe = false;
+        if (this.#unreachable) {
+            if (this.#probing || Date.now() - this.#unreachable.since < UNREACHABLE_RETRY_DELAY) {
+                return callback(this.#unreachableError());
+            }
+            // this borrow checks whether the server is back, the others fail at once until it is done
+            this.#probing = probe = true;
+        }
+        if (this.activeConnections >= limit) {
             if (this.logConnectionUsage) {
-                this.log.debug(`Borrow connection not possible: ${this.activeConnections} >= Max - Store for Later`);
+                this.log.debug(`Borrow connection not possible: ${this.activeConnections} >= ${limit} - Store for Later`);
+            }
+            if (probe) {
+                // the connections in use may be connects that are still waiting for their timeout
+                this.#probing = false;
+                return callback(this.#unreachableError());
             }
             this.poolBorrowGuard.push(callback);
             return;
@@ -414,6 +454,9 @@ class SqlAdapter extends adapter_core_1.Adapter {
             this.log.debug(`Borrow connection from pool: ${this.activeConnections} now`);
         }
         this.clientPool.borrow((err, client) => {
+            if (probe) {
+                this.#probing = false;
+            }
             if (!err && client) {
                 // Log connection-level driver errors (ECONNRESET, PROTOCOL_CONNECTION_LOST). The
                 // crash safety itself does not depend on this listener: SQLClient handles the
@@ -432,6 +475,10 @@ class SqlAdapter extends adapter_core_1.Adapter {
                         }
                     });
                 }
+                if (this.#unreachable) {
+                    this.#unreachable = null;
+                    this.resetConnectionError();
+                }
                 // A real, working connection was handed out - this, not the mere existence of a pool
                 // object, is what info.connection reports (#374).
                 this.consecutiveBorrowFailures = 0;
@@ -444,9 +491,40 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 if (++this.consecutiveBorrowFailures >= 5) {
                     this.setConnected(false);
                 }
+                const error = err || new Error('No client');
+                this.#unreachable = { since: Date.now(), error };
+                // The callbacks waiting for a connection were only served by a returned working
+                // connection, so after a failed connect they waited until the server was back and the
+                // next write returned one: their rows stayed in memory outside the limits of
+                // #keepForRetry, and the stop waited for them until the stopTimeout. They would fail
+                // the same way now.
+                this.#failWaiters();
             }
             callback(err, client);
         });
+    }
+    /** Set after a failed connect, cleared by the next connection that works */
+    #unreachable = null;
+    /** Whether a borrow is checking if the unreachable server is back */
+    #probing = false;
+    /** The error of a borrow while the database is known to be unreachable */
+    #unreachableError() {
+        const cause = this.#unreachable?.error;
+        return Object.assign(new Error(`Database not reachable${cause ? `: ${(0, errors_1.formatError)(cause)}` : ''}`, { cause }), {
+            code: DB_UNREACHABLE,
+        });
+    }
+    /** Fail every callback that waits for a connection; there will be none to hand them */
+    #failWaiters() {
+        if (!this.poolBorrowGuard.length) {
+            return;
+        }
+        const waiters = this.poolBorrowGuard;
+        this.poolBorrowGuard = [];
+        const error = this.clientPool ? this.#unreachableError() : new Error('No database connection');
+        for (const waiter of waiters) {
+            waiter(error);
+        }
     }
     returnClientToPool(client) {
         if (client) {
@@ -701,7 +779,9 @@ class SqlAdapter extends adapter_core_1.Adapter {
             let mySQLOptions;
             let postgreSQLOptions;
             const poolOptions = {
-                max_idle: this.config.dbtype === 'sqlite' ? 1 : 2,
+                // the connections of a flush are reused by the next inserts instead of being closed and opened
+                // again; idle ones are still closed after `max_age`
+                max_idle: this.config.dbtype === 'sqlite' ? 1 : Math.min(this.config.maxConnections, INSERT_CONNECTIONS) || 2,
             };
             if (this.config.dbtype !== 'sqlite') {
                 // A connection that was idle for a while is opened anew instead of being reused: servers
@@ -838,6 +918,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     this.activeConnections = 0;
                     if (err) {
                         this.clientPool = null;
+                        this.#failWaiters();
                         this.setConnected(false);
                         // JSON.stringify(Error) is "{}", and toString() of an AggregateError is just
                         // "AggregateError" - formatError() digs the real reason out of both
@@ -862,6 +943,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     this.log.debug(ex.stack);
                 }
                 this.clientPool = null;
+                this.#failWaiters();
                 this.activeConnections = 0;
                 this.setConnected(false);
                 this.reconnectTimeout && clearTimeout(this.reconnectTimeout);
@@ -1098,6 +1180,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     this.clientPool?.close();
                     this.activeConnections = 0;
                     this.clientPool = null;
+                    this.#failWaiters();
                     this.setConnected(false);
                     this.logConnectionError(err || 'No database connection');
                     return cb?.(err || new Error('No database connection'));
@@ -1196,6 +1279,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 this.clientPool.close();
                 this.activeConnections = 0;
                 this.clientPool = null;
+                this.#failWaiters();
                 this.setConnected(false);
             }
             if (typeof this.finished === 'object') {
@@ -1363,6 +1447,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 this.clientPool.close();
                 this.activeConnections = 0;
                 this.clientPool = null;
+                this.#failWaiters();
                 this.setConnected(false);
             }
             // so that a second finish() (stopInstance message, then unload) does not wait forever
@@ -1997,11 +2082,16 @@ class SqlAdapter extends adapter_core_1.Adapter {
      */
     _insertValuesIntoDB(list, index, id, cb) {
         const groups = (0, write_buffer_1.splitBatch)(list);
+        const limit = Math.min(this.config.maxConnections, INSERT_CONNECTIONS);
         this.borrowClientFromPool((err, client) => {
             if (err || !client) {
                 this.returnClientToPool(client);
                 const error = err || new Error('No client');
-                this.log.error((0, errors_1.formatError)(error));
+                // While the database is down every write fails: the failed connect is logged (once,
+                // repeated hourly), the rows kept for the next write are reported by #keepForRetry.
+                if (error.code !== DB_UNREACHABLE) {
+                    this.logConnectionError(error);
+                }
                 cb?.(error, list);
                 return;
             }
@@ -2032,7 +2122,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 run(0);
             };
             next(0);
-        });
+        }, limit);
     }
     _executeQuery(query, id, cb) {
         this.#debugStatement(query);
