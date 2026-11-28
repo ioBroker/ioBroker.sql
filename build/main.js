@@ -209,6 +209,8 @@ const KEPT_LOG_INTERVAL = 60_000;
 const MAX_RAW_ENTRIES = 5000;
 /** How often an unchanged connection error is repeated as error in the log */
 const REPEATED_ERROR_INTERVAL = 3_600_000;
+/** Rows per batch when an aggregated PostgreSQL read is streamed instead of buffered */
+const STREAM_BATCH_SIZE = 2000;
 /** How long `aggregate` and `lastChange` wait for the answer of the own `getHistory` */
 const STANDARD_TIMEOUT = 120_000;
 function sortByTs(a, b) {
@@ -227,6 +229,8 @@ class SqlAdapter extends adapter_core_1.Adapter {
     finished = false;
     sqlConnected = null;
     multiRequests = true;
+    /** The driver cannot stream (pg-native, or pg-cursor not installed): read buffered without trying again */
+    streamingUnavailable = false;
     subscribeAll = false;
     clientPool = null;
     reconnectTimeout = null;
@@ -2943,29 +2947,150 @@ class SqlAdapter extends adapter_core_1.Adapter {
             client.execute(query, (err, rows /* , fields */) => {
                 this.returnClientToPool(client);
                 if (!err && rows) {
-                    for (let c = 0; c < rows.length; c++) {
-                        if (typeof rows[c].ts === 'string') {
-                            rows[c].ts = parseInt(rows[c].ts, 10);
-                        }
-                        if (this.common?.loglevel === 'debug') {
-                            rows[c].date = new Date(rows[c].ts);
-                        }
-                        if (options.ack) {
-                            rows[c].ack = !!rows[c].ack;
-                        }
-                        if (typeof rows[c].val === 'number' && isFinite(rows[c].val) && options.round) {
-                            rows[c].val = Math.round(rows[c].val * options.round) / options.round;
-                        }
-                        if (options.id && this.sqlDPs[options.id] && this.sqlDPs[options.id].type === 2) {
-                            // 2 === boolean
-                            rows[c].val = !!rows[c].val;
-                        }
-                        if (options.addId && !rows[c].id && options.id) {
-                            rows[c].id = options.id;
-                        }
-                    }
+                    this.#normalizeRows(rows, options);
                 }
                 callback?.(err, rows);
+            });
+        });
+    }
+    /**
+     * Prepare the rows of a history read in place: numeric `ts`, `date` for the debug log, `ack` as boolean,
+     * rounding, boolean values of boolean datapoints and `id` for `addId`. The buffered and the streamed
+     * read use the same code, so both deliver the same rows.
+     *
+     * @param rows rows as the driver returned them
+     * @param options options of the read
+     */
+    #normalizeRows(rows, options) {
+        const isDebug = this.common?.loglevel === 'debug';
+        const isBoolean = !!(options.id && this.sqlDPs[options.id] && this.sqlDPs[options.id].type === 2);
+        for (let c = 0; c < rows.length; c++) {
+            if (typeof rows[c].ts === 'string') {
+                rows[c].ts = parseInt(rows[c].ts, 10);
+            }
+            if (isDebug) {
+                rows[c].date = new Date(rows[c].ts);
+            }
+            if (options.ack) {
+                rows[c].ack = !!rows[c].ack;
+            }
+            if (typeof rows[c].val === 'number' && isFinite(rows[c].val) && options.round) {
+                rows[c].val = Math.round(rows[c].val * options.round) / options.round;
+            }
+            if (isBoolean) {
+                // 2 === boolean
+                rows[c].val = !!rows[c].val;
+            }
+            if (options.addId && !rows[c].id && options.id) {
+                rows[c].id = options.id;
+            }
+        }
+    }
+    /**
+     * Whether an aggregated read of one datapoint can be streamed from PostgreSQL instead of buffered (#516).
+     *
+     * The query of an aggregated read with a start returns every row in one `ORDER BY ts`, with at most one
+     * row before the start and one after the end. Fed batch by batch, `aggregation()` then produces exactly
+     * what it produces for the whole array, because all its state lives in the options. Values from the RAM
+     * cache would have to be merged in by time, so a read with cached values stays buffered.
+     *
+     * `integralTotal` stays buffered: `aggregation()` adds a row from far before the start at the end of the
+     * call that contains it, and `integralTotal` keeps one series in the order the rows were added.
+     *
+     * @param options options of the read
+     * @param cachedValues number of values of this datapoint in the RAM cache
+     * @param includesInFlightData whether values are being written right now
+     */
+    #canStream(options, cachedValues, includesInFlightData) {
+        return (this.config.dbtype === 'postgresql' &&
+            this.multiRequests &&
+            !this.streamingUnavailable &&
+            !!options.start &&
+            !cachedValues &&
+            !includesInFlightData &&
+            !!options.aggregate &&
+            options.aggregate !== 'none' &&
+            options.aggregate !== 'onchange' &&
+            options.aggregate !== 'integralTotal');
+    }
+    /**
+     * Aggregated read of one datapoint, streamed from PostgreSQL in batches of `STREAM_BATCH_SIZE` rows, so the
+     * memory of the adapter does not grow with the requested range (#516). Each batch is folded into the
+     * aggregation right away. The answer is the one `sendResponse()` builds for the whole array.
+     *
+     * @param table table of the datapoint
+     * @param options options of the read
+     * @param msg the request
+     * @param startTime when the request arrived
+     * @param debugLog whether to log the aggregation steps
+     * @param logId prefix of the debug log
+     * @param readBuffered the buffered read, used when the driver cannot stream
+     */
+    #getAggregatedDataStreamed(table, options, msg, startTime, debugLog, logId, readBuffered) {
+        const query = this.sqlFuncs.getHistory(this.config.dbname, table, options);
+        if (typeof query !== 'string') {
+            readBuffered();
+            return;
+        }
+        this.#debugStatement(query);
+        // like sendResponse(): the step of the request, before initAggregate() calculates one
+        const responseStep = options.step || 0;
+        const log = debugLog ? (text) => this.log.debug(`${logId}: ${text}`) : undefined;
+        // Initialized with the first batch: if the driver cannot stream, `options` stays untouched for the buffered read
+        let aggOptions;
+        let rowCount = 0;
+        let batches = 0;
+        // An exception must not escape into the callback of the cursor: the connection would never be returned
+        let aggError = null;
+        this.borrowClientFromPool((err, client) => {
+            if (err || !client) {
+                this.returnClientToPool(client);
+                (0, aggregate_1.sendResponse)(this, msg, options.id, options, (err || new Error('No client')).toString(), startTime);
+                return;
+            }
+            client.executeStreamed(query, STREAM_BATCH_SIZE, rows => {
+                if (aggError) {
+                    return;
+                }
+                try {
+                    aggOptions ??= (0, aggregate_1.initAggregate)(options, options.id, undefined, log);
+                    this.#normalizeRows(rows, options);
+                    rowCount += rows.length;
+                    batches++;
+                    (0, aggregate_1.aggregation)(aggOptions, rows);
+                }
+                catch (e) {
+                    aggError = e instanceof Error ? e : new Error(String(e));
+                }
+            }, (streamErr, streamed) => {
+                this.returnClientToPool(client);
+                if (!streamed) {
+                    if (!streamErr) {
+                        // pg-native, or pg-cursor is not installed: that does not change while the adapter runs
+                        this.streamingUnavailable = true;
+                        this.log.debug('PostgreSQL reads are not streamed: pg-native is used or pg-cursor is missing');
+                    }
+                    readBuffered();
+                    return;
+                }
+                if (streamErr || aggError) {
+                    (0, aggregate_1.sendResponse)(this, msg, options.id, options, (streamErr || aggError).toString(), startTime);
+                    return;
+                }
+                if (!aggOptions) {
+                    // no rows: the same "No Data" answer as for an empty buffered read
+                    (0, aggregate_1.sendResponse)(this, msg, options.id, options, [], startTime);
+                    return;
+                }
+                try {
+                    (0, aggregate_1.finishAggregation)(aggOptions);
+                    const result = aggOptions.result;
+                    this.log.debug(`Send after aggregation (streamed in ${batches} batches): ${result.length} of: ${rowCount} in: ${Date.now() - startTime}ms`);
+                    this.sendTo(msg.from, msg.command, { result, step: responseStep, sessionId: options.sessionId }, msg.callback);
+                }
+                catch (e) {
+                    (0, aggregate_1.sendResponse)(this, msg, options.id, options, e.toString(), startTime);
+                }
             });
         });
     }
@@ -3242,53 +3367,61 @@ class SqlAdapter extends adapter_core_1.Adapter {
                     }, msg.callback);
                 }
                 else {
-                    const origEnd = options.end;
-                    if (includesInFlightData && earliestTs) {
-                        options.end = earliestTs;
-                    }
-                    // if not all data read
-                    this.getDataFromDB(dbNames[type], options, (err, data) => {
-                        if (!err && data) {
-                            options.end = origEnd;
-                            if (options.aggregate === 'none' && options.count && options.returnNewestEntries) {
-                                cacheData = cacheData.reverse();
-                                data = cacheData.concat(data);
-                            }
-                            else {
-                                data = data.concat(cacheData);
-                            }
-                            if (debugLog) {
-                                this.log.debug(`${logId} after getDataFromDB: length = ${data.length}`);
-                            }
-                            if (options.count &&
-                                data.length > options.count &&
-                                options.aggregate === 'none' &&
-                                !options.returnNewestEntries) {
-                                if (options.start) {
-                                    for (let i = 0; i < data.length; i++) {
-                                        if (data[i].ts < options.start) {
-                                            data.splice(i, 1);
-                                            i--;
-                                        }
-                                        else {
-                                            break;
+                    const readBuffered = () => {
+                        const origEnd = options.end;
+                        if (includesInFlightData && earliestTs) {
+                            options.end = earliestTs;
+                        }
+                        // if not all data read
+                        this.getDataFromDB(dbNames[type], options, (err, data) => {
+                            if (!err && data) {
+                                options.end = origEnd;
+                                if (options.aggregate === 'none' && options.count && options.returnNewestEntries) {
+                                    cacheData = cacheData.reverse();
+                                    data = cacheData.concat(data);
+                                }
+                                else {
+                                    data = data.concat(cacheData);
+                                }
+                                if (debugLog) {
+                                    this.log.debug(`${logId} after getDataFromDB: length = ${data.length}`);
+                                }
+                                if (options.count &&
+                                    data.length > options.count &&
+                                    options.aggregate === 'none' &&
+                                    !options.returnNewestEntries) {
+                                    if (options.start) {
+                                        for (let i = 0; i < data.length; i++) {
+                                            if (data[i].ts < options.start) {
+                                                data.splice(i, 1);
+                                                i--;
+                                            }
+                                            else {
+                                                break;
+                                            }
                                         }
                                     }
+                                    data.splice(options.count);
+                                    if (debugLog) {
+                                        this.log.debug(`${logId} pre-cut data to ${options.count} oldest values`);
+                                    }
                                 }
-                                data.splice(options.count);
-                                if (debugLog) {
-                                    this.log.debug(`${logId} pre-cut data to ${options.count} oldest values`);
-                                }
+                                data.sort(sortByTs);
                             }
-                            data.sort(sortByTs);
-                        }
-                        try {
-                            (0, aggregate_1.sendResponse)(this, msg, options.id, options, err?.toString() || data || [], startTime, debugLog ? logId : undefined);
-                        }
-                        catch (e) {
-                            (0, aggregate_1.sendResponse)(this, msg, options.id, options, e.toString(), startTime);
-                        }
-                    });
+                            try {
+                                (0, aggregate_1.sendResponse)(this, msg, options.id, options, err?.toString() || data || [], startTime, debugLog ? logId : undefined);
+                            }
+                            catch (e) {
+                                (0, aggregate_1.sendResponse)(this, msg, options.id, options, e.toString(), startTime);
+                            }
+                        });
+                    };
+                    if (this.#canStream(options, cacheData.length, includesInFlightData)) {
+                        this.#getAggregatedDataStreamed(dbNames[type], options, msg, startTime, debugLog, logId, readBuffered);
+                    }
+                    else {
+                        readBuffered();
+                    }
                 }
             });
         }

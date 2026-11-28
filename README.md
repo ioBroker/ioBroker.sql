@@ -684,6 +684,7 @@ sendTo('sql.0', 'getEnabledDPs', {}, function (result) {
 
 ## Changelog
 ### **WORK IN PROGRESS**
+* (@DutchmanNL) PostgreSQL: an aggregated `getHistory` of one datapoint reads the rows in batches of 2000 (pg-cursor) and aggregates them batch by batch, instead of holding the whole range in memory first. The answer stays the same; without pg-cursor, with pg-native, and for `integralTotal` the values are read as before (#516)
 * (@Schimi1983) MS SQL: new tables store names and string values as Unicode (`nvarchar`, `N'...'`), so Cyrillic letters or emojis no longer become `?`, and the names compare case-sensitively. The database name is put in brackets, so a name like `io-broker` works. Existing tables are not changed; the README explains how to convert them (#588)
 * (@Schimi1983) Faster start with many datapoints: the first value of each datapoint no longer waits 50 ms in the type lookup, and debug texts with the value are only built when debug logging is on (#587)
 
