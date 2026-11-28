@@ -96,7 +96,12 @@ class PostgreSQLConnectionFactory extends ConnectionFactory {
         const read = (): void => {
             cursor.read(batchSize, (err: Error | undefined, rows: T[]): void => {
                 if (err) {
-                    cursor.close(() => finish(err));
+                    // Do not wait for cursor.close() here. After an error pg-cursor has already sent the
+                    // `sync` itself, and close() waits for a `readyForQuery`. When the connection is gone
+                    // (backend terminated, socket reset) that never comes: the callback, and with it the
+                    // return of the client to the pool, would never be called. A dead connection is
+                    // flagged by its `error` event and dropped by the pool on the next borrow.
+                    finish(err);
                 } else if (!rows.length) {
                     // Every row was delivered. An error while closing the cursor does not change the
                     // result; a broken connection is noticed by the pool on the next borrow.
