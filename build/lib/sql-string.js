@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.quoteSqlString = quoteSqlString;
+exports.quoteNString = quoteNString;
+exports.quoteMsIdentifier = quoteMsIdentifier;
 exports.quotePgString = quotePgString;
 exports.numberOrNull = numberOrNull;
 exports.boolOrNull = boolOrNull;
@@ -27,6 +29,28 @@ const values_1 = require("./values");
 function quoteSqlString(value) {
     const text = typeof value === 'string' ? value : String(value);
     return `'${text.replace(/\0/g, '').replace(/'/g, "''")}'`;
+}
+/**
+ * Return `value` as an MS SQL Unicode string literal (`N'...'`), including the prefix and quotes.
+ *
+ * A plain `'...'` literal is converted to the code page of the database collation before it reaches an
+ * `nvarchar` column: `Кухня` or an emoji arrived as `?????`. With `N` the text stays Unicode.
+ *
+ * @param value the text to quote; anything else is converted with `String()`
+ */
+function quoteNString(value) {
+    return `N${quoteSqlString(value)}`;
+}
+/**
+ * Return `name` as an MS SQL identifier in brackets, e.g. a database name.
+ *
+ * Without brackets a name with `-`, a space or a reserved word (`io-broker`) is a syntax error. A `]`
+ * in the name is doubled.
+ *
+ * @param name the identifier
+ */
+function quoteMsIdentifier(name) {
+    return `[${String(name).replace(/]/g, ']]')}]`;
 }
 /**
  * Return `value` as a PostgreSQL escape string literal (`E'...'`), including the prefix and quotes.

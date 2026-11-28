@@ -296,9 +296,38 @@ describe('SQL string literals (PostgreSQL, SQLite, MSSQL)', function () {
         assert.ok(!/[^E]'\\'/.test(insert), insert);
     });
 
+    it('MS SQL: Unicode literals and the database name in brackets (#588)', function () {
+        const { quoteNString, quoteMsIdentifier } = require('../build/lib/sql-string');
+        assert.strictEqual(quoteNString("Кухня 'x' 😀"), "N'Кухня ''x'' 😀'");
+        assert.strictEqual(quoteMsIdentifier('io-broker'), '[io-broker]');
+        assert.strictEqual(quoteMsIdentifier('a]b'), '[a]]b]');
+        const ms = DIALECTS.mssql;
+        const init = ms.init('io-broker').join('\n');
+        assert.ok(init.startsWith('CREATE DATABASE [io-broker];'), init);
+        assert.ok(
+            init.includes(
+                '[io-broker].dbo.datapoints  (id INTEGER NOT NULL PRIMARY KEY IDENTITY(1,1), name nvarchar(255) COLLATE Latin1_General_100_CS_AS_SC',
+            ),
+            init,
+        );
+        assert.ok(init.includes('ts_string   (id INTEGER, ts BIGINT, val nvarchar(max)'), init);
+        assert.ok(!/ io-broker\./.test(init), init);
+        assert.strictEqual(
+            ms.destroy('io-broker').filter(q => q.includes('DROP DATABASE'))[0],
+            'DROP DATABASE [io-broker];',
+        );
+        assert.ok(ms.getTableSize('io-broker', 'ts_number').includes("OBJECT_ID(N'[io-broker].dbo.ts_number')"));
+        assert.ok(
+            ms
+                .getIdSelect('io-broker', 'alias.0.Кухня')
+                .endsWith("[io-broker].dbo.datapoints WHERE name=N'alias.0.Кухня';"),
+        );
+    });
+
     for (const [name, dialect] of Object.entries(DIALECTS)) {
-        // PostgreSQL quotes with escape string literals, see quotePgString()
-        const p = name === 'postgresql' ? 'E' : '';
+        // PostgreSQL quotes with escape string literals (quotePgString()), MS SQL with Unicode literals
+        // (quoteNString())
+        const p = { postgresql: 'E', mssql: 'N' }[name] || '';
 
         it(`${name}: datapoint and source names are quoted`, function () {
             const id = "x' OR name<>'";

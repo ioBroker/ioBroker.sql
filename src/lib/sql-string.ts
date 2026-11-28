@@ -25,6 +25,30 @@ export function quoteSqlString(value: unknown): string {
 }
 
 /**
+ * Return `value` as an MS SQL Unicode string literal (`N'...'`), including the prefix and quotes.
+ *
+ * A plain `'...'` literal is converted to the code page of the database collation before it reaches an
+ * `nvarchar` column: `Кухня` or an emoji arrived as `?????`. With `N` the text stays Unicode.
+ *
+ * @param value the text to quote; anything else is converted with `String()`
+ */
+export function quoteNString(value: unknown): string {
+    return `N${quoteSqlString(value)}`;
+}
+
+/**
+ * Return `name` as an MS SQL identifier in brackets, e.g. a database name.
+ *
+ * Without brackets a name with `-`, a space or a reserved word (`io-broker`) is a syntax error. A `]`
+ * in the name is doubled.
+ *
+ * @param name the identifier
+ */
+export function quoteMsIdentifier(name: string): string {
+    return `[${String(name).replace(/]/g, ']]')}]`;
+}
+
+/**
  * Return `value` as a PostgreSQL escape string literal (`E'...'`), including the prefix and quotes.
  *
  * A plain `'...'` literal depends on `standard_conforming_strings`: with it off - possible per

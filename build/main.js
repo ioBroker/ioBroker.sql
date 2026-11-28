@@ -881,7 +881,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 this.resetConnectionError();
                 this.log.info(`Connected to ${this.config.dbtype}`);
                 // read all DB IDs and all FROM ids
-                this.getAllIds(() => this.getAllFroms(callback));
+                this.#readNameColumnTypes(() => this.getAllIds(() => this.getAllFroms(callback)));
             }
         });
     }
@@ -1827,6 +1827,39 @@ class SqlAdapter extends adapter_core_1.Adapter {
         // A copy: `state` is the reference value of "Record changes only" (sqlDPs[id].state), and
         // the converted value must not replace it.
         this.pushValueIntoDB(_id, { ...state, val }, false, false, cb);
+    }
+    /**
+     * MS SQL: find out whether the `name` columns are still `varchar` (tables created before #588), so that the names
+     * are compared with the right kind of literal (see `varcharNames` in lib/mssql.ts). Other databases: nothing to do.
+     * An error is logged and the start goes on with `N'...'` literals, as for new tables.
+     *
+     * @param cb called when done
+     */
+    #readNameColumnTypes(cb) {
+        if (this.config.dbtype !== 'mssql') {
+            return cb();
+        }
+        const query = MSSQL.getNameColumnTypes(this.config.dbname);
+        this.borrowClientFromPool((err, client) => {
+            if (err || !client) {
+                this.returnClientToPool(client);
+                this.log.warn(`Cannot read the column types of the tables: ${err?.message || 'no client'}`);
+                return cb();
+            }
+            client.execute(query, (err, rows) => {
+                this.returnClientToPool(client);
+                if (err) {
+                    this.log.warn(`Cannot read the column types of the tables: ${err.message}`);
+                }
+                else {
+                    MSSQL.setNameColumnTypes(this.config.dbname, rows || []);
+                    if (rows?.some(row => !String(row.type).toLowerCase().startsWith('n'))) {
+                        this.log.debug('The tables were created by an older version (varchar names). Names with characters outside the code page of the database are stored as "?". The README explains how to convert the tables.');
+                    }
+                }
+                cb();
+            });
+        });
     }
     getAllIds(cb) {
         const query = this.sqlFuncs.getIdSelect(this.config.dbname);
