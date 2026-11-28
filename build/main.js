@@ -239,7 +239,10 @@ class SqlAdapter extends adapter_core_1.Adapter {
     bufferChecker = null;
     activeConnections = 0;
     poolBorrowGuard = []; // required until https://github.com/intellinote/sql-client/issues/7 is fixed
-    logConnectionUsage = true;
+    /** Borrow/return of every connection on debug level; the texts are only built when debug is on. */
+    get logConnectionUsage() {
+        return this.#isDebug();
+    }
     postgresDbCreated = false;
     lockTasks = false;
     sqlFuncs = null;
@@ -375,6 +378,13 @@ class SqlAdapter extends adapter_core_1.Adapter {
         });
     }
     /**
+     * Whether debug lines are written at all. A template string passed to `log.debug()` is built before the
+     * call, also when the level is `info`; on the paths that run for every value, check this first.
+     */
+    #isDebug() {
+        return this.log.level === 'debug' || this.log.level === 'silly';
+    }
+    /**
      * Log a statement on debug level.
      *
      * Only built when debug is on: a batch carries up to 3000 bound values, and turning them into text
@@ -383,7 +393,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
      * @param statement plain SQL or SQL with values
      */
     #debugStatement(statement) {
-        if (this.log.level === 'debug' || this.log.level === 'silly') {
+        if (this.#isDebug()) {
             this.log.debug((0, statement_1.statementToString)(statement));
         }
     }
@@ -875,7 +885,7 @@ class SqlAdapter extends adapter_core_1.Adapter {
                 this.resetConnectionError();
                 this.log.info(`Connected to ${this.config.dbtype}`);
                 // read all DB IDs and all FROM ids
-                this.getAllIds(() => this.getAllFroms(callback));
+                this.#readNameColumnTypes(() => this.getAllIds(() => this.getAllFroms(callback)));
             }
         });
     }
@@ -1822,6 +1832,39 @@ class SqlAdapter extends adapter_core_1.Adapter {
         // the converted value must not replace it.
         this.pushValueIntoDB(_id, { ...state, val }, false, false, cb);
     }
+    /**
+     * MS SQL: find out whether the `name` columns are still `varchar` (tables created before #588), so that the names
+     * are compared with the right kind of literal (see `varcharNames` in lib/mssql.ts). Other databases: nothing to do.
+     * An error is logged and the start goes on with `N'...'` literals, as for new tables.
+     *
+     * @param cb called when done
+     */
+    #readNameColumnTypes(cb) {
+        if (this.config.dbtype !== 'mssql') {
+            return cb();
+        }
+        const query = MSSQL.getNameColumnTypes(this.config.dbname);
+        this.borrowClientFromPool((err, client) => {
+            if (err || !client) {
+                this.returnClientToPool(client);
+                this.log.warn(`Cannot read the column types of the tables: ${err?.message || 'no client'}`);
+                return cb();
+            }
+            client.execute(query, (err, rows) => {
+                this.returnClientToPool(client);
+                if (err) {
+                    this.log.warn(`Cannot read the column types of the tables: ${err.message}`);
+                }
+                else {
+                    MSSQL.setNameColumnTypes(this.config.dbname, rows || []);
+                    if (rows?.some(row => !String(row.type).toLowerCase().startsWith('n'))) {
+                        this.log.debug('The tables were created by an older version (varchar names). Names with characters outside the code page of the database are stored as "?". The README explains how to convert the tables.');
+                    }
+                }
+                cb();
+            });
+        });
+    }
     getAllIds(cb) {
         const query = this.sqlFuncs.getIdSelect(this.config.dbname);
         this.#debugStatement(query);
@@ -2132,10 +2175,14 @@ class SqlAdapter extends adapter_core_1.Adapter {
         }
         task.cb?.();
         task.cb = null;
-        setTimeout(() => {
+        // The queue has one entry per value, not per datapoint: every value that arrives before the type
+        // of its datapoint is known waits here. A pause of 50 ms per entry limited the start with many
+        // datapoints to 20 values per second (2000 datapoints: more than a minute and a half, with the
+        // values piling up in memory). The lookups still run one after the other.
+        setImmediate(() => {
             this.tasksReadType.shift();
             this.processReadTypes();
-        }, 50);
+        });
     }
     prepareTaskReadDbId(id, state, isCounter, cb) {
         if (!this.sqlDPs[id]) {
@@ -2267,12 +2314,17 @@ class SqlAdapter extends adapter_core_1.Adapter {
         if (!this.sqlDPs[id] || !state) {
             return cb?.();
         }
-        this.log.debug(`pushValueIntoDB called for ${id} (type: ${this.sqlDPs[id].type}, ID: ${this.sqlDPs[id].index}) and state: ${JSON.stringify(state)}`);
+        // runs for every value: no JSON.stringify unless the line is written
+        if (this.#isDebug()) {
+            this.log.debug(`pushValueIntoDB called for ${id} (type: ${this.sqlDPs[id].type}, ID: ${this.sqlDPs[id].index}) and state: ${JSON.stringify(state)}`);
+        }
         this.prepareTaskCheckTypeAndDbId(id, state, isCounter, (err) => {
             if (!this.sqlDPs[id]) {
                 return cb?.();
             }
-            this.log.debug(`pushValueIntoDB-prepareTaskCheckTypeAndDbId RESULT for ${id} (type: ${this.sqlDPs[id].type}, ID: ${this.sqlDPs[id].index}) and state: ${JSON.stringify(state)}: ${err}`);
+            if (this.#isDebug()) {
+                this.log.debug(`pushValueIntoDB-prepareTaskCheckTypeAndDbId RESULT for ${id} (type: ${this.sqlDPs[id].type}, ID: ${this.sqlDPs[id].index}) and state: ${JSON.stringify(state)}: ${err}`);
+            }
             if (err) {
                 return cb?.(err);
             }
@@ -2412,8 +2464,16 @@ class SqlAdapter extends adapter_core_1.Adapter {
     #keptErrors = new WeakSet();
     storeCached(onlyId, cb) {
         let count = 0;
-        for (const id in this.sqlDPs) {
-            if (!Object.prototype.hasOwnProperty.call(this.sqlDPs, id) || (onlyId !== undefined && onlyId !== id)) {
+        // With `onlyId` (a full buffer, for every value with maxLength 0) only that datapoint: looping
+        // over all datapoints to find it cost O(n) per value.
+        const ids = onlyId !== undefined
+            ? Object.prototype.hasOwnProperty.call(this.sqlDPs, onlyId)
+                ? [onlyId]
+                : []
+            : Object.keys(this.sqlDPs);
+        for (const id of ids) {
+            // `ids` is a snapshot; `for...in` skipped datapoints that were deleted during the loop
+            if (!this.sqlDPs[id]) {
                 continue;
             }
             const _settings = this.sqlDPs[id].config || {};
